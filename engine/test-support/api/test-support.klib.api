@@ -1,0 +1,16 @@
+// Klib ABI Dump
+// Targets: [iosSimulatorArm64]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <dev.rotalex.lutter:test-support>
+abstract fun interface dev.rotalex.lutter.testsupport/GoldenSource { // dev.rotalex.lutter.testsupport/GoldenSource|null[0]
+    abstract fun read(kotlin/String): kotlin/String? // dev.rotalex.lutter.testsupport/GoldenSource.read|read(kotlin.String){}[0]
+}
+
+final object dev.rotalex.lutter.testsupport/Golden { // dev.rotalex.lutter.testsupport/Golden|null[0]
+    final fun assertEquals(kotlin/String, kotlin/String, dev.rotalex.lutter.testsupport/GoldenSource, kotlin/Boolean = ...): kotlin/String // dev.rotalex.lutter.testsupport/Golden.assertEquals|assertEquals(kotlin.String;kotlin.String;dev.rotalex.lutter.testsupport.GoldenSource;kotlin.Boolean){}[0]
+    final fun read(kotlin/String, dev.rotalex.lutter.testsupport/GoldenSource): kotlin/String // dev.rotalex.lutter.testsupport/Golden.read|read(kotlin.String;dev.rotalex.lutter.testsupport.GoldenSource){}[0]
+}

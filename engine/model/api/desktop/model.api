@@ -1,0 +1,8 @@
+public final class dev/rotalex/lutter/model/SchemaVersionKt {
+	public static final field CURRENT_SCHEMA_VERSION I
+	public static final field FORMAT_VERSION I
+}
+
+public abstract interface annotation class dev/rotalex/lutter/model/annotations/EngineInternalApi : java/lang/annotation/Annotation {
+}
+
