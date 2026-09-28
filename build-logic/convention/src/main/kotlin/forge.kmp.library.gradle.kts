@@ -82,10 +82,11 @@ kotlin {
     // Linux runner infer the iOS and Wasm ABI instead of failing on targets it cannot
     // build. Setting it to false would trade a green CI for a check that only works on a
     // Mac.
+    // Called with no arguments: that is what enables it. Kotlin 2.4 removed the `enabled`
+    // property, and the no-arg function is the supported way to switch validation on. It is
+    // still `@ExperimentalAbiValidation`, so the opt-in stays.
     @OptIn(ExperimentalAbiValidation::class)
-    abiValidation {
-        enabled.set(true)
-    }
+    abiValidation()
 
     sourceSets {
         commonTest.dependencies {

@@ -8,16 +8,7 @@ plugins {
     id("org.jetbrains.compose")
 }
 
-compose {
-    dependencies {
-        // The plugin's own dependency handler, not a raw coordinate. A raw
-        // `org.jetbrains.compose.ui:ui-test` would carry no version and simply fail to
-        // resolve; going through the handler means the test API always matches the Compose
-        // Multiplatform version this module compiles against, with nothing to keep in sync.
-        //
-        // `commonTestImplementation` rather than `testImplementation` because the UI test
-        // API is common code: the same golden and semantics test has to run on the desktop
-        // and Android runs, not only on the JVM.
-        commonTestImplementation(compose.uiTest)
-    }
-}
+// No compose.uiTest dependency yet. It is annotated ExperimentalComposeLibrary, so adding
+// it means opting in to an unstable API — and Phase 0 has no Compose UI test to run. It
+// comes back with the conformance suite in Phase 4, where the first runtime-versus-generated
+// comparison actually needs it.
