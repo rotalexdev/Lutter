@@ -25,6 +25,19 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+
+        // The Kotlin Gradle plugin resolves the Node.js distribution as the ivy module
+        // `org.nodejs:node` from https://nodejs.org/dist, and it declares that repository on
+        // each project rather than in settings. With PREFER_SETTINGS the project declaration
+        // is ignored, so the distribution has to be declared here or resolution fails with
+        // "Could not find org.nodejs:node:25.0.0". Only the wasmJs canary target needs it,
+        // but it is needed for the whole build to configure, so it is unconditional.
+        ivy("https://nodejs.org/dist") {
+            name = "Node Distributions at https://nodejs.org/dist"
+            patternLayout { artifact("v[revision]/[artifact](-v[revision]-[classifier]).[ext]") }
+            metadataSources { artifact() }
+            content { includeModule("org.nodejs", "node") }
+        }
     }
 
     versionCatalogs {

@@ -132,14 +132,55 @@ able to block the pipeline.
 |---|---|
 | `main` | Protected. The stable line. Receives merges from `dev` only, through a pull request |
 | `dev` | Protected. The integration line. Every change lands here, through a pull request |
-| `feat/*`, `fix/*` | Working branches. Each opens a pull request against `dev` |
+| `<type>/v<version>[-<slug>]` | Working branch. Each opens a pull request against `dev` |
 
-Nothing is ever pushed directly to `main` or `dev`. `main` and `dev` are both protected
-against direct pushes, force-pushes and deletion, and both require a pull request — so the
-rule is enforced by the repository rather than by good intentions.
+Nothing is ever pushed directly to `main` or `dev`. Both are protected against direct
+pushes, force-pushes and deletion, and both require a pull request — so the rule is enforced
+by the repository rather than by good intentions.
+
+**Every working branch carries a semantic version**, because the branch name is the only
+place a version can be recorded before the work exists:
+
+```
+feat/v0.1.0-foundation     fix/v0.1.1-node-repo     feat/v0.2.0-canaries
+^    ^^^^^^^ ^^^^^^^^^^^                                      ^^ prerelease
+|    |       slug                                            |
+|    MAJOR.MINOR.PATCH — a real semver version, so
+|    feat/v0.2.0-canaries sorts *below* feat/v0.2.0
+|
+type: feat fix chore refactor perf docs test build ci
+```
+
+Two things enforce it. `scripts/new-branch.sh` refuses to cut a name that does not match,
+and the `branch-policy` workflow is a required check on `dev`, so the rule is the
+repository's, not a convention.
+
+### The branch lifecycle
+
+```bash
+# 1. cut the next branch, always from dev
+scripts/new-branch.sh feat 0.1.0 foundation        #  ->  feat/v0.1.0-foundation
+
+# 2. work there. Never on dev, never on main.
+git push -u origin feat/v0.1.0-foundation
+
+# 3. open the PR into dev
+gh pr create --base dev --head feat/v0.1.0-foundation
+
+# 4. CI goes green, the PR merges, and GitHub deletes the branch automatically
+#    (delete_branch_on_merge is on for this repository)
+
+# 5. cut the next one, with the next version
+scripts/new-branch.sh feat 0.1.1 canary-scope
+```
+
+A branch is disposable. It exists for one change, it is deleted when that change lands, and
+the next one starts from a fresh `dev`. Nothing accumulates on a long-lived feature branch,
+so there is never a merge-base that has drifted.
 
 `dependabot` targets `dev`, because a dependency bump is verified by the same matrix as
 everything else before it can reach `main`.
+
 
 
 ```
