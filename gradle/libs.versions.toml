@@ -17,7 +17,7 @@ composeCompilerPlugin = "2.4.10"
 composeMultiplatform = "1.12.1"
 # >= 8.12 so the KMP Android target is the `kotlin { android { } }` block and not the
 # deprecated `androidLibrary { }` one.
-agp = "9.1.0"
+agp = "9.4.1"
 gradle = "9.5.0"
 # Toolchain, not the only JDK: makes runner-local JDK versions irrelevant.
 javaVersion = "21"
