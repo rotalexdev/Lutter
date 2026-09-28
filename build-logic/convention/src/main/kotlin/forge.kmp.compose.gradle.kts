@@ -1,7 +1,10 @@
 plugins {
     id("forge.kmp.library")
-    alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.compose.multiplatform)
+    // Bare `id(...)` for the reason explained in forge.kmp.library: the `plugins` block of
+    // a precompiled script plugin is compiled separately from the version-catalog
+    // accessors. Versions still flow from gradle/libs.versions.toml.
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.compose")
 }
 
 compose {

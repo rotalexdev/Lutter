@@ -7,7 +7,12 @@ plugins {
     id("org.jetbrains.kotlin.multiplatform")
     // AGP's own KMP library plugin. It provides `kotlin { android { } }`, which replaced
     // the deprecated `androidLibrary { }` block. `androidTarget()` is not this API either.
-    alias(libs.plugins.android.kotlin.multiplatform.library)
+    //
+    // `id(...)` and not `alias(libs.plugins...)`: a precompiled script plugin's `plugins`
+    // block is extracted into a standalone file that is compiled on its own, and the
+    // version-catalog accessors do not exist there. The version still comes from the
+    // catalog, through the `compileOnly` coordinate in this project's build file.
+    id("com.android.kotlin.multiplatform.library")
 }
 
 val javaVersion = libs.versions.javaVersion.get().toInt()
