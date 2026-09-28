@@ -1,0 +1,97 @@
+name: canary
+
+# PLAN §21.1 canary targets: the eight *pure* engine modules are compiled, and their tests
+# run, for iOS and Wasm even though neither is published yet.
+#
+# The point is not coverage. It is that a `java.io` import in `:engine:analysis` is caught
+# by CI on day one instead of surfacing the day iOS support is announced. Compose modules
+# are excluded: they legitimately pull in platform-backed Compose artifacts, so a canary
+# there would be testing the dependency, not the boundary.
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: canary-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  canary-ios:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # AGP resolves the Android SDK while *configuring* the build, not only when an Android
+      # task runs. Every job here configures the whole project graph, so every job needs the
+      # SDK present, even one that only ever runs JVM or Native tasks.
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+
+      - name: Run and compile common tests for the iOS simulator
+        run: |
+          gradle \
+            :engine:model:iosSimulatorArm64Test \
+            :engine:schema:iosSimulatorArm64Test \
+            :engine:serialization:iosSimulatorArm64Test \
+            :engine:interpreter:iosSimulatorArm64Test \
+            :engine:analysis:iosSimulatorArm64Test \
+            :engine:editing:iosSimulatorArm64Test \
+            :engine:codegen:iosSimulatorArm64Test \
+            :engine:builtins:iosSimulatorArm64Test \
+            :engine:model:compileTestKotlinIosSimulatorArm64 \
+            :engine:schema:compileTestKotlinIosSimulatorArm64 \
+            :engine:serialization:compileTestKotlinIosSimulatorArm64 \
+            :engine:interpreter:compileTestKotlinIosSimulatorArm64 \
+            :engine:analysis:compileTestKotlinIosSimulatorArm64 \
+            :engine:editing:compileTestKotlinIosSimulatorArm64 \
+            :engine:codegen:compileTestKotlinIosSimulatorArm64 \
+            :engine:builtins:compileTestKotlinIosSimulatorArm64
+
+  canary-wasm:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # AGP resolves the Android SDK while *configuring* the build, not only when an Android
+      # task runs. Every job here configures the whole project graph, so every job needs the
+      # SDK present, even one that only ever runs JVM or Native tasks.
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+
+      # Compile only, no wasmJsBrowserTest.
+      #
+      # Executing browser tests needs a headless Chrome that this repository does not
+      # provision, and provisioning one is a decision about the runner, not about the
+      # engine. Compiling is still the meaningful guard: the Kotlin/Native and Kotlin/Wasm
+      # compilers reject JVM types in commonMain, so a `java.` import fails here even
+      # though no test ever runs. When browser execution is wanted, the honest fix is a
+      # provisioned Chrome in this job rather than a weaker check.
+      - name: Compile common tests for wasmJs
+        run: |
+          gradle \
+            :engine:model:compileTestKotlinWasmJs \
+            :engine:schema:compileTestKotlinWasmJs \
+            :engine:serialization:compileTestKotlinWasmJs \
+            :engine:interpreter:compileTestKotlinWasmJs \
+            :engine:analysis:compileTestKotlinWasmJs \
+            :engine:editing:compileTestKotlinWasmJs \
+            :engine:codegen:compileTestKotlinWasmJs \
+            :engine:builtins:compileTestKotlinWasmJs

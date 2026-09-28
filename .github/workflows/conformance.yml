@@ -1,0 +1,37 @@
+name: conformance
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: conformance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Empty until Phase 4 introduces :engine:codegen. It exists from Phase 0 so the job, the
+  # task path and the runner are proven while there is nothing to fail on: a CI job
+  # discovered to be misconfigured on the day it first has real work is a job that reports a
+  # false problem about the code under test.
+  conformance:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # AGP resolves the Android SDK while *configuring* the build, not only when an Android
+      # task runs. Every job here configures the whole project graph, so every job needs the
+      # SDK present, even one that only ever runs JVM or Native tasks.
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+
+      - name: Compile generated fixtures and compare them against the runtime
+        run: gradle :integration:generated-compile:desktopTest

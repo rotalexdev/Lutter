@@ -1,0 +1,21 @@
+version: 2
+
+updates:
+  # Gradle ecosystem, so gradle/libs.versions.toml and the included build are watched.
+  #
+  # Read the resulting PR as a coupled change, not as an independent bump. Dependabot has no
+  # way to know that the Compose compiler plugin version must equal the Kotlin version, so a
+  # PR that moves one and not the other is a broken build that looks like a routine upgrade.
+  # The Kotlin and Compose Multiplatform upgrades are therefore expected to be done by hand,
+  # together, following the official compatibility table and gated by the full CI matrix.
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

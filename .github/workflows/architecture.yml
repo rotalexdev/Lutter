@@ -1,0 +1,41 @@
+name: architecture
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: architecture-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Deliberately NOT part of the `check` job.
+  #
+  # Konsist parses sources with an IntelliJ PSI layer whose last release predates Kotlin
+  # 2.4 (decision A5 in odd/tasks/forge-engine-foundation.md). It is the least trustworthy
+  # component in this scaffold, and a rule engine that cannot parse the language should not
+  # be able to hold the build hostage. Isolated here, a Konsist failure is a red badge on
+  # one job instead of a red pipeline. If it turns out to be unusable, the documented
+  # fallback is Detekt, which would replace this job rather than block the work.
+  architecture:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # AGP resolves the Android SDK while *configuring* the build, not only when an Android
+      # task runs. Every job here configures the whole project graph, so every job needs the
+      # SDK present, even one that only ever runs JVM or Native tasks.
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+
+      - name: Run the Konsist architecture rules
+        run: gradle :tools:architecture-tests:test
