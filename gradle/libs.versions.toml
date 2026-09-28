@@ -14,14 +14,12 @@
 # to the smallest possible gap.
 
 [versions]
-# Both are test-only, both are absent from rootLibs 1.2.7, and both are covered by the
-# upstream pull request that will retire this file.
+# Test-only, absent from rootLibs 1.2.7, and covered by the upstream pull request that
+# will retire this file.
 junit = "5.14.0"
-konsist = "0.17.3"
 
 [libraries]
 junit-jupiter = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
-konsist = { module = "com.lemonappdev:konsist", version.ref = "konsist" }

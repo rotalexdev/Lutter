@@ -58,7 +58,7 @@ re-litigate them.
 | A2 | Plan §22.3 asks for typesafe project accessors | **Enabled.** `enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")` in settings.gradle.kts. No `projects.*` reference exists yet — the module-graph task needs the string path to report it — so it is enabled before the first use rather than retrofitted. |
 | A3 | Plan §22.3 says "use AGP's KMP library plugin if stable at kickoff; otherwise `androidTarget()`" | `com.android.kotlin.multiplatform.library` **is** stable. Using it, with the AGP ≥ 8.12 `kotlin { android { } }` block (not the deprecated `androidLibrary {}`). |
 | A4 | Plan §22.3 names 4 convention plugins | A 5th, `forge.jvm.library`, is added. `:tools:architecture-tests` is a JVM *library*; applying `forge.jvm.tool` would wrongly apply the `application` plugin. |
-| A5 | Plan §23.4 mandates Konsist as an architecture enforcer | Kept, but isolated in its **own CI job** that does not gate `check`. Konsist's last release is Dec 2024 and its PSI predates Kotlin 2.4, so it is the single highest-risk component in the scaffold. Isolation means a Konsist failure cannot block the rest of the pipeline. Documented fallback: Detekt. |
+| A5 | Plan §23.4 mandates Konsist as an architecture enforcer | **Removed after implementation.** It was built with Konsist first and then deleted: `Konsist.scopeFromDirectory` refuses any path outside the project it detects, so every scan of `engine/…` failed with `IllegalArgumentException` before a rule ran, and Konsist was never doing the work — the rules were already text scanners over `java.nio.file` and Konsist only supplied file names, text and imports. The rules are now plain JUnit tests in `:tools:architecture-tests` and run inside the required `check` job, so they gate like everything else. A rule engine that cannot see the code it governs is worse than no rule, because it looks like coverage. |
 | A6 | Plan §32 Phase 0 requires an `embedFixtures` task | Implemented as a `Sync` that materialises `src/commonTest/resources` into `build/embedded-fixtures` for inspection, wired as a test-task dependency. It is deliberately **not** fed back via `resources.srcDir`, which would create a Gradle circular dependency. Classpath inclusion is left to KMP's native per-target resource handling. |
 | A7 | Plan §32 Phase 0 requires a negative test for the graph checker | Implemented as a `selfTestModuleGraph` Gradle task that runs the pure rules engine against a synthetic known-bad graph and fails if the violation is *not* caught. Self-contained; no build mutation needed. |
 | A8 | Plan §32 Phase 0 requires ABI validation "whichever is stable" | KGP built-in `abiValidation {}` (KEEP-0440), which supersedes `binary-compatibility-validator`. Task is `checkKotlinAbi`, **not** `checkLegacyAbi`/`apiCheck`. `keepLocallyUnsupportedTargets` stays at its default so iOS/wasm ABI is inferred on Linux runners instead of failing. |
@@ -88,9 +88,9 @@ Three defects were found after the scaffold was written and fixed before commit:
 | Risk | Why it is not pre-empted | Remedy |
 |---|---|---|
 | `checkKotlinAbi` fails because no reference dump is committed yet | The guardrail working as intended, not a defect | `gradle updateKotlinAbi`, commit `**/api/**`. Documented inline in `check.yml` |
-| Konsist 0.17.3 cannot parse Kotlin 2.4 sources | Disabling it would erase a PLAN §23.4 guardrail to make a badge green | Replace the `architecture` job with Detekt |
+
 | Gradle 9's `failOnNoDiscoveredTests` | It fires only "if test sources are present", and the 13 empty modules have none | If it does fire, set `failOnNoDiscoveredTests = false` deliberately, with a comment |
-| `konsist` / `kotest` 6.2.5 coordinates unverified against Maven Central | Only the `architecture` job consumes them | Fix the version in the catalog; nothing else depends on it |
+
 
 ## Version matrix (pinned inside Kotlin's documented support range)
 
@@ -128,7 +128,7 @@ then, because its `FileSystem` API is still experimental.
 - 15 module shells on the exact dependency allow-list of §23.2, with correct namespaces and no extra deps.
 - `@EngineInternalApi` opt-in marker in `:engine:model`.
 - `verifyModuleGraph` + `selfTestModuleGraph` guardrails.
-- Konsist baseline rules in `:tools:architecture-tests` (§23.4), isolated in their own CI job.
+- Architecture rules in `:tools:architecture-tests` (§23.4), plain JUnit, run by `check`.
 - `embedFixtures` task and the `:engine:test-support` `Golden` skeleton.
 - ABI validation wired into every library module.
 - GitHub Actions: `check`, `architecture`, `canary`, `conformance`; plus `dependabot.yml`.
@@ -173,7 +173,7 @@ first GitHub Actions run:
 - [ ] `verifyModuleGraph` green
 - [ ] `selfTestModuleGraph` green
 - [ ] `checkKotlinAbi` green
-- [ ] Konsist rules green (independent job)
+- [ ] Architecture rules green
 - [ ] `canary` green: iOS simulator + wasmJs compile on pure modules
 - [ ] `conformance` green
 - [ ] Version resolution succeeds for every catalogued coordinate

@@ -1,13 +1,38 @@
 package dev.rotalex.lutter.architecture
 
-import com.lemonappdev.konsist.api.Konsist
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.stream.Collectors
 
 /**
- * Locates the sources these rules inspect.
+ * One Kotlin source file, as the rules see it.
+ *
+ * The rules need three things from a file: its name, its text, and its import list. That is
+ * all this holds.
+ */
+internal class KotlinFile(val name: String, val text: String) {
+
+    /**
+     * Every imported name, in declaration order and without duplicates.
+     *
+     * Parsed from the text rather than from a compiler front end. These rules are text
+     * scanners on purpose — see `SourceRules` — and an import list is the one piece of
+     * structure they do need, which a regular expression reads exactly.
+     */
+    val imports: List<String> = IMPORT
+        .findAll(text)
+        .map { it.groupValues[1] }
+        .distinct()
+        .toList()
+
+    private companion object {
+        val IMPORT = Regex("""(?m)^\s*import\s+([\w.]+(?:\.\*)?)""")
+    }
+}
+
+/**
+ * Locates and reads the sources these rules inspect.
  *
  * The rules run in a test JVM whose working directory is the module directory
  * (`tools/architecture-tests`), not the repository root, and Gradle offers no supported way
@@ -16,15 +41,17 @@ import java.util.stream.Collectors
  * `settings.gradle.kts`: a file that exists only at the repository root, which makes the
  * search self-correcting if the layout ever changes.
  *
- * Kotlin file discovery goes through Konsist, because Konsist is the architecture enforcer
- * the plan mandates and it owns the parsing. Directory enumeration goes through
- * `java.nio.file`, because Konsist has no "tell me where the source sets are" API and
- * hand-rolling one over PSI would mean a second file walker to keep in sync.
+ * File discovery is plain `java.nio.file`, not Konsist.
  *
- * Note on inferred return types below: this build cannot be compiled locally, so the
- * declaration type of `KonsistScope.files` is deliberately left to the compiler instead of
- * being named in an import. Naming the wrong type would be a build failure in CI with no
- * local signal, whereas inference cannot be wrong.
+ * PLAN §23.4 nominates Konsist, and it was used here first. It turned out to be the wrong
+ * tool twice over: `Konsist.scopeFromDirectory` refuses any path outside the project it
+ * detects, and this test JVM's project is `tools/architecture-tests`, so every scan of
+ * `engine/…` died with `IllegalArgumentException` before a single rule ran. It was also
+ * never doing the work — Konsist supplied file names, text and imports, and the rules
+ * themselves were already the text scanners in `SourceRules`. Removing it deletes a
+ * dependency whose last release predates the Kotlin version this build uses, and changes no
+ * rule's behaviour. If a future rule genuinely needs a syntax tree, that is when Konsist
+ * belongs, and the test task's working directory is the thing to fix first.
  */
 internal object RepositoryRoot {
 
@@ -46,26 +73,32 @@ internal object RepositoryRoot {
     }
 
     /**
-     * Every Kotlin file under [relativeDirectory], as Konsist declarations.
+     * Every Kotlin file under [relativeDirectory], relative to the repository root.
      *
      * A directory that does not exist, or that holds no Kotlin file, yields an empty list:
      * a rule over an empty module is a no-op, not a failure.
      */
-    fun kotlinFilesIn(relativeDirectory: String) = kotlinFilesIn(path.resolve(relativeDirectory))
+    fun kotlinFilesIn(relativeDirectory: String): List<KotlinFile> =
+        kotlinFilesIn(path.resolve(relativeDirectory))
 
-    /**
-     * Every Kotlin file under [directory]. The result type is left to the compiler on
-     * purpose: see the note on inferred types in the KDoc above.
-     *
-     * No configuration block. Konsist already filters to `.kt` files by default, and the
-     * one knob that looked configurable — `ktExtensionFilter` — does not exist in 0.17.3.
-     * A build that cannot be compiled locally should not carry an API call whose only
-     * purpose is to restate a default.
-     */
-    fun kotlinFilesIn(directory: Path) = directory
-        .takeIf { Files.isDirectory(it) }
-        ?.let { Konsist.scopeFromDirectory(it.toString()).files }
-        .orEmpty()
+    /** Every Kotlin file under [directory]. */
+    fun kotlinFilesIn(directory: Path): List<KotlinFile> {
+        if (!Files.isDirectory(directory)) return emptyList()
+
+        val files = Files.walk(directory)
+        return try {
+            files
+                .filter { Files.isRegularFile(it) && it.fileName?.toString()?.endsWith(".kt") == true }
+                // Generated and IDE output can hold copies of the sources, and a copy
+                // scanned twice is one violation reported twice.
+                .filterNot { it.toString().contains("/build/") || it.toString().contains("/.gradle/") }
+                .sorted(compareBy { it.toString() })
+                .map { KotlinFile(it.fileName.toString(), Files.readString(it)) }
+                .collect(Collectors.toList())
+        } finally {
+            files.close()
+        }
+    }
 
     /** Source root of every engine module: the `src` directory of each one. */
     fun engineSourceDirectories(): List<Path> = childDirectoriesOf("engine").map { it.resolve("src") }
@@ -84,9 +117,7 @@ internal object RepositoryRoot {
             candidates
                 .filter { Files.isDirectory(it) }
                 .filter { it.fileName?.toString() == "commonMain" && it.parent?.fileName?.toString() == "src" }
-                // Build and IDE output can hold copies of the sources; scanning those would
-                // report the same violation once per build directory.
-                .filter { !it.toString().contains("/build/") && !it.toString().contains("/.gradle/") }
+                .filterNot { it.toString().contains("/build/") || it.toString().contains("/.gradle/") }
                 .sorted(compareBy { it.toString() })
                 .collect(Collectors.toList())
         } finally {

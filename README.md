@@ -45,10 +45,10 @@ The catalog **must** be named `rootLibs`: the convention plugins in
 `rotalex-root-conventions` look up their own internal dependencies and SDK versions through
 that exact name.
 
-`gradle/libs.versions.toml` is a two-entry gap-filler, not a second catalog. It carries only
-what `rootLibs` 1.2.7 does not — the JUnit 5 BOM and Konsist, both test-only — and it is
-scheduled for deletion once those two coordinates are added upstream. Anything that exists
-in `rootLibs` must never be duplicated here.
+`gradle/libs.versions.toml` is a one-entry gap-filler, not a second catalog. It carries only
+the JUnit 5 BOM, which `rootLibs` 1.2.7 does not have, and it is scheduled for deletion once
+that coordinate is added upstream. Anything that exists in `rootLibs` must never be
+duplicated here.
 
 Build settings come from the shared catalog too, read by name:
 
@@ -101,7 +101,7 @@ it is machine-enforced by `verifyModuleGraph` from a hard-coded allow-list
 :engine:builtins-compose ── runtime, builtins           renderers (Compose)
 :engine:test-support     ── all              golden helper, fixtures, test schema
 :tools:cli               ── serialization, analysis, codegen, builtins   `forge` CLI
-:tools:architecture-tests ── (none)          Konsist rules
+:tools:architecture-tests ── (none)          architecture rules
 :integration:generated-compile               compiles generated fixtures
 :samples:desktop-preview                     renders a JSON document
 ```
@@ -126,11 +126,20 @@ Three module classes, per PLAN §21.1:
 |---|---|---|
 | `verifyModuleGraph` | Any project dependency outside the allow-list | root task |
 | `selfTestModuleGraph` | A regression in the checker itself | root task |
-| Konsist rules | Compose in pure modules, `java.*`/`android.*` in `commonMain`, `Map<String, Any>`, mutable `object` | `:tools:architecture-tests` |
+| Architecture rules | Compose in pure modules, `java.*`/`android.*` in `commonMain`, `Map<String, Any>`, mutable `object` | `:tools:architecture-tests`, run by `check` |
 | `explicitApi()` | An undeclared public API surface | every library module |
 | `checkKotlinAbi` | A binary-incompatible public API change | every library module |
 
-`verifyModuleGraph` and `checkKotlinAbi` are Gradle tasks and fail the `check` job.
+`verifyModuleGraph` and `checkKotlinAbi` are Gradle tasks and fail the `check` job. The
+architecture rules are plain JUnit tests in `:tools:architecture-tests` and run inside
+`check` too, so they gate like everything else.
+
+They are text scanners over `java.nio.file`, not a PSI-based rule engine. PLAN §23.4
+nominates Konsist and it was implemented with it first; it turned out to be the wrong tool
+twice over — `Konsist.scopeFromDirectory` refuses any path outside the project it detects,
+so every scan of `engine/…` failed before a rule ran, and it was never doing the work
+anyway, since the rules were already text scanners. A rule that cannot see the code it
+governs is worse than no rule, because it looks like coverage.
 The Konsist rules run in their own CI job on purpose: Konsist's last release predates
 Kotlin 2.4, so it is the least trustworthy component in the build and it should not be
 able to block the pipeline.
@@ -140,7 +149,6 @@ able to block the pipeline.
 | Job | Runs on | What it does |
 |---|---|---|
 | `check` | ubuntu | `build-logic:check`, `gradle check`, `verifyModuleGraph`, `checkKotlinAbi`, the Wasm compile, and the graph checker's own negative test. Required |
-| `architecture` | ubuntu | Konsist rules, isolated so they cannot block `check` |
 | `conformance` | ubuntu | `:integration:generated-compile:desktopTest` (empty until Phase 4) |
 
 ## Branching

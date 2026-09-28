@@ -9,9 +9,16 @@ plugins {
 // PLAN §23.2 gives this module no project dependencies: an architecture checker that
 // depends on the architecture would only be able to see what it already believes.
 //
-// JUnit and Konsist come from `libs`, the two-entry gap-filler at
-// gradle/libs.versions.toml, because neither is in the shared catalog yet. `rootLibs` is
-// the shared catalog and is used by name everywhere else.
+// JUnit comes from `libs`, the gap-filler at gradle/libs.versions.toml, because it is not
+// in the shared catalog yet. `rootLibs` is the shared catalog and is used by name
+// everywhere else.
+//
+// No Konsist. PLAN §23.4 nominates it, and it was here first, but
+// `Konsist.scopeFromDirectory` refuses any path outside the project it detects — this test
+// JVM's project is tools/architecture-tests — so every scan of engine/... died with
+// IllegalArgumentException before a rule ran. It was also never doing the work: the rules
+// are the text scanners in SourceRules, and Konsist only supplied file names, text and
+// imports. JUnit's own assertions are enough.
 dependencies {
     testImplementation(kotlin("test"))
 
@@ -23,12 +30,6 @@ dependencies {
     // dependency; adding it to the compile classpath would be a lie about what the tests
     // need.
     testRuntimeOnly(libs.junit.platform.launcher)
-
-    // Konsist's own assertions (assertTrue / assertFalse) are the only assertion API here.
-    // A second assertion library would mean a second test-name convention, and Konsist
-    // derives a test name by reflecting over the enclosing function, which only resolves
-    // under JUnit.
-    testImplementation(libs.konsist)
 }
 
 // The shared convention sets Java's target from the catalog's `jvmTarget` and leaves
