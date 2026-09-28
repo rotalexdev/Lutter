@@ -132,46 +132,64 @@ able to block the pipeline.
 |---|---|
 | `main` | Protected. The stable line. Receives merges from `dev` only, through a pull request |
 | `dev` | Protected. The integration line. Every change lands here, through a pull request |
-| `<type>/v<version>[-<slug>]` | Working branch. Each opens a pull request against `dev` |
+| `<type>/<slug>` | Working branch. Each opens a pull request against `dev` |
 
 Nothing is ever pushed directly to `main` or `dev`. Both are protected against direct
 pushes, force-pushes and deletion, and both require a pull request — so the rule is enforced
 by the repository rather than by good intentions.
 
-**Every working branch carries a semantic version**, because the branch name is the only
-place a version can be recorded before the work exists:
+**A branch carries only the conventional-commit type. No versions, no semver.** A branch is
+a place to do one change; it is not a release record.
 
 ```
-feat/v0.1.0-foundation     fix/v0.1.1-node-repo     feat/v0.2.0-canaries
-^    ^^^^^^^ ^^^^^^^^^^^                                      ^^ prerelease
-|    |       slug                                            |
-|    MAJOR.MINOR.PATCH — a real semver version, so
-|    feat/v0.2.0-canaries sorts *below* feat/v0.2.0
+feat/foundation     fix/node-distribution     chore/ci-modernise     docs/format-spec
+^^^^ ^^^^
+|    |
+|    short, lowercase, dashes
 |
-type: feat fix chore refactor perf docs test build ci
+conventional-commit type
 ```
 
-Two things enforce it. `scripts/new-branch.sh` refuses to cut a name that does not match,
-and the `branch-policy` workflow is a required check on `dev`, so the rule is the
-repository's, not a convention.
+**A pull request title into `dev` is a strict conventional commit**, and that is what the
+title rule checks — the title does **not** have to match the branch name. `fix/node-distribution`
+opening `fix(build): declare the Node and Yarn distributions in settings` is correct: the
+branch says which area was touched, the title says what the change does.
+
+```
+<type>[(scope)][!]: <description>
+
+feat(build): project foundation on the shared Rotalex catalog
+fix(build): declare the Node and Yarn distributions in settings
+feat(runtime)!: drop the legacy renderer registry
+chore: bump the shared catalog to 1.2.8
+```
+
+Types: `feat` `fix` `chore` `refactor` `perf` `docs` `test` `build` `ci` `style` `revert`.
+The title is limited to 100 characters and must not end in a period.
+
+Both rules are enforced twice, deliberately. `scripts/new-branch.sh` refuses to cut a
+non-conforming name, so the mistake is caught before a push; and `branch-policy` is a
+required check on `dev`, so the rule is the repository's rather than a convention that
+decays.
 
 ### The branch lifecycle
 
 ```bash
 # 1. cut the next branch, always from dev
-scripts/new-branch.sh feat 0.1.0 foundation        #  ->  feat/v0.1.0-foundation
+scripts/new-branch.sh feat foundation          #  ->  feat/foundation
 
 # 2. work there. Never on dev, never on main.
-git push -u origin feat/v0.1.0-foundation
+git push -u origin feat/foundation
 
-# 3. open the PR into dev
-gh pr create --base dev --head feat/v0.1.0-foundation
+# 3. open the PR into dev, with a conventional-commit title
+gh pr create --base dev --head feat/foundation \
+             --title "feat(build): project foundation on the shared Rotalex catalog"
 
 # 4. CI goes green, the PR merges, and GitHub deletes the branch automatically
 #    (delete_branch_on_merge is on for this repository)
 
-# 5. cut the next one, with the next version
-scripts/new-branch.sh feat 0.1.1 canary-scope
+# 5. cut the next one
+scripts/new-branch.sh fix node-distribution
 ```
 
 A branch is disposable. It exists for one change, it is deleted when that change lands, and
@@ -180,6 +198,7 @@ so there is never a merge-base that has drifted.
 
 `dependabot` targets `dev`, because a dependency bump is verified by the same matrix as
 everything else before it can reach `main`.
+
 
 
 

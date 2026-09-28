@@ -38,6 +38,17 @@ dependencyResolutionManagement {
             metadataSources { artifact() }
             content { includeModule("org.nodejs", "node") }
         }
+
+        // Yarn, for the same reason and with the same shape. Declared together with Node
+        // rather than discovered one CI round at a time: the Kotlin plugin's set of
+        // per-project distribution repositories is a fixed list, and a build that has no
+        // toolchain to run it locally should not learn the list by failing.
+        ivy("https://github.com/yarnpkg/yarn/releases/download") {
+            name = "Yarn Distributions at https://github.com/yarnpkg/yarn/releases/download"
+            patternLayout { artifact("v[revision]/[artifact](-v[revision]).[ext]") }
+            metadataSources { artifact() }
+            content { includeModule("com.yarnpkg", "yarn") }
+        }
     }
 
     versionCatalogs {

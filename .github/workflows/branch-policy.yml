@@ -1,21 +1,19 @@
 name: branch-policy
 
-# Every branch that pull-requests into `dev` carries a semantic version.
+# Two rules, checked together because both are about how a change is presented and neither
+# is discoverable from the code.
 #
-# Why the rule is a required check rather than a convention: a branch name is the only place
-# a version can be recorded before the work exists, and a rule nobody enforces is a rule
-# that decays. `dev` is protected, so this job is what makes the policy real.
+#   1. The branch carries only the conventional-commit TYPE: `feat/foundation`, `fix/node-repo`.
+#      No version, no semver. A branch is a place to do one change, not a release record.
+#   2. The PULL REQUEST TITLE is a strict conventional commit:
+#      `type(scope)!: description`.
 #
-# The name format is  <type>/v<MAJOR>.<MINOR>.<PATCH>[-<prerelease>]  — a real semver
-# version, optionally with a prerelease suffix, which is what makes `feat/v0.2.0-canaries`
-# sort *below* `feat/v0.2.0` and above `feat/v0.1.9`.
+# The title is deliberately NOT required to match the branch name. `fix/node-distribution`
+# opening `fix(build): declare the Node and Yarn distributions in settings` is correct and
+# common: the branch says what area was touched, the title says what the change does.
 #
-# The lifecycle, enforced end to end:
-#   1. `scripts/new-branch.sh <type> <version> <slug>` cuts a branch from dev
-#   2. work happens there, never on dev or main
-#   3. a pull request targets dev; this job checks the name
-#   4. CI goes green, the PR merges, GitHub deletes the branch
-#   5. step 1 again, with the next version
+# Why a required check rather than a convention: `dev` is protected, so this job is what
+# makes either rule real instead of aspirational.
 on:
   pull_request:
     branches: [ dev, main ]
@@ -24,31 +22,74 @@ permissions:
   contents: read
 
 jobs:
-  semver-branch:
-    name: Branch name is semver
+  policy:
+    name: Branch type and PR title
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
-      - name: Validate ${{ github.head_ref }}
+      - name: Branch name carries a conventional-commit type
         env:
           BRANCH: ${{ github.head_ref }}
         run: |
           set -euo pipefail
-
-          pattern='^(feat|fix|chore|refactor|perf|docs|test|build|ci)/v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9a-z.-]+)?$'
-
-          if [[ "$BRANCH" =~ $pattern ]]; then
-            echo "::notice::branch '$BRANCH' carries a semantic version"
-            exit 0
+          pattern='^(feat|fix|chore|refactor|perf|docs|test|build|ci|style|revert)/[a-z0-9][a-z0-9._-]*$'
+          if [[ ! "$BRANCH" =~ $pattern ]]; then
+            echo "::error title=Branch name must be <type>/<slug>::'$BRANCH' does not match"
+            echo ""
+            echo "Types:  feat fix chore refactor perf docs test build ci style revert"
+            echo "Valid:  feat/foundation   fix/node-distribution   chore/ci-modernise"
+            echo "Not:   feature/x   (not a type)   feat/Foundation   (not lowercase)"
+            echo ""
+            echo "Cut the next branch with:  scripts/new-branch.sh feat foundation"
+            exit 1
           fi
 
-          echo "::error title=Branch name must carry a semantic version::'$BRANCH' does not match <type>/v<MAJOR>.<MINOR>.<PATCH>[-<prerelease>]"
-          echo ""
-          echo "Valid types:      feat fix chore refactor perf docs test build ci"
-          echo "Valid example:    feat/v0.1.0-foundation"
-          echo "Prerelease:       feat/v0.2.0-canaries   (sorts below feat/v0.2.0)"
-          echo ""
-          echo "Cut the next branch with:"
-          echo "  scripts/new-branch.sh feat 0.1.0 foundation"
-          exit 1
+          # A slug may not look like a version. A branch is a place to do one change, not a
+          # release record, so `feat/v0.2.0-canaries` is rejected even though the type is
+          # right. `v` followed by a digit is the shape that gives it away.
+          if [[ "$BRANCH" =~ /v[0-9] ]]; then
+            echo "::error title=Branch name must not carry a version::'$BRANCH' looks like a release branch"
+            echo "A branch is one change. The version lives in the PR title, never in the branch name."
+            echo "Valid:  feat/foundation      Invalid:  feat/v0.1.0-foundation"
+            exit 1
+          fi
+
+          echo "::notice::branch '$BRANCH' is typed" 
+
+      - name: PR title is a strict conventional commit
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+
+          # type, optional (scope), optional !, then a description. Anchored, so anything
+          # before or after the header is rejected rather than tolerated.
+          pattern='^(feat|fix|chore|refactor|perf|docs|test|build|ci|style|revert)(\([a-z0-9._/-]+\))?(!)?: [a-z0-9].*$'
+
+          if [[ ! "$TITLE" =~ $pattern ]]; then
+            echo "::error title=PR title must be a conventional commit::'$TITLE' does not match"
+            echo ""
+            echo "Format:   <type>[(scope)][!]: <description>"
+            echo "Types:    feat fix chore refactor perf docs test build ci style revert"
+            echo "Valid:    feat(build): project foundation on the shared catalog"
+            echo "Valid:    fix(build): declare the Node and Yarn distributions in settings"
+            echo "Valid:    feat(runtime)!: drop the legacy renderer registry"
+            echo "Invalid:  v0.1.0 - Phase 0: project foundation   (not a type)"
+            echo "Invalid:  Update dependencies   (no type, no colon)"
+            echo ""
+            echo "The title does not have to match the branch name."
+            exit 1
+          fi
+
+          if [[ ${#TITLE} -gt 100 ]]; then
+            echo "::error title=PR title is too long::${#TITLE} characters, limit is 100"
+            exit 1
+          fi
+
+          if [[ "$TITLE" == *. ]]; then
+            echo "::error title=PR title must not end with a period::A conventional-commit description is a phrase, not a sentence."
+            exit 1
+          fi
+
+          echo "::notice::'$TITLE' is a valid conventional commit"
