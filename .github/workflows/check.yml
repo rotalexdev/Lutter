@@ -24,9 +24,18 @@ jobs:
           # that Gradle then uses to provision every other toolchain.
           java-version: '21'
 
-      # The action installs the command-line tools and accepts the SDK licences for us, so
-      # there is no separate yes | sdkmanager --licenses step to forget.
+      # Every job configures the whole project graph, and AGP resolves the Android SDK while
+      # *configuring* the build, not only when an Android task runs. So a job that only ever
+      # runs JVM or Native tasks still needs the SDK present.
+      #
+      # The action installs the command-line tools and accepts the licences, so there is no
+      # separate `yes | sdkmanager --licenses` step to forget. `packages` is set explicitly
+      # because the action's default is "tools platform-tools", and cmdline-tools 16 no
+      # longer publishes a package called `tools` — the default fails this step before the
+      # build starts, in every job, on every run.
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - name: Install the Android platform the build compiles against
         run: sdkmanager "platforms;android-36"

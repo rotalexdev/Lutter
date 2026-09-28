@@ -24,10 +24,12 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      # AGP resolves the Android SDK while *configuring* the build, not only when an Android
-      # task runs. Every job here configures the whole project graph, so every job needs the
-      # SDK present, even one that only ever runs JVM or Native tasks.
+      # `packages` is set explicitly because the action's default is "tools platform-tools",
+      # and cmdline-tools 16 no longer publishes a package called `tools`. The default makes
+      # this step fail before the build starts, in every job, on every run.
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - uses: gradle/actions/setup-gradle@v4
         with:
