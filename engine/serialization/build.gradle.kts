@@ -1,5 +1,3 @@
-import org.gradle.api.artifacts.VersionCatalogsExtension
-
 plugins {
     id("forge.kmp.library")
     // PLAN §21.1 canary: proving this module's commonMain stays free of
@@ -11,11 +9,9 @@ plugins {
 // The `rootLibs` accessor generated for this project has no `findLibrary`; the catalog
 // object does. Resolving through the extension also keeps the alias a string, so no build
 // file depends on how Gradle turns dashes into dots when generating accessors.
-val rootCatalog = extensions.getByType<VersionCatalogsExtension>().named("rootLibs")
-
 dependencies {
     commonMainApi(project(":engine:model"))
-    commonMainApi(rootCatalog.findLibrary("kotlinx-serialization-json").get())
+    commonMainApi(rootLibs.kotlinx.serialization.json)
 
     // kotlinx-io is in the shared catalog and deliberately not wired into any
     // source set yet. Its FileSystem API is still experimental, and nothing here needs
