@@ -29,19 +29,15 @@ dependencyResolutionManagement {
         // version it already owns.
         //
         // The name MUST be `rootLibs`: the convention plugins in
-        // rotalex-root-conventions resolve their own internal dependencies and SDK versions
+        // rotalex-rootconventions resolve their own internal dependencies and SDK versions
         // through that exact catalog name.
         create("rootLibs") {
             from("io.github.alexanderrotela20.catalog:version-catalog:1.2.7")
         }
 
-        // Gap-filler, NOT an alternative catalog. It exists only for the two coordinates
-        // the shared catalog does not carry yet, and it is scheduled for deletion: see the
-        // README section "Version catalog" for the upstream pull request that will add them
-        // to rootLibs.
-        create("libs") {
-            from(files("gradle/libs.versions.toml"))
-        }
+        // There is deliberately no `create("libs")` here. Gradle already imports
+        // gradle/libs.versions.toml as `libs` because that is its default location, and
+        // declaring it a second time is the "too-many-import-invocation" catalog error.
     }
 }
 
