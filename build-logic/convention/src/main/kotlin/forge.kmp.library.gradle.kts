@@ -1,3 +1,7 @@
+import forge.forgeAndroidCompileSdk
+import forge.forgeAndroidMinSdk
+import forge.forgeJavaVersion
+import forge.forgeJvmTarget
 import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.testing.AbstractTestTask
 import org.jetbrains.kotlin.gradle.ExperimentalAbiValidation
@@ -15,10 +19,11 @@ plugins {
     id("com.android.kotlin.multiplatform.library")
 }
 
-val javaVersion = libs.versions.javaVersion.get().toInt()
-val jvmTargetVersion = libs.versions.jvmTarget.get()
-val androidCompileSdk = libs.versions.androidCompileSdk.get().toInt()
-val androidMinSdk = libs.versions.androidMinSdk.get().toInt()
+// Every value below comes from the shared catalog, handed over by the root build. See
+// forge/BuildVersions.kt for why a precompiled script plugin cannot read them itself.
+val jvmTargetVersion = forgeJvmTarget
+val androidCompileSdk = forgeAndroidCompileSdk
+val androidMinSdk = forgeAndroidMinSdk
 
 // A property, not an environment variable, so it is greppable and shows up in the CI log
 // next to the command that set it.
@@ -29,7 +34,7 @@ kotlin {
     // return type. This is what makes the ABI dump readable as documentation.
     explicitApi()
 
-    jvmToolchain(javaVersion)
+    jvmToolchain(forgeJavaVersion)
 
     compilerOptions {
         // -Werror rather than the deprecated `kotlin.allWarningsAsErrors` flag: it reaches

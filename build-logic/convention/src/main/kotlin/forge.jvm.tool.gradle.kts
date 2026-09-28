@@ -1,3 +1,5 @@
+import forge.forgeJavaVersion
+import forge.forgeJvmTarget
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -6,10 +8,10 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(libs.versions.javaVersion.get().toInt())
+    jvmToolchain(forgeJavaVersion)
 
     compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvmTarget.get()))
+        jvmTarget.set(JvmTarget.fromTarget(forgeJvmTarget))
     }
 }
 

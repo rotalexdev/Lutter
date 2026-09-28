@@ -9,5 +9,5 @@ dependencies {
     commonMainApi(project(":engine:model"))
     commonMainApi(project(":engine:schema"))
 
-    commonMainApi(libs.kotlinx.coroutines.core)
+    commonMainApi(rootLibs.findLibrary("kotlinx-coroutines-core").get())
 }

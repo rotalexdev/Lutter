@@ -22,6 +22,27 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
     }
+
+    versionCatalogs {
+        // The shared, org-wide catalog. This is the single source of truth for versions
+        // across Rotalex projects; do not fork it here and do not add a second copy of any
+        // version it already owns.
+        //
+        // The name MUST be `rootLibs`: the convention plugins in
+        // rotalex-root-conventions resolve their own internal dependencies and SDK versions
+        // through that exact catalog name.
+        create("rootLibs") {
+            from("io.github.alexanderrotela20.catalog:version-catalog:1.2.7")
+        }
+
+        // Gap-filler, NOT an alternative catalog. It exists only for the two coordinates
+        // the shared catalog does not carry yet, and it is scheduled for deletion: see the
+        // README section "Version catalog" for the upstream pull request that will add them
+        // to rootLibs.
+        create("libs") {
+            from(files("gradle/libs.versions.toml"))
+        }
+    }
 }
 
 rootProject.name = "forge-engine"

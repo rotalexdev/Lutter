@@ -1,82 +1,27 @@
-# Single source of truth for every version in the build.
+# NOT a project catalog.
 #
-# No module build file may hard-code a version. A duplicated version is exactly how
-# the Kotlin / Compose compiler axis drifts out of sync, because the Compose compiler
-# plugin is a separate release from Compose Multiplatform and must equal the Kotlin
-# version exactly.
+# This project takes every version from the shared, org-wide catalog published at
+# io.github.alexanderrotela20.catalog:version-catalog, consumed in settings.gradle.kts as
+# `rootLibs`. This file exists only to carry the coordinates that catalog does not have yet,
+# and it exists to be deleted.
 #
-# Verified against official documentation on 2026-09-28. Kotlin 2.4.0-2.4.10 is
-# documented as compatible with Gradle 7.6.3-9.5.0 and AGP 8.5.2-9.1.0, so this
-# matrix sits at the top of a *published* support range rather than past it. See
-# README.md and odd/tasks/forge-engine-foundation.md for the rationale.
+# Nothing here may duplicate a version that `rootLibs` already owns: Kotlin, AGP, Compose
+# Multiplatform, kotlinx-serialization, kotlinx-coroutines and the Android SDK levels all
+# belong to the shared catalog, and a second copy of any of them is a second thing to forget
+# to update.
+#
+# Add the two entries below to the shared catalog and delete this file. Until then, keep it
+# to the smallest possible gap.
 
 [versions]
-kotlin = "2.4.10"
-# Own axis: must equal `kotlin` exactly. Not derived from `composeMultiplatform`.
-composeCompilerPlugin = "2.4.10"
-composeMultiplatform = "1.12.1"
-# >= 8.12 so the KMP Android target is the `kotlin { android { } }` block and not the
-# deprecated `androidLibrary { }` one.
-agp = "9.1.0"
-gradle = "9.5.0"
-# Toolchain, not the only JDK: makes runner-local JDK versions irrelevant.
-javaVersion = "21"
-jvmTarget = "11"
-androidCompileSdk = "36"
-androidMinSdk = "24"
-kotlinxSerializationJson = "1.11.0"
-kotlinxCoroutines = "1.11.0"
-# 0.5.x renamed every copy-returning method per KEEP-0459 (see the library entry).
-kotlinxCollectionsImmutable = "0.5.2"
-kotlinxIo = "0.9.1"
-konsist = "0.17.3"
-kotest = "6.2.5"
+# Both are test-only, both are absent from rootLibs 1.2.7, and both are covered by the
+# upstream pull request that will retire this file.
 junit = "5.14.0"
+konsist = "0.17.3"
 
 [libraries]
-kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
-
-kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
-kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
-kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
-
-# 0.5.x applies KEEP-0459: every copy-returning member was renamed to a participial
-# form (`add` -> `adding`, `put` -> `putting`, `removeAt` -> `removingAt`,
-# `set` -> `replacingAt`, `clear` -> `cleared`, ...). The old names survive as
-# WARNING-level deprecations with ReplaceWith, so the compiler will teach the new
-# names. Write them from day one instead of silencing the warnings later.
-kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
-
-# Catalogued but intentionally not wired into any source set yet. Its FileSystem API is
-# still experimental, and it is only needed once :engine:serialization grows nonWebMain
-# storage. Cataloguing it now keeps the decision reviewable instead of improvised later.
-kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinxIo" }
-
-konsist = { module = "com.lemonappdev:konsist", version.ref = "konsist" }
-kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
-# Property testing is not wired into any source set in Phase 0; catalogued for the
-# :engine:test-support work that starts in Phase 1.
-kotest-property = { module = "io.kotest:kotest-property", version.ref = "kotest" }
-
-# The JUnit 5 line is consumed as a BOM: the API, engine and params artifacts carry no
-# version of their own so they can never drift away from the platform they test against.
 junit-jupiter = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
-junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
-
-[plugins]
-kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-# Not renamed: the serialization plugin keeps its original id, and its version must
-# equal the Kotlin version because it patches the same compiler.
-kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-# Distinct from `compose-multiplatform`: this one is the Compose *compiler* plugin,
-# versioned with Kotlin rather than with Compose Multiplatform.
-kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
-# AGP's own KMP library plugin, stable since 8.12. It provides the
-# `kotlin { android { } }` target; `androidTarget()` and `androidLibrary { }` are not
-# the API here.
-android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+konsist = { module = "com.lemonappdev:konsist", version.ref = "konsist" }
