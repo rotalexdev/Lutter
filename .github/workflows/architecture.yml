@@ -31,7 +31,7 @@ jobs:
       # `packages` is set explicitly because the action's default is "tools platform-tools",
       # and cmdline-tools 16 no longer publishes a package called `tools`. The default makes
       # this step fail before the build starts, in every job, on every run.
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
         with:
           packages: platform-tools
 
