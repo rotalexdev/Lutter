@@ -11,7 +11,7 @@
 # README.md and odd/tasks/forge-engine-foundation.md for the rationale.
 
 [versions]
-kotlin = "2.4.10"
+kotlin = "2.4.20"
 # Own axis: must equal `kotlin` exactly. Not derived from `composeMultiplatform`.
 composeCompilerPlugin = "2.4.10"
 composeMultiplatform = "1.12.1"
