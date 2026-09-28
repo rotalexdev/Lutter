@@ -15,12 +15,10 @@ plugins {
 //   Inconsistent JVM-target compatibility detected for tasks
 //   'compileTestJava' (17) and 'compileTestKotlin' (21)
 //
-// The same `forge.jvmTarget` the KMP conventions use aligns Kotlin's side. It mirrors the
-// catalog's `jvmTarget`, and gradle.properties says so, so the two are compared
-// deliberately rather than by luck.
+// Both sides now read the catalog's single `jvmTarget`. One number, two compilers.
 kotlin {
     compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(providers.gradleProperty("forge.jvmTarget").get()))
+        jvmTarget.set(JvmTarget.fromTarget(rootLibs.versions.jvmTarget.get()))
     }
 }
 

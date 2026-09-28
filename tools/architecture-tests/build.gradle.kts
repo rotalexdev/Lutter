@@ -31,19 +31,17 @@ dependencies {
     testImplementation(libs.konsist)
 }
 
-// The shared convention sets Java's target from the catalog's `jvmTarget` (17) and does
-// not set Kotlin's, so Kotlin defaults to the JDK running Gradle — 21 in CI — and the
+// The shared convention sets Java's target from the catalog's `jvmTarget` and leaves
+// Kotlin's alone, so Kotlin defaults to the JDK running Gradle — 21 in CI — and the
 // plugin's own target validation rejects the pair:
 //
 //   Inconsistent JVM-target compatibility detected for tasks
 //   'compileTestJava' (17) and 'compileTestKotlin' (21)
 //
-// `forge.jvmTarget` is the same value, and gradle.properties says it mirrors the catalog,
-// so the two are compared deliberately rather than by luck. One declaration, applied to
-// Kotlin here and to both compilers in the KMP conventions.
+// Both sides now read the catalog's single `jvmTarget`. One number, two compilers.
 kotlin {
     compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(providers.gradleProperty("forge.jvmTarget").get()))
+        jvmTarget.set(JvmTarget.fromTarget(rootLibs.versions.jvmTarget.get()))
     }
 }
 

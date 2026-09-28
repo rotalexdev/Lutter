@@ -1,6 +1,3 @@
-import forge.forgeAndroidCompileSdk
-import forge.forgeAndroidMinSdk
-import forge.forgeJvmTarget
 import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.testing.AbstractTestTask
 import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
@@ -18,11 +15,14 @@ plugins {
     id("com.android.kotlin.multiplatform.library")
 }
 
-// Every value below comes from the shared catalog, handed over by the root build. See
-// forge/BuildVersions.kt for why a precompiled script plugin cannot read them itself.
-val jvmTargetVersion = forgeJvmTarget
-val androidCompileSdk = forgeAndroidCompileSdk
-val androidMinSdk = forgeAndroidMinSdk
+// Read from the shared catalog by name. `rootLibs` is the catalog imported in
+// build-logic/settings.gradle.kts, and its generated accessors are available in a
+// precompiled script plugin's body — it is the `plugins` block, which Gradle extracts and
+// compiles on its own, that has no accessors. That is why the two plugin blocks below use
+// bare `id(...)`.
+val jvmTargetVersion = rootLibs.versions.jvmTarget.get()
+val androidCompileSdk = rootLibs.versions.androidCompileSdk.get().toInt()
+val androidMinSdk = rootLibs.versions.androidMinSdk.get().toInt()
 
 // A property, not an environment variable, so it is greppable and shows up in the CI log
 // next to the command that set it.
