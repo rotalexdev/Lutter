@@ -91,9 +91,13 @@ internal object RepositoryRoot {
                 .filter { Files.isRegularFile(it) && it.fileName?.toString()?.endsWith(".kt") == true }
                 // Generated and IDE output can hold copies of the sources, and a copy
                 // scanned twice is one violation reported twice.
-                .filterNot { it.toString().contains("/build/") || it.toString().contains("/.gradle/") }
+                //
+                // `filter` with a negated predicate, not `filterNot`: this is a
+                // java.util.stream.Stream, and `filterNot` is a Kotlin Iterable extension
+                // that a Stream does not have.
+                .filter { !it.toString().contains("/build/") && !it.toString().contains("/.gradle/") }
                 .sorted(compareBy { it.toString() })
-                .map { KotlinFile(it.fileName.toString(), Files.readString(it)) }
+                .map { file -> KotlinFile(file.fileName.toString(), Files.readString(file)) }
                 .collect(Collectors.toList())
         } finally {
             files.close()
@@ -117,7 +121,7 @@ internal object RepositoryRoot {
             candidates
                 .filter { Files.isDirectory(it) }
                 .filter { it.fileName?.toString() == "commonMain" && it.parent?.fileName?.toString() == "src" }
-                .filterNot { it.toString().contains("/build/") || it.toString().contains("/.gradle/") }
+                .filter { !it.toString().contains("/build/") && !it.toString().contains("/.gradle/") }
                 .sorted(compareBy { it.toString() })
                 .collect(Collectors.toList())
         } finally {
