@@ -43,7 +43,7 @@ jobs:
       # No wrapper JAR is committed (see README.md), so this is the action's documented
       # "project doesn't use Gradle wrapper" path: an explicit, quoted version, and the
       # `gradle` command below rather than a wrapper script.
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: '9.5.0'
 
