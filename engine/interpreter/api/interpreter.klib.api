@@ -1,5 +1,5 @@
 // Klib ABI Dump
-// Targets: [iosSimulatorArm64, wasmJs]
+// Targets: [wasmJs]
 // Rendering settings:
 // - Signature version: 2
 // - Show manifest properties: true
