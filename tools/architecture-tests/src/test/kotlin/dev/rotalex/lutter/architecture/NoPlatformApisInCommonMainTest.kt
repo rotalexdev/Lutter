@@ -20,7 +20,6 @@ class NoPlatformApisInCommonMainTest {
                     .kotlinFilesIn(directory)
                     .flatMap { file ->
                         file.imports
-                            .map { it.name }
                             .filter { imported -> forbiddenPrefixes.any(imported::startsWith) }
                             .map { imported -> "${file.name} in $directory imports $imported" }
                     }

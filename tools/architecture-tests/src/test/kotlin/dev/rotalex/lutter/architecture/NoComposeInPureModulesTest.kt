@@ -27,7 +27,6 @@ class NoComposeInPureModulesTest {
                 .kotlinFilesIn("engine/$module/src")
                 .flatMap { file ->
                     file.imports
-                        .map { it.name }
                         .filter { it.startsWith("androidx.compose") }
                         .map { imported -> "${file.name} (${module}) imports $imported" }
                 }
