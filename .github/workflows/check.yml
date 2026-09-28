@@ -96,5 +96,9 @@ jobs:
           file_pattern: '*/api/*'
           commit_message: "chore(build): record the reference ABI dumps"
 
+      # `always()` so the checker's own test runs even on a run where something else is
+      # already red. A guardrail that is only proven on green runs is a guardrail that is
+      # never proven while it matters.
       - name: Prove the graph checker rejects an illegal edge
+        if: always()
         run: gradle selfTestModuleGraph
