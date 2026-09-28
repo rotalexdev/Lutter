@@ -106,12 +106,16 @@ it is machine-enforced by `verifyModuleGraph` from a hard-coded allow-list
 :samples:desktop-preview                     renders a JSON document
 ```
 
+The build supports **exactly three targets**: Android, Desktop (JVM) and Wasm. No
+Kotlin/Native, no JS. There is no fourth target a stray `java.` import could hide behind,
+and the Wasm compiler rejects JVM types in `commonMain` on every build.
+
 Three module classes, per PLAN §21.1:
 
 - **Pure** — `model`, `schema`, `serialization`, `interpreter`, `analysis`, `editing`,
-  `codegen`, `builtins`. `commonMain` only. No Compose, no JVM APIs. These also
-  declare `iosSimulatorArm64` and `wasmJs` **canary** targets so JVM leakage into the
-  domain fails the build instead of surviving review.
+  `codegen`, `builtins`. `commonMain` only. No Compose, no JVM APIs. These also declare the
+  `wasmJs` target through `forge.wasm.targets`, so JVM leakage into the domain fails the
+  build instead of surviving review.
 - **Compose** — `runtime`, `builtins-compose`. `commonMain`, because Compose
   Multiplatform is common code.
 - **Tools** — `cli`, `architecture-tests`. JVM only.
@@ -135,9 +139,8 @@ able to block the pipeline.
 
 | Job | Runs on | What it does |
 |---|---|---|
-| `check` | ubuntu | `gradle check` + `verifyModuleGraph` + `checkKotlinAbi`, `-Werror` enabled |
+| `check` | ubuntu | `build-logic:check`, `gradle check`, `verifyModuleGraph`, `checkKotlinAbi`, the Wasm compile, and the graph checker's own negative test. Required |
 | `architecture` | ubuntu | Konsist rules, isolated so they cannot block `check` |
-| `canary` | macos + ubuntu | Compiles iOS simulator and wasmJs test sources for pure modules |
 | `conformance` | ubuntu | `:integration:generated-compile:desktopTest` (empty until Phase 4) |
 
 ## Branching

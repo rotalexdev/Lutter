@@ -23,8 +23,8 @@ dependencies {
     // The Compose runtime is a hard requirement of a module that applies the Compose
     // compiler, not an optional convenience. Without it the compiler fails with "The
     // Compose Compiler requires the Compose Runtime to be on the class path, but no
-    // compatible version was found" — which is what happened while these modules were
-    // still empty shells.
+    // compatible version was found" — which is what happened while these modules were still
+    // empty shells.
     //
     // Named from the shared catalog rather than through `compose.runtime`, because that
     // shorthand is deprecated in Compose Multiplatform 1.11 ("Specify dependency
@@ -32,7 +32,7 @@ dependencies {
     //
     // foundation and material3 are deliberately absent: they arrive with the components
     // that use them, in Phase 5.
-    commonMainImplementation(rootLibs.jetbrains.compose.runtime)
+    commonMainImplementation(compose.runtime)
 }
 
 // No compose.uiTest dependency yet. It is annotated ExperimentalComposeLibrary, so adding

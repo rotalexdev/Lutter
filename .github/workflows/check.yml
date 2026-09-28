@@ -99,6 +99,21 @@ jobs:
       # `always()` so the checker's own test runs even on a run where something else is
       # already red. A guardrail that is only proven on green runs is a guardrail that is
       # never proven while it matters.
+      - name: Compile common tests for Wasm
+        run: |
+          gradle \
+            :engine:model:compileTestKotlinWasmJs \
+            :engine:schema:compileTestKotlinWasmJs \
+            :engine:serialization:compileTestKotlinWasmJs \
+            :engine:interpreter:compileTestKotlinWasmJs \
+            :engine:analysis:compileTestKotlinWasmJs \
+            :engine:editing:compileTestKotlinWasmJs \
+            :engine:codegen:compileTestKotlinWasmJs \
+            :engine:builtins:compileTestKotlinWasmJs
+
+      # `always()` so the checker's own test runs even on a run where something else is
+      # already red. A guardrail that is only proven on green runs is a guardrail that is
+      # never proven while it matters.
       - name: Prove the graph checker rejects an illegal edge
         if: always()
         run: gradle selfTestModuleGraph

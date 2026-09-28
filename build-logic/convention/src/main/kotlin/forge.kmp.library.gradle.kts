@@ -1,3 +1,4 @@
+import forge.catalogVersion
 import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.testing.AbstractTestTask
 import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
@@ -15,14 +16,19 @@ plugins {
     id("com.android.kotlin.multiplatform.library")
 }
 
-// Read from the shared catalog by name. `rootLibs` is the catalog imported in
-// build-logic/settings.gradle.kts, and its generated accessors are available in a
-// precompiled script plugin's body — it is the `plugins` block, which Gradle extracts and
-// compiles on its own, that has no accessors. That is why the two plugin blocks below use
-// bare `id(...)`.
-val jvmTargetVersion = rootLibs.versions.jvmTarget.get()
-val androidCompileSdk = rootLibs.versions.androidCompileSdk.get().toInt()
-val androidMinSdk = rootLibs.versions.androidMinSdk.get().toInt()
+// Read from the shared catalog, the same value every other Rotalex project resolves.
+//
+// Not through the generated `rootLibs` accessors: a precompiled script plugin is compiled
+// separately from accessor generation, so they do not resolve here — CI proved that twice
+// with "Unresolved reference 'rootLibs'". The `VersionCatalogsExtension` is the route that
+// works in any script, and it is what rotalex-root-conventions uses for its own plugin.
+// Module build scripts, which are ordinary .gradle.kts, do use the accessors by name.
+//
+// The `plugins` blocks in this build use bare `id(...)` for the same reason: the block is
+// extracted into its own file and compiled alone, where no accessor exists.
+val jvmTargetVersion = catalogVersion("jvmTarget")
+val androidCompileSdk = catalogVersion("androidCompileSdk").toInt()
+val androidMinSdk = catalogVersion("androidMinSdk").toInt()
 
 // A property, not an environment variable, so it is greppable and shows up in the CI log
 // next to the command that set it.
@@ -69,14 +75,9 @@ kotlin {
         }
     }
 
-    iosSimulatorArm64()
-
-    // No iOS or Wasm target here. Canary targets are applied by `forge.canary.targets`,
-    // and only to the pure modules: PLAN §21.1 scopes them to modules whose `commonMain`
-    // has to stay platform-free, and §21.2 keeps Compose modules on Android + Desktop
-    // until iOS/Wasm *runtime* support lands post-MVP (roadmap item 17). A Compose module
-    // that inherited these targets would fail to compile, and one that inherited them by
-    // accident would be the kind of coupling this build is supposed to prevent.
+    // The build supports exactly three targets: Android and Desktop (JVM) here, and Wasm
+    // from `forge.canary.targets`, which the pure engine modules add. Nothing else — no
+    // Kotlin/Native, no JS — so there is no target a stray platform API could hide behind.
 
     // KGP's built-in ABI validation (KEEP-0440), which replaced
     // binary-compatibility-validator. It produces `checkKotlinAbi`.
