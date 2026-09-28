@@ -25,7 +25,7 @@ dependencies {
 
     testImplementation(platform(junit))
     testImplementation(junitApi)
-    testRuntimeOnly(kunitEngine)
+    testRuntimeOnly(junitEngine)
 
     // The launcher is what Gradle uses to talk to the JUnit Platform. It is a runtime
     // dependency; adding it to the compile classpath would be a lie about what the tests

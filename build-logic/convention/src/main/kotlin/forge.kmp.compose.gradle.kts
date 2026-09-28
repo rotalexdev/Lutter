@@ -1,3 +1,5 @@
+import org.gradle.api.artifacts.VersionCatalogsExtension
+
 plugins {
     id("forge.kmp.library")
     // Bare `id(...)` for the reason explained in forge.kmp.library: the `plugins` block of
@@ -8,19 +10,23 @@ plugins {
     id("org.jetbrains.compose")
 }
 
+val rootCatalog = extensions.getByType<VersionCatalogsExtension>().named("rootLibs")
+
 // The Compose runtime is a hard requirement of a module that applies the Compose compiler,
 // not an optional convenience. Without it the compiler fails with
 // "The Compose Compiler requires the Compose Runtime to be on the class path, but no
 // compatible version was found" — which is what happened while these modules were still
 // empty shells.
 //
+// Named from the shared catalog rather than through `compose.runtime`, because that
+// shorthand is deprecated in Compose Multiplatform 1.11 ("Specify dependency directly") and
+// the catalog already carries the coordinate.
+//
 // foundation and material3 are deliberately absent: they arrive with the components that
 // use them, in Phase 5. A module that pulls the whole Compose surface now has a classpath
 // nobody asked for and a version conflict nobody can trace.
-compose {
-    dependencies {
-        commonMainImplementation(compose.runtime)
-    }
+dependencies {
+    commonMainImplementation(rootCatalog.findLibrary("jetbrains-compose-runtime").get())
 }
 
 // No compose.uiTest dependency yet. It is annotated ExperimentalComposeLibrary, so adding
