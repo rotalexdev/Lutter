@@ -1,0 +1,35 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# The wrapper JAR is intentionally absent: this workspace is not allowed to
+# download Gradle binaries. CI provisions Gradle via gradle/actions/setup-gradle
+# with an explicit gradle-version. See README.md.
+!gradle/wrapper/gradle-wrapper.properties
+
+# Kotlin
+.kotlin/
+kotlin-js-store/
+.kotlin-js-store/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+!.vscode/extensions.json
+
+# Local agent tooling (not part of the Kotlin project)
+opencode.json
+.gentle-ai-default-agent.json
+.atl/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local scratch
+*.log
+/tmp/
