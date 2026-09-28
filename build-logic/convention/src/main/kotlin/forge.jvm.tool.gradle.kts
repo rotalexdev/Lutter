@@ -1,7 +1,5 @@
 import forge.forgeJvmTarget
-import org.gradle.api.JavaVersion
-import org.gradle.api.plugins.JavaPluginExtension
-import org.gradle.kotlin.dsl.configure
+import org.gradle.api.tasks.compile.JavaCompile
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -15,11 +13,24 @@ kotlin {
     }
 }
 
-// One JDK number, applied to both compilers. See forge.jvm.library for why there is no
-// `jvmToolchain` and only one `jvmTarget`.
-extensions.configure<JavaPluginExtension> {
-    sourceCompatibility = JavaVersion.toVersion(forgeJvmTarget)
-    targetCompatibility = JavaVersion.toVersion(forgeJvmTarget)
+// One JDK number, applied to both compilers. `jvmTarget` comes from gradle.properties, the
+// same value the Rotalex convention plugins read from the shared catalog, so this module and
+// every other Rotalex project emit the same bytecode.
+//
+// It is set on the *tasks*, not only on the java extension. Setting
+// `sourceCompatibility`/`targetCompatibility` on the extension is not enough: the Kotlin
+// plugin's target validation then compares a Java task still defaulting to the running JDK
+// against Kotlin's 17, and the build fails with
+//
+//   Inconsistent JVM-target compatibility detected for tasks
+//   'compileTestJava' (21) and 'compileTestKotlin' (17)
+//
+// Forcing it on every JavaCompile removes the default that loses the argument, and it does
+// so without introducing a second JDK number: there is no jvmToolchain here, and CI pins
+// the JDK that runs Gradle through setup-java, which is where that belongs.
+tasks.withType<JavaCompile>().configureEach {
+    sourceCompatibility = forgeJvmTarget
+    targetCompatibility = forgeJvmTarget
 }
 
 // No explicitApi() here, deliberately. This convention builds applications, and
