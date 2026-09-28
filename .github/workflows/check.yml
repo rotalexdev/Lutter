@@ -122,3 +122,16 @@ jobs:
       - name: Prove the graph checker rejects an illegal edge
         if: always()
         run: gradle selfTestModuleGraph
+
+      # Gradle reports Kotlin compiler errors through the Problems API, and the step log
+      # then carries only "Kotlin compiler error" with a file and a line. That is not
+      # enough to act on: an internal compiler error in particular arrives with no message
+      # at all. The report has the message, so it is uploaded whenever anything failed.
+      - name: Upload the Gradle problems report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: problems-report
+          path: '**/build/reports/problems/'
+          if-no-files-found: ignore
+          retention-days: 14
