@@ -23,6 +23,10 @@ jobs:
     name: Build, test and verify
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # Needed only by the ABI bootstrap step below, which commits the generated reference
+    # dumps. Everything else in this job is read-only.
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v7
@@ -52,7 +56,40 @@ jobs:
         run: gradle -p build-logic :convention:check
 
       - name: Build, test, verify the module graph and the ABI
+        id: verify
         run: gradle check verifyModuleGraph checkKotlinAbi
+
+      # ABI validation compares against reference dumps under `*/api/`. A module with no
+      # committed dump fails with "Expected file with ABI declarations ... does not exist" —
+      # the guardrail working, on a project that has never recorded a baseline.
+      #
+      # Rather than shipping the first dumps by hand, this bootstraps them and commits them
+      # to the branch, the same way nowinandroid regenerates its Dependency Guard baselines:
+      # verify, and if the baseline is simply missing, generate it and push it back.
+      #
+      # A fork gets no token write access, so it stops here with the real failure intact
+      # instead of half-pretending the check passed.
+      - name: Record the missing ABI dumps
+        if: steps.verify.outcome == 'failure'
+        run: |
+          echo "::notice::check failed; regenerating the reference ABI dumps"
+          gradle updateKotlinAbi
+
+      - name: Refuse to auto-commit from a fork
+        id: fork
+        if: steps.verify.outcome == 'failure'
+        run: |
+          if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+            echo "::error::check failed and this is a fork, so the ABI dumps cannot be committed automatically. Run 'gradle updateKotlinAbi' locally and push the result."
+            exit 1
+          fi
+
+      - name: Commit the generated ABI dumps
+        if: steps.verify.outcome == 'failure' && steps.fork.outcome != 'failure'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          file_pattern: '*/api/*'
+          commit_message: "chore(build): record the reference ABI dumps"
 
       - name: Prove the graph checker rejects an illegal edge
         run: gradle selfTestModuleGraph
