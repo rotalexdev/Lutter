@@ -29,16 +29,23 @@ val graphConfigurations = listOf(
 /**
  * Reads the *declared* project dependencies of every subproject. Declarations only, never
  * resolution: resolving configurations just to check a name would download the world.
+ *
+ * Only projects that have a build file are read. Gradle creates an intermediate project for
+ * every directory that has children, so `:engine`, `:tools`, `:integration` and `:samples`
+ * exist as projects even though nothing configures them. They are containers, not modules,
+ * and treating them as unknown modules would make the check fail on a build that is correct.
  */
-fun readDeclaredGraph(): Map<String, Set<String>> = subprojects.associate { module ->
-    module.path to graphConfigurations.flatMapTo(mutableSetOf()) { configurationName ->
-        module.configurations.findByName(configurationName)
-            ?.allDependencies
-            ?.filterIsInstance<ProjectDependency>()
-            ?.map { it.path }
-            .orEmpty()
+fun readDeclaredGraph(): Map<String, Set<String>> = subprojects
+    .filter { it.buildFile.exists() }
+    .associate { module ->
+        module.path to graphConfigurations.flatMapTo(mutableSetOf()) { configurationName ->
+            module.configurations.findByName(configurationName)
+                ?.allDependencies
+                ?.filterIsInstance<ProjectDependency>()
+                ?.map { it.path }
+                .orEmpty()
+        }
     }
-}
 
 val verifyModuleGraph = tasks.register<VerifyModuleGraphTask>("verifyModuleGraph") {
     // Seeded before evaluation so the task is always configured; the real values are
