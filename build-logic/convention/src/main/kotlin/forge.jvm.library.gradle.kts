@@ -1,6 +1,7 @@
 import forge.forgeJavaVersion
 import forge.forgeJvmTarget
 import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.JavaVersion
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
