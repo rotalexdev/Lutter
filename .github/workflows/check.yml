@@ -69,15 +69,20 @@ jobs:
       #
       # A fork gets no token write access, so it stops here with the real failure intact
       # instead of half-pretending the check passed.
+      #
+      # `failure() &&` is load-bearing. GitHub implicitly conjoins an `if` with `success()`
+      # unless the expression already contains a status function, so after the verify step
+      # fails, a bare `steps.verify.outcome == 'failure'` is false and every recovery step
+      # silently skips. The status function has to be stated.
       - name: Record the missing ABI dumps
-        if: steps.verify.outcome == 'failure'
+        if: failure() && steps.verify.outcome == 'failure'
         run: |
           echo "::notice::check failed; regenerating the reference ABI dumps"
           gradle updateKotlinAbi
 
       - name: Refuse to auto-commit from a fork
         id: fork
-        if: steps.verify.outcome == 'failure'
+        if: failure() && steps.verify.outcome == 'failure'
         run: |
           if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
             echo "::error::check failed and this is a fork, so the ABI dumps cannot be committed automatically. Run 'gradle updateKotlinAbi' locally and push the result."
@@ -85,7 +90,7 @@ jobs:
           fi
 
       - name: Commit the generated ABI dumps
-        if: steps.verify.outcome == 'failure' && steps.fork.outcome != 'failure'
+        if: failure() && steps.verify.outcome == 'failure' && steps.fork.outcome != 'failure'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           file_pattern: '*/api/*'
