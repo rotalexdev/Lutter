@@ -1,6 +1,6 @@
 package dev.rotalex.lutter.architecture
 
-import io.kotest.matchers.collections.shouldBeEmpty
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
@@ -33,6 +33,6 @@ class NoComposeInPureModulesTest {
                 }
         }
 
-        violations.shouldBeEmpty()
+        assertTrue(violations.isEmpty()) { "unexpected violations:\n" + violations.joinToString("\n") }
     }
 }

@@ -1,3 +1,5 @@
+import org.gradle.api.artifacts.VersionCatalogsExtension
+
 plugins {
     id("forge.jvm.library")
 }
@@ -9,5 +11,5 @@ dependencies {
     // A second assertion library would mean a second test-name convention, and Konsist
     // derives a test name by reflecting over the enclosing function, which only resolves
     // under JUnit.
-    testImplementation(libs.findLibrary("konsist").get())
+    testImplementation(gapCatalog.findLibrary("konsist").get())
 }
