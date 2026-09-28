@@ -1,3 +1,5 @@
+import forge.rootLibs
+
 plugins {
     id("forge.kmp.library")
     // Bare `id(...)` for the reason explained in forge.kmp.library: the `plugins` block of
@@ -28,11 +30,12 @@ dependencies {
     //
     // Named from the shared catalog rather than through `compose.runtime`, because that
     // shorthand is deprecated in Compose Multiplatform 1.11 ("Specify dependency
-    // directly") and the catalog already carries the coordinate.
+    // directly") and the catalog already carries the coordinate. See forge/Catalogs.kt for
+    // why a precompiled script plugin reads the catalog through the extension.
     //
     // foundation and material3 are deliberately absent: they arrive with the components
     // that use them, in Phase 5.
-    commonMainImplementation(compose.runtime)
+    commonMainImplementation(rootLibs.findLibrary("jetbrains-compose-runtime").get())
 }
 
 // No compose.uiTest dependency yet. It is annotated ExperimentalComposeLibrary, so adding
