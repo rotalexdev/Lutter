@@ -1,3 +1,5 @@
+import org.gradle.api.artifacts.VersionCatalogsExtension
+
 // Plugin aliases come from the shared catalog so every module resolves the same plugin
 // marker version as every other Rotalex project. This project adds no version of its own.
 //
@@ -19,25 +21,34 @@ plugins {
     id("forge.moduleGraph")
 }
 
+// Resolved here, in the root project's own scope, and then handed to every project as a
+// plain value.
+//
+// Two reasons, and both are load-bearing:
+//
+//  * A precompiled script plugin cannot see version-catalog accessors at all — its `plugins`
+//    block is extracted and compiled separately, and the accessors do not exist in its body
+//    either. The convention plugins read these values from project extras instead.
+//  * Reading `rootLibs` *inside* `allprojects { }` looks the catalog up as an extension on
+//    the child project, which does not have one: only the root does. Resolving first and
+//    assigning the result avoids that entirely.
+val rootCatalog = extensions.getByType<VersionCatalogsExtension>().named("rootLibs")
+
+fun catalogVersion(alias: String): String = rootCatalog.findVersion(alias).get().requiredVersion
+
 allprojects {
     group = "dev.rotalex.lutter"
     version = "0.1.0-SNAPSHOT"
 
-    // A precompiled script plugin cannot see version-catalog accessors: its `plugins` block
-    // is extracted and compiled on its own, and so is its body, which is why the
-    // convention plugins read versions from here instead of from `rootLibs` directly. The
-    // root project is evaluated before any child, so these values are already in place by
-    // the time a convention plugin runs.
-    //
-    // `rootLibs` owns every one of these values. This block only carries them across a
-    // boundary that the type-safe accessors do not cross.
-    extra["forge.jvmTarget"] = rootLibs.versions.jvmTarget.get()
-    extra["forge.androidCompileSdk"] = rootLibs.versions.androidCompileSdk.get().toInt()
-    extra["forge.androidMinSdk"] = rootLibs.versions.androidMinSdk.get().toInt()
+    // Every one of these is owned by `rootLibs`. This block only carries them across a
+    // boundary the type-safe accessors do not cross.
+    extra["forge.jvmTarget"] = catalogVersion("jvmTarget")
+    extra["forge.androidCompileSdk"] = catalogVersion("androidCompileSdk").toInt()
+    extra["forge.androidMinSdk"] = catalogVersion("androidMinSdk").toInt()
 
     // The one value rootLibs does not carry, because it is not a dependency version: it is
     // the JDK the toolchain provisions. AGP 9 needs 17+, Gradle 9 supports 17-27, and 21 is
-    // the LTS that both are tested against. `jvmToolchain(21)` makes the build independent
-    // of whichever JDK the runner happens to provide.
+    // the LTS both are tested against. `jvmToolchain(21)` makes the build independent of
+    // whichever JDK the runner happens to provide.
     extra["forge.javaVersion"] = 21
 }
