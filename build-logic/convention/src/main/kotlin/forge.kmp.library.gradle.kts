@@ -54,6 +54,12 @@ kotlin {
         compilerOptions {
             jvmTarget.set(JvmTarget.fromTarget(jvmTargetVersion))
         }
+
+        // The Android-KMP library plugin disables tests by default, in both directions, to
+        // keep builds fast. PLAN §28.7 asks for Android unit tests, so host tests are turned
+        // back on here. Device/instrumentation tests stay off: nothing in this project runs
+        // on a device, and an emulator in CI costs far more than it would prove.
+        withHostTest {}
     }
 
     jvm("desktop") {

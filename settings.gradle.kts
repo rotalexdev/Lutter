@@ -14,9 +14,13 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
-    // A module that declares its own repository can silently shadow the catalog's
-    // resolution and pin a version somewhere the catalog cannot see.
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    // PREFER_SETTINGS, not FAIL_ON_PROJECT_REPOS, and the reason is specific: the Kotlin
+    // Gradle plugin registers the Node.js and browser download repositories on the *project*
+    // for the Wasm and JS targets, and FAIL_ON_PROJECT_REPOS rejects the build outright
+    // rather than resolving it ("repository 'Distributions at https://nodejs.org/dist' was
+    // added by unknown code"). PREFER_SETTINGS keeps the guarantee that actually matters —
+    // settings repositories win, and a module adding its own only earns a warning.
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
 
     repositories {
         google()
