@@ -78,6 +78,11 @@ jobs:
         if: failure() && steps.verify.outcome == 'failure'
         run: |
           echo "::notice::check failed; regenerating the reference ABI dumps"
+          # Delete first. `updateKotlinAbi` writes and overwrites but never removes, so a
+          # dump belonging to a target that no longer exists survives every regeneration and
+          # is then compared against a build that cannot produce it. That is exactly what
+          # removing the Kotlin/Native target left behind.
+          find . -path '*/api/*' -name '*.api' -delete
           gradle updateKotlinAbi
 
       - name: Refuse to auto-commit from a fork
