@@ -1,7 +1,8 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
-    // The shared Rotalex JVM convention, not a local one. It already does the JDK work
-    // correctly: `jvmTarget` from the shared catalog applied to both Java and Kotlin, which
-    // is what a hand-rolled version kept getting wrong here.
+    // The shared Rotalex JVM convention, not a local one. It owns the JDK configuration
+    // this module should not restate: Java's target, from the catalog's `jvmTarget`.
     alias(rootLibs.plugins.convention.jvm.library)
 }
 
@@ -28,6 +29,22 @@ dependencies {
     // derives a test name by reflecting over the enclosing function, which only resolves
     // under JUnit.
     testImplementation(libs.konsist)
+}
+
+// The shared convention sets Java's target from the catalog's `jvmTarget` (17) and does
+// not set Kotlin's, so Kotlin defaults to the JDK running Gradle — 21 in CI — and the
+// plugin's own target validation rejects the pair:
+//
+//   Inconsistent JVM-target compatibility detected for tasks
+//   'compileTestJava' (17) and 'compileTestKotlin' (21)
+//
+// `forge.jvmTarget` is the same value, and gradle.properties says it mirrors the catalog,
+// so the two are compared deliberately rather than by luck. One declaration, applied to
+// Kotlin here and to both compilers in the KMP conventions.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.fromTarget(providers.gradleProperty("forge.jvmTarget").get()))
+    }
 }
 
 tasks.withType<Test>().configureEach {
