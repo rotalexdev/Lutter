@@ -1,0 +1,124 @@
+name: check
+
+# The verification gate. Required check on both `dev` and `main`.
+#
+# Triggers: pull requests into the integration branch, and pushes to it. Feature branches get
+# their results here, which is what makes a PR mergeable, so this is the workflow that has to
+# be trustworthy rather than the one that has to be fast.
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev, main ]
+
+concurrency:
+  group: check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Build, test and verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Needed only by the ABI bootstrap step below, which commits the generated reference
+    # dumps. Everything else in this job is read-only.
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Apply the CI-only Gradle properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          # Matches jvmToolchain(21) in the convention plugin, which the root build takes
+          # from the shared catalog's absence of a JDK pin. setup-java installs the JDK that
+          # Gradle then uses to provision every other toolchain.
+          java-version: '21'
+
+      # No wrapper JAR is committed (see README.md), so this is the action's documented
+      # "project doesn't use Gradle wrapper" path: an explicit, quoted version, and the
+      # `gradle` command below rather than a wrapper script.
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.5.0'
+
+      # build-logic is a real build with real code. Verifying it is a separate, cheaper CI
+      # gate that names build-logic as the culprit instead of blaming the module that merely
+      # applied a broken convention plugin.
+      - name: Verify the convention plugins themselves
+        run: gradle -p build-logic :convention:check
+
+      - name: Build, test, verify the module graph and the ABI
+        id: verify
+        run: gradle check verifyModuleGraph checkKotlinAbi
+
+      # ABI validation compares against reference dumps under `*/api/`. A module with no
+      # committed dump fails with "Expected file with ABI declarations ... does not exist" —
+      # the guardrail working, on a project that has never recorded a baseline.
+      #
+      # Rather than shipping the first dumps by hand, this bootstraps them and commits them
+      # to the branch, the same way nowinandroid regenerates its Dependency Guard baselines:
+      # verify, and if the baseline is simply missing, generate it and push it back.
+      #
+      # A fork gets no token write access, so it stops here with the real failure intact
+      # instead of half-pretending the check passed.
+      #
+      # `failure() &&` is load-bearing. GitHub implicitly conjoins an `if` with `success()`
+      # unless the expression already contains a status function, so after the verify step
+      # fails, a bare `steps.verify.outcome == 'failure'` is false and every recovery step
+      # silently skips. The status function has to be stated.
+      - name: Record the missing ABI dumps
+        if: failure() && steps.verify.outcome == 'failure'
+        run: |
+          echo "::notice::check failed; regenerating the reference ABI dumps"
+          # Delete first. `updateKotlinAbi` writes and overwrites but never removes, so a
+          # dump belonging to a target that no longer exists survives every regeneration and
+          # is then compared against a build that cannot produce it. That is exactly what
+          # removing the Kotlin/Native target left behind.
+          find . -path '*/api/*' -name '*.api' -delete
+          gradle updateKotlinAbi
+
+      - name: Refuse to auto-commit from a fork
+        id: fork
+        if: failure() && steps.verify.outcome == 'failure'
+        run: |
+          if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+            echo "::error::check failed and this is a fork, so the ABI dumps cannot be committed automatically. Run 'gradle updateKotlinAbi' locally and push the result."
+            exit 1
+          fi
+
+      - name: Commit the generated ABI dumps
+        if: failure() && steps.verify.outcome == 'failure' && steps.fork.outcome != 'failure'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          file_pattern: '*/api/*'
+          commit_message: "chore(build): record the reference ABI dumps"
+
+      # `always()` so the checker's own test runs even on a run where something else is
+      # already red. A guardrail that is only proven on green runs is a guardrail that is
+      # never proven while it matters.
+      - name: Compile common tests for Wasm
+        run: |
+          gradle \
+            :engine:model:compileTestKotlinWasmJs \
+            :engine:schema:compileTestKotlinWasmJs \
+            :engine:serialization:compileTestKotlinWasmJs \
+            :engine:interpreter:compileTestKotlinWasmJs \
+            :engine:analysis:compileTestKotlinWasmJs \
+            :engine:editing:compileTestKotlinWasmJs \
+            :engine:codegen:compileTestKotlinWasmJs \
+            :engine:builtins:compileTestKotlinWasmJs
+
+      # `always()` so the checker's own test runs even on a run where something else is
+      # already red. A guardrail that is only proven on green runs is a guardrail that is
+      # never proven while it matters.
+      - name: Prove the graph checker rejects an illegal edge
+        if: always()
+        run: gradle selfTestModuleGraph

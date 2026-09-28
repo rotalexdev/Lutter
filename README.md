@@ -33,25 +33,54 @@ That is a deliberate decision, not an oversight. It has hard consequences:
 If you later decide a local toolchain is acceptable, run `gradle wrapper` once on a
 machine that has Gradle to generate the wrapper JAR, and update this section.
 
-## Version matrix
+## Versions
 
-Every version lives in [`gradle/libs.versions.toml`](gradle/libs.versions.toml). No
-module build file may hard-code a version.
+**This repository owns no dependency versions.** They live in the shared catalog
+`io.github.alexanderrotela20.catalog:version-catalog`, consumed in
+`settings.gradle.kts` as `rootLibs`. Kotlin, AGP, Compose Multiplatform,
+kotlinx-serialization, kotlinx-coroutines, the Android SDK levels and the JVM target are all
+defined there, and every Rotalex project resolves the same numbers.
 
-| Component | Version | Why this one |
+The catalog **must** be named `rootLibs`: the convention plugins in
+`rotalex-root-conventions` look up their own internal dependencies and SDK versions through
+that exact name.
+
+`gradle/libs.versions.toml` is a one-entry gap-filler, not a second catalog. It carries only
+the JUnit 5 BOM, which `rootLibs` 1.2.7 does not have, and it is scheduled for deletion once
+that coordinate is added upstream. Anything that exists in `rootLibs` must never be
+duplicated here.
+
+Build settings come from the shared catalog too, read by name:
+
+| Setting | Catalog key | Meaning |
 |---|---|---|
-| Kotlin | 2.4.10 | Current stable, and inside its own published support matrix |
-| Compose Multiplatform | 1.12.1 | Latest stable |
-| Compose compiler plugin | 2.4.10 | Must equal the Kotlin version — a different axis from CMP |
-| Android Gradle Plugin | 9.1.0 | Top of Kotlin 2.4's documented AGP range |
-| Gradle | 9.5.0 | Top of Kotlin 2.4's documented Gradle range |
-| JDK | 21 | AGP 9 needs 17+; 21 is LTS |
+| `jvmTarget` | `rootLibs.versions.jvmTarget` | Java `sourceCompatibility`/`targetCompatibility` **and** Kotlin's `jvmTarget` |
+| `compileSdk` | `rootLibs.versions.androidCompileSdk` | `compileSdk` |
+| `minSdk` | `rootLibs.versions.androidMinSdk` | `minSdk` |
 
-Kotlin 2.4.0–2.4.10 is documented as compatible with Gradle 7.6.3–9.5.0 and AGP
-8.5.2–9.1.0. Newer Kotlin and AGP releases exist; they are deliberately not used
-because their support range is not published yet, and this scaffold is verified by CI
-alone. Upgrade Kotlin and Compose Multiplatform together, one PR at a time, gated by
-the full CI matrix.
+Two more values are local to CI:
+
+| Value | Where | Why |
+|---|---|---|
+| `gradle-version` ('9.5.0') | each workflow | The Gradle release CI uses. Top of the range Kotlin 2.4 documents support for |
+| `java-version` ('21') | each workflow | The JDK that *runs* Gradle, pinned with `setup-java`. Deliberately not a Gradle toolchain: a toolchain is a second, independent JDK number, and a Java compilation with no explicit target falls back to it |
+
+There is no second JDK number in the build. `jvmTarget` from the catalog is applied to **both**
+Java's `sourceCompatibility`/`targetCompatibility` and Kotlin's `jvmTarget`, and no convention
+calls `jvmToolchain`. Two numbers is how you get `Inconsistent JVM-target compatibility
+detected for tasks 'compileTestJava' (21) and 'compileTestKotlin' (17)` — the toolchain
+supplies one, the catalog supplies the other, and only one of them gets applied.
+
+Bump Kotlin, AGP and Compose Multiplatform together in **that** repository, and let the
+version cascade into this build through a Dependabot-free catalog update. One PR, full CI
+matrix.
+
+> **Watch item:** the shared catalog currently pairs Kotlin `2.4.0` with AGP `9.2.1`, and
+> Kotlin's own compatibility guide documents `2.4.0` as supported up to AGP `9.1.0`. That is
+> a decision owned by the catalog, not by this project, so this repository does not override
+> it. If CI reports a version-matrix symptom, the fix belongs in
+> `rotalex-root-conventions`.
+
 
 ## Modules
 
@@ -72,17 +101,21 @@ it is machine-enforced by `verifyModuleGraph` from a hard-coded allow-list
 :engine:builtins-compose ── runtime, builtins           renderers (Compose)
 :engine:test-support     ── all              golden helper, fixtures, test schema
 :tools:cli               ── serialization, analysis, codegen, builtins   `forge` CLI
-:tools:architecture-tests ── (none)          Konsist rules
+:tools:architecture-tests ── (none)          architecture rules
 :integration:generated-compile               compiles generated fixtures
 :samples:desktop-preview                     renders a JSON document
 ```
 
+The build supports **exactly three targets**: Android, Desktop (JVM) and Wasm. No
+Kotlin/Native, no JS. There is no fourth target a stray `java.` import could hide behind,
+and the Wasm compiler rejects JVM types in `commonMain` on every build.
+
 Three module classes, per PLAN §21.1:
 
 - **Pure** — `model`, `schema`, `serialization`, `interpreter`, `analysis`, `editing`,
-  `codegen`, `builtins`. `commonMain` only. No Compose, no JVM APIs. These also
-  declare `iosSimulatorArm64` and `wasmJs` **canary** targets so JVM leakage into the
-  domain fails the build instead of surviving review.
+  `codegen`, `builtins`. `commonMain` only. No Compose, no JVM APIs. These also declare the
+  `wasmJs` target through `forge.wasm.targets`, so JVM leakage into the domain fails the
+  build instead of surviving review.
 - **Compose** — `runtime`, `builtins-compose`. `commonMain`, because Compose
   Multiplatform is common code.
 - **Tools** — `cli`, `architecture-tests`. JVM only.
@@ -93,11 +126,20 @@ Three module classes, per PLAN §21.1:
 |---|---|---|
 | `verifyModuleGraph` | Any project dependency outside the allow-list | root task |
 | `selfTestModuleGraph` | A regression in the checker itself | root task |
-| Konsist rules | Compose in pure modules, `java.*`/`android.*` in `commonMain`, `Map<String, Any>`, mutable `object` | `:tools:architecture-tests` |
+| Architecture rules | Compose in pure modules, `java.*`/`android.*` in `commonMain`, `Map<String, Any>`, mutable `object` | `:tools:architecture-tests`, run by `check` |
 | `explicitApi()` | An undeclared public API surface | every library module |
 | `checkKotlinAbi` | A binary-incompatible public API change | every library module |
 
-`verifyModuleGraph` and `checkKotlinAbi` are Gradle tasks and fail the `check` job.
+`verifyModuleGraph` and `checkKotlinAbi` are Gradle tasks and fail the `check` job. The
+architecture rules are plain JUnit tests in `:tools:architecture-tests` and run inside
+`check` too, so they gate like everything else.
+
+They are text scanners over `java.nio.file`, not a PSI-based rule engine. PLAN §23.4
+nominates Konsist and it was implemented with it first; it turned out to be the wrong tool
+twice over — `Konsist.scopeFromDirectory` refuses any path outside the project it detects,
+so every scan of `engine/…` failed before a rule ran, and it was never doing the work
+anyway, since the rules were already text scanners. A rule that cannot see the code it
+governs is worse than no rule, because it looks like coverage.
 The Konsist rules run in their own CI job on purpose: Konsist's last release predates
 Kotlin 2.4, so it is the least trustworthy component in the build and it should not be
 able to block the pipeline.
@@ -106,12 +148,84 @@ able to block the pipeline.
 
 | Job | Runs on | What it does |
 |---|---|---|
-| `check` | ubuntu | `gradle check` + `verifyModuleGraph` + `checkKotlinAbi`, `-Werror` enabled |
-| `architecture` | ubuntu | Konsist rules, isolated so they cannot block `check` |
-| `canary` | macos + ubuntu | Compiles iOS simulator and wasmJs test sources for pure modules |
+| `check` | ubuntu | `build-logic:check`, `gradle check`, `verifyModuleGraph`, `checkKotlinAbi`, the Wasm compile, and the graph checker's own negative test. Required |
 | `conformance` | ubuntu | `:integration:generated-compile:desktopTest` (empty until Phase 4) |
 
-## Layout
+## Branching
+
+| Branch | Role |
+|---|---|
+| `main` | Protected. The stable line. Receives merges from `dev` only, through a pull request |
+| `dev` | Protected. The integration line. Every change lands here, through a pull request |
+| `<type>/<slug>` | Working branch. Each opens a pull request against `dev` |
+
+Nothing is ever pushed directly to `main` or `dev`. Both are protected against direct
+pushes, force-pushes and deletion, and both require a pull request — so the rule is enforced
+by the repository rather than by good intentions.
+
+**A branch carries only the conventional-commit type. No versions, no semver.** A branch is
+a place to do one change; it is not a release record.
+
+```
+feat/foundation     fix/node-distribution     chore/ci-modernise     docs/format-spec
+^^^^ ^^^^
+|    |
+|    short, lowercase, dashes
+|
+conventional-commit type
+```
+
+**A pull request title into `dev` is a strict conventional commit**, and that is what the
+title rule checks — the title does **not** have to match the branch name. `fix/node-distribution`
+opening `fix(build): declare the Node and Yarn distributions in settings` is correct: the
+branch says which area was touched, the title says what the change does.
+
+```
+<type>[(scope)][!]: <description>
+
+feat(build): project foundation on the shared Rotalex catalog
+fix(build): declare the Node and Yarn distributions in settings
+feat(runtime)!: drop the legacy renderer registry
+chore: bump the shared catalog to 1.2.8
+```
+
+Types: `feat` `fix` `chore` `refactor` `perf` `docs` `test` `build` `ci` `style` `revert`.
+The title is limited to 100 characters and must not end in a period.
+
+Both rules are enforced twice, deliberately. `scripts/new-branch.sh` refuses to cut a
+non-conforming name, so the mistake is caught before a push; and `branch-policy` is a
+required check on `dev`, so the rule is the repository's rather than a convention that
+decays.
+
+### The branch lifecycle
+
+```bash
+# 1. cut the next branch, always from dev
+scripts/new-branch.sh feat foundation          #  ->  feat/foundation
+
+# 2. work there. Never on dev, never on main.
+git push -u origin feat/foundation
+
+# 3. open the PR into dev, with a conventional-commit title
+gh pr create --base dev --head feat/foundation \
+             --title "feat(build): project foundation on the shared Rotalex catalog"
+
+# 4. CI goes green, the PR merges, and GitHub deletes the branch automatically
+#    (delete_branch_on_merge is on for this repository)
+
+# 5. cut the next one
+scripts/new-branch.sh fix node-distribution
+```
+
+A branch is disposable. It exists for one change, it is deleted when that change lands, and
+the next one starts from a fresh `dev`. Nothing accumulates on a long-lived feature branch,
+so there is never a merge-base that has drifted.
+
+`dependabot` targets `dev`, because a dependency bump is verified by the same matrix as
+everything else before it can reach `main`.
+
+
+
 
 ```
 build-logic/            included build holding the convention plugins
@@ -121,4 +235,15 @@ integration/            cross-module verification
 samples/                runnable demos
 odd/tasks/              feature documents: objective, tasks, verification evidence
 docs/                   format spec, plugin guide, getting started (Phase 10)
+```
+
+```
+build-logic/            included build holding the convention plugins
+engine/<name>/          KMP library modules
+tools/<name>/           JVM tools
+integration/            cross-module verification
+samples/                runnable demos
+odd/tasks/              feature documents: objective, tasks, verification evidence
+docs/                   format spec, plugin guide, getting started (Phase 10)
+.github/ci-gradle.properties   properties CI overlays on ~/.gradle/gradle.properties
 ```

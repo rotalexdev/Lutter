@@ -1,0 +1,25 @@
+# NOT a project catalog.
+#
+# This project takes every version from the shared, org-wide catalog published at
+# io.github.alexanderrotela20.catalog:version-catalog, consumed in settings.gradle.kts as
+# `rootLibs`. This file exists only to carry the coordinates that catalog does not have yet,
+# and it exists to be deleted.
+#
+# Nothing here may duplicate a version that `rootLibs` already owns: Kotlin, AGP, Compose
+# Multiplatform, kotlinx-serialization, kotlinx-coroutines and the Android SDK levels all
+# belong to the shared catalog, and a second copy of any of them is a second thing to forget
+# to update.
+#
+# Add the two entries below to the shared catalog and delete this file. Until then, keep it
+# to the smallest possible gap.
+
+[versions]
+# Test-only, absent from rootLibs 1.2.7, and covered by the upstream pull request that
+# will retire this file.
+junit = "5.14.0"
+
+[libraries]
+junit-jupiter = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
