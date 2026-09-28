@@ -4,7 +4,7 @@ import forge.forgeJavaVersion
 import forge.forgeJvmTarget
 import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.testing.AbstractTestTask
-import org.jetbrains.kotlin.gradle.ExperimentalAbiValidation
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
