@@ -45,10 +45,4 @@ allprojects {
     extra["forge.jvmTarget"] = catalogVersion("jvmTarget")
     extra["forge.androidCompileSdk"] = catalogVersion("androidCompileSdk").toInt()
     extra["forge.androidMinSdk"] = catalogVersion("androidMinSdk").toInt()
-
-    // The one value rootLibs does not carry, because it is not a dependency version: it is
-    // the JDK the toolchain provisions. AGP 9 needs 17+, Gradle 9 supports 17-27, and 21 is
-    // the LTS both are tested against. `jvmToolchain(21)` makes the build independent of
-    // whichever JDK the runner happens to provide.
-    extra["forge.javaVersion"] = 21
 }

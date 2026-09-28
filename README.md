@@ -50,12 +50,18 @@ what `rootLibs` 1.2.7 does not — the JUnit 5 BOM and Konsist, both test-only �
 scheduled for deletion once those two coordinates are added upstream. Anything that exists
 in `rootLibs` must never be duplicated here.
 
-Two values are local, and both are deliberate:
+Two things are local, and both are deliberate:
 
 | Value | Where | Why |
 |---|---|---|
-| `forge.javaVersion` (21) | root `build.gradle.kts` | Not a dependency version. It is the JDK the toolchain provisions, and AGP 9 needs 17+ with 21 being the LTS both AGP and Gradle are tested against |
-| `gradle-version` ('9.5.0') | each workflow | The Gradle release used by CI. Top of the range Kotlin 2.4 documents support for |
+| `gradle-version` ('9.5.0') | each workflow | The Gradle release CI uses. Top of the range Kotlin 2.4 documents support for |
+| `java-version` ('21') | each workflow | The JDK that *runs* Gradle, pinned with `setup-java`. Deliberately not a Gradle toolchain: a toolchain is a second, independent JDK number, and a Java compilation with no explicit target falls back to it |
+
+There is no second JDK number in the build. `jvmTarget` from the catalog is applied to **both**
+Java's `sourceCompatibility`/`targetCompatibility` and Kotlin's `jvmTarget`, and no convention
+calls `jvmToolchain`. Two numbers is how you get `Inconsistent JVM-target compatibility
+detected for tasks 'compileTestJava' (21) and 'compileTestKotlin' (17)` — the toolchain
+supplies one, the catalog supplies the other, and only one of them gets applied.
 
 Bump Kotlin, AGP and Compose Multiplatform together in **that** repository, and let the
 version cascade into this build through a Dependabot-free catalog update. One PR, full CI

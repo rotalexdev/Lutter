@@ -1,7 +1,8 @@
-import forge.forgeJavaVersion
 import forge.forgeJvmTarget
-import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.JavaVersion
+import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.kotlin.dsl.configure
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -14,11 +15,23 @@ kotlin {
     // an "API" is a question about intent, not about who calls it.
     explicitApi()
 
-    jvmToolchain(forgeJavaVersion)
-
     compilerOptions {
         jvmTarget.set(JvmTarget.fromTarget(forgeJvmTarget))
     }
+}
+
+// One JDK number, applied to both compilers. `jvmTarget` comes from the shared catalog and
+// is the same key the Rotalex convention plugins read, so this module and every other
+// Rotalex project emit the same bytecode.
+//
+// There is deliberately no `jvmToolchain` here. A toolchain is a second, independent JDK
+// number, and a Java compilation with no explicit target falls back to it — which is how
+// this module ended up with 'compileTestJava' at 21 and 'compileTestKotlin' at 17 and
+// failed with "Inconsistent JVM-target compatibility". CI pins the JDK that runs Gradle
+// through setup-java, which is where that belongs.
+extensions.configure<JavaPluginExtension> {
+    sourceCompatibility = JavaVersion.toVersion(forgeJvmTarget)
+    targetCompatibility = JavaVersion.toVersion(forgeJvmTarget)
 }
 
 // Konsist is a JVM-only tool: it is an IntelliJ PSI consumer, not a compiler plugin. That
@@ -29,11 +42,11 @@ kotlin {
 // generation, so `libs.foo` does not resolve here; `findLibrary("...")` takes the alias as a
 // string and is therefore immune to that, and to the dash-to-dot rule that decides what the
 // generated accessor would even have been called.
-val catalogs = extensions.getByType<VersionCatalogsExtension>().named("libs")
-val junit = catalogs.findLibrary("junit-jupiter").get()
-val junitApi = catalogs.findLibrary("junit-jupiter-api").get()
-val junitEngine = catalogs.findLibrary("junit-jupiter-engine").get()
-val junitLauncher = catalogs.findLibrary("junit-platform-launcher").get()
+val gapCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
+val junit = gapCatalog.findLibrary("junit-jupiter").get()
+val junitApi = gapCatalog.findLibrary("junit-jupiter-api").get()
+val junitEngine = gapCatalog.findLibrary("junit-jupiter-engine").get()
+val junitLauncher = gapCatalog.findLibrary("junit-platform-launcher").get()
 
 dependencies {
     testImplementation(kotlin("test"))
@@ -50,7 +63,6 @@ dependencies {
 
 tasks.withType<Test>().configureEach {
     // JUnit 5, not Kotest: Konsist derives an assertion's test name by reflecting over the
-    // enclosing test function, and that only resolves under JUnit. Kotest is used for the
-    // assertions themselves, where the ergonomics are worth it.
+    // enclosing test function, and that only resolves under JUnit.
     useJUnitPlatform()
 }

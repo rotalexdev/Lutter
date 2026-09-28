@@ -1,6 +1,5 @@
 import forge.forgeAndroidCompileSdk
 import forge.forgeAndroidMinSdk
-import forge.forgeJavaVersion
 import forge.forgeJvmTarget
 import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.testing.AbstractTestTask
@@ -33,8 +32,6 @@ kotlin {
     // Every public declaration in every library module must state its visibility and its
     // return type. This is what makes the ABI dump readable as documentation.
     explicitApi()
-
-    jvmToolchain(forgeJavaVersion)
 
     compilerOptions {
         // -Werror rather than the deprecated `kotlin.allWarningsAsErrors` flag: it reaches
