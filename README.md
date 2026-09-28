@@ -33,25 +33,40 @@ That is a deliberate decision, not an oversight. It has hard consequences:
 If you later decide a local toolchain is acceptable, run `gradle wrapper` once on a
 machine that has Gradle to generate the wrapper JAR, and update this section.
 
-## Version matrix
+## Versions
 
-Every version lives in [`gradle/libs.versions.toml`](gradle/libs.versions.toml). No
-module build file may hard-code a version.
+**This repository owns no dependency versions.** They live in the shared catalog
+`io.github.alexanderrotela20.catalog:version-catalog`, consumed in
+`settings.gradle.kts` as `rootLibs`. Kotlin, AGP, Compose Multiplatform,
+kotlinx-serialization, kotlinx-coroutines, the Android SDK levels and the JVM target are all
+defined there, and every Rotalex project resolves the same numbers.
 
-| Component | Version | Why this one |
+The catalog **must** be named `rootLibs`: the convention plugins in
+`rotalex-root-conventions` look up their own internal dependencies and SDK versions through
+that exact name.
+
+`gradle/libs.versions.toml` is a two-entry gap-filler, not a second catalog. It carries only
+what `rootLibs` 1.2.7 does not — the JUnit 5 BOM and Konsist, both test-only — and it is
+scheduled for deletion once those two coordinates are added upstream. Anything that exists
+in `rootLibs` must never be duplicated here.
+
+Two values are local, and both are deliberate:
+
+| Value | Where | Why |
 |---|---|---|
-| Kotlin | 2.4.10 | Current stable, and inside its own published support matrix |
-| Compose Multiplatform | 1.12.1 | Latest stable |
-| Compose compiler plugin | 2.4.10 | Must equal the Kotlin version — a different axis from CMP |
-| Android Gradle Plugin | 9.1.0 | Top of Kotlin 2.4's documented AGP range |
-| Gradle | 9.5.0 | Top of Kotlin 2.4's documented Gradle range |
-| JDK | 21 | AGP 9 needs 17+; 21 is LTS |
+| `forge.javaVersion` (21) | root `build.gradle.kts` | Not a dependency version. It is the JDK the toolchain provisions, and AGP 9 needs 17+ with 21 being the LTS both AGP and Gradle are tested against |
+| `gradle-version` ('9.5.0') | each workflow | The Gradle release used by CI. Top of the range Kotlin 2.4 documents support for |
 
-Kotlin 2.4.0–2.4.10 is documented as compatible with Gradle 7.6.3–9.5.0 and AGP
-8.5.2–9.1.0. Newer Kotlin and AGP releases exist; they are deliberately not used
-because their support range is not published yet, and this scaffold is verified by CI
-alone. Upgrade Kotlin and Compose Multiplatform together, one PR at a time, gated by
-the full CI matrix.
+Bump Kotlin, AGP and Compose Multiplatform together in **that** repository, and let the
+version cascade into this build through a Dependabot-free catalog update. One PR, full CI
+matrix.
+
+> **Watch item:** the shared catalog currently pairs Kotlin `2.4.0` with AGP `9.2.1`, and
+> Kotlin's own compatibility guide documents `2.4.0` as supported up to AGP `9.1.0`. That is
+> a decision owned by the catalog, not by this project, so this repository does not override
+> it. If CI reports a version-matrix symptom, the fix belongs in
+> `rotalex-root-conventions`.
+
 
 ## Modules
 
@@ -111,7 +126,21 @@ able to block the pipeline.
 | `canary` | macos + ubuntu | Compiles iOS simulator and wasmJs test sources for pure modules |
 | `conformance` | ubuntu | `:integration:generated-compile:desktopTest` (empty until Phase 4) |
 
-## Layout
+## Branching
+
+| Branch | Role |
+|---|---|
+| `main` | Protected. The stable line. Receives merges from `dev` only, through a pull request |
+| `dev` | Protected. The integration line. Every change lands here, through a pull request |
+| `feat/*`, `fix/*` | Working branches. Each opens a pull request against `dev` |
+
+Nothing is ever pushed directly to `main` or `dev`. `main` and `dev` are both protected
+against direct pushes, force-pushes and deletion, and both require a pull request — so the
+rule is enforced by the repository rather than by good intentions.
+
+`dependabot` targets `dev`, because a dependency bump is verified by the same matrix as
+everything else before it can reach `main`.
+
 
 ```
 build-logic/            included build holding the convention plugins
@@ -121,4 +150,15 @@ integration/            cross-module verification
 samples/                runnable demos
 odd/tasks/              feature documents: objective, tasks, verification evidence
 docs/                   format spec, plugin guide, getting started (Phase 10)
+```
+
+```
+build-logic/            included build holding the convention plugins
+engine/<name>/          KMP library modules
+tools/<name>/           JVM tools
+integration/            cross-module verification
+samples/                runnable demos
+odd/tasks/              feature documents: objective, tasks, verification evidence
+docs/                   format spec, plugin guide, getting started (Phase 10)
+.github/ci-gradle.properties   properties CI overlays on ~/.gradle/gradle.properties
 ```

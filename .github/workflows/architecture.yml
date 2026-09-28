@@ -1,43 +1,51 @@
 name: architecture
 
+# PLAN §23.4 Konsist rules. Deliberately NOT a required check.
+#
+# Konsist parses sources with an IntelliJ PSI layer whose last release predates the Kotlin
+# version in the shared catalog. It is the least trustworthy component in this build, and a
+# rule engine that may not parse the language should not be able to hold the pipeline
+# hostage. If it proves unusable, this job is replaced by Detekt rather than blocking the
+# work.
 on:
   push:
+    branches: [ dev ]
   pull_request:
+    branches: [ dev, main ]
 
 concurrency:
-  group: architecture-${{ github.ref }}
+  group: architecture-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
-  # Deliberately NOT part of the `check` job.
-  #
-  # Konsist parses sources with an IntelliJ PSI layer whose last release predates Kotlin
-  # 2.4 (decision A5 in odd/tasks/forge-engine-foundation.md). It is the least trustworthy
-  # component in this scaffold, and a rule engine that cannot parse the language should not
-  # be able to hold the build hostage. Isolated here, a Konsist failure is a red badge on
-  # one job instead of a red pipeline. If it turns out to be unusable, the documented
-  # fallback is Detekt, which would replace this job rather than block the work.
   architecture:
+    name: Konsist architecture rules
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v5
+      - name: Apply the CI-only Gradle properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
+
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
 
-      # `packages` is set explicitly because the action's default is "tools platform-tools",
-      # and cmdline-tools 16 no longer publishes a package called `tools`. The default makes
-      # this step fail before the build starts, in every job, on every run.
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
         with:
           packages: platform-tools
 
-      - uses: gradle/actions/setup-gradle@v4
+      - name: Install the Android platform the build compiles against
+        run: sdkmanager "platforms;android-37"
+
+      - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '9.5.0'
 
-      - name: Run the Konsist architecture rules
-        run: gradle :tools:architecture-tests:test
+      - run: gradle :tools:architecture-tests:test

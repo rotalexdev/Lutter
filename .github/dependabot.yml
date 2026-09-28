@@ -1,21 +1,18 @@
+# Dependabot is scoped to the GitHub Actions this repository owns.
+#
+# It does not and cannot manage the Gradle dependency versions: those live in the shared
+# catalog, io.github.alexanderrotela20.catalog, and a version bump here would be a second
+# place to change something that has exactly one home. Dependabot cannot see inside a Maven
+# artifact, so leaving it on `gradle` here would only produce PRs that fight the catalog.
 version: 2
-
 updates:
-  # Gradle ecosystem, so gradle/libs.versions.toml and the included build are watched.
-  #
-  # Read the resulting PR as a coupled change, not as an independent bump. Dependabot has no
-  # way to know that the Compose compiler plugin version must equal the Kotlin version, so a
-  # PR that moves one and not the other is a broken build that looks like a routine upgrade.
-  # The Kotlin and Compose Multiplatform upgrades are therefore expected to be done by hand,
-  # together, following the official compatibility table and gated by the full CI matrix.
-  - package-ecosystem: gradle
-    directory: /
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-
   - package-ecosystem: github-actions
     directory: /
+    target-branch: dev
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "build(deps)"
+    groups:
+      actions:
+        patterns: ["*"]

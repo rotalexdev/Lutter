@@ -1,62 +1,72 @@
 name: check
 
-# Triggered on every branch, not just the default one: the foundation is developed on a
-# feature branch, and a pipeline that only reports on main is a pipeline that reports late.
+# The verification gate. Required check on both `dev` and `main`.
+#
+# Triggers: pull requests into the integration branch, and pushes to it. Feature branches get
+# their results here, which is what makes a PR mergeable, so this is the workflow that has to
+# be trustworthy rather than the one that has to be fast.
 on:
   push:
+    branches: [ dev ]
   pull_request:
+    branches: [ dev, main ]
 
 concurrency:
-  group: check-${{ github.ref }}
+  group: check-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   check:
+    name: Build, test and verify
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v5
+      - name: Apply the CI-only Gradle properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
+
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          # Matches jvmToolchain(21) in the convention plugin. setup-java installs the JDK
-          # that Gradle then uses to provision every other toolchain.
+          # Matches jvmToolchain(21) in the convention plugin, which the root build takes
+          # from the shared catalog's absence of a JDK pin. setup-java installs the JDK that
+          # Gradle then uses to provision every other toolchain.
           java-version: '21'
 
       # Every job configures the whole project graph, and AGP resolves the Android SDK while
-      # *configuring* the build, not only when an Android task runs. So a job that only ever
-      # runs JVM or Native tasks still needs the SDK present.
+      # *configuring* the build, not only when an Android task runs. A job that only runs JVM
+      # tasks still needs the SDK present.
       #
-      # The action installs the command-line tools and accepts the licences, so there is no
-      # separate `yes | sdkmanager --licenses` step to forget. `packages` is set explicitly
-      # because the action's default is "tools platform-tools", and cmdline-tools 16 no
-      # longer publishes a package called `tools` — the default fails this step before the
-      # build starts, in every job, on every run.
-      - uses: android-actions/setup-android@v3
+      # `packages` is set explicitly because the action's default is "tools platform-tools",
+      # and cmdline-tools 16 no longer publishes a package called `tools` — the default fails
+      # this step before Gradle is reached, in every job, on every run.
+      - uses: android-actions/setup-android@v4
         with:
           packages: platform-tools
 
       - name: Install the Android platform the build compiles against
-        run: sdkmanager "platforms;android-36"
+        run: sdkmanager "platforms;android-37"
 
       # No wrapper JAR is committed (see README.md), so this is the action's documented
       # "project doesn't use Gradle wrapper" path: an explicit, quoted version, and the
       # `gradle` command below rather than a wrapper script.
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '9.5.0'
 
-      - name: Build, test, verify the module graph and the ABI
-        # First-run note: no module has a committed `api/*.abi` dump yet, so this step is
-        # the one most likely to fail on a green scaffold. The failure is the ABI guardrail
-        # doing its job, and the fix is to accept the generated dumps:
-        #   gradle updateKotlinAbi && git add '**/api/**' && git commit -m "chore: record initial ABI dumps"
-        # Run that locally on a branch, or from a one-off CI job, and push the result.
-        run: gradle check verifyModuleGraph checkKotlinAbi -Pforge.warningsAsErrors=true
+      # build-logic is a real build with real code. Verifying it is a separate, cheaper CI
+      # gate that names build-logic as the culprit instead of blaming the module that merely
+      # applied a broken convention plugin.
+      - name: Verify the convention plugins themselves
+        run: gradle -p build-logic :convention:check
 
-      # Separate invocation on purpose: this is the negative test for the graph checker, and
-      # it must pass even when the graph itself is clean, or a green `check` says nothing
-      # about whether the checker works.
+      - name: Build, test, verify the module graph and the ABI
+        run: gradle check verifyModuleGraph checkKotlinAbi
+
       - name: Prove the graph checker rejects an illegal edge
-        run: gradle selfTestModuleGraph -Pforge.warningsAsErrors=true
+        run: gradle selfTestModuleGraph
