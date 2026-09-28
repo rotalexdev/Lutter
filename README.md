@@ -50,7 +50,16 @@ what `rootLibs` 1.2.7 does not â€” the JUnit 5 BOM and Konsist, both test-only â
 scheduled for deletion once those two coordinates are added upstream. Anything that exists
 in `rootLibs` must never be duplicated here.
 
-Two things are local, and both are deliberate:
+Build settings live in [`gradle.properties`](gradle.properties), read by the convention
+plugins with `providers.gradleProperty(...)`:
+
+| Property | Value | Meaning |
+|---|---|---|
+| `forge.jvmTarget` | 17 | Java `sourceCompatibility`/`targetCompatibility` **and** Kotlin `jvmTarget` |
+| `forge.androidCompileSdk` | 37 | `compileSdk` |
+| `forge.androidMinSdk` | 26 | `minSdk` |
+
+Two more values are local to CI:
 
 | Value | Where | Why |
 |---|---|---|

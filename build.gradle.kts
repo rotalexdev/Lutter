@@ -1,11 +1,12 @@
-import org.gradle.api.artifacts.VersionCatalogsExtension
-
 // Plugin aliases come from the shared catalog so every module resolves the same plugin
 // marker version as every other Rotalex project. This project adds no version of its own.
 //
 // The `apply false` declarations keep one classpath for the whole build: a subproject that
 // applied an unlisted plugin would append its dependencies instead of replacing them, and
 // that is how two copies of the Kotlin plugin end up in one build.
+//
+// Build settings — jvmTarget, compileSdk, minSdk — are not here. They are declared in
+// gradle.properties and read by the convention plugins with providers.gradleProperty(...).
 plugins {
     alias(rootLibs.plugins.kotlin.multiplatform) apply false
     alias(rootLibs.plugins.kotlin.jvm) apply false
@@ -21,28 +22,7 @@ plugins {
     id("forge.moduleGraph")
 }
 
-// Resolved here, in the root project's own scope, and then handed to every project as a
-// plain value.
-//
-// Two reasons, and both are load-bearing:
-//
-//  * A precompiled script plugin cannot see version-catalog accessors at all — its `plugins`
-//    block is extracted and compiled separately, and the accessors do not exist in its body
-//    either. The convention plugins read these values from project extras instead.
-//  * Reading `rootLibs` *inside* `allprojects { }` looks the catalog up as an extension on
-//    the child project, which does not have one: only the root does. Resolving first and
-//    assigning the result avoids that entirely.
-val rootCatalog = extensions.getByType<VersionCatalogsExtension>().named("rootLibs")
-
-fun catalogVersion(alias: String): String = rootCatalog.findVersion(alias).get().requiredVersion
-
 allprojects {
     group = "dev.rotalex.lutter"
     version = "0.1.0-SNAPSHOT"
-
-    // Every one of these is owned by `rootLibs`. This block only carries them across a
-    // boundary the type-safe accessors do not cross.
-    extra["forge.jvmTarget"] = catalogVersion("jvmTarget")
-    extra["forge.androidCompileSdk"] = catalogVersion("androidCompileSdk").toInt()
-    extra["forge.androidMinSdk"] = catalogVersion("androidMinSdk").toInt()
 }
