@@ -71,12 +71,11 @@ dependencyResolutionManagement {
 
 rootProject.name = "forge-engine"
 
+// Lets `project(":engine:model")` be written as `projects.engine.model`, with the
+// accessor regenerated when the module graph changes. Nothing uses it yet — the
+// module-graph task needs the string path in order to report it — so it is enabled now,
+// before the first `projects.` reference, rather than retrofitted after a rename.
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
-
-// Typesafe project accessors are deliberately off (decision A2). They are a Gradle
-// feature preview, and this build is verified by CI alone: a cold, unproven build should
-// not also carry a preview. Module references use project(":engine:model"), which is what
-// the module-graph task needs anyway. Re-enable once CI has been green for a while.
 
 include(":engine:model")
 include(":engine:schema")
