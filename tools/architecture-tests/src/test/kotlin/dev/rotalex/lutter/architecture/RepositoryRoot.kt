@@ -56,15 +56,15 @@ internal object RepositoryRoot {
     /**
      * Every Kotlin file under [directory]. The result type is left to the compiler on
      * purpose: see the note on inferred types in the KDoc above.
+     *
+     * No configuration block. Konsist already filters to `.kt` files by default, and the
+     * one knob that looked configurable — `ktExtensionFilter` — does not exist in 0.17.3.
+     * A build that cannot be compiled locally should not carry an API call whose only
+     * purpose is to restate a default.
      */
     fun kotlinFilesIn(directory: Path) = directory
         .takeIf { Files.isDirectory(it) }
-        ?.let {
-            Konsist
-                .scopeFromDirectory(it.toString()) {
-                    ktExtensionFilter = { it == ".kt" }
-                }.files
-        }
+        ?.let { Konsist.scopeFromDirectory(it.toString()).files }
         .orEmpty()
 
     /** Source root of every engine module: the `src` directory of each one. */
