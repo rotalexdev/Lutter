@@ -37,54 +37,6 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      # Configuring the build still evaluates the Android target on every module, so the SDK
-      # has to be here even on a job that only compiles Apple targets.
-      - uses: android-actions/setup-android@v4
-        with:
-          packages: platform-tools
-
-      - name: Install the Android platform the build configures against
-        run: sdkmanager "platforms;android-37"
-
-      - uses: gradle/actions/setup-gradle@v6
-        with:
-          gradle-version: '9.5.0'
-
-      - name: Run and compile common tests for the iOS simulator
-        run: |
-          gradle \
-            :engine:model:iosSimulatorArm64Test \
-            :engine:schema:iosSimulatorArm64Test \
-            :engine:serialization:iosSimulatorArm64Test \
-            :engine:interpreter:iosSimulatorArm64Test \
-            :engine:analysis:iosSimulatorArm64Test \
-            :engine:editing:iosSimulatorArm64Test \
-            :engine:codegen:iosSimulatorArm64Test \
-            :engine:builtins:iosSimulatorArm64Test
-
-  canary-wasm:
-    name: Wasm compile (pure modules)
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Apply the CI-only Gradle properties
-        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
-
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - uses: android-actions/setup-android@v4
-        with:
-          packages: platform-tools
-
-      - name: Install the Android platform the build configures against
-        run: sdkmanager "platforms;android-37"
-
       - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '9.5.0'

@@ -38,20 +38,6 @@ jobs:
           # Gradle then uses to provision every other toolchain.
           java-version: '21'
 
-      # Every job configures the whole project graph, and AGP resolves the Android SDK while
-      # *configuring* the build, not only when an Android task runs. A job that only runs JVM
-      # tasks still needs the SDK present.
-      #
-      # `packages` is set explicitly because the action's default is "tools platform-tools",
-      # and cmdline-tools 16 no longer publishes a package called `tools` — the default fails
-      # this step before Gradle is reached, in every job, on every run.
-      - uses: android-actions/setup-android@v4
-        with:
-          packages: platform-tools
-
-      - name: Install the Android platform the build compiles against
-        run: sdkmanager "platforms;android-37"
-
       # No wrapper JAR is committed (see README.md), so this is the action's documented
       # "project doesn't use Gradle wrapper" path: an explicit, quoted version, and the
       # `gradle` command below rather than a wrapper script.
