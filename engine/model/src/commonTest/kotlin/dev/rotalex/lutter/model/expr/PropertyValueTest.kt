@@ -1,10 +1,8 @@
 package dev.rotalex.lutter.model.expr
 
-import dev.rotalex.lutter.model.expr.BinaryOp
-import dev.rotalex.lutter.model.expr.Expr
-import dev.rotalex.lutter.model.expr.RefTarget
 import dev.rotalex.lutter.model.ids.ParamName
 import dev.rotalex.lutter.model.ids.StateId
+import dev.rotalex.lutter.model.value.Value
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -33,10 +31,8 @@ import kotlinx.serialization.json.jsonPrimitive
  *    third state — both or neither — is not representable.
  */
 class PropertyValueTest {
-
     /** A property value and the tag it must write. */
     private data class Case(val property: PropertyValue, val tag: String)
-
     /** PLAN §5.4's two arms, each with the tag it must write. */
     private val cases: List<Case> = listOf(
         Case(PropertyValue.Const(Value.Dp(16.5f)), "const"),
@@ -51,18 +47,15 @@ class PropertyValueTest {
             "expr",
         ),
     )
-
     @Test
     fun `the union has two arms and no two share a tag`() {
         // Two, transcribed from §5.4. Asserted because a third arm is a `FORMAT_VERSION`
         // event for every property map in the document, and because a count nobody checks is
         // a count nobody notices changing.
         assertEquals(2, cases.size, "the list of arms is not §5.4's")
-
         val tags = cases.map { it.tag }
         assertEquals(tags.size, tags.toSet().size, "two arms share a tag: $tags")
     }
-
     @Test
     fun `both arms round trip through json and come back equal`() {
         for (case in cases) {
@@ -74,16 +67,13 @@ class PropertyValueTest {
             )
         }
     }
-
     @Test
     fun `the serial name is the wire form and not the class name`() {
         for (case in cases) {
             val text = Json.encodeToString<PropertyValue>(case.property)
-
             // Read back out of the encoded JSON rather than off the annotation, so a tag that
             // drifts from the `@SerialName` fails a test instead of a review.
             assertEquals(case.tag, discriminatorOf(text), "wrong discriminator in '$text'")
-
             // The rename guard. Both arms differ from their class name today, which is what
             // lets this be asserted without exceptions: `Const` renamed to `Constant` would
             // read no document written before the rename.
@@ -94,7 +84,6 @@ class PropertyValueTest {
             )
         }
     }
-
     @Test
     fun `a constant property is the value with a tag around it`() {
         // The exact bytes, because "contains the tag" is the weaker claim. A constant property
@@ -111,7 +100,6 @@ class PropertyValueTest {
             Json.encodeToString<PropertyValue>(PropertyValue.Const(Value.Dp(16.5f))),
         )
     }
-
     @Test
     fun `a computed property carries the expression and not a string of it`() {
         // The whole reason this union exists. The payload is a tree, so the analyzer can walk
@@ -122,17 +110,14 @@ class PropertyValueTest {
             then = Expr.Const(Value.Str("admin")),
             otherwise = Expr.Const(Value.Str("user")),
         )
-
         val text = Json.encodeToString<PropertyValue>(PropertyValue.Computed(expression))
         val decoded = assertIs<PropertyValue.Computed>(Json.decodeFromString<PropertyValue>(text))
-
         assertEquals(expression, decoded.expr, "the expression came back as something else")
         assertTrue(
             "\"type\":\"if\"" in text,
             "the nested expression lost its own discriminator",
         )
     }
-
     @Test
     fun `a document round trips through value to property value to expr`() {
         // The real shape a property takes, end to end, and the reason the three pieces are in
@@ -153,21 +138,16 @@ class PropertyValueTest {
                 ),
             ),
         )
-
         val text = Json.encodeToString<PropertyValue>(document)
         val decoded = Json.decodeFromString<PropertyValue>(text)
-
         assertEquals(document, decoded, "the chain did not close: '$text'")
-
         // And re-encoding is byte-identical, which is the property the corpus and the
         // `RoundTripPropertyTest` of §36.1 are built on: `encode(decode(encode(x))) == encode(x)`.
         assertEquals(text, Json.encodeToString<PropertyValue>(decoded))
-
         // The number itself is intact and canonical — 2.5 written as 2.5, not as 2.5f widened
         // to 2.5 in a double and not as 2.5000001.
         assertTrue("\"v\":2.5" in text, "the dp lost its canonical spelling: '$text'")
     }
-
     @Test
     fun `a computed property decodes without knowing which component owns it`() {
         // D4, one level deeper than `ValueTest` goes. The fragment below is written as text
@@ -190,14 +170,10 @@ class PropertyValueTest {
             "{\"type\":\"call\",\"function\":\"vendor.redact\"," +
             "\"args\":[{\"type\":\"ref\",\"target\":{\"type\":\"state\",\"id\":\"s_secret\"}}]}" +
             "]}}"
-
         assertEquals("expr", discriminatorOf(text), "the wrapper lost its own tag")
-
         val computed = assertIs<PropertyValue.Computed>(Json.decodeFromString<PropertyValue>(text))
         val template = assertIs<Expr.Template>(computed.expr)
-
         assertEquals(3, template.parts.size, "a part was lost: ${template.parts}")
-
         // Lossless, which is the point of D4 rather than a separate promise: an engine that
         // cannot understand a document must still hand it back unchanged, or a plugin's work
         // is destroyed by opening the file. Compared as parsed documents, because whitespace
@@ -208,7 +184,6 @@ class PropertyValueTest {
             "the round trip rewrote the document",
         )
     }
-
     @Test
     fun `a tag the union does not have is refused`() {
         // The honest limit, pinned so it stays one. A third arm is a `FORMAT_VERSION` event,
@@ -221,7 +196,6 @@ class PropertyValueTest {
             Json.decodeFromString<PropertyValue>("""{"type":"bind","expr":"s_count"}""")
         }
     }
-
     /**
      * The discriminator, read out of encoded JSON rather than off the annotation.
      *

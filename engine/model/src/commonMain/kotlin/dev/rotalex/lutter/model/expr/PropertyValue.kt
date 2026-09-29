@@ -12,7 +12,7 @@
 
 package dev.rotalex.lutter.model.expr
 
-import dev.rotalex.lutter.model.expr.Expr
+import dev.rotalex.lutter.model.value.Value
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
@@ -33,7 +33,6 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 @Serializable
 @JsonClassDiscriminator("type")
 public sealed interface PropertyValue {
-
     /**
      * A literal, already canonicalized.
      *
@@ -46,7 +45,6 @@ public sealed interface PropertyValue {
     @Serializable
     @SerialName("const")
     public data class Const(public val value: Value) : PropertyValue
-
     /**
      * The expression that produces the value.
      *
