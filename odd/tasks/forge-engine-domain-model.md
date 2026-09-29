@@ -210,33 +210,45 @@ No local toolchain — every row below is a CI run, not a local command.
 | T1 | `check` — build, test, module graph, ABI | **PASS** (run 36551357445) |
 | T1 | `conformance` — runtime versus generated code | **PASS** (run 36551357456) |
 | T1 | `branch-policy` — branch type and PR title | **PASS** (run 36551357349) |
-| T1 | PR #12 into `dev` | **CLEAN / MERGEABLE** |
+| T1 | PR #12 into `dev` | **MERGED** as `ecb6e78` |
 
-`check` at this commit covers all three targets (Android, Desktop, Wasm), the 13 `IdsTest`
-cases, `verifyModuleGraph`, `checkKotlinAbi` against the 21 recorded dumps, the Wasm
+`check` at the merged commit covered all three targets (Android, Desktop, Wasm), the 13
+`IdsTest` cases, `verifyModuleGraph`, `checkKotlinAbi` against the recorded dumps, the Wasm
 `compileTestKotlinWasmJs` canaries, and `selfTestModuleGraph`.
 
-T2 and later are **CI-PENDING**. T2's code is written and uncommitted; see Progress.
+T2 and later are **CI-PENDING**. T2's arithmetic was re-derived locally against an
+independent IEEE-754 model — Python as an oracle, not a build tool — because no local
+compiler is permitted. That verifies the arithmetic, not the compilation.
 
 ## Progress
 
-- **T1 — done and verified green.** Commits `fdc4514` (this document), `e2e4ed2`
-  (restore `@JvmInline`), `0c551d4` (split the generator assertion), plus `07e62d6`, the
-  ABI dumps CI generated on the branch.
-- **T2 — written, not committed, not verified.** `CanonicalNumbers.kt`,
-  `CanonicalSerializers.kt` and `CanonicalNumericsTest.kt` (18 tests) exist as untracked
-  files. They are **not** on the T1 branch and must land on their own branch, cut from
-  `dev` once PR #12 merges, because T2 cannot compile while the T1 branch is unmerged.
-  Two design decisions need the maintainer's eye before it is committed:
+- **T1 — merged.** PR #12 into `dev` as `ecb6e78` (squash), merged 2026-09-29. Branch
+  `feat/phase-1-domain-model` deleted on merge. Individual commits, before the squash:
+  `fdc4514` (this document), `e2e4ed2` (restore `@JvmInline`), `0c551d4` (split the generator
+  assertion), `91f6cdc` (evidence and the CI defects), `fd6f333` (reconcile the duplicate
+  document), plus `07e62d6`, the ABI dumps CI generated on the branch.
+- **T2 — on its own branch, `feat/phase-1-canonical-numerics`, cut from `dev`.** It could not
+  share T1's branch: `:engine:model` has to compile for CI to mean anything, so T2 could not
+  be verified until T1 was in `dev`. Three files: `CanonicalNumbers.kt` (the canonical form
+   and the text), `CanonicalSerializers.kt` (the two `KSerializer`s), and
+   `CanonicalNumericsTest.kt` (18 tests). The arithmetic was re-derived here against an
+   independent IEEE-754 model before committing, since no local compiler is permitted:
+   idempotence holds across the whole test corpus, and `165000/10000 → 16.5`,
+   trailing-zero trimming and the `1.0e11f → 99999997952` case all check out.
+
+  Two design decisions need a maintainer's eye:
+
   1. **Magnitudes above `MAX_CANONICAL_MAGNITUDE = 2.0e11` are refused**, not spelled. The
      bound is the largest value that survives canonicalization twice (`units < 2^51`).
      Beyond it, an exact spelling needs either a libm `log10` — reintroducing the
      cross-platform non-determinism D1 exists to remove — or bignum arithmetic in a
      vocabulary module. PLAN §5.4 does not say. Refusing fails at construction, which is
-     better than an approximation that looks lossless.
+     better than an approximation that looks lossless. A document that genuinely needs a
+     number that large has `Value.Int64`.
   2. **Rounding applies to the stored value, not the typed decimal.** `0.12345` is stored
-     as `0.123449999999999998223…`, so it rounds to `0.1235`. The `Float` and `Double`
-     paths can therefore disagree about the same written literal.
+     as `0.123450000000000004174…`, its scaled product lands exactly on `1234.5`, and it
+     therefore rounds to `0.1235`. The `Float` and `Double` paths can legitimately disagree
+     about the same written literal.
 
 ## Delivery
 
