@@ -41,9 +41,14 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          # Matches jvmToolchain(21) in the convention plugin, which the root build takes
-          # from the shared catalog's absence of a JDK pin. setup-java installs the JDK that
-          # Gradle then uses to provision every other toolchain.
+          # The JDK that runs Gradle. Deliberately NOT a Gradle toolchain: this build has no
+          # `jvmToolchain` anywhere, on purpose.
+          #
+          # A toolchain would be a second, independent JDK number. A Java compilation with no
+          # explicit target falls back to the toolchain while Kotlin's jvmTarget comes from the
+          # catalog, and the two disagreeing is the "inconsistent JVM-target compatibility"
+          # failure. The catalog's jvmTarget is applied to both Java's and Kotlin's side, so
+          # there is only ever one number.
           java-version: '21'
 
       # No wrapper JAR is committed (see README.md), so this is the action's documented
@@ -154,10 +159,16 @@ jobs:
           gh pr comment "$PR" --body-file "$RUNNER_TEMP/abi.md" \
             || echo "could not comment on #$PR; the artifact is on the run"
 
-      # `always()` so the checker's own test runs even on a run where something else is
-      # already red. A guardrail that is only proven on green runs is a guardrail that is
-      # never proven while it matters.
+      # `always()` so the Wasm canary runs even on a run where something else is already
+      # red. A guardrail that is only proven on green runs is a guardrail that is never proven
+      # while it matters — and this is the guardrail that catches a JVM type leaking into
+      # commonMain, so a red run is exactly when it is worth running.
+      #
+      # The `if` is load-bearing and was missing. A bare `if` is conjoined with `success()` by
+      # GitHub, so without it this step ran only when every earlier step had passed, and a
+      # canary that only runs on a green build is not a canary.
       - name: Compile common tests for Wasm
+        if: always()
         run: |
           gradle \
             :engine:model:compileTestKotlinWasmJs \
@@ -169,9 +180,10 @@ jobs:
             :engine:codegen:compileTestKotlinWasmJs \
             :engine:builtins:compileTestKotlinWasmJs
 
-      # `always()` so the checker's own test runs even on a run where something else is
-      # already red. A guardrail that is only proven on green runs is a guardrail that is
-      # never proven while it matters.
+      # `always()` for the same reason as the Wasm canary above, and the same trap: without
+      # an explicit status function this step is skipped on any already-red run, so the one
+      # job that proves the module-graph checker can still *fail* would never run on a run
+      # where that mattered.
       - name: Prove the graph checker rejects an illegal edge
         if: always()
         run: gradle selfTestModuleGraph
