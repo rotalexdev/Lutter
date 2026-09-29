@@ -27,6 +27,26 @@ final class dev.rotalex.lutter.model.ids/SequentialIdGenerator : dev.rotalex.lut
     final fun peek(): dev.rotalex.lutter.model.ids/NodeId // dev.rotalex.lutter.model.ids/SequentialIdGenerator.peek|peek(){}[0]
 }
 
+final class dev.rotalex.lutter.model.value/CanonicalDouble : kotlinx.serialization/KSerializer<kotlin/Double> { // dev.rotalex.lutter.model.value/CanonicalDouble|null[0]
+    constructor <init>() // dev.rotalex.lutter.model.value/CanonicalDouble.<init>|<init>(){}[0]
+
+    final val descriptor // dev.rotalex.lutter.model.value/CanonicalDouble.descriptor|{}descriptor[0]
+        final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.value/CanonicalDouble.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+    final fun deserialize(kotlinx.serialization.encoding/Decoder): kotlin/Double // dev.rotalex.lutter.model.value/CanonicalDouble.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+    final fun serialize(kotlinx.serialization.encoding/Encoder, kotlin/Double) // dev.rotalex.lutter.model.value/CanonicalDouble.serialize|serialize(kotlinx.serialization.encoding.Encoder;kotlin.Double){}[0]
+}
+
+final class dev.rotalex.lutter.model.value/CanonicalFloat : kotlinx.serialization/KSerializer<kotlin/Float> { // dev.rotalex.lutter.model.value/CanonicalFloat|null[0]
+    constructor <init>() // dev.rotalex.lutter.model.value/CanonicalFloat.<init>|<init>(){}[0]
+
+    final val descriptor // dev.rotalex.lutter.model.value/CanonicalFloat.descriptor|{}descriptor[0]
+        final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.value/CanonicalFloat.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+    final fun deserialize(kotlinx.serialization.encoding/Decoder): kotlin/Float // dev.rotalex.lutter.model.value/CanonicalFloat.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+    final fun serialize(kotlinx.serialization.encoding/Encoder, kotlin/Float) // dev.rotalex.lutter.model.value/CanonicalFloat.serialize|serialize(kotlinx.serialization.encoding.Encoder;kotlin.Float){}[0]
+}
+
 final value class dev.rotalex.lutter.model.ids/ActionId { // dev.rotalex.lutter.model.ids/ActionId|null[0]
     constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/ActionId.<init>|<init>(kotlin.String){}[0]
 
@@ -459,7 +479,12 @@ final value class dev.rotalex.lutter.model.ids/TypeId { // dev.rotalex.lutter.mo
     }
 }
 
+final const val dev.rotalex.lutter.model.value/MAX_CANONICAL_MAGNITUDE // dev.rotalex.lutter.model.value/MAX_CANONICAL_MAGNITUDE|{}MAX_CANONICAL_MAGNITUDE[0]
+    final fun <get-MAX_CANONICAL_MAGNITUDE>(): kotlin/Double // dev.rotalex.lutter.model.value/MAX_CANONICAL_MAGNITUDE.<get-MAX_CANONICAL_MAGNITUDE>|<get-MAX_CANONICAL_MAGNITUDE>(){}[0]
 final const val dev.rotalex.lutter.model/CURRENT_SCHEMA_VERSION // dev.rotalex.lutter.model/CURRENT_SCHEMA_VERSION|{}CURRENT_SCHEMA_VERSION[0]
     final fun <get-CURRENT_SCHEMA_VERSION>(): kotlin/Int // dev.rotalex.lutter.model/CURRENT_SCHEMA_VERSION.<get-CURRENT_SCHEMA_VERSION>|<get-CURRENT_SCHEMA_VERSION>(){}[0]
 final const val dev.rotalex.lutter.model/FORMAT_VERSION // dev.rotalex.lutter.model/FORMAT_VERSION|{}FORMAT_VERSION[0]
     final fun <get-FORMAT_VERSION>(): kotlin/Int // dev.rotalex.lutter.model/FORMAT_VERSION.<get-FORMAT_VERSION>|<get-FORMAT_VERSION>(){}[0]
+
+final fun dev.rotalex.lutter.model.value/canonicalize(kotlin/Double): kotlin/Double // dev.rotalex.lutter.model.value/canonicalize|canonicalize(kotlin.Double){}[0]
+final fun dev.rotalex.lutter.model.value/canonicalize(kotlin/Float): kotlin/Float // dev.rotalex.lutter.model.value/canonicalize|canonicalize(kotlin.Float){}[0]
