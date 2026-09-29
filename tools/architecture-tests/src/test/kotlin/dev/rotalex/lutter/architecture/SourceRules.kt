@@ -212,7 +212,14 @@ internal object SourceRules {
 
         while (index >= 0) {
             val line = lines[index]
-            if (line.isBlank()) index--
+            // A blank line ends the block. It does not get skipped: an annotation block is
+            // the contiguous run of annotations directly above the declaration, so walking
+            // past a gap collects the *previous* declaration's annotations too — and then a
+            // variant with no tag of its own inherits the one declared above it and the rule
+            // reports nothing. It looked for a while like the rule worked, because the first
+            // variant in a hierarchy is genuinely tagged and every later one was being
+            // laundered through it. The negative test is the only reason that was caught.
+            if (line.isBlank()) break
             else if (annotationLine.containsMatchIn(line)) block += line
             else break
             index--
