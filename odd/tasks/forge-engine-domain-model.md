@@ -68,7 +68,30 @@ be reported as passing on the strength of "it looks right".
 - [x] **Delete the incorrect comment** and replace it with the real reason: the annotation
       is required, and common code must import it because `kotlin.jvm.*` is not a common
       default import.
-- [ ] **Verify in CI** — `checkKotlinAbi` and the module graph must both be green.
+- [x] **Verify in CI** — see Verification evidence below. A second, independent defect
+      surfaced here and is also fixed in T1: `IdsTest` had never executed before, because
+      the module had never compiled, and it was wrong.
+- [x] **Fix the latent test defect the first green compile exposed.** Running the tests for
+      the first time ever failed one of them on every target.
+      `the random generator produces ids this model accepts` asserted that *every* character
+      of a generated id is in the Crockford base-32 alphabet, but `RandomIdGenerator` prefixes
+      a lowercase `n` and the alphabet is upper-case. The assertion failed on the first
+      character of every id, always. The generator is correct and unchanged; the assertion
+      conflated the prefix with the alphabet, and it is now split so a prefix regression and
+      an alphabet regression are distinguishable.
+
+## Inherited CI defects found while landing T1
+
+Neither is in scope for this feature, and both are recorded so the next session does not
+rediscover them. Each needs its own branch, because each is a separate work unit.
+
+| # | Defect | Evidence |
+|---|---|---|
+| C1 | **The required check cannot turn itself green.** `check.yml` is a required check that, on failure, runs `updateKotlinAbi` and auto-commits with `GITHUB_TOKEN`. A `GITHUB_TOKEN` push does not start workflow runs, so the branch gains a commit but no green check, and the runs GitHub *does* create land in `action_required`. The PR then reports an empty `statusCheckRollup` and `BLOCKED`. | Reproduced on `07e62d6`. `gh api -X POST repos/rotalexdev/Lutter/actions/runs/<id>/approve` unblocks it, which is how the runs were started here. The fix is to stop having the required gate write to the repository. |
+| C2 | **`forge.warningsAsErrors` is not wired to CI**, despite `gradle.properties` line 31 stating "CI passes `-Pforge.warningsAsErrors=true`". No workflow passes it and `.github/ci-gradle.properties` does not set it, so `-Werror` has never been active. The same file's header comment also claims Gradle *replaces* the project's `gradle.properties`; it merges them and resolves per key. | `grep -rn "forge.warningsAsErrors" .github/` returns nothing. |
+
+**The generalisable lesson:** a comment in a build file asserting CI behaviour is a claim,
+not evidence. Grep the workflow for the flag before trusting the comment.
 
 ### T2 — Canonical numerics (PLAN §5.4, D1)
 
@@ -119,9 +142,38 @@ be reported as passing on the strength of "it looks right".
 
 No local toolchain — every row below is a CI run, not a local command.
 
-| Task | Command | Result |
+| Task | Check | Result |
 |---|---|---|
-| T1 | CI `check` on `feat/phase-1-domain-model` | PENDING |
+| T1 | `check` — build, test, module graph, ABI | **PASS** (run 36551357445) |
+| T1 | `conformance` — runtime versus generated code | **PASS** (run 36551357456) |
+| T1 | `branch-policy` — branch type and PR title | **PASS** (run 36551357349) |
+| T1 | PR #12 into `dev` | **CLEAN / MERGEABLE** |
+
+`check` at this commit covers all three targets (Android, Desktop, Wasm), the 13 `IdsTest`
+cases, `verifyModuleGraph`, `checkKotlinAbi` against the 21 recorded dumps, the Wasm
+`compileTestKotlinWasmJs` canaries, and `selfTestModuleGraph`.
+
+T2 and later are **CI-PENDING**. T2's code is written and uncommitted; see Progress.
+
+## Progress
+
+- **T1 — done and verified green.** Commits `fdc4514` (this document), `e2e4ed2`
+  (restore `@JvmInline`), `0c551d4` (split the generator assertion), plus `07e62d6`, the
+  ABI dumps CI generated on the branch.
+- **T2 — written, not committed, not verified.** `CanonicalNumbers.kt`,
+  `CanonicalSerializers.kt` and `CanonicalNumericsTest.kt` (18 tests) exist as untracked
+  files. They are **not** on the T1 branch and must land on their own branch, cut from
+  `dev` once PR #12 merges, because T2 cannot compile while the T1 branch is unmerged.
+  Two design decisions need the maintainer's eye before it is committed:
+  1. **Magnitudes above `MAX_CANONICAL_MAGNITUDE = 2.0e11` are refused**, not spelled. The
+     bound is the largest value that survives canonicalization twice (`units < 2^51`).
+     Beyond it, an exact spelling needs either a libm `log10` — reintroducing the
+     cross-platform non-determinism D1 exists to remove — or bignum arithmetic in a
+     vocabulary module. PLAN §5.4 does not say. Refusing fails at construction, which is
+     better than an approximation that looks lossless.
+  2. **Rounding applies to the stored value, not the typed decimal.** `0.12345` is stored
+     as `0.123449999999999998223…`, so it rounds to `0.1235`. The `Float` and `Double`
+     paths can therefore disagree about the same written literal.
 
 ## Delivery
 
