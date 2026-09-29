@@ -178,13 +178,25 @@ class IdsTest {
     fun `the random generator produces ids this model accepts`() {
         val generator = RandomIdGenerator()
 
+        // The prefix and the alphabet are two different vocabularies and the assertion has to
+        // say so. The prefix is a lowercase `n` and the alphabet is upper-case Crockford
+        // base-32, so checking the whole id against the alphabet fails on its first character
+        // — always, on every target. It is written this way to keep the two claims separable:
+        // a generator that changed its prefix, and a generator that changed its alphabet, are
+        // different regressions and should not share one assertion.
+        val alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+
         repeat(200) {
             val id = generator.nextNodeId()
+
             // Constructing it already proved the syntax; the shape is asserted because a
             // generator that quietly changed length would be a wire-format change.
             assertEquals(11, id.value.length, "expected 'n' plus ten characters, got '$id'")
+
+            assertEquals('n', id.value.first(), "expected the 'n' prefix, got '$id'")
+
             assertTrue(
-                id.value.all { it in "0123456789ABCDEFGHJKMNPQRSTVWXYZ" },
+                id.value.drop(1).all { it in alphabet },
                 "unexpected character in '$id'",
             )
         }
