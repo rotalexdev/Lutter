@@ -103,7 +103,7 @@ jobs:
       - name: Regenerate the ABI dumps
         if: failure() && steps.verify.outcome == 'failure'
         run: |
-          echo "::notice::check failed; regenerating the reference ABI dumps to publish"
+          echo "::notice::check failed; regenerating the reference ABI dumps"
           # Delete first. `updateKotlinAbi` writes and overwrites but never removes, so a
           # dump belonging to a target that no longer exists survives every regeneration and
           # is then compared against a build that cannot produce it. That is exactly what
@@ -127,15 +127,22 @@ jobs:
           file_pattern: '**/api/**'
           commit_message: "chore(build): record the reference ABI dumps"
 
-      # The second guard, and it is the one that matters. If the commit immediately before
-      # this run is already the baseline commit, the previous run committed a baseline and
-      # this run still found `checkKotlinAbi` unhappy - so regeneration is not converging
-      # and another round trip would loop. Stop, publish, and let a human read the log.
+      # The second guard, and it is the one that matters. If the commit *before* the one this
+      # run just made is also a baseline commit, then a previous run committed a baseline,
+      # this run still found `checkKotlinAbi` unhappy, and regeneration is not converging.
+      # Another round trip would loop, so stop, publish, and let a human read the log.
+      #
+      # It has to be the second commit and not the first. This step runs *after* the
+      # auto-commit, so `git log -1` is the commit that step just made - which is always the
+      # baseline commit, so a first-commit check always says "not converged" and the
+      # dispatch below never happens. It looked correct, read correctly, and disabled
+      # the entire mechanism.
       - name: Is another round trip safe
         id: converge
-        if: failure() && steps.verify.outcome == 'failure' && steps.baseline.outputs.commit-pushed == 'true'
+        if: failure() && steps.verify.outcome == 'failure' && steps.baseline.outputs.changes_detected == 'true'
         run: |
-          if [ "$(git log -1 --pretty=%s)" = "chore(build): record the reference ABI dumps" ]; then
+          previous=$(git log -2 --pretty=%s | sed -n '2p')
+          if [ "$previous" = "chore(build): record the reference ABI dumps" ]; then
             echo "converged=false" >> "$GITHUB_OUTPUT"
             echo "::warning::regenerating the ABI dumps did not make checkKotlinAbi pass; not retrying"
           else
@@ -143,7 +150,7 @@ jobs:
           fi
 
       - name: Re-run this check on the new baseline
-        if: failure() && steps.verify.outcome == 'failure' && steps.baseline.outputs.commit-pushed == 'true' && steps.converge.outputs.converged == 'true'
+        if: failure() && steps.verify.outcome == 'failure' && steps.baseline.outputs.changes_detected == 'true' && steps.converge.outputs.converged == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REF: ${{ github.event.pull_request.head.ref }}
@@ -163,7 +170,7 @@ jobs:
       # converge. A recovery message that misdiagnoses is worse than none, so each of these
       # steps first establishes that there is something to hand over.
       - name: Publish the regenerated ABI dumps
-        if: failure() && steps.verify.outcome == 'failure' && (steps.baseline.outputs.commit-pushed != 'true' || steps.converge.outputs.converged != 'true')
+        if: failure() && steps.verify.outcome == 'failure' && (steps.baseline.outputs.changes_detected != 'true' || steps.converge.outputs.converged != 'true')
         uses: actions/upload-artifact@v4
         with:
           name: abi-baseline
@@ -172,7 +179,7 @@ jobs:
           retention-days: 30
 
       - name: Say on the pull request where the baseline is
-        if: failure() && steps.verify.outcome == 'failure' && (steps.baseline.outputs.commit-pushed != 'true' || steps.converge.outputs.converged != 'true')
+        if: failure() && steps.verify.outcome == 'failure' && (steps.baseline.outputs.changes_detected != 'true' || steps.converge.outputs.converged != 'true')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
