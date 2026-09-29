@@ -23,10 +23,14 @@ jobs:
     name: Build, test and verify
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    # Needed only by the ABI bootstrap step below, which commits the generated reference
-    # dumps. Everything else in this job is read-only.
+    # `contents: read` and nothing more. This job is a gate, and a gate that writes to the
+    # repository cannot be a gate: see the ABI baseline recovery below.
+    #
+    # `pull-requests: write` is for exactly one thing — commenting on a pull request whose
+    # ABI baseline needs re-recording. It is the narrowest permission that does the job.
     permissions:
-      contents: write
+      contents: read
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@v7
@@ -63,21 +67,29 @@ jobs:
       # committed dump fails with "Expected file with ABI declarations ... does not exist" —
       # the guardrail working, on a project that has never recorded a baseline.
       #
-      # Rather than shipping the first dumps by hand, this bootstraps them and commits them
-      # to the branch, the same way nowinandroid regenerates its Dependency Guard baselines:
-      # verify, and if the baseline is simply missing, generate it and push it back.
+      # This job used to fix that itself: regenerate the dumps and auto-commit them. It cannot,
+      # and the reason is structural rather than a matter of permissions.
       #
-      # A fork gets no token write access, so it stops here with the real failure intact
-      # instead of half-pretending the check passed.
+      # A commit pushed with GITHUB_TOKEN does not start workflow runs. GitHub does create
+      # `pull_request` runs for the new head — a push changes the PR's head, and the PR is the
+      # trigger — but it holds every one of them in `action_required`, because they were caused
+      # by a token-authored push. So the branch gains the dumps and the checks never run. The
+      # pull request then reports an empty `statusCheckRollup` and sits BLOCKED with a red X
+      # that no amount of pushing clears. It cost three round trips on one branch before the
+      # shape of it was understood.
       #
-      # `failure() &&` is load-bearing. GitHub implicitly conjoins an `if` with `success()`
-      # unless the expression already contains a status function, so after the verify step
-      # fails, a bare `steps.verify.outcome == 'failure'` is false and every recovery step
-      # silently skips. The status function has to be stated.
-      - name: Record the missing ABI dumps
+      # A required check that mutates the repository is not a gate; it is a second actor racing
+      # the first one. So the job regenerates, publishes, and reports, and the change lands as
+      # an ordinary commit by an ordinary push, which is a commit a workflow will actually run.
+      #
+      # `failure() &&` is load-bearing throughout. GitHub implicitly conjoins an `if` with
+      # `success()` unless the expression already contains a status function, so after the
+      # verify step fails, a bare `steps.verify.outcome == 'failure'` is false and every
+      # recovery step silently skips. The status function has to be stated.
+      - name: Regenerate the ABI dumps
         if: failure() && steps.verify.outcome == 'failure'
         run: |
-          echo "::notice::check failed; regenerating the reference ABI dumps"
+          echo "::notice::check failed; regenerating the reference ABI dumps to publish"
           # Delete first. `updateKotlinAbi` writes and overwrites but never removes, so a
           # dump belonging to a target that no longer exists survives every regeneration and
           # is then compared against a build that cannot produce it. That is exactly what
@@ -85,21 +97,62 @@ jobs:
           find . -path '*/api/*' -name '*.api' -delete
           gradle updateKotlinAbi
 
-      - name: Refuse to auto-commit from a fork
-        id: fork
+      - name: Publish the regenerated ABI dumps
         if: failure() && steps.verify.outcome == 'failure'
-        run: |
-          if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
-            echo "::error::check failed and this is a fork, so the ABI dumps cannot be committed automatically. Run 'gradle updateKotlinAbi' locally and push the result."
-            exit 1
-          fi
-
-      - name: Commit the generated ABI dumps
-        if: failure() && steps.verify.outcome == 'failure' && steps.fork.outcome != 'failure'
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: actions/upload-artifact@v4
         with:
-          file_pattern: '*/api/*'
-          commit_message: "chore(build): record the reference ABI dumps"
+          name: abi-baseline
+          # `**`, not `*`. The artifact glob does not let a single star cross a
+          # `/`, and the dumps live at engine/model/api/desktop/model.api, so `*/api/*`
+          # would match engine/api and publish an empty artifact.
+          path: '**/api/**'
+          if-no-files-found: ignore
+          retention-days: 30
+
+      # A heredoc, not a printf with line continuations. The comment contains a fenced code
+      # block with quotes, braces and a colon in it, and threading that through a shell
+      # word list is how a body ends up subtly mangled. Nothing has to be escaped here.
+      - name: Say on the pull request where the baseline is
+        if: failure() && steps.verify.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -z "$PR" ]; then
+            echo "not a pull request; the artifact is on the run and there is nothing to comment on"
+            exit 0
+          fi
+          cat > "$RUNNER_TEMP/abi.md" <<'EOF'
+          ### The ABI baseline needs re-recording
+
+          `checkKotlinAbi` failed. This job will not commit the fix for you, and the reason is
+          worth knowing. A commit pushed with `GITHUB_TOKEN` does not start workflow runs, so a
+          self-healing step in a required check can only ever produce a branch holding the right
+          files and a pull request whose checks never run. It fails closed, and it blocks itself.
+
+          The regenerated dumps are attached to this run as **abi-baseline**. Download the
+          artifact and commit them:
+
+          ```
+          unzip abi-baseline.zip -d .
+          git add -- ':(glob)**/api/**'
+          git commit -m "chore(build): record the reference ABI dumps"
+          git push
+          ```
+
+          Or re-record them on a machine that has a toolchain:
+
+          ```
+          gradle updateKotlinAbi
+          ```
+
+          Either way the baseline lands as an ordinary push, which is a push a workflow actually
+          runs.
+          EOF
+          # A fork has no write access here, so the comment is skipped rather than failed. The
+          # artifact is published either way and stays downloadable from the run.
+          gh pr comment "$PR" --body-file "$RUNNER_TEMP/abi.md" \
+            || echo "could not comment on #$PR; the artifact is on the run"
 
       # `always()` so the checker's own test runs even on a run where something else is
       # already red. A guardrail that is only proven on green runs is a guardrail that is
