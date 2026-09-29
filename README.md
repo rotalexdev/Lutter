@@ -224,18 +224,7 @@ so there is never a merge-base that has drifted.
 `dependabot` targets `dev`, because a dependency bump is verified by the same matrix as
 everything else before it can reach `main`.
 
-
-
-
-```
-build-logic/            included build holding the convention plugins
-engine/<name>/          KMP library modules
-tools/<name>/           JVM tools
-integration/            cross-module verification
-samples/                runnable demos
-odd/tasks/              feature documents: objective, tasks, verification evidence
-docs/                   format spec, plugin guide, getting started (Phase 10)
-```
+## Layout
 
 ```
 build-logic/            included build holding the convention plugins
@@ -243,7 +232,15 @@ engine/<name>/          KMP library modules
 tools/<name>/           JVM tools
 integration/            cross-module verification
 samples/                runnable demos
-odd/tasks/              feature documents: objective, tasks, verification evidence
 docs/                   format spec, plugin guide, getting started (Phase 10)
 .github/ci-gradle.properties   properties CI overlays on ~/.gradle/gradle.properties
 ```
+
+`odd/` is present in a working tree and **absent from the repository**. It holds the
+Organic Driven Development documents — one per feature, with its objective, work units,
+verification evidence and next step. It is a process artifact, not a product one, so it
+changes on every work unit and committing it would put churn in diffs that are supposed to
+describe the engine. The authoritative copy is the Engram observation at
+`odd/<feature>/tasks`, which carries the full document and outlives both a session and a
+compaction. A *why* is not lost by this: it belongs in KDoc, next to the code it explains,
+where it cannot drift.
