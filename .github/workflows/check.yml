@@ -117,12 +117,23 @@ jobs:
       # A heredoc, not a printf with line continuations. The comment contains a fenced code
       # block with quotes, braces and a colon in it, and threading that through a shell
       # word list is how a body ends up subtly mangled. Nothing has to be escaped here.
+      # Gated on the dumps actually having been produced, not merely on the build having
+      # failed. An earlier version of this step fired on any `verify` failure and told the
+      # pull request that checkKotlinAbi had failed, which was a lie whenever the real
+      # failure was a compile error: `updateKotlinAbi` then cannot run either, no dumps exist,
+      # and the comment explains a problem the reader does not have. A recovery message that
+      # misdiagnoses is worse than none.
       - name: Say on the pull request where the baseline is
         if: failure() && steps.verify.outcome == 'failure'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
         run: |
+          if [ ! -f engine/model/api/desktop/model.api ]; then
+            echo "no ABI dumps were produced, so there is nothing to hand over"
+            echo "the build failed before or during recording; read the log for the real cause"
+            exit 0
+          fi
           if [ -z "$PR" ]; then
             echo "not a pull request; the artifact is on the run and there is nothing to comment on"
             exit 0
@@ -130,10 +141,11 @@ jobs:
           cat > "$RUNNER_TEMP/abi.md" <<'EOF'
           ### The ABI baseline needs re-recording
 
-          `checkKotlinAbi` failed. This job will not commit the fix for you, and the reason is
-          worth knowing. A commit pushed with `GITHUB_TOKEN` does not start workflow runs, so a
-          self-healing step in a required check can only ever produce a branch holding the right
-          files and a pull request whose checks never run. It fails closed, and it blocks itself.
+          The public API of a module changed, or a module has no recorded baseline yet. This
+          job will not commit the fix for you, and the reason is worth knowing. A commit pushed
+          with `GITHUB_TOKEN` does not start workflow runs, so a self-healing step in a required
+          check can only ever produce a branch holding the right files and a pull request whose
+          checks never run. It fails closed, and it blocks itself.
 
           The regenerated dumps are attached to this run as **abi-baseline**. Download the
           artifact and commit them:
