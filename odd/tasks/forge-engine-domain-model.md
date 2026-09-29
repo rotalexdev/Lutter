@@ -211,14 +211,21 @@ No local toolchain — every row below is a CI run, not a local command.
 | T1 | `conformance` — runtime versus generated code | **PASS** (run 36551357456) |
 | T1 | `branch-policy` — branch type and PR title | **PASS** (run 36551357349) |
 | T1 | PR #12 into `dev` | **MERGED** as `ecb6e78` |
+| T2 | `check` — build, test, module graph, ABI | **PASS** (run 36556171780) |
+| T2 | `conformance` — runtime versus generated code | **PASS** (run 36556171646) |
+| T2 | `branch-policy` — branch type and PR title | **PASS** (run 36556171657) |
+| T2 | PR #13 into `dev` | **CLEAN / MERGEABLE** |
 
-`check` at the merged commit covered all three targets (Android, Desktop, Wasm), the 13
-`IdsTest` cases, `verifyModuleGraph`, `checkKotlinAbi` against the recorded dumps, the Wasm
-`compileTestKotlinWasmJs` canaries, and `selfTestModuleGraph`.
+T1's `check` covered all three targets, the 13 `IdsTest` cases, `verifyModuleGraph`,
+`checkKotlinAbi`, the Wasm `compileTestKotlinWasmJs` canaries, and `selfTestModuleGraph`.
 
-T2 and later are **CI-PENDING**. T2's arithmetic was re-derived locally against an
-independent IEEE-754 model — Python as an oracle, not a build tool — because no local
-compiler is permitted. That verifies the arithmetic, not the compilation.
+T2's `check` confirms the canonical numerics on all three targets: `desktopTest`,
+`testAndroidHostTest` and `wasmJsBrowserTest` all executed rather than reporting
+`NO-SOURCE`, and the run contains zero test failures. The first attempt failed on
+`checkKotlinAbi` alone — the new public API had no reference dump — which is the ABI
+bootstrap behaving correctly, and the dumps it generated are committed as `91d5f65`.
+
+T3 and later are **CI-PENDING**.
 
 ## Progress
 
