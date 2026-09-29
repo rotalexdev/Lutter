@@ -1,0 +1,465 @@
+// Klib ABI Dump
+// Targets: [wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <dev.rotalex.lutter:model>
+open annotation class dev.rotalex.lutter.model.annotations/EngineInternalApi : kotlin/Annotation { // dev.rotalex.lutter.model.annotations/EngineInternalApi|null[0]
+    constructor <init>() // dev.rotalex.lutter.model.annotations/EngineInternalApi.<init>|<init>(){}[0]
+}
+
+abstract fun interface dev.rotalex.lutter.model.ids/IdGenerator { // dev.rotalex.lutter.model.ids/IdGenerator|null[0]
+    abstract fun nextNodeId(): dev.rotalex.lutter.model.ids/NodeId // dev.rotalex.lutter.model.ids/IdGenerator.nextNodeId|nextNodeId(){}[0]
+}
+
+final class dev.rotalex.lutter.model.ids/RandomIdGenerator : dev.rotalex.lutter.model.ids/IdGenerator { // dev.rotalex.lutter.model.ids/RandomIdGenerator|null[0]
+    constructor <init>(kotlin.random/Random = ...) // dev.rotalex.lutter.model.ids/RandomIdGenerator.<init>|<init>(kotlin.random.Random){}[0]
+
+    final fun nextNodeId(): dev.rotalex.lutter.model.ids/NodeId // dev.rotalex.lutter.model.ids/RandomIdGenerator.nextNodeId|nextNodeId(){}[0]
+}
+
+final class dev.rotalex.lutter.model.ids/SequentialIdGenerator : dev.rotalex.lutter.model.ids/IdGenerator { // dev.rotalex.lutter.model.ids/SequentialIdGenerator|null[0]
+    constructor <init>(kotlin/String = ...) // dev.rotalex.lutter.model.ids/SequentialIdGenerator.<init>|<init>(kotlin.String){}[0]
+
+    final fun nextNodeId(): dev.rotalex.lutter.model.ids/NodeId // dev.rotalex.lutter.model.ids/SequentialIdGenerator.nextNodeId|nextNodeId(){}[0]
+    final fun peek(): dev.rotalex.lutter.model.ids/NodeId // dev.rotalex.lutter.model.ids/SequentialIdGenerator.peek|peek(){}[0]
+}
+
+final value class dev.rotalex.lutter.model.ids/ActionId { // dev.rotalex.lutter.model.ids/ActionId|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/ActionId.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/ActionId.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/ActionId.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/ActionId.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/ActionId.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/ActionId.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/ActionId> { // dev.rotalex.lutter.model.ids/ActionId.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/ActionId.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/ActionId.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/ActionId.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/ActionId // dev.rotalex.lutter.model.ids/ActionId.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/ActionId) // dev.rotalex.lutter.model.ids/ActionId.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.ActionId){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/ActionId.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/ActionId> // dev.rotalex.lutter.model.ids/ActionId.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final value class dev.rotalex.lutter.model.ids/BranchName { // dev.rotalex.lutter.model.ids/BranchName|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/BranchName.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/BranchName.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/BranchName.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/BranchName.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/BranchName.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/BranchName.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/BranchName> { // dev.rotalex.lutter.model.ids/BranchName.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/BranchName.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/BranchName.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/BranchName.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/BranchName // dev.rotalex.lutter.model.ids/BranchName.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/BranchName) // dev.rotalex.lutter.model.ids/BranchName.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.BranchName){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/BranchName.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/BranchName> // dev.rotalex.lutter.model.ids/BranchName.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final value class dev.rotalex.lutter.model.ids/ComponentDeclId { // dev.rotalex.lutter.model.ids/ComponentDeclId|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/ComponentDeclId.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/ComponentDeclId.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/ComponentDeclId.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/ComponentDeclId.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/ComponentDeclId.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/ComponentDeclId.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/ComponentDeclId> { // dev.rotalex.lutter.model.ids/ComponentDeclId.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/ComponentDeclId.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/ComponentDeclId.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/ComponentDeclId.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/ComponentDeclId // dev.rotalex.lutter.model.ids/ComponentDeclId.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/ComponentDeclId) // dev.rotalex.lutter.model.ids/ComponentDeclId.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.ComponentDeclId){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/ComponentDeclId.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/ComponentDeclId> // dev.rotalex.lutter.model.ids/ComponentDeclId.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final value class dev.rotalex.lutter.model.ids/ComponentType { // dev.rotalex.lutter.model.ids/ComponentType|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/ComponentType.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/ComponentType.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/ComponentType.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/ComponentType.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/ComponentType.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/ComponentType.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/ComponentType> { // dev.rotalex.lutter.model.ids/ComponentType.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/ComponentType.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/ComponentType.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/ComponentType.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/ComponentType // dev.rotalex.lutter.model.ids/ComponentType.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/ComponentType) // dev.rotalex.lutter.model.ids/ComponentType.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.ComponentType){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/ComponentType.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/ComponentType> // dev.rotalex.lutter.model.ids/ComponentType.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final value class dev.rotalex.lutter.model.ids/DataModelId { // dev.rotalex.lutter.model.ids/DataModelId|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/DataModelId.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/DataModelId.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/DataModelId.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/DataModelId.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/DataModelId.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/DataModelId.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/DataModelId> { // dev.rotalex.lutter.model.ids/DataModelId.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/DataModelId.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/DataModelId.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/DataModelId.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/DataModelId // dev.rotalex.lutter.model.ids/DataModelId.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/DataModelId) // dev.rotalex.lutter.model.ids/DataModelId.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.DataModelId){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/DataModelId.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/DataModelId> // dev.rotalex.lutter.model.ids/DataModelId.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final value class dev.rotalex.lutter.model.ids/EventKey { // dev.rotalex.lutter.model.ids/EventKey|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/EventKey.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/EventKey.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/EventKey.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/EventKey.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/EventKey.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/EventKey.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/EventKey> { // dev.rotalex.lutter.model.ids/EventKey.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/EventKey.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/EventKey.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/EventKey.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/EventKey // dev.rotalex.lutter.model.ids/EventKey.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/EventKey) // dev.rotalex.lutter.model.ids/EventKey.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.EventKey){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/EventKey.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/EventKey> // dev.rotalex.lutter.model.ids/EventKey.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final value class dev.rotalex.lutter.model.ids/FunctionId { // dev.rotalex.lutter.model.ids/FunctionId|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/FunctionId.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/FunctionId.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/FunctionId.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/FunctionId.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/FunctionId.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/FunctionId.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/FunctionId> { // dev.rotalex.lutter.model.ids/FunctionId.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/FunctionId.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/FunctionId.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/FunctionId.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/FunctionId // dev.rotalex.lutter.model.ids/FunctionId.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/FunctionId) // dev.rotalex.lutter.model.ids/FunctionId.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.FunctionId){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/FunctionId.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/FunctionId> // dev.rotalex.lutter.model.ids/FunctionId.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final value class dev.rotalex.lutter.model.ids/ModifierType { // dev.rotalex.lutter.model.ids/ModifierType|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/ModifierType.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/ModifierType.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/ModifierType.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/ModifierType.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/ModifierType.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/ModifierType.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/ModifierType> { // dev.rotalex.lutter.model.ids/ModifierType.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/ModifierType.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/ModifierType.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/ModifierType.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/ModifierType // dev.rotalex.lutter.model.ids/ModifierType.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/ModifierType) // dev.rotalex.lutter.model.ids/ModifierType.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.ModifierType){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/ModifierType.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/ModifierType> // dev.rotalex.lutter.model.ids/ModifierType.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final value class dev.rotalex.lutter.model.ids/NodeId { // dev.rotalex.lutter.model.ids/NodeId|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/NodeId.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/NodeId.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/NodeId.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/NodeId.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/NodeId.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/NodeId.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/NodeId> { // dev.rotalex.lutter.model.ids/NodeId.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/NodeId.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/NodeId.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/NodeId.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/NodeId // dev.rotalex.lutter.model.ids/NodeId.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/NodeId) // dev.rotalex.lutter.model.ids/NodeId.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.NodeId){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/NodeId.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/NodeId> // dev.rotalex.lutter.model.ids/NodeId.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final value class dev.rotalex.lutter.model.ids/PageId { // dev.rotalex.lutter.model.ids/PageId|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/PageId.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/PageId.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/PageId.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/PageId.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/PageId.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/PageId.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/PageId> { // dev.rotalex.lutter.model.ids/PageId.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/PageId.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/PageId.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/PageId.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/PageId // dev.rotalex.lutter.model.ids/PageId.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/PageId) // dev.rotalex.lutter.model.ids/PageId.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.PageId){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/PageId.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/PageId> // dev.rotalex.lutter.model.ids/PageId.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final value class dev.rotalex.lutter.model.ids/ParamName { // dev.rotalex.lutter.model.ids/ParamName|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/ParamName.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/ParamName.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/ParamName.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/ParamName.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/ParamName.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/ParamName.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/ParamName> { // dev.rotalex.lutter.model.ids/ParamName.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/ParamName.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/ParamName.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/ParamName.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/ParamName // dev.rotalex.lutter.model.ids/ParamName.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/ParamName) // dev.rotalex.lutter.model.ids/ParamName.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.ParamName){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/ParamName.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/ParamName> // dev.rotalex.lutter.model.ids/ParamName.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final value class dev.rotalex.lutter.model.ids/PluginId { // dev.rotalex.lutter.model.ids/PluginId|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/PluginId.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/PluginId.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/PluginId.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/PluginId.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/PluginId.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/PluginId.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/PluginId> { // dev.rotalex.lutter.model.ids/PluginId.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/PluginId.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/PluginId.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/PluginId.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/PluginId // dev.rotalex.lutter.model.ids/PluginId.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/PluginId) // dev.rotalex.lutter.model.ids/PluginId.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.PluginId){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/PluginId.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/PluginId> // dev.rotalex.lutter.model.ids/PluginId.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final value class dev.rotalex.lutter.model.ids/PropertyKey { // dev.rotalex.lutter.model.ids/PropertyKey|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/PropertyKey.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/PropertyKey.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/PropertyKey.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/PropertyKey.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/PropertyKey.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/PropertyKey.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/PropertyKey> { // dev.rotalex.lutter.model.ids/PropertyKey.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/PropertyKey.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/PropertyKey.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/PropertyKey.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/PropertyKey // dev.rotalex.lutter.model.ids/PropertyKey.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/PropertyKey) // dev.rotalex.lutter.model.ids/PropertyKey.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.PropertyKey){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/PropertyKey.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/PropertyKey> // dev.rotalex.lutter.model.ids/PropertyKey.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final value class dev.rotalex.lutter.model.ids/ResourceId { // dev.rotalex.lutter.model.ids/ResourceId|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/ResourceId.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/ResourceId.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/ResourceId.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/ResourceId.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/ResourceId.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/ResourceId.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/ResourceId> { // dev.rotalex.lutter.model.ids/ResourceId.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/ResourceId.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/ResourceId.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/ResourceId.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/ResourceId // dev.rotalex.lutter.model.ids/ResourceId.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/ResourceId) // dev.rotalex.lutter.model.ids/ResourceId.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.ResourceId){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/ResourceId.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/ResourceId> // dev.rotalex.lutter.model.ids/ResourceId.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final value class dev.rotalex.lutter.model.ids/SlotName { // dev.rotalex.lutter.model.ids/SlotName|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/SlotName.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/SlotName.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/SlotName.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/SlotName.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/SlotName.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/SlotName.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/SlotName> { // dev.rotalex.lutter.model.ids/SlotName.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/SlotName.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/SlotName.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/SlotName.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/SlotName // dev.rotalex.lutter.model.ids/SlotName.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/SlotName) // dev.rotalex.lutter.model.ids/SlotName.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.SlotName){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/SlotName.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/SlotName> // dev.rotalex.lutter.model.ids/SlotName.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final value class dev.rotalex.lutter.model.ids/StateId { // dev.rotalex.lutter.model.ids/StateId|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/StateId.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/StateId.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/StateId.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/StateId.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/StateId.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/StateId.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/StateId> { // dev.rotalex.lutter.model.ids/StateId.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/StateId.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/StateId.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/StateId.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/StateId // dev.rotalex.lutter.model.ids/StateId.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/StateId) // dev.rotalex.lutter.model.ids/StateId.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.StateId){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/StateId.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/StateId> // dev.rotalex.lutter.model.ids/StateId.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final value class dev.rotalex.lutter.model.ids/ThemeId { // dev.rotalex.lutter.model.ids/ThemeId|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/ThemeId.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/ThemeId.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/ThemeId.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/ThemeId.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/ThemeId.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/ThemeId.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/ThemeId> { // dev.rotalex.lutter.model.ids/ThemeId.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/ThemeId.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/ThemeId.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/ThemeId.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/ThemeId // dev.rotalex.lutter.model.ids/ThemeId.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/ThemeId) // dev.rotalex.lutter.model.ids/ThemeId.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.ThemeId){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/ThemeId.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/ThemeId> // dev.rotalex.lutter.model.ids/ThemeId.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final value class dev.rotalex.lutter.model.ids/TypeId { // dev.rotalex.lutter.model.ids/TypeId|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.model.ids/TypeId.<init>|<init>(kotlin.String){}[0]
+
+    final val value // dev.rotalex.lutter.model.ids/TypeId.value|{}value[0]
+        final fun <get-value>(): kotlin/String // dev.rotalex.lutter.model.ids/TypeId.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.ids/TypeId.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.ids/TypeId.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.ids/TypeId.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.ids/TypeId> { // dev.rotalex.lutter.model.ids/TypeId.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.ids/TypeId.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.ids/TypeId.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.ids/TypeId.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.ids/TypeId // dev.rotalex.lutter.model.ids/TypeId.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.ids/TypeId) // dev.rotalex.lutter.model.ids/TypeId.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.ids.TypeId){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.ids/TypeId.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.ids/TypeId> // dev.rotalex.lutter.model.ids/TypeId.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final const val dev.rotalex.lutter.model/CURRENT_SCHEMA_VERSION // dev.rotalex.lutter.model/CURRENT_SCHEMA_VERSION|{}CURRENT_SCHEMA_VERSION[0]
+    final fun <get-CURRENT_SCHEMA_VERSION>(): kotlin/Int // dev.rotalex.lutter.model/CURRENT_SCHEMA_VERSION.<get-CURRENT_SCHEMA_VERSION>|<get-CURRENT_SCHEMA_VERSION>(){}[0]
+final const val dev.rotalex.lutter.model/FORMAT_VERSION // dev.rotalex.lutter.model/FORMAT_VERSION|{}FORMAT_VERSION[0]
+    final fun <get-FORMAT_VERSION>(): kotlin/Int // dev.rotalex.lutter.model/FORMAT_VERSION.<get-FORMAT_VERSION>|<get-FORMAT_VERSION>(){}[0]
