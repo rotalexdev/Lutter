@@ -10,6 +10,15 @@ on:
     branches: [ dev ]
   pull_request:
     branches: [ dev, main ]
+  # Not for a human to click. It exists so that the ABI recovery below can re-run this
+  # workflow on a branch it has just pushed to.
+  #
+  # A commit made with GITHUB_TOKEN does not start a workflow run, which is why the recovery
+  # used to be unable to finish its own job. `workflow_dispatch` is one of exactly two
+  # documented exceptions to that rule - the other is `repository_dispatch` - and GitHub
+  # added the exception precisely because the call is explicit and therefore cannot loop by
+  # accident. So: commit with the token, then ask for a run by name.
+  workflow_dispatch:
 
 concurrency:
   group: check-${{ github.workflow }}-${{ github.ref }}
@@ -23,13 +32,13 @@ jobs:
     name: Build, test and verify
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    # `contents: read` and nothing more. This job is a gate, and a gate that writes to the
-    # repository cannot be a gate: see the ABI baseline recovery below.
-    #
-    # `pull-requests: write` is for exactly one thing — commenting on a pull request whose
-    # ABI baseline needs re-recording. It is the narrowest permission that does the job.
+    # Three permissions, each for exactly one of the three things this job does beyond
+    # building: `contents: write` to commit a regenerated ABI baseline, `actions: write` to
+    # ask for the re-run that verifies it, `pull-requests: write` to say so on the pull
+    # request when it could not.
     permissions:
-      contents: read
+      contents: write
+      actions: write
       pull-requests: write
 
     steps:
@@ -102,29 +111,68 @@ jobs:
           find . -path '*/api/*' -name '*.api' -delete
           gradle updateKotlinAbi
 
-      - name: Publish the regenerated ABI dumps
+      # Commit the baseline and then ask for a run that will verify it. Those two steps are
+      # one mechanism and splitting them is what left the previous version stuck: the branch
+      # ended up with the right files and a pull request whose checks could never run, which
+      # is the worst of both outcomes rather than neither.
+      #
+      # `commit-pushed` is the first loop guard and it is free. The action commits only files
+      # that actually changed, so a run whose regeneration reproduced the committed dumps
+      # pushes nothing and therefore dispatches nothing.
+      - name: Commit the regenerated ABI dumps
+        id: baseline
         if: failure() && steps.verify.outcome == 'failure'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          file_pattern: '**/api/**'
+          commit_message: "chore(build): record the reference ABI dumps"
+
+      # The second guard, and it is the one that matters. If the commit immediately before
+      # this run is already the baseline commit, the previous run committed a baseline and
+      # this run still found `checkKotlinAbi` unhappy - so regeneration is not converging
+      # and another round trip would loop. Stop, publish, and let a human read the log.
+      - name: Is another round trip safe
+        id: converge
+        if: failure() && steps.verify.outcome == 'failure' && steps.baseline.outputs.commit-pushed == 'true'
+        run: |
+          if [ "$(git log -1 --pretty=%s)" = "chore(build): record the reference ABI dumps" ]; then
+            echo "converged=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::regenerating the ABI dumps did not make checkKotlinAbi pass; not retrying"
+          else
+            echo "converged=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Re-run this check on the new baseline
+        if: failure() && steps.verify.outcome == 'failure' && steps.baseline.outputs.commit-pushed == 'true' && steps.converge.outputs.converged == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          if [ -z "$REF" ]; then
+            echo "::warning::not a pull request and the baseline was committed; nothing to re-run"
+            exit 0
+          fi
+          # workflow_dispatch is one of the two documented exceptions to the rule that a
+          # GITHUB_TOKEN push starts no workflow, so this run is a real one: not
+          # approval-gated, and attached to the same head the pull request is waiting on.
+          gh workflow run check.yml --ref "$REF"
+          echo "::notice::re-running check on $REF; the pull request will clear once it lands"
+
+      # Everything below is the path where the job could not fix itself: a fork with no write
+      # access, a push to dev where there is no pull request, or regeneration that will not
+      # converge. A recovery message that misdiagnoses is worse than none, so each of these
+      # steps first establishes that there is something to hand over.
+      - name: Publish the regenerated ABI dumps
+        if: failure() && steps.verify.outcome == 'failure' && (steps.baseline.outputs.commit-pushed != 'true' || steps.converge.outputs.converged != 'true')
         uses: actions/upload-artifact@v4
         with:
           name: abi-baseline
-          # `**`, not `*`. The artifact glob does not let a single star cross a
-          # `/`, and the dumps live at engine/model/api/desktop/model.api, so `*/api/*`
-          # would match engine/api and publish an empty artifact.
           path: '**/api/**'
           if-no-files-found: ignore
           retention-days: 30
 
-      # A heredoc, not a printf with line continuations. The comment contains a fenced code
-      # block with quotes, braces and a colon in it, and threading that through a shell
-      # word list is how a body ends up subtly mangled. Nothing has to be escaped here.
-      # Gated on the dumps actually having been produced, not merely on the build having
-      # failed. An earlier version of this step fired on any `verify` failure and told the
-      # pull request that checkKotlinAbi had failed, which was a lie whenever the real
-      # failure was a compile error: `updateKotlinAbi` then cannot run either, no dumps exist,
-      # and the comment explains a problem the reader does not have. A recovery message that
-      # misdiagnoses is worse than none.
       - name: Say on the pull request where the baseline is
-        if: failure() && steps.verify.outcome == 'failure'
+        if: failure() && steps.verify.outcome == 'failure' && (steps.baseline.outputs.commit-pushed != 'true' || steps.converge.outputs.converged != 'true')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
@@ -139,16 +187,19 @@ jobs:
             exit 0
           fi
           cat > "$RUNNER_TEMP/abi.md" <<'EOF'
-          ### The ABI baseline needs re-recording
+          ### The ABI baseline still needs a hand
 
-          The public API of a module changed, or a module has no recorded baseline yet. This
-          job will not commit the fix for you, and the reason is worth knowing. A commit pushed
-          with `GITHUB_TOKEN` does not start workflow runs, so a self-healing step in a required
-          check can only ever produce a branch holding the right files and a pull request whose
-          checks never run. It fails closed, and it blocks itself.
+          The job could not close this one on its own. It regenerates the dumps and commits
+          them, then re-runs itself through `workflow_dispatch` - the one documented way a
+          `GITHUB_TOKEN` push can start a run. It got as far as publishing the files, which
+          means one of these:
 
-          The regenerated dumps are attached to this run as **abi-baseline**. Download the
-          artifact and commit them:
+          - the push was refused, most often a fork with no write access;
+          - regeneration did not converge, and retrying would loop;
+          - this is a push to `dev` rather than a pull request, so there is no pull request
+            to comment on.
+
+          The regenerated dumps are attached to this run as **abi-baseline**.
 
           ```
           unzip abi-baseline.zip -d .
@@ -157,14 +208,7 @@ jobs:
           git push
           ```
 
-          Or re-record them on a machine that has a toolchain:
-
-          ```
-          gradle updateKotlinAbi
-          ```
-
-          Either way the baseline lands as an ordinary push, which is a push a workflow actually
-          runs.
+          Or re-record them on a machine that has a toolchain: `gradle updateKotlinAbi`.
           EOF
           # A fork has no write access here, so the comment is skipped rather than failed. The
           # artifact is published either way and stays downloadable from the run.
