@@ -177,8 +177,14 @@ class PropertyValueTest {
         // all. There is no `PropertySpec`, no `Schema` and no `TypeRef` in this module to
         // consult, and §23.3's rule that `:engine:model` depends on no other module means
         // there is nothing that could be.
+        //
+        // `Const` is a variant of `Expr` and not a transparent wrapper, so inside `parts` it
+        // carries its own tag and names its payload. A fragment that put a bare `Value` there
+        // decodes as "serializer for subclass 'str' is not found in the polymorphic scope of
+        // 'Expr'" - a confusing way of saying the fragment was written against the wrong
+        // shape, which is why the comment sits next to the literal.
         val text = "{\"type\":\"expr\",\"expr\":{\"type\":\"template\",\"parts\":[" +
-            "{\"type\":\"str\",\"v\":\"Hi \"}," +
+            "{\"type\":\"const\",\"value\":{\"type\":\"str\",\"v\":\"Hi \"}}," +
             "{\"type\":\"member\",\"receiver\":{\"type\":\"ref\"," +
             "\"target\":{\"type\":\"param\",\"name\":\"user\"}},\"name\":\"displayName\"}," +
             "{\"type\":\"call\",\"function\":\"vendor.redact\"," +

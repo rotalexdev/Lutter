@@ -212,12 +212,17 @@ class ExprTest {
 
         val text = Json.encodeToString<Expr>(template)
 
+        // `Const` is a *variant of Expr*, not a transparent wrapper, so it carries its own
+        // discriminator and names its payload. A hand-written fixture that put the bare
+        // `Value` here would not decode: `Expr` has no `str` variant, and the failure reads
+        // as "serializer for subclass 'str' is not found in the polymorphic scope of 'Expr'",
+        // which is a confusing way of saying the fixture was written against the wrong shape.
         assertEquals(
             "{\"type\":\"template\",\"parts\":[" +
-                "{\"type\":\"str\",\"v\":\"Hello \"}," +
+                "{\"type\":\"const\",\"value\":{\"type\":\"str\",\"v\":\"Hello \"}}," +
                 "{\"type\":\"member\",\"receiver\":{\"type\":\"ref\"," +
                 "\"target\":{\"type\":\"param\",\"name\":\"user\"}},\"name\":\"name\"}," +
-                "{\"type\":\"dp\",\"v\":16.5}]}",
+                "{\"type\":\"const\",\"value\":{\"type\":\"dp\",\"v\":16.5}}]}",
             text,
         )
         assertEquals(template, Json.decodeFromString<Expr>(text))

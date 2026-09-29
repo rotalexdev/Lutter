@@ -4,6 +4,7 @@ import dev.rotalex.lutter.model.ids.ActionId
 import dev.rotalex.lutter.model.ids.BranchName
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.value.PropertyValue
+import kotlinx.serialization.Serializable
 
 /**
  * What an event handler does, as data.
@@ -65,6 +66,7 @@ import dev.rotalex.lutter.model.value.PropertyValue
  *
  * @see ActionStep for the two fields that make a step a step.
  */
+@Serializable
 public data class ActionSequence(
     public val steps: List<ActionStep>,
 )
@@ -76,6 +78,7 @@ public data class ActionSequence(
  * continuations, and a handler that only does one thing should not have to say so twice.
  * The defaults are what make `{"action":"nav.back"}` a complete document.
  */
+@Serializable
 public data class ActionStep(
     /**
      * The action to invoke, by [ActionId].
