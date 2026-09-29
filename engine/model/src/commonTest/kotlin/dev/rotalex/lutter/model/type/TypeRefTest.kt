@@ -154,7 +154,7 @@ class TypeRefTest {
         val nested = TypeRef.MapOf(
             TypeRef.Nullable(TypeRef.ListOf(TypeRef.Enum(TypeId("Alignment")))),
         )
-        val text = Json.encodeToString(nested)
+        val text = Json.encodeToString<TypeRef>(nested)
 
         assertEquals(nested, Json.decodeFromString<TypeRef>(text))
         assertEquals("map", discriminatorOf(text), "wrong discriminator in '$text'")
@@ -166,7 +166,7 @@ class TypeRefTest {
         // a later engine decodes on this one. A test is what stops "declared" from quietly
         // becoming "declared without a tag", which is the failure mode a post-MVP declaration
         // actually has: nothing reads it, so nothing notices it was never wired up.
-        val text = Json.encodeToString(TypeRef.Dimension)
+        val text = Json.encodeToString<TypeRef>(TypeRef.Dimension)
 
         assertEquals("dimension", discriminatorOf(text))
         assertEquals(TypeRef.Dimension, Json.decodeFromString<TypeRef>(text))
@@ -177,7 +177,7 @@ class TypeRefTest {
         // `TypeRef.Icon.set` is nullable because a property may leave the set to the
         // environment, so this is the variant that can be written with one field missing. The
         // discriminator is what has to survive that.
-        val text = Json.encodeToString(TypeRef.Icon(set = null))
+        val text = Json.encodeToString<TypeRef>(TypeRef.Icon(set = null))
 
         assertEquals("icon", discriminatorOf(text))
         assertEquals(TypeRef.Icon(null), Json.decodeFromString<TypeRef>(text))
@@ -232,10 +232,10 @@ class TypeRefTest {
         // and a spelling that is right on its own and wrong in place is still wrong. Each is
         // checked in the shape a document actually writes it — as a nested field of a sealed
         // hierarchy, not as the root of its own.
-        val ref = Json.encodeToString(TypeRef.Ref(RefKind.DataModel))
+        val ref = Json.encodeToString<TypeRef>(TypeRef.Ref(RefKind.DataModel))
         assertTrue("\"dataModel\"" in ref, "expected 'dataModel' in '$ref'")
 
-        val token = Json.encodeToString(TypeRef.Token(TokenKind.Typography))
+        val token = Json.encodeToString<TypeRef>(TypeRef.Token(TokenKind.Typography))
         assertTrue("\"typography\"" in token, "expected 'typography' in '$token'")
     }
 
@@ -244,6 +244,18 @@ class TypeRefTest {
      *
      * Parsing the text back is the point. Reading the tag from the serializer descriptor would
      * be reading the same declaration the test is supposed to be checking.
+     *
+     * Every caller encodes through the base type — `encodeToString<TypeRef>(...)` — and that
+     * is not decoration. `encodeToString` infers its type argument from the value, so passing
+     * a concrete subtype resolves that subtype's own serializer, and a concrete serializer
+     * writes no discriminator at all. `encodeToString(TypeRef.Dimension)` produces `{}` and
+     * this helper throws on it; `encodeToString<TypeRef>(TypeRef.Dimension)` produces
+     * `{"type":"dimension"}`, which is what a document actually stores.
+     *
+     * A real document always holds a `Value` or a `TypeRef` behind a property of that type, so
+     * the polymorphic path is the one that runs. The tests that hold a concrete value were the
+     * only ones not exercising it — which is why a real defect in the model would have passed
+     * them, and why they were asserting a wire form their own call could not produce.
      */
     private fun discriminatorOf(text: String): String =
         Json.parseToJsonElement(text).jsonObject.getValue("type").jsonPrimitive.content

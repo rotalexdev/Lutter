@@ -117,7 +117,7 @@ class ValueTest {
         // The exact bytes, because "contains the tag" is not the claim. PLAN §5.4 gives
         // `165000 / 10000` → `16.5` as the worked example, and this is that example on the
         // wire: a bare number, no exponent, no widened double, no trailing zeros.
-        assertEquals("""{"type":"dp","v":16.5}""", Json.encodeToString(Value.Dp(16.5f)))
+        assertEquals("""{"type":"dp","v":16.5}""", Json.encodeToString<Value>(Value.Dp(16.5f)))
     }
 
     @Test
@@ -125,18 +125,18 @@ class ValueTest {
         // 0.1f is 0.100000001490116119384765625, and widening it to a Double and printing
         // *that* is the artifact D1 exists to prevent. Every expectation below is what
         // Float.toString() would have said, next to what the document says.
-        assertEquals("""{"type":"dp","v":0.1}""", Json.encodeToString(Value.Dp(0.1f)))
-        assertEquals("""{"type":"f32","v":0.1}""", Json.encodeToString(Value.Float32(0.1f)))
-        assertEquals("""{"type":"f64","v":0.1}""", Json.encodeToString(Value.Float64(0.1)))
-        assertEquals("""{"type":"sp","v":14}""", Json.encodeToString(Value.Sp(14f)))
+        assertEquals("""{"type":"dp","v":0.1}""", Json.encodeToString<Value>(Value.Dp(0.1f)))
+        assertEquals("""{"type":"f32","v":0.1}""", Json.encodeToString<Value>(Value.Float32(0.1f)))
+        assertEquals("""{"type":"f64","v":0.1}""", Json.encodeToString<Value>(Value.Float64(0.1)))
+        assertEquals("""{"type":"sp","v":14}""", Json.encodeToString<Value>(Value.Sp(14f)))
 
         // 1.0e8f is exactly 100000000, and Float.toString() would have written "1.0E8" — an
         // exponent, and a value the document never held.
-        assertEquals("""{"type":"f32","v":100000000}""", Json.encodeToString(Value.Float32(1.0e8f)))
+        assertEquals("""{"type":"f32","v":100000000}""", Json.encodeToString<Value>(Value.Float32(1.0e8f)))
 
         // 16.0f is `16`, because a document has one spelling for a number and it is not the
         // one with the decimal point and nothing after it.
-        assertEquals("""{"type":"dp","v":16}""", Json.encodeToString(Value.Dp(16.0f)))
+        assertEquals("""{"type":"dp","v":16}""", Json.encodeToString<Value>(Value.Dp(16.0f)))
     }
 
     @Test
@@ -314,19 +314,28 @@ class ValueTest {
         // that tolerated these would accept documents that mean the same thing three ways.
         for (text in listOf(
             "",
-            "FF6200EE",
-            "#",
-            "#FFF6200E",
-            "#FF6200EEA",
-            "#FF6200E",
-            "#FF6200EG",
-            "0xFF6200EE",
-            "red",
+            "FF6200EE",      // no '#'
+            "#",             // '#' alone
+            "#FF6200EEA",    // nine digits
+            "#FF6200E",      // seven digits
+            "#FF6200EG",     // G is not a hex digit
+            "0xFF6200EE",    // C-style prefix, not the wire form
+            "red",           // a name; the wire form is never symbolic
         )) {
             assertFailsWith<IllegalArgumentException>("'$text' was accepted") {
                 ColorArgb.parse(text)
             }
         }
+    }
+
+    @Test
+    fun `a colour is judged on its digit count and nothing else`() {
+        // Recorded because it cost a red CI run: `#FFF6200E` was listed among the rejects on
+        // the belief that it had one digit too few. It has eight — F F F 6 2 0 0 E — so it is
+        // a perfectly good #AARRGGBB, and it parses. What makes a string a colour here is
+        // exactly "'#' then eight hex digits", and a substring of the wrong length is a
+        // different string, not a malformed version of the same one.
+        assertEquals("#FFF6200E", ColorArgb.parse("#FFF6200E").toHexString())
     }
 
     @Test
@@ -343,7 +352,7 @@ class ValueTest {
         // And inside the union, so the use site did not have to ask for it.
         assertEquals(
             """{"type":"color","argb":"#FF6200EE"}""",
-            Json.encodeToString(Value.Color(ColorArgb.parse("#FF6200EE"))),
+            Json.encodeToString<Value>(Value.Color(ColorArgb.parse("#FF6200EE"))),
         )
     }
 
