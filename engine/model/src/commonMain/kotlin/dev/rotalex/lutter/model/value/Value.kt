@@ -308,4 +308,20 @@ public sealed interface Value {
         public val typeId: TypeId,
         public val fields: Map<PropertyKey, Value>,
     ) : Value
+
+    /**
+     * A map, keyed by property name.
+     *
+     * §9.1 declares `TypeRef.MapOf`, so a property can be typed as a map and before this
+     * variant no value could satisfy it — a type with no inhabitant. §9.2 describes the
+     * encoding as "`obj` with typed fields or `list` of pairs"; this is neither, because both
+     * are less direct than the thing itself. `Map<PropertyKey, Value>` encodes as a JSON
+     * object with string keys, which is what `Node.props` and `Value.Obj.fields` already do
+     * with the same key type, and a `PropertyKey` validates itself on the way in.
+     */
+    @SerialName("map")
+    public data class MapOf(
+        public val value: Value,
+        public val entries: Map<PropertyKey, Value>,
+    ) : Value
 }

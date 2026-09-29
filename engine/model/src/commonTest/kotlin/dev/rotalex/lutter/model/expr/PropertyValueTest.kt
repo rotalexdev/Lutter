@@ -1,4 +1,4 @@
-package dev.rotalex.lutter.model.value
+package dev.rotalex.lutter.model.expr
 
 import dev.rotalex.lutter.model.expr.BinaryOp
 import dev.rotalex.lutter.model.expr.Expr

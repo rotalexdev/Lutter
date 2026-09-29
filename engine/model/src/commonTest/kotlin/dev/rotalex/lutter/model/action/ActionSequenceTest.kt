@@ -8,7 +8,7 @@ import dev.rotalex.lutter.model.ids.BranchName
 import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.StateId
-import dev.rotalex.lutter.model.value.PropertyValue
+import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.value.Value
 import kotlin.test.Test
 import kotlin.test.assertEquals

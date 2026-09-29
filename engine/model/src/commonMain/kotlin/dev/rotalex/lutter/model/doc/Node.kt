@@ -17,7 +17,7 @@ import dev.rotalex.lutter.model.ids.ModifierType
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.SlotName
-import dev.rotalex.lutter.model.value.PropertyValue
+import dev.rotalex.lutter.model.expr.PropertyValue
 import kotlinx.serialization.Serializable
 
 /**

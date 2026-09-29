@@ -101,7 +101,7 @@ import kotlinx.serialization.json.JsonClassDiscriminator
  *
  * @see RefTarget for the four things an expression is allowed to name.
  * @see UnaryOp and BinaryOp for the operator sets, and for why division is not among them.
- * @see dev.rotalex.lutter.model.value.PropertyValue for the wrapper that puts an `Expr` where
+ * @see PropertyValue for the wrapper that puts an `Expr` where
  *   a document expects a property.
  */
 @Serializable

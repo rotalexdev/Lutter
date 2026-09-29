@@ -3,7 +3,7 @@ package dev.rotalex.lutter.model.action
 import dev.rotalex.lutter.model.ids.ActionId
 import dev.rotalex.lutter.model.ids.BranchName
 import dev.rotalex.lutter.model.ids.PropertyKey
-import dev.rotalex.lutter.model.value.PropertyValue
+import dev.rotalex.lutter.model.expr.PropertyValue
 import kotlinx.serialization.Serializable
 
 /**
