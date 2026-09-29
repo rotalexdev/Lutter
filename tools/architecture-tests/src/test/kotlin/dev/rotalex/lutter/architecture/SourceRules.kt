@@ -10,8 +10,16 @@ package dev.rotalex.lutter.architecture
  */
 internal object SourceRules {
 
+    /*
+     * The `?` is optional and the `>` is mandatory. It used to be the other way round:
+     * `Any\s*\?>?` reads as a required literal question mark followed by an *optional*
+     * closing angle bracket, so the rule matched `Map<String, Any?>` and let `Map<String,
+     * Any>` through - which is the exact shape PLAN §23.4 forbids, and the one its own
+     * KDoc below claims to catch. A guardrail that misses the primary case while catching
+     * the variant is worse than no guardrail, because it reads as coverage.
+     */
     private val untypedStringMap =
-        Regex("""(?:Mutable)?Map\s*<\s*String\s*,\s*Any\s*\?>?""")
+        Regex("""(?:Mutable)?Map\s*<\s*String\s*,\s*Any\s*\??\s*>""")
 
     private val objectDeclaration =
         Regex("""\b(?:companion\s+)?object\s+([A-Za-z_]\w*)?\s*(?::[^={]*)?\{""")
