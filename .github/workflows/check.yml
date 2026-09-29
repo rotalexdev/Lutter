@@ -212,3 +212,21 @@ jobs:
           path: '**/build/reports/problems/'
           if-no-files-found: ignore
           retention-days: 14
+
+      # The problems report covers the *compiler*. A failing test is a different failure
+      # with different evidence, and the step log carries only "kotlinx.serialization
+      # .SerializationException at ActionSequenceTest.kt:392" - no message, and in three
+      # separate cases a line number past the end of the file, so it cannot even be read
+      # back. Guessing from a line number is how a day gets spent chasing the wrong file.
+      #
+      # The XML results hold the message and the full stack. Uploading them unconditionally
+      # rather than only on failure keeps them available for a flake that passed on the
+      # rerun, which is the one case where you most want the evidence and least have it.
+      - name: Upload the test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/build/test-results/**/*.xml'
+          if-no-files-found: ignore
+          retention-days: 14
