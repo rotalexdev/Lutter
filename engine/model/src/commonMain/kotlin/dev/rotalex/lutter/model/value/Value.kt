@@ -1,11 +1,16 @@
-package dev.rotalex.lutter.model.value
+@file:OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
 
-// The opt-in below is for exactly one thing: `@JsonClassDiscriminator`, which
+// The opt-in above is for exactly one thing: `@JsonClassDiscriminator`, which
 // kotlinx.serialization still marks experimental. Everything else this file uses is stable
 // API. The annotation is not optional decoration - it is what puts the discriminator on the
 // wire under the name this project chose rather than the library default - so opting in at
 // file scope is narrower and more honest than suppressing use by use.
-@file:OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+//
+// It has to be a file annotation and not a per-use `@OptIn` because Kotlin requires file
+// annotations to precede the package declaration, and putting it after imports is a syntax
+// error rather than a warning.
+
+package dev.rotalex.lutter.model.value
 
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.TypeId
