@@ -67,7 +67,7 @@ class ActionSequenceTest {
         // `{"action":"nav.back"}` and nothing else — a person reading a document should not
         // have to skip past three empty objects to find out what a step does.
         assertEquals(
-            """[{"action":"state.set"},{"action":"nav.navigate"},{"action":"nav.back"}]""",
+            """{"steps":[{"action":"state.set"},{"action":"nav.navigate"},{"action":"nav.back"}]}""",
             text,
         )
         assertEquals("nav.back", actionOfFirstStep(text), "the action key moved on the wire")
@@ -80,7 +80,7 @@ class ActionSequenceTest {
         // all just to have something to put in the list.
         val empty = ActionSequence(emptyList())
 
-        assertEquals("[]", Json.encodeToString<ActionSequence>(empty))
+        assertEquals("""{"steps":[]}""", Json.encodeToString<ActionSequence>(empty))
         assertEquals(empty, Json.decodeFromString<ActionSequence>("[]"))
     }
 
@@ -142,7 +142,11 @@ class ActionSequenceTest {
         )
         assertTrue("\"type\":\"const\"" in text, "the constant arm lost its tag: '$text'")
         assertTrue("\"type\":\"expr\"" in text, "the computed arm lost its tag: '$text'")
-        assertTrue("\"type\":\"add\"" in text, "the operator is not a bare word: '$text'")
+        // Under `op`, not `type`: `type` is the discriminator of the sealed `Expr` hierarchy
+        // and `add` is the `@SerialName` of a `BinaryOp` entry inside the `op` field. An
+        // operator is a value in a field, not a variant of the union, so looking for it under
+        // the discriminator finds nothing.
+        assertTrue("\"op\":\"add\"" in text, "the operator is not a bare word: '$text'")
     }
 
     @Test
@@ -177,7 +181,7 @@ class ActionSequenceTest {
         assertFailsWith<IllegalArgumentException> { PropertyKey("has.dot") }
         assertFailsWith<SerializationException> {
             Json.decodeFromString<ActionSequence>(
-                """[{"action":"state.set","args":{"value":{"type":"bind","expr":"s_count"}}}]""",
+                """{"steps":[{"action":"state.set","args":{"value":{"type":"bind","expr":"s_count"}}}]}""",
             )
         }
     }
@@ -293,7 +297,7 @@ class ActionSequenceTest {
         // defaulted, so the encoder leaves them out and the decoder has to put them back —
         // which is the only thing that makes `{"action":"nav.back"}` a complete step rather
         // than a fragment.
-        val decoded = Json.decodeFromString<ActionSequence>("""[{"action":"nav.back"}]""")
+        val decoded = Json.decodeFromString<ActionSequence>("""{"steps":[{"action":"nav.back"}]}""")
 
         val step = decoded.steps[0]
         assertEquals(ActionId("nav.back"), step.action)
@@ -307,7 +311,7 @@ class ActionSequenceTest {
         // And re-encoding produces the same fragment, so a document that is read and written
         // again is not rewritten by the round trip. Whitespace is not part of the promise;
         // the data is.
-        assertEquals("""[{"action":"nav.back"}]""", Json.encodeToString(decoded))
+        assertEquals("""{"steps":[{"action":"nav.back"}]}""", Json.encodeToString(decoded))
     }
 
     @Test
@@ -341,7 +345,7 @@ class ActionSequenceTest {
         }
 
         assertFails {
-            Json.decodeFromString<ActionSequence>("""[{"action":"navigate"}]""")
+            Json.decodeFromString<ActionSequence>("""{"steps":[{"action":"navigate"}]}""")
         }
     }
 
@@ -379,7 +383,11 @@ class ActionSequenceTest {
      * a rename.
      */
     private fun actionOfFirstStep(text: String): String =
+        // `ActionSequence` is a `data class` holding `steps`, so the root is an object and
+        // the first step is one level in. The bare-array shape this used to read is what a
+        // `@JvmInline value class` would have produced, and it is not what §11.2 declares.
         Json.parseToJsonElement(text)
+            .jsonObject.getValue("steps")
             .jsonArray[0]
             .jsonObject
             .getValue("action")
