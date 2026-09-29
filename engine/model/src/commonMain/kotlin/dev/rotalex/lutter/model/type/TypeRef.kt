@@ -291,11 +291,8 @@ public sealed interface TypeRef {
     /**
      * A map with `String` keys, `Map<String, V>`.
      *
-     * **No value inhabits this type today.** `Value` has no map variant: §5.4's closed union
-     * has a list and an object and no map, and adding one would be the schema-version event
-     * §5.4 reserves for a new variant. §9.2's Map row says the wire form is "`obj` with typed
-     * fields or `list` of pairs", which is a statement about how a *schema* would encode a
-     * map, not about a `Value` variant — and a document cannot be written for this type until
+     * Inhabited by `Value.MapOf`, added with the variant itself: §9.1 declares this type,
+     * so a property could be typed as a map with no value able to satisfy it.
      * the union grows. The type is declared because §9.1 declares it, and declaring it is
      * what makes the gap visible to the next person instead of leaving them to find it by
      * writing a document that will not validate.
@@ -395,11 +392,10 @@ public sealed interface TypeRef {
      * instead of failing. **Declared, unused, and this comment is why** — nothing in the
      * engine reads it yet, and the first person to reach for it should read this first.
      *
-     * No value inhabits it, which is the part worth being explicit about. Of the three cases,
-     * only `Dp` has a `Value` variant — `Value.Dp` — because the other two are codegen shapes
-     * (`Modifier.fillMaxWidth()`) with nothing to store. A document that writes a fill will
-     * fail validation, and that is the correct outcome for a post-MVP type used early: the
-     * failure is at the point of authoring, not at the point of rendering.
+     * No value inhabits it. Of the three cases only `Dp` has one — `Value.Dp` — because the
+     * other two are codegen shapes with nothing to store, so a document that writes a fill
+     * fails validation. That is the right outcome for a post-MVP type used early: the failure
+     * is at authoring, not at rendering.
      */
     @Serializable
     @SerialName("dimension")

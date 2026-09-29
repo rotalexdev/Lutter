@@ -21,11 +21,11 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 
 /**
- * Every value a document can hold: a closed, serializable union of seventeen.
+ * Every value a document can hold: a closed, serializable union of eighteen.
  *
  * PLAN §5.4's list, variant for variant, with the numbering it does not have. The count is
- * seventeen and it is worth being precise about, because "the value union" is easy to
- * misremember as a smaller thing. The seventeen are ten scalars (`Null` through `Sp`), five
+ * eighteen and it is worth being precise about, because "the value union" is easy to
+ * misremember as a smaller thing. The eighteen are ten scalars (`Null` through `Sp`), five
  * named things (`Enum` through `Token`) and two containers (`ListOf` and `Obj`).
  *
  * ### Closed, on purpose, and the thing that is open instead
@@ -52,7 +52,7 @@ import kotlinx.serialization.json.JsonClassDiscriminator
  * `Float32`, `Dp` and `Sp` are written by `CanonicalFloat`; `Float64` by `CanonicalDouble`.
  * None of them ever reaches a `toString()`, so `0.1` is `0.1` and not the widened double
  * `0.10000000149011612` that a document would otherwise diff on. The construction side is the
- * other half of the same promise: `Value.dp(16.5f)` rounds to at most four fractional digits
+ * other half of the same promise: `Value.Dp(16.5f)` rounds to at most four fractional digits
  * and refuses NaN, the infinities, and a magnitude past `2.0e11`.
  *
  * **`Dp` and `Sp` stay separate variants** even though both hold a `Float` through the same
@@ -99,13 +99,10 @@ import kotlinx.serialization.json.JsonClassDiscriminator
  *
  *  * **Expressions.** A computed property is `PropertyValue.Computed` (§5.4), the other arm
  *    against `PropertyValue.Const`. An expression is not a value until an evaluator produces
- *    one, and what it produces is one of these seventeen.
- *  * **A map.** `ListOf` and `Obj` are containers; there is no map variant, and therefore
- *    **no value inhabits `TypeRef.MapOf`**. §9.2's Map row answers the question with "`obj`
- *    with typed fields or `list` of pairs", which is a statement about schema-level encoding
- *    and not about a variant of this union. Adding one is the schema-version event above, and
- *    the plan has not asked for it; the gap is recorded in the feature document rather than
- *    papered over with a variant nobody asked for.
+ *    one, and what it produces is one of these eighteen.
+ *  * **A map.** `ListOf`, `Obj` and `MapOf` are containers. `MapOf` was added because §9.1
+ *    declares `TypeRef.MapOf` and a type with no inhabitant is a property no document can
+ *    satisfy. It encodes as a JSON object because `PropertyKey` already does.
  *  * **A dimension.** `TypeRef.Dimension` is post-MVP and its fill and wrap cases have no
  *    representation at all. `Dp` covers the one case that is expressible today.
  *
@@ -127,7 +124,7 @@ public sealed interface Value {
      *
      * Written as the tag `"null"` and therefore as the *string* `"null"`, not as a JSON
      * `null`: the discriminator is a string field, and a document that wrote a bare `null`
-     * would not be able to say which of the seventeen it meant either.
+     * would not be able to say which of the eighteen it meant either.
      */
     @Serializable
     @SerialName("null")
@@ -319,6 +316,7 @@ public sealed interface Value {
      * object with string keys, which is what `Node.props` and `Value.Obj.fields` already do
      * with the same key type, and a `PropertyKey` validates itself on the way in.
      */
+    @Serializable
     @SerialName("map")
     public data class MapOf(
         public val value: Value,

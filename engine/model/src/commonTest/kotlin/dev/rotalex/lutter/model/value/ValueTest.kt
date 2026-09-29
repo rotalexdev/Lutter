@@ -62,15 +62,25 @@ class ValueTest {
         Case(Value.Icon("material", "Home"), "icon"),
         Case(Value.Token(TokenKind.Typography, "md.typography.headlineMedium"), "token"),
         Case(Value.ListOf(listOf(Value.Dp(8f), Value.Str("gap"))), "list"),
+        Case(
+            Value.MapOf(
+                value = Value.Str("px"),
+                entries = mapOf(
+                    PropertyKey("sm") to Value.Dp(4f),
+                    PropertyKey("lg") to Value.Dp(8f),
+                ),
+            ),
+            "map",
+        ),
         Case(Value.Obj(TypeId("Thing"), mapOf(PropertyKey("label") to Value.Str("hi"))), "obj"),
     )
 
     @Test
     fun `the union has seventeen variants and no two share a tag`() {
-        // Seventeen, transcribed from §5.4. The count is asserted because the union is closed
+        // Every variant, transcribed from §5.4. The count is asserted because the union is closed
         // and a variant that quietly went missing would still compile and still pass every
         // other test in this file, while failing to read a document that used it.
-        assertEquals(17, cases.size, "the list of variants is not §5.4's")
+        assertEquals(18, cases.size, "the list of variants is not the union's")
 
         // A duplicate tag is silent corruption: both variants are legal Kotlin, the encoder
         // writes the same discriminator for both, and the decoder picks one. Nothing errors.

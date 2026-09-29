@@ -44,7 +44,8 @@ import dev.rotalex.lutter.model.type.TypeRef
  *    `T`, and the wrapper decides nothing on its own.
  *  * **`TypeRef.ListOf` — the element kind.** The part that makes a list kind useful, checking
  *    each element against `element`, is a question about the element.
- *  * **`TypeRef.MapOf` — a value.** No `Value` variant inhabits it; see `TypeRef.MapOf`.
+ *  * **`TypeRef.MapOf` — the entry kind.** Same position as `ListOf`: the value exists, and
+ *    checking each entry against `value` is a question about the entry's kind.
  *  * **`TypeRef.Object` — the declared shape.** The fields are in the value; what they *mean*
  *    is named by a `TypeId`.
  *  * **`TypeRef.Ref` — analysis.** The id's type comes from the `RefKind` and the target comes

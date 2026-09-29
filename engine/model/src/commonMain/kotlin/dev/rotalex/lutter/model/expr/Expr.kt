@@ -94,10 +94,9 @@ import kotlinx.serialization.json.JsonClassDiscriminator
  *    `String + <part>` for each part, evaluated left to right, which is what §10.5's codegen
  *    column emits. A part that is itself a template is legal and nests, so a document that
  *    wants one interpolation inside another does not need a second variant.
- *  * **No map literal.** [ListLiteral] is the only collection constructor here, and that is
- *    the same gap the value union has: §5.4's closed `Value` has no map variant, so no
- *    expression can produce one either. See the argument in `TypeRef.MapOf`, which is where
- *    that gap is recorded rather than papered over.
+ *  * **No map literal.** [ListLiteral] is the only collection constructor here, so a map
+ *    value has to be written as [Value.MapOf] rather than built. Adding a literal is a
+ *    schema-version event like any other variant.
  *
  * @see RefTarget for the four things an expression is allowed to name.
  * @see UnaryOp and BinaryOp for the operator sets, and for why division is not among them.
