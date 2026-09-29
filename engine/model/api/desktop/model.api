@@ -1027,7 +1027,6 @@ public final class dev/rotalex/lutter/model/value/ColorArgb$Companion {
 	public final fun of-yZEgEUw (IIII)I
 	public final fun parse-NkAIuH0 (Ljava/lang/String;)I
 	public final fun rgb-GdR6myU (III)I
-	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
 public final class dev/rotalex/lutter/model/value/ColorArgbSerializer : kotlinx/serialization/KSerializer {

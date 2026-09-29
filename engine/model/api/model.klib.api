@@ -1465,7 +1465,6 @@ final value class dev.rotalex.lutter.model.value/ColorArgb { // dev.rotalex.lutt
         final fun of(kotlin/Int, kotlin/Int, kotlin/Int, kotlin/Int): dev.rotalex.lutter.model.value/ColorArgb // dev.rotalex.lutter.model.value/ColorArgb.Companion.of|of(kotlin.Int;kotlin.Int;kotlin.Int;kotlin.Int){}[0]
         final fun parse(kotlin/String): dev.rotalex.lutter.model.value/ColorArgb // dev.rotalex.lutter.model.value/ColorArgb.Companion.parse|parse(kotlin.String){}[0]
         final fun rgb(kotlin/Int, kotlin/Int, kotlin/Int): dev.rotalex.lutter.model.value/ColorArgb // dev.rotalex.lutter.model.value/ColorArgb.Companion.rgb|rgb(kotlin.Int;kotlin.Int;kotlin.Int){}[0]
-        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.value/ColorArgb> // dev.rotalex.lutter.model.value/ColorArgb.Companion.serializer|serializer(){}[0]
     }
 }
 
