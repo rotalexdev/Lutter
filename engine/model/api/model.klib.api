@@ -1517,6 +1517,83 @@ final class dev.rotalex.lutter.model.action/ActionStep { // dev.rotalex.lutter.m
     }
 }
 
+final class dev.rotalex.lutter.model.doc/ModifierEntry { // dev.rotalex.lutter.model.doc/ModifierEntry|null[0]
+    constructor <init>(dev.rotalex.lutter.model.ids/ModifierType, kotlin.collections/Map<dev.rotalex.lutter.model.ids/PropertyKey, dev.rotalex.lutter.model.value/PropertyValue> = ...) // dev.rotalex.lutter.model.doc/ModifierEntry.<init>|<init>(dev.rotalex.lutter.model.ids.ModifierType;kotlin.collections.Map<dev.rotalex.lutter.model.ids.PropertyKey,dev.rotalex.lutter.model.value.PropertyValue>){}[0]
+
+    final val args // dev.rotalex.lutter.model.doc/ModifierEntry.args|{}args[0]
+        final fun <get-args>(): kotlin.collections/Map<dev.rotalex.lutter.model.ids/PropertyKey, dev.rotalex.lutter.model.value/PropertyValue> // dev.rotalex.lutter.model.doc/ModifierEntry.args.<get-args>|<get-args>(){}[0]
+    final val type // dev.rotalex.lutter.model.doc/ModifierEntry.type|{}type[0]
+        final fun <get-type>(): dev.rotalex.lutter.model.ids/ModifierType // dev.rotalex.lutter.model.doc/ModifierEntry.type.<get-type>|<get-type>(){}[0]
+
+    final fun component1(): dev.rotalex.lutter.model.ids/ModifierType // dev.rotalex.lutter.model.doc/ModifierEntry.component1|component1(){}[0]
+    final fun component2(): kotlin.collections/Map<dev.rotalex.lutter.model.ids/PropertyKey, dev.rotalex.lutter.model.value/PropertyValue> // dev.rotalex.lutter.model.doc/ModifierEntry.component2|component2(){}[0]
+    final fun copy(dev.rotalex.lutter.model.ids/ModifierType = ..., kotlin.collections/Map<dev.rotalex.lutter.model.ids/PropertyKey, dev.rotalex.lutter.model.value/PropertyValue> = ...): dev.rotalex.lutter.model.doc/ModifierEntry // dev.rotalex.lutter.model.doc/ModifierEntry.copy|copy(dev.rotalex.lutter.model.ids.ModifierType;kotlin.collections.Map<dev.rotalex.lutter.model.ids.PropertyKey,dev.rotalex.lutter.model.value.PropertyValue>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.doc/ModifierEntry.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.doc/ModifierEntry.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.doc/ModifierEntry.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.doc/ModifierEntry> { // dev.rotalex.lutter.model.doc/ModifierEntry.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.doc/ModifierEntry.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.doc/ModifierEntry.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.doc/ModifierEntry.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.doc/ModifierEntry // dev.rotalex.lutter.model.doc/ModifierEntry.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.doc/ModifierEntry) // dev.rotalex.lutter.model.doc/ModifierEntry.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.doc.ModifierEntry){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.doc/ModifierEntry.Companion|null[0]
+        final val $childSerializers // dev.rotalex.lutter.model.doc/ModifierEntry.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.doc/ModifierEntry> // dev.rotalex.lutter.model.doc/ModifierEntry.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class dev.rotalex.lutter.model.doc/Node { // dev.rotalex.lutter.model.doc/Node|null[0]
+    constructor <init>(dev.rotalex.lutter.model.ids/NodeId, dev.rotalex.lutter.model.ids/ComponentType, kotlin/String? = ..., kotlin.collections/Map<dev.rotalex.lutter.model.ids/PropertyKey, dev.rotalex.lutter.model.value/PropertyValue> = ..., kotlin.collections/List<dev.rotalex.lutter.model.doc/ModifierEntry> = ..., kotlin.collections/Map<dev.rotalex.lutter.model.ids/SlotName, kotlin.collections/List<dev.rotalex.lutter.model.ids/NodeId>> = ..., kotlin.collections/Map<dev.rotalex.lutter.model.ids/EventKey, dev.rotalex.lutter.model.action/ActionSequence> = ...) // dev.rotalex.lutter.model.doc/Node.<init>|<init>(dev.rotalex.lutter.model.ids.NodeId;dev.rotalex.lutter.model.ids.ComponentType;kotlin.String?;kotlin.collections.Map<dev.rotalex.lutter.model.ids.PropertyKey,dev.rotalex.lutter.model.value.PropertyValue>;kotlin.collections.List<dev.rotalex.lutter.model.doc.ModifierEntry>;kotlin.collections.Map<dev.rotalex.lutter.model.ids.SlotName,kotlin.collections.List<dev.rotalex.lutter.model.ids.NodeId>>;kotlin.collections.Map<dev.rotalex.lutter.model.ids.EventKey,dev.rotalex.lutter.model.action.ActionSequence>){}[0]
+
+    final val events // dev.rotalex.lutter.model.doc/Node.events|{}events[0]
+        final fun <get-events>(): kotlin.collections/Map<dev.rotalex.lutter.model.ids/EventKey, dev.rotalex.lutter.model.action/ActionSequence> // dev.rotalex.lutter.model.doc/Node.events.<get-events>|<get-events>(){}[0]
+    final val id // dev.rotalex.lutter.model.doc/Node.id|{}id[0]
+        final fun <get-id>(): dev.rotalex.lutter.model.ids/NodeId // dev.rotalex.lutter.model.doc/Node.id.<get-id>|<get-id>(){}[0]
+    final val modifiers // dev.rotalex.lutter.model.doc/Node.modifiers|{}modifiers[0]
+        final fun <get-modifiers>(): kotlin.collections/List<dev.rotalex.lutter.model.doc/ModifierEntry> // dev.rotalex.lutter.model.doc/Node.modifiers.<get-modifiers>|<get-modifiers>(){}[0]
+    final val name // dev.rotalex.lutter.model.doc/Node.name|{}name[0]
+        final fun <get-name>(): kotlin/String? // dev.rotalex.lutter.model.doc/Node.name.<get-name>|<get-name>(){}[0]
+    final val props // dev.rotalex.lutter.model.doc/Node.props|{}props[0]
+        final fun <get-props>(): kotlin.collections/Map<dev.rotalex.lutter.model.ids/PropertyKey, dev.rotalex.lutter.model.value/PropertyValue> // dev.rotalex.lutter.model.doc/Node.props.<get-props>|<get-props>(){}[0]
+    final val slots // dev.rotalex.lutter.model.doc/Node.slots|{}slots[0]
+        final fun <get-slots>(): kotlin.collections/Map<dev.rotalex.lutter.model.ids/SlotName, kotlin.collections/List<dev.rotalex.lutter.model.ids/NodeId>> // dev.rotalex.lutter.model.doc/Node.slots.<get-slots>|<get-slots>(){}[0]
+    final val type // dev.rotalex.lutter.model.doc/Node.type|{}type[0]
+        final fun <get-type>(): dev.rotalex.lutter.model.ids/ComponentType // dev.rotalex.lutter.model.doc/Node.type.<get-type>|<get-type>(){}[0]
+
+    final fun component1(): dev.rotalex.lutter.model.ids/NodeId // dev.rotalex.lutter.model.doc/Node.component1|component1(){}[0]
+    final fun component2(): dev.rotalex.lutter.model.ids/ComponentType // dev.rotalex.lutter.model.doc/Node.component2|component2(){}[0]
+    final fun component3(): kotlin/String? // dev.rotalex.lutter.model.doc/Node.component3|component3(){}[0]
+    final fun component4(): kotlin.collections/Map<dev.rotalex.lutter.model.ids/PropertyKey, dev.rotalex.lutter.model.value/PropertyValue> // dev.rotalex.lutter.model.doc/Node.component4|component4(){}[0]
+    final fun component5(): kotlin.collections/List<dev.rotalex.lutter.model.doc/ModifierEntry> // dev.rotalex.lutter.model.doc/Node.component5|component5(){}[0]
+    final fun component6(): kotlin.collections/Map<dev.rotalex.lutter.model.ids/SlotName, kotlin.collections/List<dev.rotalex.lutter.model.ids/NodeId>> // dev.rotalex.lutter.model.doc/Node.component6|component6(){}[0]
+    final fun component7(): kotlin.collections/Map<dev.rotalex.lutter.model.ids/EventKey, dev.rotalex.lutter.model.action/ActionSequence> // dev.rotalex.lutter.model.doc/Node.component7|component7(){}[0]
+    final fun copy(dev.rotalex.lutter.model.ids/NodeId = ..., dev.rotalex.lutter.model.ids/ComponentType = ..., kotlin/String? = ..., kotlin.collections/Map<dev.rotalex.lutter.model.ids/PropertyKey, dev.rotalex.lutter.model.value/PropertyValue> = ..., kotlin.collections/List<dev.rotalex.lutter.model.doc/ModifierEntry> = ..., kotlin.collections/Map<dev.rotalex.lutter.model.ids/SlotName, kotlin.collections/List<dev.rotalex.lutter.model.ids/NodeId>> = ..., kotlin.collections/Map<dev.rotalex.lutter.model.ids/EventKey, dev.rotalex.lutter.model.action/ActionSequence> = ...): dev.rotalex.lutter.model.doc/Node // dev.rotalex.lutter.model.doc/Node.copy|copy(dev.rotalex.lutter.model.ids.NodeId;dev.rotalex.lutter.model.ids.ComponentType;kotlin.String?;kotlin.collections.Map<dev.rotalex.lutter.model.ids.PropertyKey,dev.rotalex.lutter.model.value.PropertyValue>;kotlin.collections.List<dev.rotalex.lutter.model.doc.ModifierEntry>;kotlin.collections.Map<dev.rotalex.lutter.model.ids.SlotName,kotlin.collections.List<dev.rotalex.lutter.model.ids.NodeId>>;kotlin.collections.Map<dev.rotalex.lutter.model.ids.EventKey,dev.rotalex.lutter.model.action.ActionSequence>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.model.doc/Node.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.model.doc/Node.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.model.doc/Node.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.model.doc/Node> { // dev.rotalex.lutter.model.doc/Node.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.model.doc/Node.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.doc/Node.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.model.doc/Node.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.doc/Node // dev.rotalex.lutter.model.doc/Node.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.doc/Node) // dev.rotalex.lutter.model.doc/Node.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.doc.Node){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.model.doc/Node.Companion|null[0]
+        final val $childSerializers // dev.rotalex.lutter.model.doc/Node.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.doc/Node> // dev.rotalex.lutter.model.doc/Node.Companion.serializer|serializer(){}[0]
+    }
+}
+
 final class dev.rotalex.lutter.model.ids/RandomIdGenerator : dev.rotalex.lutter.model.ids/IdGenerator { // dev.rotalex.lutter.model.ids/RandomIdGenerator|null[0]
     constructor <init>(kotlin.random/Random = ...) // dev.rotalex.lutter.model.ids/RandomIdGenerator.<init>|<init>(kotlin.random.Random){}[0]
 
