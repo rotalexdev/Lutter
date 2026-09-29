@@ -70,7 +70,10 @@ class ActionSequenceTest {
             """{"steps":[{"action":"state.set"},{"action":"nav.navigate"},{"action":"nav.back"}]}""",
             text,
         )
-        assertEquals("nav.back", actionOfFirstStep(text), "the action key moved on the wire")
+        // The *first* step. The document holds three, and the claim is that the field is
+        // named `action` on the wire - which the first step is as good a witness as the last,
+        // and the one the helper actually reads.
+        assertEquals("state.set", actionOfFirstStep(text), "the action key moved on the wire")
     }
 
     @Test
@@ -81,7 +84,7 @@ class ActionSequenceTest {
         val empty = ActionSequence(emptyList())
 
         assertEquals("""{"steps":[]}""", Json.encodeToString<ActionSequence>(empty))
-        assertEquals(empty, Json.decodeFromString<ActionSequence>("[]"))
+        assertEquals(empty, Json.decodeFromString<ActionSequence>("""{"steps":[]}"""))
     }
 
     @Test
@@ -91,8 +94,8 @@ class ActionSequenceTest {
         // were. D4 is what makes that acceptable: a document written against a plugin that
         // ships `analytics.log` loads on an engine that has never heard of it, and validation
         // reports the unknown id as a diagnostic rather than the file failing to open.
-        val text = "[{\"action\":\"vendor.track\",\"args\":{\"event\":{\"type\":\"const\"," +
-            "\"value\":{\"type\":\"str\",\"v\":\"checkout\"}}}}]"
+        val text = "{\"steps\":[{\"action\":\"vendor.track\",\"args\":{\"event\":{\"type\":" +
+            "\"const\",\"value\":{\"type\":\"str\",\"v\":\"checkout\"}}}}]}"
 
         val decoded = Json.decodeFromString<ActionSequence>(text)
 
@@ -157,8 +160,8 @@ class ActionSequenceTest {
         // string would put a document's arguments past the point where the type system can
         // help, and the check that a key *is* an argument name belongs to `ActionSpec`.
         assertEquals(
-            "[{\"action\":\"state.set\",\"args\":{\"value\":{\"type\":\"const\"," +
-                "\"value\":{\"type\":\"i32\",\"v\":7}}}}]",
+            "{\"steps\":[{\"action\":\"state.set\",\"args\":{\"value\":{\"type\":\"const\"," +
+                "\"value\":{\"type\":\"i32\",\"v\":7}}}}]}",
             Json.encodeToString<ActionSequence>(
                 ActionSequence(
                     listOf(
