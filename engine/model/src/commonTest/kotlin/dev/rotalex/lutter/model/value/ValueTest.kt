@@ -341,18 +341,28 @@ class ValueTest {
     @Test
     fun `a colour is written as a string and not as a packed integer`() {
         // The one thing a colour must never be on the wire. `@Serializable` on a value class
-        // would write the underlying Int — {"argb":-10203410} — and a document that round-trips
-        // a colour through a negative integer is a document a person cannot edit.
-        assertEquals("\"#FF6200EE\"", Json.encodeToString(ColorArgb.parse("#FF6200EE")))
-        assertEquals(
-            ColorArgb.parse("#FF6200EE"),
-            Json.decodeFromString<ColorArgb>("\"#FF6200EE\""),
-        )
-
-        // And inside the union, so the use site did not have to ask for it.
+        // would write the underlying Int, and a document that round-trips a colour through a
+        // negative integer is a document a person cannot edit.
+        //
+        // Every assertion goes through `Value.Color` rather than a bare `ColorArgb`, because
+        // that is the only place the model writes a colour. The serializer is declared on the
+        // property for a reason: `@Serializable(with = ...)` on a `@JvmInline value class`
+        // compiles, works on the JVM and on Android, and throws on Wasm. A ColorArgb therefore
+        // has no standalone serializer, and this test does not pretend that it does.
         assertEquals(
             """{"type":"color","argb":"#FF6200EE"}""",
             Json.encodeToString<Value>(Value.Color(ColorArgb.parse("#FF6200EE"))),
+        )
+        assertEquals(
+            Value.Color(ColorArgb.parse("#FF6200EE")),
+            Json.decodeFromString<Value>("""{"type":"color","argb":"#FF6200EE"}"""),
+        )
+
+        // Case in, case out, on every target: a document written by a tool and edited by a
+        // person must not come back with the hex case flipped.
+        assertEquals(
+            """{"type":"color","argb":"#FF6200EE"}""",
+            Json.encodeToString<Value>(Value.Color(ColorArgb.parse("#ff6200ee"))),
         )
     }
 

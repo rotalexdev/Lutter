@@ -85,12 +85,13 @@ import kotlinx.serialization.encoding.Encoder
  * deliberate: it writes an ordinary string through `encodeString`, which every format
  * supports, where a canonical number has to be injected as an unquoted literal that only
  * `JsonEncoder` can take.
- *
- * @see Value.Color, the variant that carries one.
- */
-@Serializable(with = ColorArgbSerializer::class)
+  *
+  * @see Value.Color, the variant that carries one. The serializer is declared *there*, on the
+  *   property, rather than here — see [ColorArgbSerializer] for why.
+  */
 @JvmInline
 public value class ColorArgb(public val argb: Int) {
+
 
     /** The alpha channel, `0` transparent to `255` opaque. */
     public val alpha: Int get() = (argb ushr 24) and CHANNEL_MASK
@@ -196,9 +197,19 @@ public value class ColorArgb(public val argb: Int) {
 /**
  * Reads and writes [ColorArgb] as the eight-digit string, never as the packed `Int`.
  *
- * `@Serializable(with = …)` on the type means every use site gets this without saying so,
- * which is the property worth having: the one place a colour could be written as a bare
- * integer is the one place the wire form is decided.
+ * Applied at the use site — `Value.Color(@Serializable(ColorArgbSerializer::class) argb: …)` —
+ * rather than declared on `ColorArgb` with `@Serializable(with = …)`.
+ *
+ * The obvious version puts the annotation on the type, so that every use site inherits the
+ * wire form without asking. It compiles, it works on the JVM and on Android, and it throws
+ * `SerializationException` on the Wasm target. A construct that passes two targets out of
+ * three and fails the one the canary exists to check is not a construct to ship.
+ *
+ * Declaring it on the property costs one annotation at the single place a colour is written,
+ * and it is the same shape `Value.Dp` already uses for [CanonicalFloat] — which CI has
+ * verified on all three targets.
+ *
+ * @see Value.Color, the only place the model writes a colour.
  */
 public class ColorArgbSerializer : KSerializer<ColorArgb> {
 

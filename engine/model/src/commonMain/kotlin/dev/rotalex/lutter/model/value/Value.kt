@@ -167,10 +167,28 @@ public sealed interface Value {
     @SerialName("str")
     public data class Str(public val v: String) : Value
 
-    /** A colour, written `#AARRGGBB` and marshalled to Compose with no conversion. */
+    /**
+     * A colour, written `#AARRGGBB` and marshalled to Compose with no conversion.
+     *
+     * The serializer sits on the property rather than on `ColorArgb` itself, and that is not
+     * a style choice. `@Serializable(with = …)` directly on a `@JvmInline value class`
+     * compiles, and then throws `SerializationException` on the Wasm target while working on
+     * the JVM and Android — so it is a construct that passes two of three targets and fails
+     * the third, which is the worst way to fail.
+     *
+     * Declaring it here is the same shape T2 already uses and CI already proved on all three
+     * targets: `@Serializable(CanonicalFloat::class) val v: Float` on `Value.Dp`. A custom
+     * serializer belongs on the *property*, where the format is a decision the union makes,
+     * not on the type, where it would have to be right for every future use site as well.
+     *
+     * The cost is that a `ColorArgb` on its own is not directly serializable, and that is
+     * correct: the model has no reason to write a colour anywhere except inside a `Value`.
+     */
     @Serializable
     @SerialName("color")
-    public data class Color(public val argb: ColorArgb) : Value
+    public data class Color(
+        @Serializable(ColorArgbSerializer::class) public val argb: ColorArgb,
+    ) : Value
 
     /**
      * A density-independent pixel quantity, canonicalized like [Float32].
