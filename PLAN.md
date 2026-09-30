@@ -283,15 +283,17 @@ public data class UiDocument(
     val nodes: NodeTable,                                 // ONE global normalized table (ADR-001)
     val appState: List<StateDecl> = emptyList(),
     val dataModels: Map<DataModelId, DataModelDecl> = emptyMap(),
+    val enums: Map<TypeId, EnumTypeDecl> = emptyMap(), // one value space with dataModels; the two maps are disjoint
     val hostFunctions: List<HostFunctionDecl> = emptyList(),
     val themes: Map<ThemeId, ThemeDecl> = emptyMap(),
+    val theme: ThemeId? = null,                       // the selected theme (§14.2); null selects by the rule there
     val resources: Map<ResourceId, ResourceDecl> = emptyMap(),
 )
 
 @Serializable
 public data class DocumentMeta(
     val name: String,
-    val plugins: List<PluginRequirement> = emptyList(),                 // {id, versionRange} — checked at load
+    val plugins: List<PluginRequirement> = emptyList(),                 // {id, version} — checked at load (§27.2)
     val componentVersions: Map<ComponentType, Int> = emptyMap(),        // contract versions the doc was authored with (D9)
 )
 
@@ -316,20 +318,106 @@ public data class ComponentDecl(
 )
 ```
 
+The declarations this section *uses* but does not define live with their own concern: `ParamDecl` (§13.1:1029 fixes its three fields), `StateDecl` and `Persistence` (§12.1), `AppSpec` and `NavigationSpec` (§13.1), `HostFunctionDecl` (§11.6), `ThemeDecl` and the role vocabulary (§14.1), and `ResourceDecl`/`ResourceVariant`/`ResourceSource`/`ResourceKind`/`Qualifier` (§20). Five types had no home anywhere, and they are declared here because a document is the only place that can name them — six records, because a document-declared enum needs its entries:
+
+```kotlin
+@Serializable
+public data class SlotDecl(
+    val name: SlotName,
+)
+
+@Serializable
+public data class EnumTypeDecl(
+    val id: TypeId,                              // the TypeRef.Enum(id) a property type uses (§9.1)
+    val name: String,                            // Kotlin identifier → generated enum type
+    val entries: List<EnumEntryDecl> = emptyList(),
+)
+@Serializable
+public data class EnumEntryDecl(
+    val name: String,                            // the name IS the whole value a document can write
+)
+
+@Serializable
+public data class DataModelDecl(
+    val id: DataModelId,
+    val name: String,                            // Kotlin identifier → data class name (§16.6)
+    val fields: List<FieldDecl> = emptyList(),
+)
+@Serializable
+public data class FieldDecl(
+    val name: PropertyKey,                       // the key Value.Obj writes, validated as an identifier
+    val type: TypeRef,                           // Nullable → ?, ListOf → List<T> (§16.6)
+)
+
+@Serializable
+public data class PluginRequirement(
+    val id: PluginId,
+    val version: String,                         // the version the document was authored against
+)
+```
+
+Four of the five are over-determined rather than chosen, and one is a decision:
+
+- **`SlotDecl` carries exactly one field.** §7.1:551-557 declares `SlotSpec` with `name`, `cardinality`, `accepts`, `provides` and `iteration`, and §33.2:2419 puts `Cardinality` and `IterationSpec` in `:engine:schema` — which §23.3:1727 makes unreachable from `:engine:model`. Those five properties are therefore not `SlotDecl` fields, and §5.5:465 is what turns that into a design rather than a loss: the engine synthesizes a `ComponentSpec` for each `ComponentDecl`, and the synthesis is where a document slot acquires `Cardinality.Many` and no `ScopeId`. A later session that adds those fields to `SlotDecl` breaks §23.3, not just this section.
+- **`DataModelDecl` and `FieldDecl` are fixed by their emission target.** §16.6:1307 emits `data class User(val name: String, val age: Int)`; `Nullable` → `?` and `ListOf` → `List<T>` are the same row. The generator's output *is* the specification of the record, so its field list is a consequence, not a fork. `FieldDecl.name` is a `PropertyKey` and not a bare `String` because a data model's fields are written as the keys of `Value.Obj(typeId, fields: Map<PropertyKey, Value>)` (§5.4:257) — the same rule §5.3:234 states for `Node.props`. `DataModelDecl` has no optionality flag: `TypeRef.Nullable` already is that, and a second one would be a second source of truth for the same fact.
+- **`EnumEntryDecl` carries no value and no Kotlin symbol.** §5.4:251's `Value.Enum(entry: String)` is the entire value a document can write, and §16.6:1301's `EnumEntrySpec.kotlin` symbol belongs to the schema's `EnumTypeSpec` (§33.2:2426), not to the document. A plugin enum that needs per-entry values registers an `EnumTypeSpec` in `:engine:schema`; a document enum emits a generated enum whose entry name is its own symbol.
+- **`PluginRequirement.version` is a `String`, and the section contradicted itself until it did not.** The `plugins` field's comment said `versionRange`; §30.2:2043 and §27.1:1912 both say `version`. Two sites against one comment, so `version` wins, and the comment is corrected in place above. *What the string means* is not settled here and is not derivable: no section specifies a grammar, and §27.2:1919 names the outcome (`plugin.version_mismatch`) without the comparison. The loader owns that rule.
+
+`DataModelId` and `TypeId` are **one value space**. §5.2:205-206 declares both as the same value class over the same id syntax, and §9.1:750-751 references an enum type and an object type through the same `TypeId`; `enums` and `dataModels` are therefore two halves of one namespace, and the structural pass treats a key present in both as the duplicate it is. No alias field is added for that, and `dataModels` keeps its `DataModelId` key rather than being retyped: `DataModelId` and `TypeId` are interchangeable on the wire, so changing the declared key type would break every stored document (§19.2) to fix a distinction nothing can observe.
+
 `NodeTable` wraps a persistent map (`kotlinx-collections-immutable`, internal detail, not exposed in signatures):
 
 ```kotlin
-@Serializable(with = NodeTableSerializer::class)   // encodes Map<NodeId, NodeBody>, sorted by id
+@Serializable(with = NodeTableSerializer::class)   // encodes Map<NodeId, Node>, entries sorted by id (§18.2)
 public class NodeTable internal constructor(private val map: PersistentMap<NodeId, Node>) {
+    public companion object {
+        public val EMPTY: NodeTable                   // nodes: NodeTable has no default
+    }
     public operator fun get(id: NodeId): Node?
     public fun require(id: NodeId): Node
     public operator fun contains(id: NodeId): Boolean
     public val size: Int
-    public fun ids(): Sequence<NodeId>
-    public fun with(node: Node): NodeTable          // structural sharing
+    public fun ids(): Sequence<NodeId>               // ascending by id; not the map's iteration order
+    public fun with(node: Node): NodeTable           // replaces on an existing id; structural sharing
     public fun without(id: NodeId): NodeTable
+    override fun equals(other: Any?): Boolean        // order-independent (§6.2)
+    override fun hashCode(): Int
 }
 ```
+
+`NodeTableSerializer` lives in `:engine:model`, beside the class, and is `internal`. The annotation above names it by unqualified symbol, so it has to be resolvable from the module that declares the annotated type; `:engine:serialization` is the wrong home for that (and §23.3:1727 forbids the model from depending on it), which is why §33.3's row for it is corrected. `internal` is not a leak: the persistent map is already an internal detail (this section's own note, and §24.1:1754), so nothing in the public surface of `NodeTable` names a type from the library.
+
+Four members the table needs and does not have, each with the text that requires it:
+
+- **`EMPTY`.** The `nodes` field above carries no default, so without a zero-length instance there is no way to build a `UiDocument` at all — and the builder DSL (§33.1:2400) needs a starting point before it has a first node. `PersistentHashMap` is the backing type §29.1:2006 already names, so `EMPTY` holds that library's empty hash map.
+- **`equals`/`hashCode`.** A `class` gives identity, and §6.2:509 requires `NodeTable.equals` to be order-independent. Delegating to the wrapped map satisfies that for free: `PersistentMap` *is* a `Map`, and two maps holding the same pairs are equal however they were built. `NodeTable` is not a `data class` precisely because the property it would generate is the wrong one — it would compare the map field, which happens to be right, but would also put a library type in the generated `toString`.
+- **`ids()` order.** Ascending by `NodeId`, which is the order §18.2:1416 writes and the order §6.2:509's equality assumes. It is a contract of this method and not a property of the backing map: `persistentHashMapOf` — the type §29.1:2006 names — documents its iteration order as *unspecified*, so an implementation that returned `map.keys` would compile and violate the format. The comparison is on the id's string form, UTF-16 code-unit lexicographic (the rule §18.2:1414 already states for keys), because `NodeId` is a value class over `String` with no `Comparable` and therefore no `sortedBy` to delegate to. Materialising that order costs `O(n log n)` per call, which is worth saying plainly: a table used for traversal should keep a sorted key sequence beside the map. That cache is an implementation detail and deliberately not a member.
+- **`with(node)` on an id that already exists: replace.** §26.2:1875's `PatchOp.SetProp` carries a whole replacement `Node`, and a property edit has no other way to reach the table; making `with` refuse an existing id would force every edit path to test membership first and would leave the editing layer holding a second mutation primitive. Replacement also keeps `ids()` unchanged — the key set is the same — so structural sharing and sorted order both survive the update.
+
+**`NodeBody` does not exist and the format does not need it.** §5.5's `NodeTable` comment said the encoding is `Map<NodeId, NodeBody>`; no section declares `NodeBody`, §5.3:218 requires `Node` to carry `id`, and §30.2:2050-2071 writes bodies *without* one because the key already is the id. The comment above is corrected to `Map<NodeId, Node>`, with the id in the body, and the disagreement is resolved here rather than deferred: a second record that is `Node` minus `id` would have to be kept in step with `Node` forever for a field the consumers do not want dropped — `without(id)` returns a `NodeTable` and not a bare value, `DocumentIndex` (§5.6) is keyed by id, and `DiagnosticLocation` (§17.2:1366) carries `nodeId` separately. This is a `FORMAT_VERSION` event, as a discriminator or key that changes name is, and it costs nothing to decide now: §19.2:1497 refuses documents produced by `0.x` snapshots and freezes `schemaVersion = 1` at MVP release, so there is nothing to migrate.
+
+#### 5.5.1 Resolved ambiguities
+
+Each row was an open question in this section's closure — a type this section names and did not declare, or two sections that disagreed. The citations are the evidence, so the next reader can retrace a decision instead of re-deriving it.
+
+| Decision | Forced by | Against |
+|---|---|---|
+| Theme role names are open strings: `ColorRole`, `TextRole`, `ShapeRole`, `TokenName` are value classes over `String`; `TextStyleSpec`/`ShapeSpec` are `Map<PropertyKey, Value>` | §14.2:1110 already mandates the validation this gives up — a wrong role is `token.unknown` at analysis time, not a constructor failure | Freezing Material 3's vocabulary into the wire before anyone has built a theme would make a rename a `FORMAT_VERSION` event for no gain |
+| `Persistence` is a `@Serializable sealed interface`, not an `enum class` | §12.1:979's `= Persistence.None` needs the value, §4.3:137 calls it a *hook* | Adding a variant to an enum is additive; adding a **payload** to an existing enum entry is not, and only a sealed interface grows without one. Nothing can test the variant set — §31.3:2240 defers persistent state out of MVP |
+| Theme selection is `UiDocument.theme: ThemeId? = null` | §14.2:1110 validates "the selected theme" and nothing named it; §5.5:288 declares only the map | An additive nullable with a default; the alternative — a non-null field — changes an existing declaration's type and so every stored document |
+| `UiDocument.enums: Map<TypeId, EnumTypeDecl>` | §5.4:269 and §9.1:750 both provide for document-declared enums; §5.5:285 had a `dataModels` map and no `enums` | The same additive empty-map-with-a-default shape as `theme` |
+| `DataModelId` and `TypeId` are one value space, with no alias field | §5.2:205-206 declares both over the same id syntax; §9.1:750-751 uses one `TypeId` for both an enum and an object | An alias field would be a second name for one thing, and retyping `dataModels`' key would break stored documents for a distinction nothing observes |
+| `SlotDecl` carries only `name: SlotName` | `Cardinality`, `accepts`, `provides`, `iteration` are `SlotSpec` fields (§7.1:551-557) in `:engine:schema` (§33.2:2419), unreachable under §23.3:1727 | §5.5:465's synthesized `ComponentSpec` is where a document slot acquires them — which is what makes that sentence load-bearing |
+| `NodeOwner` is a `@Serializable sealed interface` with `Page(PageId)` / `Component(ComponentDeclId)` | §5.6:437 states the two cases; §10.1:817-823 is the shape this document already persists for a hierarchy of ids | §5.4:270: every persisted hierarchy carries explicit tags. A tagless hierarchy is expensive to discover late |
+| The `UiDocument` work and the `NodeTable` work are **one** unit, and the arrow runs from the former to the latter | `nodes: NodeTable` carries no default (this section), so the root record does not compile without the table it holds | The feature task list's "T8 needs T7" is the wrong way round: there is no cut point at which `UiDocument` compiles and `NodeTable` does not. The order is set by the type graph, not by preference |
+| `PluginRequirement.version: String` | §30.2:2043 and §27.1:1912 | The `plugins` field's `versionRange` comment — one site against two, and corrected in place above |
+| `DataModelDecl`/`FieldDecl` shapes | §16.6:1307's emission target (`data class User(val name: String, val age: Int)`) | Not a design space: the generated source *is* the specification |
+| `NodeTableSerializer` is in `:engine:model` and `internal` | §5.5:371's annotation names it; §33.1:2385 files it with `NodeTable` | §33.3:2438, which cannot hold it: §23.3:1727 forbids the model from depending on `:engine:serialization` |
+| `NodeBody` is retired; the encoding is `Map<NodeId, Node>` | §5.3:218 requires `id` | §30.2:2050-2071 writes bodies without one. A `FORMAT_VERSION` event, and §19.2:1497 means it is free |
+| `ResourceKind` has no `Color` entry | §20:1559 — "Colors/typography are tokens (§14), not resources" — and §9.2:768 gives colour a colour-picker, not a resource picker | §20:1522's trailing comment listed it; corrected in place in §20 |
+| `ResourceVariant.qualifiers` stays a `Set` | §18.2:1414 orders object keys and arrays and says nothing about sets | Fixed by a canonical-writer rule in §18.2, not by a type change: qualifiers are a predicate, so their order carries no meaning to preserve |
+| `NavigationSpec` has no fields | §13.1:1018 — `Page.route` + `Page.params` *are* the destination | A `kind` field would duplicate `CodegenOptions.navigation` (§16.8:1321) and put a second source of truth on a semantic decision |
+| `DocumentIndex.ancestorsOf` is declared, and §6.2:514 is left alone | §6.2:514 wants a dirty **set** from a patch touching N nodes; §26.2:1881's `touchedNodes` is already a `Set` | Folding `pathTo` at the call site returns a `List` with duplicates where the consumer wants membership |
 
 ### 5.6 Tree vs normalized vs composition — trade-off analysis
 
@@ -348,10 +436,27 @@ public class DocumentIndex(document: UiDocument) {
     public fun parentOf(id: NodeId): ParentRef?            // (parentId, slot, index)
     public fun ownerOf(id: NodeId): NodeOwner?             // Page(id) | Component(id)
     public fun pathTo(id: NodeId): List<NodeId>
+    public fun ancestorsOf(ids: Collection<NodeId>): Set<NodeId>
     public fun descendants(id: NodeId): Sequence<NodeId>
 }
 public class ReferenceIndex(document: UiDocument)          // who references state/page/resource/component (safe delete & rename)
+
+public data class ParentRef(
+    val parentId: NodeId,
+    val slot: SlotName,
+    val index: Int,
+)
+
+@Serializable
+public sealed interface NodeOwner {
+    @SerialName("page")      data class Page(val id: PageId) : NodeOwner
+    @SerialName("component") data class Component(val id: ComponentDeclId) : NodeOwner
+}
 ```
+
+`ParentRef` is the three-tuple `parentOf` returns, written out because the comment above was the whole of its specification. `NodeOwner` is the two-case hierarchy that comment names, declared in the shape §10.1:817-823 already persists for a closed set of ids: explicit `@SerialName` on every case, per §5.4:270. Neither appears in the document payload — this section's own preamble says the structures here are never persisted — but a hierarchy that is `@Serializable` without tags falls back to class names the first time something does serialize it, and `RefTarget` shows the cost of stating them is one line each. `ParentRef` is plain data with no hierarchy and so no tag to state.
+
+`ancestorsOf` exists because §6.2:514 calls it by name and nothing here declared it; the alternative was to amend §6.2:514 to `pathTo`, which is the wrong shape. `pathTo` answers for one node and returns the root-to-node path as a `List`, while the dirty set is the union of the paths of *all* nodes a patch touched, and §26.2:1881 already types the patch's own `touchedNodes` as a `Set`. A caller folding `pathTo` per touched node gets duplicates, a `List` where it wants membership, and the deduplication written once per call site. Taking a batch and returning a `Set` puts it in one place, which is where §6.2:514 says the dirty set is formed. It is post-MVP with the rest of incremental analysis (§31.3:2240).
 
 ### 5.7 Reusable components, slots, instances, templates
 
@@ -375,8 +480,10 @@ UiDocument
  ├── nodes        { NodeId → Node{ type, props{}, modifiers[], slots{}, events{} } }   ← ONE table
  ├── appState[]
  ├── dataModels   { DataModelId → DataModelDecl }
+ ├── enums        { TypeId → EnumTypeDecl }              // one value space with dataModels
  ├── hostFunctions[]
  ├── themes       { ThemeId → ThemeDecl }
+ ├── theme        ThemeId?                               // the selected one (§14.2)
  └── resources    { ResourceId → ResourceDecl }
 
 Envelope (serialization, not part of UiDocument):
@@ -871,7 +978,19 @@ public data class StateDecl(
     val derived: Expr? = null,              // exactly one of initial/derived
     val persistence: Persistence = Persistence.None,
 )
+
+@Serializable
+public sealed interface Persistence {
+    @SerialName("none")     data object None : Persistence
+    @SerialName("saveable") data object Saveable : Persistence      // rememberSaveable where the type allows
+}
 ```
+
+**A sealed interface, not an `enum class`, and the reason is falsifiability rather than blast radius.** Nothing in this project can ever test whether `Persistence`'s *variant set* is right: §31.3:2240 defers persistent state out of MVP, §12.1:968 calls `PersistentStore` an interface only in MVP, and no engine code reads a non-`None` value. A decision that cannot be tested should therefore be the one that is cheapest to be wrong about later — and for those two shapes the costs are not symmetric. Adding a variant to an `enum class` is additive, since the existing entries and their tags are untouched. Adding a *payload* to an existing enum entry is a wire break: the new field appears on a tag every already-stored document carries. A sealed interface grows a variant with a payload without touching the ones that are already written, which is the only way this type can absorb a `store` reference when `PersistentStore` becomes real. A `sealed interface` also states the closure that an enum states, so a `when` over it is exhaustive in both.
+
+Two variants is what the text supports and no more. `None` is forced by `StateDecl.persistence`'s default, immediately above. `Saveable` is forced by §12.1:965 and §15.3:1183, which both emit `rememberSaveable` *where the type is saveable* — a distinction the field has to be able to express. A third variant naming a host store is **deliberately not declared**: §12.1:968 describes the hook as `PersistentStore`, a `:engine:interpreter` interface (§33.4:2454), and a document field that referenced one would have to name it by id, and no section specifies what that id is or where the registry of store names would live. Declaring it would put an unverifiable string on the wire for a feature that does not exist. When it is needed it is one additive case, and by then there will be a section to derive its shape from.
+
+`Saveable` carries no type list and no key. Which types are saveable is a code-generation concern (§12.2's `StateStrategy` is "the only place that knows *how* state is emitted"), and a key would be a store concern — the same reason §12.1:968 calls it a hook.
 
 ### 12.2 Framework independence
 
@@ -898,7 +1017,14 @@ public data class AppSpec(
 )
 // Page.route + Page.params define the typed destination.
 // Action: ActionStep(action = "nav.navigate", args = { page: Ref(page,"p_profile"), <paramName>: expr })
+
+@Serializable
+public data class NavigationSpec()   // no fields: the comment above is the whole of its content
 ```
+
+`NavigationSpec` is declared with **no fields**, which is the narrowest thing the text supports and also the only shape that does not create a second source of truth. The comment says the field carries "kind hints only; no library types", and the destination it describes is already `Page.route` plus `Page.params` (§13.1:1018). The one hint a reader might expect — a `kind` naming a navigation library — is the decision `CodegenOptions.navigation` already holds as `NavigationStrategy` (§16.8:1321), and §4.5's single-resolver rule exists to stop exactly that decision being taken twice. §31.3:2240 defers the Navigation Compose / Navigation 3 strategies, so there is no second strategy for a document-level hint to disagree with yet either.
+
+The record exists rather than being deleted because `AppSpec.navigation` has a default (§13.1:1016) and is public API: an empty record is a field that can gain a field later, whereas removing it is a break. A `data class` with no parameters is also how Kotlin spells "nothing here yet" without a lie in the declaration.
 
 Analysis validates: start page exists; routes unique; `nav.navigate` targets exist; provided args match the target's `ParamDecl`s (name, type, required).
 
@@ -940,13 +1066,60 @@ public data class ThemeDecl(
     val componentDefaults: Map<ComponentType, Map<PropertyKey, PropertyValue>> = emptyMap(),   // post-MVP
 )
 @Serializable public data class ColorSpec(val light: ColorArgb, val dark: ColorArgb? = null)
+
+@Serializable
+public enum class ThemeBase { @SerialName("material3") Material3 }
+
+@JvmInline @Serializable
+public value class ColorRole(public val value: String) {
+    init { require(value.isNotBlank()) { "Blank ColorRole" } }          // e.g. "primary", "surfaceVariant"
+    override fun toString(): String = value
+}
+@JvmInline @Serializable
+public value class TextRole(public val value: String) {
+    init { require(value.isNotBlank()) { "Blank TextRole" } }           // e.g. "headlineMedium"
+    override fun toString(): String = value
+}
+@JvmInline @Serializable
+public value class ShapeRole(public val value: String) {
+    init { require(value.isNotBlank()) { "Blank ShapeRole" } }          // e.g. "small", "extraLarge"
+    override fun toString(): String = value
+}
+@JvmInline @Serializable
+public value class TokenName(public val value: String) {
+    init { require(value.isNotBlank()) { "Blank TokenName" } }          // e.g. "md.color.primary", "brand.accent"
+    override fun toString(): String = value
+}
+
+public typealias TextStyleSpec = Map<PropertyKey, Value>   // size / weight / lineHeight / letterSpacing
+public typealias ShapeSpec    = Map<PropertyKey, Value>   // corner radii
 ```
+
+**The role vocabulary is open strings, and that is the decision this section was missing.** `ColorRole`, `TextRole`, `ShapeRole` and `TokenName` are value classes over `String` with no enumerated entries, and `TextStyleSpec`/`ShapeSpec` are open maps of `PropertyKey` to `Value`. The alternative was to write Material 3's role names down as the variants — `primary`, `onPrimary`, `surfaceVariant`, `headlineMedium`, … — and the reason not to is that §14.2:1110 *already mandates* the validation this gives up: *"validation checks the token exists in the selected theme"*, reported as `token.unknown` (§17.3:1384). A wrong role name is therefore a diagnostic, not a constructor failure, which means nothing needs the vocabulary to be closed for the document to be rejected. Freezing a third party's vocabulary into the wire before anyone has built a theme would instead make every rename a `FORMAT_VERSION` event — and the vocabulary's real shape is only knowable after a theme exists. The cost is stated rather than hidden: a typo in a role name is caught by analysis, not by `init`, and the value classes refuse only what is structurally impossible, a blank name.
+
+The four value classes are one pattern, not four decisions, and they are value classes for the reason §5.2:195 gives for the ids: a role on the wire is a string, and a bare `String` in a signature is a string nothing can validate. Their names are namespaced and dotted in the shape §5.2:207-208 gives for `ComponentType("core.Column")` — `md.color.primary`, `brand.accent` (§14.1:1106 writes all three) — which is why they do **not** use `IdSyntax` (§5.2:202): that grammar is `[A-Za-z0-9_]{1,64}` and has no room for a dot. The constructor check is deliberately `isNotBlank()` and not a full grammar; the remaining rules are `token.unknown`'s to report (§14.2:1110).
+
+`TextStyleSpec` and `ShapeSpec` are typealiases over `Map<PropertyKey, Value>` for the same reason `Node.props` is (§5.3:234): a bare `Map<String, Any>` is the shape §23.4's Konsist rule exists to forbid, and a typed key with a typed value is the requirement. A typealias rather than a `data class` because there is nothing to add — `PropertyKey` and `Value` are already `@Serializable` (§5.2, §5.4), so the map is, and a wrapper would be a record whose only field is its own payload. Their *keys* are not enumerated here, and that is a real gap rather than an oversight: §14.1:1062 declares the map and §14.2:1125 names "typography roles" as its content, but no section lists the individual properties, and the codegen bullet that emits `Typography(...)` takes whatever the map holds. The key set belongs to the schema next to the rest of the property specs, and a key outside it is `prop.unknown` (§17.3:1382), the existing code for exactly this.
+
+`ThemeBase` is an `enum class` with one entry, and it is the one closed type in this section, because it answers a different question from the others. A *name* can be validated by lookup — §14.2:1110 already does that — but a *base* has to be dispatched on: `:engine:runtime` has to know how to build a Compose `MaterialTheme` and `:engine:codegen` has to know how to emit `lightColorScheme(...)` (§14.2:1124-1125). An open hierarchy would be worse than useless, because nothing in the model could resolve it: a document can only register new *types* through the data-defined mechanism D3 provides (§5.4:269, `EnumTypeSpec`/`ObjectTypeSpec`), and there is no such mechanism for a design system — a `when` over an unknown base would have no else branch that is honest. `Material3` is the only entry the text names (§14.1:1060's default, §14.2:1125's MVP line); a second base arrives with the post-MVP work §14.2:1125 lists, and it is a `FORMAT_VERSION` event because an unknown enum tag fails to decode.
 
 Tokens are referenced as `Value.Token(kind, name)`, e.g. `md.color.primary`, `md.typography.headlineMedium`, `brand.accent`. Raw values (`Value.Color`) remain allowed and are *literal* overrides.
 
 ### 14.2 Resolution
 
 The analyzer resolves each token to a `ResolvedToken(kind, name, source = Material | Custom)`; validation checks the token exists in the selected theme.
+
+**Which theme is "the selected theme",** since `UiDocument` declared a map of them and nothing that named one. The answer is `UiDocument.theme: ThemeId?` (§5.5), a nullable field with a default, and the resolution is a total function of three cases:
+
+| `theme` | `themes` | Resolved against |
+|---|---|---|
+| an id present in `themes` | — | that `ThemeDecl` |
+| an id absent from `themes` | — | nothing; every `Value.Token` in the document is `token.unknown` |
+| `null` | empty | nothing; base defaults only (§14.2:1125) |
+| `null` | exactly one entry | that entry — a single-theme document does not have to restate itself |
+| `null` | two or more | nothing; every `Value.Token` in the document is `token.unknown` |
+
+The last two rows are the ones worth arguing for. Defaulting to "the only theme" is what makes `themes = { "t": … }` — the shape §30.2's excerpt implies and what any first document will look like — work without a second field, and the cost is a two-line rule rather than a nullable every author has to fill in. The fifth row is a document that has themes and selects none, which is a mistake; it is answered with `token.unknown` on every token it uses rather than with a new diagnostic, for two reasons. A diagnostic code is a published contract (§17.2:1358, a value class over a catalog), and inventing one to say "you forgot a field" would add an entry to keep in step for a failure `token.unknown` already reports — loudly, once per token. And the mistake is not silent: a document in that state produces a diagnostic per token reference, so it cannot reach a user who never notices.
 - **Runtime:** `ThemeHost` builds a Compose `MaterialTheme` from the `ThemeDecl` (light/dark chosen by `isSystemInDarkTheme()` or environment override); `md.*` tokens map to `MaterialTheme.colorScheme/typography/shapes`; custom tokens go through a `CompositionLocal<ForgeTokens>`.
 - **Codegen:** emits `theme/AppTheme.kt` (`lightColorScheme(...)`/`darkColorScheme(...)`, `Typography(...)`, `Shapes(...)`) and `AppTokens` (a `@Immutable` class + `LocalAppTokens`). `md.color.primary` → `MaterialTheme.colorScheme.primary`; `brand.accent` → `AppTokens.current.accent` (helper generated).
 - MVP: Material 3 base, light/dark colors, typography roles, shape roles, custom color/dp tokens. Post-MVP: `componentDefaults` (applied in the resolver so both backends see the same effective props).
@@ -1239,6 +1412,7 @@ Diagnostics are sorted deterministically: `(severity desc, pageId, nodeId, code,
 ### 18.2 Canonical JSON (kotlinx-serialization-json)
 
 - `Json { encodeDefaults = false; ignoreUnknownKeys = false; classDiscriminator = "k"; explicitNulls = false }` plus a **canonical writer**: object keys emitted in sorted order (UTF-16 code unit lexicographic, locale-independent), arrays keep model order, 2-space pretty print, LF, trailing newline.
+- **Sets** have no model order, so the writer gives them one: a set is emitted as an array of its elements ordered by each element's own canonical encoding, compared as a string. Iteration order reaches the encoder from a `Set` and differs per target, so a rule stated here is the only thing that keeps the bytes equal across them. `ResourceVariant.qualifiers` (§20) is the only `Set` in the document payload, and `Patch.touchedNodes` (§26.2) the only other serializable one, so the rule applies to both unchanged. A `Set` of *value classes* is written as a bare JSON array with no surrounding structure, which makes this ordering rule the whole of its canonical form.
 - `nodes` table sorted by `NodeId`; each node keyed by id, so unrelated edits do not touch each other's lines and Git merges cleanly.
 - Numbers use the canonical decimal formatter (D1); floats never rely on `toString()`.
 - Because defaults are not encoded, **defaults of model data classes are frozen**: changing one requires a migration (documented in §19).
@@ -1345,7 +1519,7 @@ Unknown component types, properties, modifiers and actions are **preserved** (ro
 ```kotlin
 @Serializable
 public data class ResourceDecl(
-    val id: ResourceId, val name: String, val kind: ResourceKind,       // String | Image | Font | Icon | File | Color
+    val id: ResourceId, val name: String, val kind: ResourceKind,       // String | Image | Font | Icon | File  (no Color — see below)
     val variants: List<ResourceVariant>,                                // qualifiers: locale, density, theme
 )
 @Serializable public data class ResourceVariant(val qualifiers: Set<Qualifier>, val source: ResourceSource)
@@ -1355,7 +1529,29 @@ public data class ResourceDecl(
     @SerialName("remote")   data class Remote(val url: String)
     @SerialName("embedded") data class Embedded(val hash: String)       // content-addressed blob store (post-MVP)
 }
+
+@Serializable
+public enum class ResourceKind {
+    @SerialName("string") String
+    @SerialName("image")  Image
+    @SerialName("font")   Font
+    @SerialName("icon")   Icon
+    @SerialName("file")   File
+}
+
+@Serializable
+public sealed interface Qualifier {
+    @SerialName("locale")  data class Locale(val tag: String) : Qualifier     // BCP-47
+    @SerialName("density") data class Density(val dpi: Int) : Qualifier
+    @SerialName("theme")   data class Theme(val variant: String) : Qualifier  // light | dark | …
+}
 ```
+
+**`Color` is not a `ResourceKind`, and the `kind` comment used to say it was.** This section contradicted itself: that comment listed `Color` among the six, and the MVP bullet below says *"Colors/typography are tokens (§14), not resources."* The bullet wins, and it is the stronger of the two statements — it is categorical and it names the owner, while the comment is a trailing enumeration. Three things agree with it: §14.1 gives colours a home (`ThemeDecl.colors`, `ColorSpec`, `Value.Color`), §9.2:768 gives the editor a colour picker and the generator `Color(0xFF6200EE)` rather than a resource reference, and `ResourceSource` has no variant that would carry a colour — the four above are text, a path, a URL and a hash, and a colour is none of them. `Color` is therefore absent from the enum above and the comment is corrected in place. The five remaining kinds are the ones §20:1559 scopes: `String` end-to-end in MVP, `Image`/`Font`/`File` modeled and validated now and implemented in wave 2, `Icon` backed by an `IconSet` in the `TypeRegistry` (§20:1560).
+
+`Qualifier`'s three cases are exactly the three this section's comment names. Their payloads are the minimum that distinguishes them and nothing more: a BCP-47 tag because §20:1557's `stringFor(id, locale)` needs one; an integer `dpi` because density is a number and the alternative is a second closed vocabulary; and an open `variant` string for theme, because a theme qualifier is the same open-string situation as §14.1's roles and the same answer applies. Note what a `theme` qualifier is *not*: it is not light/dark for colours, because §14.1:1068's `ColorSpec(light, dark)` already carries that pair, and duplicating it would give colour resolution two sources.
+
+**`qualifiers` stays a `Set`, and the determinism obligation goes to the canonical writer.** §18.2:1414 specifies the order of object keys and of arrays and says nothing about sets, so a set's iteration order — which differs per target — would otherwise reach the bytes and let variant selection differ between a JVM and a Wasm build of the same document. Two options close it and one is right. Making it a `List` would fix the bytes and introduce a worse problem: qualifiers are a *predicate* over the environment, so their order carries no meaning, and a list invites every reader to read priority into a position that selection is not allowed to honour. Instead §18.2 adds the rule that a set is written as an array ordered by its elements' canonical encodings, and variant selection is defined as set membership against the environment's qualifier set — which is order-free by construction, so it is correct even where the bytes are not canonical. That is the same division of labour as §5.3's "sorted by key when written" on `Node.props`: the model states the semantic, the writer states the bytes.
 
 - The **core never references Android resources or `Res`**. References are `Value.Ref(kind=resource, id)`.
 - **Runtime:** `ResourceProvider` interface (`suspend fun load(id): LoadedResource`, plus `stringFor(id, locale)`), implemented per platform (`androidMain`, `desktopMain`, later `wasmJsMain`, `iosMain`) in `:engine:builtins-compose`/samples.
@@ -2186,16 +2382,16 @@ Base package `dev.rotalex.lutter.<module>`. "Pub" = public API (ABI-tracked), "I
 | `expr/Expr.kt` | Expression AST | `Expr`, `RefTarget`, `UnaryOp`, `BinaryOp` | Value | Pub |
 | `action/ActionSequence.kt` | Action data | `ActionSequence`, `ActionStep` | PropertyValue | Pub |
 | `doc/Node.kt` | Node + modifier record | `Node`, `ModifierEntry` | Ids, PropertyValue, ActionSequence | Pub |
-| `doc/NodeTable.kt` | Normalized persistent table | `NodeTable` (+ serializer) | Node | Pub |
+| `doc/NodeTable.kt` | Normalized persistent table | `NodeTable`, `NodeTableSerializer` (`internal`) | Node | Pub / Int (serializer) |
 | `doc/Page.kt` | Page & params | `Page`, `ParamDecl` | Ids, TypeRef, StateDecl | Pub |
-| `doc/ComponentDecl.kt` | Reusable components | `ComponentDecl`, `SlotDecl` | | Pub |
+| `doc/ComponentDecl.kt` | Reusable components | `ComponentDecl`, `SlotDecl` | Ids | Pub |
 | `doc/StateDecl.kt` | State | `StateDecl`, `Persistence` | Expr, TypeRef | Pub |
 | `doc/DataModelDecl.kt` | Object types in document | `DataModelDecl`, `FieldDecl` | TypeRef | Pub |
 | `doc/HostFunctionDecl.kt` | Host function declaration | `HostFunctionDecl` | | Pub |
-| `doc/ThemeDecl.kt` | Theme records | `ThemeDecl`, `ColorSpec`, `TextStyleSpec`, `ShapeSpec` | | Pub |
-| `doc/ResourceDecl.kt` | Resource records | `ResourceDecl`, `ResourceVariant`, `ResourceSource`, `Qualifier` | | Pub |
-| `doc/AppSpec.kt` | App-level info | `AppSpec`, `NavigationSpec` | | Pub |
-| `doc/DocumentMeta.kt` | Meta | `DocumentMeta`, `PluginRequirement` | | Pub |
+| `doc/ThemeDecl.kt` | Theme records | `ThemeDecl`, `ThemeBase`, `ColorSpec`, `TextStyleSpec`, `ShapeSpec`, `ColorRole`, `TextRole`, `ShapeRole`, `TokenName` | Ids, Value | Pub |
+| `doc/ResourceDecl.kt` | Resource records | `ResourceDecl`, `ResourceVariant`, `ResourceSource`, `Qualifier` | Ids, TypeRef (`ResourceKind`) | Pub |
+| `doc/AppSpec.kt` | App-level info | `AppSpec`, `NavigationSpec` | Ids | Pub |
+| `doc/DocumentMeta.kt` | Meta | `DocumentMeta`, `PluginRequirement` | Ids | Pub |
 | `doc/UiDocument.kt` | Root record | `UiDocument` | all doc | Pub |
 | `doc/SchemaVersion.kt` | Current version constants | `CURRENT_SCHEMA_VERSION`, `FORMAT_VERSION` | | Pub |
 | `index/DocumentIndex.kt` | Parent/owner/path/descendants | `DocumentIndex`, `ParentRef`, `NodeOwner` | UiDocument | Pub |
@@ -2205,6 +2401,10 @@ Base package `dev.rotalex.lutter.<module>`. "Pub" = public API (ABI-tracked), "I
 | `annotations/EngineInternalApi.kt` | Opt-in marker | `@EngineInternalApi` | | Pub |
 
 Tests (`commonTest`): `IdsTest`, `DecimalTest`, `ValueFactoryTest`, `NodeTableTest`, `DocumentIndexTest` (+ property-based), `TraversalTest`, `DslTest`.
+
+**Dependencies.** `:engine:model` has one non-project dependency beyond `kotlinx-serialization`: `org.jetbrains.kotlinx:kotlinx-collections-immutable`, **0.5.2**, which `NodeTable`'s backing map needs (§5.5, ADR-007). §23.3:1727 already permits it, and nothing else does. It is declared `implementation`, not `api`, because the persistent map is an internal detail of `NodeTable` and appears in no public signature (§5.5's own note; the same reasoning that keeps the serializer `internal`). The version comes from the shared `rootLibs` catalog named in `settings.gradle.kts` — **not** from `gradle/libs.versions.toml`, which does not carry it and must not gain a second copy of a version the shared catalog owns.
+
+**The 0.5.x API note, for whoever writes `NodeTable` next.** 0.5 renamed every copy-returning method on `PersistentCollection`/`PersistentList`/`PersistentMap` to the participial form KEEP-0459 requires, and kept the old spellings as `@Deprecated(WARNING)` with `ReplaceWith`: `put` → `putting`, `remove` → `removing`, `putAll` → `puttingAll`, `add` → `adding`, `set` → `replacingAt`, `removeAt` → `removingAt`, `clear` → `cleared`. The imperative names become a compile error in 0.6.0 and are removed in 0.7.0, so **a missed rename is a warning today, not a failure** — which is exactly the case where it is worth writing the new names the first time. `NodeTable.with`/`without` are written directly on this API (§5.5), so nothing else in the module will notice the difference. The zero-length map comes from `persistentHashMapOf()`/`persistentMapOf()`: the `immutableMapOf` spelling is the deprecated alias of the latter, and the two differ in what their iteration order is.
 
 ### 33.2 `:engine:schema` — `dev/forge/engine/schema/`
 
@@ -2235,7 +2435,7 @@ Tests (`commonTest`): `IdsTest`, `DecimalTest`, `ValueFactoryTest`, `NodeTableTe
 | `ForgeJson.kt` | Single `Json` configuration | Int |
 | `Envelope.kt` | Envelope record + read/write | Pub |
 | `CanonicalJsonWriter.kt` | Sorted keys, formatting, numbers | Int |
-| `NodeTableSerializer.kt` | Sorted node map codec | Int |
+| ~~`NodeTableSerializer.kt`~~ | *moved to `:engine:model` `doc/NodeTable.kt`, `internal`: §5.5's `@Serializable(with = …)` names it and §23.3:1727 forbids the model from depending on this module* | — |
 | `DocumentCodec.kt` | `DocumentCodec`, `DecodeOptions`, `DecodeResult` | Pub |
 | `JsonDocumentCodec.kt` | JSON implementation | Pub |
 | `migration/Migration.kt` | `Migration`, `MigrationChain`, `MigrationResult` | Pub |
