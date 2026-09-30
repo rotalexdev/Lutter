@@ -2281,6 +2281,16 @@ final class dev.rotalex.lutter.model.doc/NodeTable { // dev.rotalex.lutter.model
     }
 }
 
+final class dev.rotalex.lutter.model.doc/NodeTableSerializer : kotlinx.serialization/KSerializer<dev.rotalex.lutter.model.doc/NodeTable> { // dev.rotalex.lutter.model.doc/NodeTableSerializer|null[0]
+    constructor <init>() // dev.rotalex.lutter.model.doc/NodeTableSerializer.<init>|<init>(){}[0]
+
+    final val descriptor // dev.rotalex.lutter.model.doc/NodeTableSerializer.descriptor|{}descriptor[0]
+        final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.model.doc/NodeTableSerializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+    final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.model.doc/NodeTable // dev.rotalex.lutter.model.doc/NodeTableSerializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+    final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.model.doc/NodeTable) // dev.rotalex.lutter.model.doc/NodeTableSerializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.model.doc.NodeTable){}[0]
+}
+
 final class dev.rotalex.lutter.model.doc/Page { // dev.rotalex.lutter.model.doc/Page|null[0]
     constructor <init>(dev.rotalex.lutter.model.ids/PageId, kotlin/String, kotlin/String, kotlin.collections/List<dev.rotalex.lutter.model.doc/ParamDecl> = ..., kotlin.collections/List<dev.rotalex.lutter.model.doc/StateDecl> = ..., dev.rotalex.lutter.model.ids/NodeId) // dev.rotalex.lutter.model.doc/Page.<init>|<init>(dev.rotalex.lutter.model.ids.PageId;kotlin.String;kotlin.String;kotlin.collections.List<dev.rotalex.lutter.model.doc.ParamDecl>;kotlin.collections.List<dev.rotalex.lutter.model.doc.StateDecl>;dev.rotalex.lutter.model.ids.NodeId){}[0]
 
