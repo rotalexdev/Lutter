@@ -89,11 +89,11 @@ public sealed interface ModifierPolicy {
  * The S1 joint, bound: S1 left [Schema] generic over five value types because these specs
  * did not exist yet. The component registry is now `Registry<ComponentType, ComponentSpec>`.
  */
-public typealias ComponentSchemaView<M : Any, A : Any, F : Any, T : Any> =
+public typealias ComponentSchemaView<M, A, F, T> =
     SchemaView<ComponentSpec, M, A, F, T>
 
 /** A [Schema] whose component registry holds [ComponentSpec]. The other four units bind later. */
-public typealias ComponentSchema<M : Any, A : Any, F : Any, T : Any> =
+public typealias ComponentSchema<M, A, F, T> =
     Schema<ComponentSpec, M, A, F, T>
 
 /**
