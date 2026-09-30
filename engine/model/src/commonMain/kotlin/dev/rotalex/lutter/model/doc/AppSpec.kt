@@ -39,6 +39,15 @@ public data class AppSpec(
  * public API: an empty record is a field that can gain a field later, whereas removing it is
  * a break. §31.3 defers the strategies a `kind` would name, so there is nothing for a
  * document-level hint to agree or disagree with yet either.
+ *
+ * A plain class and not a `data class`: the compiler forbids a data class with no primary
+ * constructor parameters. All instances are equal by construction — a record with no state
+ * has nothing to differ on — which is what keeps [AppSpec]'s data-class equality working.
  */
 @Serializable
-public data class NavigationSpec()
+public class NavigationSpec() {
+
+    override fun equals(other: Any?): Boolean = other is NavigationSpec
+
+    override fun hashCode(): Int = NavigationSpec::class.hashCode()
+}
