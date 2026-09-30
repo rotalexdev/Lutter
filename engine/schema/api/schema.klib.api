@@ -75,6 +75,13 @@ final enum class dev.rotalex.lutter.schema.function/FunctionPrecedence : kotlin/
     final fun values(): kotlin/Array<dev.rotalex.lutter.schema.function/FunctionPrecedence> // dev.rotalex.lutter.schema.function/FunctionPrecedence.values|values#static(){}[0]
 }
 
+abstract interface <#A: kotlin/Any, #B: kotlin/Any, #C: kotlin/Any, #D: kotlin/Any, #E: kotlin/Any> dev.rotalex.lutter.schema.plugin/SchemaContribution { // dev.rotalex.lutter.schema.plugin/SchemaContribution|null[0]
+    abstract val descriptor // dev.rotalex.lutter.schema.plugin/SchemaContribution.descriptor|{}descriptor[0]
+        abstract fun <get-descriptor>(): dev.rotalex.lutter.schema.plugin/PluginDescriptor // dev.rotalex.lutter.schema.plugin/SchemaContribution.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+    abstract fun contribute(dev.rotalex.lutter.schema/SchemaBuilder<#A, #B, #C, #D, #E>) // dev.rotalex.lutter.schema.plugin/SchemaContribution.contribute|contribute(dev.rotalex.lutter.schema.SchemaBuilder<1:0,1:1,1:2,1:3,1:4>){}[0]
+}
+
 abstract interface <#A: kotlin/Any, #B: kotlin/Any, #C: kotlin/Any, #D: kotlin/Any, #E: kotlin/Any> dev.rotalex.lutter.schema/SchemaView { // dev.rotalex.lutter.schema/SchemaView|null[0]
     abstract val actions // dev.rotalex.lutter.schema/SchemaView.actions|{}actions[0]
         abstract fun <get-actions>(): dev.rotalex.lutter.schema.registry/Registry<dev.rotalex.lutter.model.ids/ActionId, #C> // dev.rotalex.lutter.schema/SchemaView.actions.<get-actions>|<get-actions>(){}[0]
@@ -504,6 +511,11 @@ sealed interface dev.rotalex.lutter.schema.function/TypeSig { // dev.rotalex.lut
     }
 }
 
+sealed interface dev.rotalex.lutter.schema.types/TypeSpec { // dev.rotalex.lutter.schema.types/TypeSpec|null[0]
+    abstract val id // dev.rotalex.lutter.schema.types/TypeSpec.id|{}id[0]
+        abstract fun <get-id>(): dev.rotalex.lutter.model.ids/TypeId // dev.rotalex.lutter.schema.types/TypeSpec.id.<get-id>|<get-id>(){}[0]
+}
+
 final class <#A: kotlin/Any, #B: kotlin/Any, #C: kotlin/Any, #D: kotlin/Any, #E: kotlin/Any> dev.rotalex.lutter.schema/Schema : dev.rotalex.lutter.schema/SchemaView<#A, #B, #C, #D, #E> { // dev.rotalex.lutter.schema/Schema|null[0]
     final val actions // dev.rotalex.lutter.schema/Schema.actions|{}actions[0]
         final fun <get-actions>(): dev.rotalex.lutter.schema.registry/Registry<dev.rotalex.lutter.model.ids/ActionId, #C> // dev.rotalex.lutter.schema/Schema.actions.<get-actions>|<get-actions>(){}[0]
@@ -530,6 +542,21 @@ final class <#A: kotlin/Any, #B: kotlin/Any, #C: kotlin/Any, #D: kotlin/Any, #E:
     final fun function(dev.rotalex.lutter.model.ids/FunctionId, #D) // dev.rotalex.lutter.schema/SchemaBuilder.function|function(dev.rotalex.lutter.model.ids.FunctionId;1:3){}[0]
     final fun modifier(dev.rotalex.lutter.model.ids/ModifierType, #B) // dev.rotalex.lutter.schema/SchemaBuilder.modifier|modifier(dev.rotalex.lutter.model.ids.ModifierType;1:1){}[0]
     final fun type(dev.rotalex.lutter.model.ids/TypeId, #E) // dev.rotalex.lutter.schema/SchemaBuilder.type|type(dev.rotalex.lutter.model.ids.TypeId;1:4){}[0]
+}
+
+final class <#A: kotlin/Any, #B: kotlin/Any, #C: kotlin/Any, #D: kotlin/Any> dev.rotalex.lutter.schema.overlay/SchemaOverlay : dev.rotalex.lutter.schema/SchemaView<dev.rotalex.lutter.schema.component/ComponentSpec, #A, #B, #C, #D> { // dev.rotalex.lutter.schema.overlay/SchemaOverlay|null[0]
+    constructor <init>(dev.rotalex.lutter.schema/SchemaView<dev.rotalex.lutter.schema.component/ComponentSpec, #A, #B, #C, #D>, dev.rotalex.lutter.model.doc/UiDocument) // dev.rotalex.lutter.schema.overlay/SchemaOverlay.<init>|<init>(dev.rotalex.lutter.schema.SchemaView<dev.rotalex.lutter.schema.component.ComponentSpec,1:0,1:1,1:2,1:3>;dev.rotalex.lutter.model.doc.UiDocument){}[0]
+
+    final val actions // dev.rotalex.lutter.schema.overlay/SchemaOverlay.actions|{}actions[0]
+        final fun <get-actions>(): dev.rotalex.lutter.schema.registry/Registry<dev.rotalex.lutter.model.ids/ActionId, #B> // dev.rotalex.lutter.schema.overlay/SchemaOverlay.actions.<get-actions>|<get-actions>(){}[0]
+    final val components // dev.rotalex.lutter.schema.overlay/SchemaOverlay.components|{}components[0]
+        final fun <get-components>(): dev.rotalex.lutter.schema.registry/Registry<dev.rotalex.lutter.model.ids/ComponentType, dev.rotalex.lutter.schema.component/ComponentSpec> // dev.rotalex.lutter.schema.overlay/SchemaOverlay.components.<get-components>|<get-components>(){}[0]
+    final val functions // dev.rotalex.lutter.schema.overlay/SchemaOverlay.functions|{}functions[0]
+        final fun <get-functions>(): dev.rotalex.lutter.schema.registry/Registry<dev.rotalex.lutter.model.ids/FunctionId, #C> // dev.rotalex.lutter.schema.overlay/SchemaOverlay.functions.<get-functions>|<get-functions>(){}[0]
+    final val modifiers // dev.rotalex.lutter.schema.overlay/SchemaOverlay.modifiers|{}modifiers[0]
+        final fun <get-modifiers>(): dev.rotalex.lutter.schema.registry/Registry<dev.rotalex.lutter.model.ids/ModifierType, #A> // dev.rotalex.lutter.schema.overlay/SchemaOverlay.modifiers.<get-modifiers>|<get-modifiers>(){}[0]
+    final val types // dev.rotalex.lutter.schema.overlay/SchemaOverlay.types|{}types[0]
+        final fun <get-types>(): dev.rotalex.lutter.schema.registry/Registry<dev.rotalex.lutter.model.ids/TypeId, #D> // dev.rotalex.lutter.schema.overlay/SchemaOverlay.types.<get-types>|<get-types>(){}[0]
 }
 
 final class <#A: kotlin/Any, #B: kotlin/Any> dev.rotalex.lutter.schema.registry/RegistryBuilder { // dev.rotalex.lutter.schema.registry/RegistryBuilder|null[0]
@@ -1053,6 +1080,26 @@ final class dev.rotalex.lutter.schema.kind/ThemeTokenValueKind : dev.rotalex.lut
     final fun decode(dev.rotalex.lutter.model.value/Value): dev.rotalex.lutter.model.value/Value.Token // dev.rotalex.lutter.schema.kind/ThemeTokenValueKind.decode|decode(dev.rotalex.lutter.model.value.Value){}[0]
 }
 
+final class dev.rotalex.lutter.schema.migration/SpecMigration { // dev.rotalex.lutter.schema.migration/SpecMigration|null[0]
+    constructor <init>(dev.rotalex.lutter.model.ids/ComponentType, kotlin/Int, kotlin/Int, kotlin/Function1<dev.rotalex.lutter.model.doc/Node, dev.rotalex.lutter.model.doc/Node>) // dev.rotalex.lutter.schema.migration/SpecMigration.<init>|<init>(dev.rotalex.lutter.model.ids.ComponentType;kotlin.Int;kotlin.Int;kotlin.Function1<dev.rotalex.lutter.model.doc.Node,dev.rotalex.lutter.model.doc.Node>){}[0]
+
+    final val apply // dev.rotalex.lutter.schema.migration/SpecMigration.apply|{}apply[0]
+        final fun <get-apply>(): kotlin/Function1<dev.rotalex.lutter.model.doc/Node, dev.rotalex.lutter.model.doc/Node> // dev.rotalex.lutter.schema.migration/SpecMigration.apply.<get-apply>|<get-apply>(){}[0]
+    final val from // dev.rotalex.lutter.schema.migration/SpecMigration.from|{}from[0]
+        final fun <get-from>(): kotlin/Int // dev.rotalex.lutter.schema.migration/SpecMigration.from.<get-from>|<get-from>(){}[0]
+    final val to // dev.rotalex.lutter.schema.migration/SpecMigration.to|{}to[0]
+        final fun <get-to>(): kotlin/Int // dev.rotalex.lutter.schema.migration/SpecMigration.to.<get-to>|<get-to>(){}[0]
+    final val type // dev.rotalex.lutter.schema.migration/SpecMigration.type|{}type[0]
+        final fun <get-type>(): dev.rotalex.lutter.model.ids/ComponentType // dev.rotalex.lutter.schema.migration/SpecMigration.type.<get-type>|<get-type>(){}[0]
+}
+
+final class dev.rotalex.lutter.schema.migration/SpecMigrationRegistry { // dev.rotalex.lutter.schema.migration/SpecMigrationRegistry|null[0]
+    constructor <init>(kotlin.collections/List<dev.rotalex.lutter.schema.migration/SpecMigration>) // dev.rotalex.lutter.schema.migration/SpecMigrationRegistry.<init>|<init>(kotlin.collections.List<dev.rotalex.lutter.schema.migration.SpecMigration>){}[0]
+
+    final fun migrate(dev.rotalex.lutter.model.doc/Node, kotlin/Int, kotlin/Int): dev.rotalex.lutter.model.doc/Node // dev.rotalex.lutter.schema.migration/SpecMigrationRegistry.migrate|migrate(dev.rotalex.lutter.model.doc.Node;kotlin.Int;kotlin.Int){}[0]
+    final fun plan(dev.rotalex.lutter.model.ids/ComponentType, kotlin/Int, kotlin/Int): kotlin.collections/List<dev.rotalex.lutter.schema.migration/SpecMigration> // dev.rotalex.lutter.schema.migration/SpecMigrationRegistry.plan|plan(dev.rotalex.lutter.model.ids.ComponentType;kotlin.Int;kotlin.Int){}[0]
+}
+
 final class dev.rotalex.lutter.schema.modifier/ModifierEmit { // dev.rotalex.lutter.schema.modifier/ModifierEmit|null[0]
     constructor <init>(dev.rotalex.lutter.schema.component/KotlinSymbol, kotlin.collections/List<dev.rotalex.lutter.schema.component/EmitCase> = ...) // dev.rotalex.lutter.schema.modifier/ModifierEmit.<init>|<init>(dev.rotalex.lutter.schema.component.KotlinSymbol;kotlin.collections.List<dev.rotalex.lutter.schema.component.EmitCase>){}[0]
 
@@ -1103,8 +1150,87 @@ final class dev.rotalex.lutter.schema.modifier/ModifierSpec { // dev.rotalex.lut
         final fun <get-type>(): dev.rotalex.lutter.model.ids/ModifierType // dev.rotalex.lutter.schema.modifier/ModifierSpec.type.<get-type>|<get-type>(){}[0]
 }
 
+final class dev.rotalex.lutter.schema.plugin/PluginDescriptor { // dev.rotalex.lutter.schema.plugin/PluginDescriptor|null[0]
+    constructor <init>(dev.rotalex.lutter.model.ids/PluginId, kotlin/String, kotlin/Int, kotlin.collections/List<dev.rotalex.lutter.model.doc/PluginRequirement> = ...) // dev.rotalex.lutter.schema.plugin/PluginDescriptor.<init>|<init>(dev.rotalex.lutter.model.ids.PluginId;kotlin.String;kotlin.Int;kotlin.collections.List<dev.rotalex.lutter.model.doc.PluginRequirement>){}[0]
+
+    final val apiVersion // dev.rotalex.lutter.schema.plugin/PluginDescriptor.apiVersion|{}apiVersion[0]
+        final fun <get-apiVersion>(): kotlin/Int // dev.rotalex.lutter.schema.plugin/PluginDescriptor.apiVersion.<get-apiVersion>|<get-apiVersion>(){}[0]
+    final val dependsOn // dev.rotalex.lutter.schema.plugin/PluginDescriptor.dependsOn|{}dependsOn[0]
+        final fun <get-dependsOn>(): kotlin.collections/List<dev.rotalex.lutter.model.doc/PluginRequirement> // dev.rotalex.lutter.schema.plugin/PluginDescriptor.dependsOn.<get-dependsOn>|<get-dependsOn>(){}[0]
+    final val id // dev.rotalex.lutter.schema.plugin/PluginDescriptor.id|{}id[0]
+        final fun <get-id>(): dev.rotalex.lutter.model.ids/PluginId // dev.rotalex.lutter.schema.plugin/PluginDescriptor.id.<get-id>|<get-id>(){}[0]
+    final val version // dev.rotalex.lutter.schema.plugin/PluginDescriptor.version|{}version[0]
+        final fun <get-version>(): kotlin/String // dev.rotalex.lutter.schema.plugin/PluginDescriptor.version.<get-version>|<get-version>(){}[0]
+}
+
 final class dev.rotalex.lutter.schema.registry/DuplicateKeyException : kotlin/IllegalArgumentException { // dev.rotalex.lutter.schema.registry/DuplicateKeyException|null[0]
     constructor <init>(kotlin/String) // dev.rotalex.lutter.schema.registry/DuplicateKeyException.<init>|<init>(kotlin.String){}[0]
+}
+
+final class dev.rotalex.lutter.schema.types/EnumEntrySpec { // dev.rotalex.lutter.schema.types/EnumEntrySpec|null[0]
+    constructor <init>(kotlin/String, dev.rotalex.lutter.schema.component/KotlinSymbol) // dev.rotalex.lutter.schema.types/EnumEntrySpec.<init>|<init>(kotlin.String;dev.rotalex.lutter.schema.component.KotlinSymbol){}[0]
+
+    final val kotlin // dev.rotalex.lutter.schema.types/EnumEntrySpec.kotlin|{}kotlin[0]
+        final fun <get-kotlin>(): dev.rotalex.lutter.schema.component/KotlinSymbol // dev.rotalex.lutter.schema.types/EnumEntrySpec.kotlin.<get-kotlin>|<get-kotlin>(){}[0]
+    final val name // dev.rotalex.lutter.schema.types/EnumEntrySpec.name|{}name[0]
+        final fun <get-name>(): kotlin/String // dev.rotalex.lutter.schema.types/EnumEntrySpec.name.<get-name>|<get-name>(){}[0]
+
+    final fun component1(): kotlin/String // dev.rotalex.lutter.schema.types/EnumEntrySpec.component1|component1(){}[0]
+    final fun component2(): dev.rotalex.lutter.schema.component/KotlinSymbol // dev.rotalex.lutter.schema.types/EnumEntrySpec.component2|component2(){}[0]
+    final fun copy(kotlin/String = ..., dev.rotalex.lutter.schema.component/KotlinSymbol = ...): dev.rotalex.lutter.schema.types/EnumEntrySpec // dev.rotalex.lutter.schema.types/EnumEntrySpec.copy|copy(kotlin.String;dev.rotalex.lutter.schema.component.KotlinSymbol){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.schema.types/EnumEntrySpec.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.schema.types/EnumEntrySpec.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.schema.types/EnumEntrySpec.toString|toString(){}[0]
+}
+
+final class dev.rotalex.lutter.schema.types/EnumTypeSpec : dev.rotalex.lutter.schema.types/TypeSpec { // dev.rotalex.lutter.schema.types/EnumTypeSpec|null[0]
+    constructor <init>(dev.rotalex.lutter.model.ids/TypeId, kotlin.collections/List<dev.rotalex.lutter.schema.types/EnumEntrySpec>) // dev.rotalex.lutter.schema.types/EnumTypeSpec.<init>|<init>(dev.rotalex.lutter.model.ids.TypeId;kotlin.collections.List<dev.rotalex.lutter.schema.types.EnumEntrySpec>){}[0]
+
+    final val entries // dev.rotalex.lutter.schema.types/EnumTypeSpec.entries|{}entries[0]
+        final fun <get-entries>(): kotlin.collections/List<dev.rotalex.lutter.schema.types/EnumEntrySpec> // dev.rotalex.lutter.schema.types/EnumTypeSpec.entries.<get-entries>|<get-entries>(){}[0]
+    final val id // dev.rotalex.lutter.schema.types/EnumTypeSpec.id|{}id[0]
+        final fun <get-id>(): dev.rotalex.lutter.model.ids/TypeId // dev.rotalex.lutter.schema.types/EnumTypeSpec.id.<get-id>|<get-id>(){}[0]
+}
+
+final class dev.rotalex.lutter.schema.types/IconSet { // dev.rotalex.lutter.schema.types/IconSet|null[0]
+    constructor <init>(kotlin/String, kotlin.collections/Map<kotlin/String, dev.rotalex.lutter.schema.component/KotlinSymbol>) // dev.rotalex.lutter.schema.types/IconSet.<init>|<init>(kotlin.String;kotlin.collections.Map<kotlin.String,dev.rotalex.lutter.schema.component.KotlinSymbol>){}[0]
+
+    final val icons // dev.rotalex.lutter.schema.types/IconSet.icons|{}icons[0]
+        final fun <get-icons>(): kotlin.collections/Map<kotlin/String, dev.rotalex.lutter.schema.component/KotlinSymbol> // dev.rotalex.lutter.schema.types/IconSet.icons.<get-icons>|<get-icons>(){}[0]
+    final val name // dev.rotalex.lutter.schema.types/IconSet.name|{}name[0]
+        final fun <get-name>(): kotlin/String // dev.rotalex.lutter.schema.types/IconSet.name.<get-name>|<get-name>(){}[0]
+
+    final fun get(kotlin/String): dev.rotalex.lutter.schema.component/KotlinSymbol? // dev.rotalex.lutter.schema.types/IconSet.get|get(kotlin.String){}[0]
+}
+
+final class dev.rotalex.lutter.schema.types/ObjectTypeSpec : dev.rotalex.lutter.schema.types/TypeSpec { // dev.rotalex.lutter.schema.types/ObjectTypeSpec|null[0]
+    constructor <init>(dev.rotalex.lutter.model.ids/TypeId, kotlin.collections/List<dev.rotalex.lutter.model.doc/FieldDecl>) // dev.rotalex.lutter.schema.types/ObjectTypeSpec.<init>|<init>(dev.rotalex.lutter.model.ids.TypeId;kotlin.collections.List<dev.rotalex.lutter.model.doc.FieldDecl>){}[0]
+
+    final val fields // dev.rotalex.lutter.schema.types/ObjectTypeSpec.fields|{}fields[0]
+        final fun <get-fields>(): kotlin.collections/List<dev.rotalex.lutter.model.doc/FieldDecl> // dev.rotalex.lutter.schema.types/ObjectTypeSpec.fields.<get-fields>|<get-fields>(){}[0]
+    final val id // dev.rotalex.lutter.schema.types/ObjectTypeSpec.id|{}id[0]
+        final fun <get-id>(): dev.rotalex.lutter.model.ids/TypeId // dev.rotalex.lutter.schema.types/ObjectTypeSpec.id.<get-id>|<get-id>(){}[0]
+}
+
+final class dev.rotalex.lutter.schema.types/TypeRegistry { // dev.rotalex.lutter.schema.types/TypeRegistry|null[0]
+    constructor <init>(dev.rotalex.lutter.schema.registry/Registry<dev.rotalex.lutter.model.ids/TypeId, dev.rotalex.lutter.schema.types/TypeSpec>, dev.rotalex.lutter.schema.registry/Registry<kotlin/String, dev.rotalex.lutter.schema.types/IconSet>) // dev.rotalex.lutter.schema.types/TypeRegistry.<init>|<init>(dev.rotalex.lutter.schema.registry.Registry<dev.rotalex.lutter.model.ids.TypeId,dev.rotalex.lutter.schema.types.TypeSpec>;dev.rotalex.lutter.schema.registry.Registry<kotlin.String,dev.rotalex.lutter.schema.types.IconSet>){}[0]
+
+    final val icons // dev.rotalex.lutter.schema.types/TypeRegistry.icons|{}icons[0]
+        final fun <get-icons>(): dev.rotalex.lutter.schema.registry/Registry<kotlin/String, dev.rotalex.lutter.schema.types/IconSet> // dev.rotalex.lutter.schema.types/TypeRegistry.icons.<get-icons>|<get-icons>(){}[0]
+    final val types // dev.rotalex.lutter.schema.types/TypeRegistry.types|{}types[0]
+        final fun <get-types>(): dev.rotalex.lutter.schema.registry/Registry<dev.rotalex.lutter.model.ids/TypeId, dev.rotalex.lutter.schema.types/TypeSpec> // dev.rotalex.lutter.schema.types/TypeRegistry.types.<get-types>|<get-types>(){}[0]
+
+    final fun enumType(dev.rotalex.lutter.model.ids/TypeId): dev.rotalex.lutter.schema.types/EnumTypeSpec? // dev.rotalex.lutter.schema.types/TypeRegistry.enumType|enumType(dev.rotalex.lutter.model.ids.TypeId){}[0]
+    final fun iconSet(kotlin/String): dev.rotalex.lutter.schema.types/IconSet? // dev.rotalex.lutter.schema.types/TypeRegistry.iconSet|iconSet(kotlin.String){}[0]
+    final fun objectType(dev.rotalex.lutter.model.ids/TypeId): dev.rotalex.lutter.schema.types/ObjectTypeSpec? // dev.rotalex.lutter.schema.types/TypeRegistry.objectType|objectType(dev.rotalex.lutter.model.ids.TypeId){}[0]
+}
+
+final class dev.rotalex.lutter.schema.types/TypeRegistryBuilder { // dev.rotalex.lutter.schema.types/TypeRegistryBuilder|null[0]
+    constructor <init>() // dev.rotalex.lutter.schema.types/TypeRegistryBuilder.<init>|<init>(){}[0]
+
+    final fun build(): dev.rotalex.lutter.schema.types/TypeRegistry // dev.rotalex.lutter.schema.types/TypeRegistryBuilder.build|build(){}[0]
+    final fun iconSet(dev.rotalex.lutter.schema.types/IconSet) // dev.rotalex.lutter.schema.types/TypeRegistryBuilder.iconSet|iconSet(dev.rotalex.lutter.schema.types.IconSet){}[0]
+    final fun register(dev.rotalex.lutter.schema.types/TypeSpec) // dev.rotalex.lutter.schema.types/TypeRegistryBuilder.register|register(dev.rotalex.lutter.schema.types.TypeSpec){}[0]
 }
 
 final class dev.rotalex.lutter.schema/SchemaBuildException : kotlin/IllegalArgumentException { // dev.rotalex.lutter.schema/SchemaBuildException|null[0]
@@ -1150,9 +1276,11 @@ final object dev.rotalex.lutter.schema.kind/ValueKinds { // dev.rotalex.lutter.s
     final fun kindFor(dev.rotalex.lutter.model.type/TypeRef): dev.rotalex.lutter.model.value/ValueKind<*> // dev.rotalex.lutter.schema.kind/ValueKinds.kindFor|kindFor(dev.rotalex.lutter.model.type.TypeRef){}[0]
 }
 
+final fun <#A: kotlin/Any, #B: kotlin/Any, #C: kotlin/Any, #D: kotlin/Any> (dev.rotalex.lutter.schema/SchemaBuilder<#A, #B, #C, #D, dev.rotalex.lutter.schema.types/TypeSpec>).dev.rotalex.lutter.schema.types/type(dev.rotalex.lutter.schema.types/TypeSpec) // dev.rotalex.lutter.schema.types/type|type@dev.rotalex.lutter.schema.SchemaBuilder<0:0,0:1,0:2,0:3,dev.rotalex.lutter.schema.types.TypeSpec>(dev.rotalex.lutter.schema.types.TypeSpec){0§<kotlin.Any>;1§<kotlin.Any>;2§<kotlin.Any>;3§<kotlin.Any>}[0]
 final fun <#A: kotlin/Any, #B: kotlin/Any, #C: kotlin/Any, #D: kotlin/Any> (dev.rotalex.lutter.schema/SchemaBuilder<#A, #B, #C, dev.rotalex.lutter.schema.function/FunctionSpec, #D>).dev.rotalex.lutter.schema.function/function(dev.rotalex.lutter.schema.function/FunctionSpec) // dev.rotalex.lutter.schema.function/function|function@dev.rotalex.lutter.schema.SchemaBuilder<0:0,0:1,0:2,dev.rotalex.lutter.schema.function.FunctionSpec,0:3>(dev.rotalex.lutter.schema.function.FunctionSpec){0§<kotlin.Any>;1§<kotlin.Any>;2§<kotlin.Any>;3§<kotlin.Any>}[0]
 final fun <#A: kotlin/Any, #B: kotlin/Any, #C: kotlin/Any, #D: kotlin/Any> (dev.rotalex.lutter.schema/SchemaBuilder<#A, #B, dev.rotalex.lutter.schema.action/ActionSpec, #C, #D>).dev.rotalex.lutter.schema.action/action(dev.rotalex.lutter.schema.action/ActionSpec) // dev.rotalex.lutter.schema.action/action|action@dev.rotalex.lutter.schema.SchemaBuilder<0:0,0:1,dev.rotalex.lutter.schema.action.ActionSpec,0:2,0:3>(dev.rotalex.lutter.schema.action.ActionSpec){0§<kotlin.Any>;1§<kotlin.Any>;2§<kotlin.Any>;3§<kotlin.Any>}[0]
 final fun <#A: kotlin/Any, #B: kotlin/Any, #C: kotlin/Any, #D: kotlin/Any> (dev.rotalex.lutter.schema/SchemaBuilder<#A, dev.rotalex.lutter.schema.modifier/ModifierSpec, #B, #C, #D>).dev.rotalex.lutter.schema.modifier/modifier(dev.rotalex.lutter.schema.modifier/ModifierSpec) // dev.rotalex.lutter.schema.modifier/modifier|modifier@dev.rotalex.lutter.schema.SchemaBuilder<0:0,dev.rotalex.lutter.schema.modifier.ModifierSpec,0:1,0:2,0:3>(dev.rotalex.lutter.schema.modifier.ModifierSpec){0§<kotlin.Any>;1§<kotlin.Any>;2§<kotlin.Any>;3§<kotlin.Any>}[0]
 final fun <#A: kotlin/Any, #B: kotlin/Any, #C: kotlin/Any, #D: kotlin/Any> (dev.rotalex.lutter.schema/SchemaBuilder<dev.rotalex.lutter.schema.component/ComponentSpec, #A, #B, #C, #D>).dev.rotalex.lutter.schema.component/component(dev.rotalex.lutter.schema.component/ComponentSpec) // dev.rotalex.lutter.schema.component/component|component@dev.rotalex.lutter.schema.SchemaBuilder<dev.rotalex.lutter.schema.component.ComponentSpec,0:0,0:1,0:2,0:3>(dev.rotalex.lutter.schema.component.ComponentSpec){0§<kotlin.Any>;1§<kotlin.Any>;2§<kotlin.Any>;3§<kotlin.Any>}[0]
 final fun <#A: kotlin/Any?> dev.rotalex.lutter.schema.component/prop(kotlin/String, dev.rotalex.lutter.model.type/TypeRef, dev.rotalex.lutter.model.value/Value? = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., dev.rotalex.lutter.schema.component/EditorHints = ..., kotlin/String = ...): dev.rotalex.lutter.schema.component/PropertySpec<#A> // dev.rotalex.lutter.schema.component/prop|prop(kotlin.String;dev.rotalex.lutter.model.type.TypeRef;dev.rotalex.lutter.model.value.Value?;kotlin.Boolean;kotlin.Boolean;dev.rotalex.lutter.schema.component.EditorHints;kotlin.String){0§<kotlin.Any?>}[0]
 final fun dev.rotalex.lutter.schema.component/componentSpec(dev.rotalex.lutter.model.ids/ComponentType, kotlin/Int, kotlin/Function1<dev.rotalex.lutter.schema.component/ComponentSpecBuilder, kotlin/Unit>): dev.rotalex.lutter.schema.component/ComponentSpec // dev.rotalex.lutter.schema.component/componentSpec|componentSpec(dev.rotalex.lutter.model.ids.ComponentType;kotlin.Int;kotlin.Function1<dev.rotalex.lutter.schema.component.ComponentSpecBuilder,kotlin.Unit>){}[0]
+final fun dev.rotalex.lutter.schema.overlay/documentComponentSpec(dev.rotalex.lutter.model.doc/ComponentDecl, kotlin.collections/Map<dev.rotalex.lutter.model.ids/ComponentType, kotlin/Int> = ..., dev.rotalex.lutter.schema.component/Category = ...): dev.rotalex.lutter.schema.component/ComponentSpec // dev.rotalex.lutter.schema.overlay/documentComponentSpec|documentComponentSpec(dev.rotalex.lutter.model.doc.ComponentDecl;kotlin.collections.Map<dev.rotalex.lutter.model.ids.ComponentType,kotlin.Int>;dev.rotalex.lutter.schema.component.Category){}[0]

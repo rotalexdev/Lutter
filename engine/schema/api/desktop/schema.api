@@ -980,6 +980,20 @@ public final class dev/rotalex/lutter/schema/kind/ValueKinds {
 	public final fun kindFor (Ldev/rotalex/lutter/model/type/TypeRef;)Ldev/rotalex/lutter/model/value/ValueKind;
 }
 
+public final class dev/rotalex/lutter/schema/migration/SpecMigration {
+	public synthetic fun <init> (Ljava/lang/String;IILkotlin/jvm/functions/Function1;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getApply ()Lkotlin/jvm/functions/Function1;
+	public final fun getFrom ()I
+	public final fun getTo ()I
+	public final fun getType-RCZ7MqM ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/schema/migration/SpecMigrationRegistry {
+	public fun <init> (Ljava/util/List;)V
+	public final fun migrate (Ldev/rotalex/lutter/model/doc/Node;II)Ldev/rotalex/lutter/model/doc/Node;
+	public final fun plan-4sAO-_g (Ljava/lang/String;II)Ljava/util/List;
+}
+
 public final class dev/rotalex/lutter/schema/modifier/ModifierEmit {
 	public fun <init> (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/util/List;)V
 	public synthetic fun <init> (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -1024,6 +1038,34 @@ public final class dev/rotalex/lutter/schema/modifier/ModifierSpecKt {
 	public static final fun modifier (Ldev/rotalex/lutter/schema/SchemaBuilder;Ldev/rotalex/lutter/schema/modifier/ModifierSpec;)V
 }
 
+public final class dev/rotalex/lutter/schema/overlay/SchemaOverlay : dev/rotalex/lutter/schema/SchemaView {
+	public fun <init> (Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/model/doc/UiDocument;)V
+	public fun getActions ()Ldev/rotalex/lutter/schema/registry/Registry;
+	public fun getComponents ()Ldev/rotalex/lutter/schema/registry/Registry;
+	public fun getFunctions ()Ldev/rotalex/lutter/schema/registry/Registry;
+	public fun getModifiers ()Ldev/rotalex/lutter/schema/registry/Registry;
+	public fun getTypes ()Ldev/rotalex/lutter/schema/registry/Registry;
+}
+
+public final class dev/rotalex/lutter/schema/overlay/SchemaOverlayKt {
+	public static final fun documentComponentSpec (Ldev/rotalex/lutter/model/doc/ComponentDecl;Ljava/util/Map;Ldev/rotalex/lutter/schema/component/Category;)Ldev/rotalex/lutter/schema/component/ComponentSpec;
+	public static synthetic fun documentComponentSpec$default (Ldev/rotalex/lutter/model/doc/ComponentDecl;Ljava/util/Map;Ldev/rotalex/lutter/schema/component/Category;ILjava/lang/Object;)Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
+public final class dev/rotalex/lutter/schema/plugin/PluginDescriptor {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getApiVersion ()I
+	public final fun getDependsOn ()Ljava/util/List;
+	public final fun getId-Y2Mxo44 ()Ljava/lang/String;
+	public final fun getVersion ()Ljava/lang/String;
+}
+
+public abstract interface class dev/rotalex/lutter/schema/plugin/SchemaContribution {
+	public abstract fun contribute (Ldev/rotalex/lutter/schema/SchemaBuilder;)V
+	public abstract fun getDescriptor ()Ldev/rotalex/lutter/schema/plugin/PluginDescriptor;
+}
+
 public final class dev/rotalex/lutter/schema/registry/DuplicateKeyException : java/lang/IllegalArgumentException {
 	public fun <init> (Ljava/lang/String;)V
 }
@@ -1040,5 +1082,61 @@ public final class dev/rotalex/lutter/schema/registry/RegistryBuilder {
 	public final fun build ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public final fun register (Ljava/lang/Object;Ljava/lang/Object;)V
 	public final fun registerAll (Ljava/util/List;)V
+}
+
+public final class dev/rotalex/lutter/schema/types/EnumEntrySpec {
+	public fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
+	public final fun copy (Ljava/lang/String;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)Ldev/rotalex/lutter/schema/types/EnumEntrySpec;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/schema/types/EnumEntrySpec;Ljava/lang/String;Ldev/rotalex/lutter/schema/component/KotlinSymbol;ILjava/lang/Object;)Ldev/rotalex/lutter/schema/types/EnumEntrySpec;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getKotlin ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/schema/types/EnumTypeSpec : dev/rotalex/lutter/schema/types/TypeSpec {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getEntries ()Ljava/util/List;
+	public fun getId-7JNyzJc ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/schema/types/IconSet {
+	public fun <init> (Ljava/lang/String;Ljava/util/Map;)V
+	public final fun get (Ljava/lang/String;)Ldev/rotalex/lutter/schema/component/KotlinSymbol;
+	public final fun getIcons ()Ljava/util/Map;
+	public final fun getName ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/schema/types/ObjectTypeSpec : dev/rotalex/lutter/schema/types/TypeSpec {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getFields ()Ljava/util/List;
+	public fun getId-7JNyzJc ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/schema/types/TypeRegistry {
+	public fun <init> (Ldev/rotalex/lutter/schema/registry/Registry;Ldev/rotalex/lutter/schema/registry/Registry;)V
+	public final fun enumType-7VzP3t0 (Ljava/lang/String;)Ldev/rotalex/lutter/schema/types/EnumTypeSpec;
+	public final fun getIcons ()Ldev/rotalex/lutter/schema/registry/Registry;
+	public final fun getTypes ()Ldev/rotalex/lutter/schema/registry/Registry;
+	public final fun iconSet (Ljava/lang/String;)Ldev/rotalex/lutter/schema/types/IconSet;
+	public final fun objectType-7VzP3t0 (Ljava/lang/String;)Ldev/rotalex/lutter/schema/types/ObjectTypeSpec;
+}
+
+public final class dev/rotalex/lutter/schema/types/TypeRegistryBuilder {
+	public fun <init> ()V
+	public final fun build ()Ldev/rotalex/lutter/schema/types/TypeRegistry;
+	public final fun iconSet (Ldev/rotalex/lutter/schema/types/IconSet;)V
+	public final fun register (Ldev/rotalex/lutter/schema/types/TypeSpec;)V
+}
+
+public final class dev/rotalex/lutter/schema/types/TypeRegistryKt {
+	public static final fun type (Ldev/rotalex/lutter/schema/SchemaBuilder;Ldev/rotalex/lutter/schema/types/TypeSpec;)V
+}
+
+public abstract interface class dev/rotalex/lutter/schema/types/TypeSpec {
+	public abstract fun getId-7JNyzJc ()Ljava/lang/String;
 }
 
