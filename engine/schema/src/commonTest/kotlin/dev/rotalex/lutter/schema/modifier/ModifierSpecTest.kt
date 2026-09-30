@@ -68,7 +68,7 @@ class ModifierSpecTest {
 
     @Test
     fun `a fresh spec requires no scope and documents nothing`() {
-        assertEquals(emptySet(), paddingSpec.emit.cases.first().imports)
+        assertEquals(emptyList(), paddingSpec.emit.cases.first().imports)
         assertEquals(emptySet(), paddingSpec.requiresScope)
         assertEquals("", paddingSpec.metadata.description)
         assertEquals(1, paddingSpec.metadata.since)
