@@ -10,6 +10,15 @@ on:
     branches: [ dev ]
   pull_request:
     branches: [ dev, main ]
+  # Not for a human to click. It exists so that the ABI recovery below can re-run this
+  # workflow on a branch it has just pushed to.
+  #
+  # A commit made with GITHUB_TOKEN does not start a workflow run, which is why the recovery
+  # used to be unable to finish its own job. `workflow_dispatch` is one of exactly two
+  # documented exceptions to that rule - the other is `repository_dispatch` - and GitHub
+  # added the exception precisely because the call is explicit and therefore cannot loop by
+  # accident. So: commit with the token, then ask for a run by name.
+  workflow_dispatch:
 
 concurrency:
   group: check-${{ github.workflow }}-${{ github.ref }}
@@ -23,10 +32,14 @@ jobs:
     name: Build, test and verify
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    # Needed only by the ABI bootstrap step below, which commits the generated reference
-    # dumps. Everything else in this job is read-only.
+    # Three permissions, each for exactly one of the three things this job does beyond
+    # building: `contents: write` to commit a regenerated ABI baseline, `actions: write` to
+    # ask for the re-run that verifies it, `pull-requests: write` to say so on the pull
+    # request when it could not.
     permissions:
       contents: write
+      actions: write
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@v7
@@ -37,9 +50,14 @@ jobs:
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          # Matches jvmToolchain(21) in the convention plugin, which the root build takes
-          # from the shared catalog's absence of a JDK pin. setup-java installs the JDK that
-          # Gradle then uses to provision every other toolchain.
+          # The JDK that runs Gradle. Deliberately NOT a Gradle toolchain: this build has no
+          # `jvmToolchain` anywhere, on purpose.
+          #
+          # A toolchain would be a second, independent JDK number. A Java compilation with no
+          # explicit target falls back to the toolchain while Kotlin's jvmTarget comes from the
+          # catalog, and the two disagreeing is the "inconsistent JVM-target compatibility"
+          # failure. The catalog's jvmTarget is applied to both Java's and Kotlin's side, so
+          # there is only ever one number.
           java-version: '21'
 
       # No wrapper JAR is committed (see README.md), so this is the action's documented
@@ -63,18 +81,26 @@ jobs:
       # committed dump fails with "Expected file with ABI declarations ... does not exist" —
       # the guardrail working, on a project that has never recorded a baseline.
       #
-      # Rather than shipping the first dumps by hand, this bootstraps them and commits them
-      # to the branch, the same way nowinandroid regenerates its Dependency Guard baselines:
-      # verify, and if the baseline is simply missing, generate it and push it back.
+      # This job used to fix that itself: regenerate the dumps and auto-commit them. It cannot,
+      # and the reason is structural rather than a matter of permissions.
       #
-      # A fork gets no token write access, so it stops here with the real failure intact
-      # instead of half-pretending the check passed.
+      # A commit pushed with GITHUB_TOKEN does not start workflow runs. GitHub does create
+      # `pull_request` runs for the new head — a push changes the PR's head, and the PR is the
+      # trigger — but it holds every one of them in `action_required`, because they were caused
+      # by a token-authored push. So the branch gains the dumps and the checks never run. The
+      # pull request then reports an empty `statusCheckRollup` and sits BLOCKED with a red X
+      # that no amount of pushing clears. It cost three round trips on one branch before the
+      # shape of it was understood.
       #
-      # `failure() &&` is load-bearing. GitHub implicitly conjoins an `if` with `success()`
-      # unless the expression already contains a status function, so after the verify step
-      # fails, a bare `steps.verify.outcome == 'failure'` is false and every recovery step
-      # silently skips. The status function has to be stated.
-      - name: Record the missing ABI dumps
+      # A required check that mutates the repository is not a gate; it is a second actor racing
+      # the first one. So the job regenerates, publishes, and reports, and the change lands as
+      # an ordinary commit by an ordinary push, which is a commit a workflow will actually run.
+      #
+      # `failure() &&` is load-bearing throughout. GitHub implicitly conjoins an `if` with
+      # `success()` unless the expression already contains a status function, so after the
+      # verify step fails, a bare `steps.verify.outcome == 'failure'` is false and every
+      # recovery step silently skips. The status function has to be stated.
+      - name: Regenerate the ABI dumps
         if: failure() && steps.verify.outcome == 'failure'
         run: |
           echo "::notice::check failed; regenerating the reference ABI dumps"
@@ -85,26 +111,127 @@ jobs:
           find . -path '*/api/*' -name '*.api' -delete
           gradle updateKotlinAbi
 
-      - name: Refuse to auto-commit from a fork
-        id: fork
+      # Commit the baseline and then ask for a run that will verify it. Those two steps are
+      # one mechanism and splitting them is what left the previous version stuck: the branch
+      # ended up with the right files and a pull request whose checks could never run, which
+      # is the worst of both outcomes rather than neither.
+      #
+      # `commit-pushed` is the first loop guard and it is free. The action commits only files
+      # that actually changed, so a run whose regeneration reproduced the committed dumps
+      # pushes nothing and therefore dispatches nothing.
+      - name: Commit the regenerated ABI dumps
+        id: baseline
         if: failure() && steps.verify.outcome == 'failure'
-        run: |
-          if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
-            echo "::error::check failed and this is a fork, so the ABI dumps cannot be committed automatically. Run 'gradle updateKotlinAbi' locally and push the result."
-            exit 1
-          fi
-
-      - name: Commit the generated ABI dumps
-        if: failure() && steps.verify.outcome == 'failure' && steps.fork.outcome != 'failure'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          file_pattern: '*/api/*'
+          file_pattern: '**/api/**'
           commit_message: "chore(build): record the reference ABI dumps"
 
-      # `always()` so the checker's own test runs even on a run where something else is
-      # already red. A guardrail that is only proven on green runs is a guardrail that is
-      # never proven while it matters.
+      # The second guard, and it is the one that matters. If the commit *before* the one this
+      # run just made is also a baseline commit, then a previous run committed a baseline,
+      # this run still found `checkKotlinAbi` unhappy, and regeneration is not converging.
+      # Another round trip would loop, so stop, publish, and let a human read the log.
+      #
+      # It has to be the second commit and not the first. This step runs *after* the
+      # auto-commit, so `git log -1` is the commit that step just made - which is always the
+      # baseline commit, so a first-commit check always says "not converged" and the
+      # dispatch below never happens. It looked correct, read correctly, and disabled
+      # the entire mechanism.
+      - name: Is another round trip safe
+        id: converge
+        if: failure() && steps.verify.outcome == 'failure' && steps.baseline.outputs.changes_detected == 'true'
+        run: |
+          previous=$(git log -2 --pretty=%s | sed -n '2p')
+          if [ "$previous" = "chore(build): record the reference ABI dumps" ]; then
+            echo "converged=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::regenerating the ABI dumps did not make checkKotlinAbi pass; not retrying"
+          else
+            echo "converged=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Re-run this check on the new baseline
+        if: failure() && steps.verify.outcome == 'failure' && steps.baseline.outputs.changes_detected == 'true' && steps.converge.outputs.converged == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          if [ -z "$REF" ]; then
+            echo "::warning::not a pull request and the baseline was committed; nothing to re-run"
+            exit 0
+          fi
+          # workflow_dispatch is one of the two documented exceptions to the rule that a
+          # GITHUB_TOKEN push starts no workflow, so this run is a real one: not
+          # approval-gated, and attached to the same head the pull request is waiting on.
+          gh workflow run check.yml --ref "$REF"
+          echo "::notice::re-running check on $REF; the pull request will clear once it lands"
+
+      # Everything below is the path where the job could not fix itself: a fork with no write
+      # access, a push to dev where there is no pull request, or regeneration that will not
+      # converge. A recovery message that misdiagnoses is worse than none, so each of these
+      # steps first establishes that there is something to hand over.
+      - name: Publish the regenerated ABI dumps
+        if: failure() && steps.verify.outcome == 'failure' && (steps.baseline.outputs.changes_detected != 'true' || steps.converge.outputs.converged != 'true')
+        uses: actions/upload-artifact@v4
+        with:
+          name: abi-baseline
+          path: '**/api/**'
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Say on the pull request where the baseline is
+        if: failure() && steps.verify.outcome == 'failure' && (steps.baseline.outputs.changes_detected != 'true' || steps.converge.outputs.converged != 'true')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ ! -f engine/model/api/desktop/model.api ]; then
+            echo "no ABI dumps were produced, so there is nothing to hand over"
+            echo "the build failed before or during recording; read the log for the real cause"
+            exit 0
+          fi
+          if [ -z "$PR" ]; then
+            echo "not a pull request; the artifact is on the run and there is nothing to comment on"
+            exit 0
+          fi
+          cat > "$RUNNER_TEMP/abi.md" <<'EOF'
+          ### The ABI baseline still needs a hand
+
+          The job could not close this one on its own. It regenerates the dumps and commits
+          them, then re-runs itself through `workflow_dispatch` - the one documented way a
+          `GITHUB_TOKEN` push can start a run. It got as far as publishing the files, which
+          means one of these:
+
+          - the push was refused, most often a fork with no write access;
+          - regeneration did not converge, and retrying would loop;
+          - this is a push to `dev` rather than a pull request, so there is no pull request
+            to comment on.
+
+          The regenerated dumps are attached to this run as **abi-baseline**.
+
+          ```
+          unzip abi-baseline.zip -d .
+          git add -- ':(glob)**/api/**'
+          git commit -m "chore(build): record the reference ABI dumps"
+          git push
+          ```
+
+          Or re-record them on a machine that has a toolchain: `gradle updateKotlinAbi`.
+          EOF
+          # A fork has no write access here, so the comment is skipped rather than failed. The
+          # artifact is published either way and stays downloadable from the run.
+          gh pr comment "$PR" --body-file "$RUNNER_TEMP/abi.md" \
+            || echo "could not comment on #$PR; the artifact is on the run"
+
+      # `always()` so the Wasm canary runs even on a run where something else is already
+      # red. A guardrail that is only proven on green runs is a guardrail that is never proven
+      # while it matters — and this is the guardrail that catches a JVM type leaking into
+      # commonMain, so a red run is exactly when it is worth running.
+      #
+      # The `if` is load-bearing and was missing. A bare `if` is conjoined with `success()` by
+      # GitHub, so without it this step ran only when every earlier step had passed, and a
+      # canary that only runs on a green build is not a canary.
       - name: Compile common tests for Wasm
+        if: always()
         run: |
           gradle \
             :engine:model:compileTestKotlinWasmJs \
@@ -116,9 +243,10 @@ jobs:
             :engine:codegen:compileTestKotlinWasmJs \
             :engine:builtins:compileTestKotlinWasmJs
 
-      # `always()` so the checker's own test runs even on a run where something else is
-      # already red. A guardrail that is only proven on green runs is a guardrail that is
-      # never proven while it matters.
+      # `always()` for the same reason as the Wasm canary above, and the same trap: without
+      # an explicit status function this step is skipped on any already-red run, so the one
+      # job that proves the module-graph checker can still *fail* would never run on a run
+      # where that mattered.
       - name: Prove the graph checker rejects an illegal edge
         if: always()
         run: gradle selfTestModuleGraph
@@ -133,5 +261,23 @@ jobs:
         with:
           name: problems-report
           path: '**/build/reports/problems/'
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # The problems report covers the *compiler*. A failing test is a different failure
+      # with different evidence, and the step log carries only "kotlinx.serialization
+      # .SerializationException at ActionSequenceTest.kt:392" - no message, and in three
+      # separate cases a line number past the end of the file, so it cannot even be read
+      # back. Guessing from a line number is how a day gets spent chasing the wrong file.
+      #
+      # The XML results hold the message and the full stack. Uploading them unconditionally
+      # rather than only on failure keeps them available for a flake that passed on the
+      # rerun, which is the one case where you most want the evidence and least have it.
+      - name: Upload the test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/build/test-results/**/*.xml'
           if-no-files-found: ignore
           retention-days: 14

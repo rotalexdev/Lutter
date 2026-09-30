@@ -5,8 +5,11 @@
 // applied an unlisted plugin would append its dependencies instead of replacing them, and
 // that is how two copies of the Kotlin plugin end up in one build.
 //
-// Build settings — jvmTarget, compileSdk, minSdk — are not here. They are declared in
-// gradle.properties and read by the convention plugins with providers.gradleProperty(...).
+// Build settings — jvmTarget, compileSdk, minSdk — are not here and not in
+// gradle.properties either. They come from the shared catalog, read by key through
+// forge/catalogs.kt's catalogVersion(...), so that every Rotalex project resolves the same
+// numbers. This file used to say gradle.properties, which was wrong: nothing there defines
+// them, and a reader chasing that comment finds nothing at all.
 plugins {
     alias(rootLibs.plugins.kotlin.multiplatform) apply false
     alias(rootLibs.plugins.kotlin.jvm) apply false
