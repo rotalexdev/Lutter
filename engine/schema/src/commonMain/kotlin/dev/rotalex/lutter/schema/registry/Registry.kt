@@ -46,7 +46,12 @@ public class RegistryBuilder<K : Any, V : Any> {
 
     /** Freezes the registry. Later registrations change nothing already built. */
     public fun build(): Registry<K, V> {
-        val ordered: Map<K, V> = entries.toSortedMap(compareBy { it.toString() })
+        // Sorted by hand, not `toSortedMap`: that function has no Wasm form, and this
+        // module ships there. The order is the keys' string form, as [Registry] promises.
+        val ordered = LinkedHashMap<K, V>(entries.size)
+        for ((key, value) in entries.entries.sortedBy { it.key.toString() }) {
+            ordered[key] = value
+        }
         return MapRegistry(ordered)
     }
 }
