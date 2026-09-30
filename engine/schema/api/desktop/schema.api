@@ -85,9 +85,15 @@ public final class dev/rotalex/lutter/schema/component/ChildFilter$Only : dev/ro
 }
 
 public abstract interface class dev/rotalex/lutter/schema/component/CodegenBinding {
+	public static final field Companion Ldev/rotalex/lutter/schema/component/CodegenBinding$Companion;
+}
+
+public final class dev/rotalex/lutter/schema/component/CodegenBinding$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
 public final class dev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall : dev/rotalex/lutter/schema/component/CodegenBinding {
+	public static final field Companion Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall$Companion;
 	public fun <init> (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
 	public synthetic fun <init> (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
@@ -107,7 +113,23 @@ public final class dev/rotalex/lutter/schema/component/CodegenBinding$ComposeCal
 	public fun toString ()Ljava/lang/String;
 }
 
+public final synthetic class dev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class dev/rotalex/lutter/schema/component/CodegenBinding$Custom : dev/rotalex/lutter/schema/component/CodegenBinding {
+	public static final field Companion Ldev/rotalex/lutter/schema/component/CodegenBinding$Custom$Companion;
 	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1-Hk0aAO4 ()Ljava/lang/String;
 	public final fun copy-vKe6DGs (Ljava/lang/String;)Ldev/rotalex/lutter/schema/component/CodegenBinding$Custom;
@@ -118,10 +140,26 @@ public final class dev/rotalex/lutter/schema/component/CodegenBinding$Custom : d
 	public fun toString ()Ljava/lang/String;
 }
 
+public final synthetic class dev/rotalex/lutter/schema/component/CodegenBinding$Custom$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/CodegenBinding$Custom$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/schema/component/CodegenBinding$Custom;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/schema/component/CodegenBinding$Custom;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/schema/component/CodegenBinding$Custom$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class dev/rotalex/lutter/schema/component/CodegenBinding$Intrinsic : dev/rotalex/lutter/schema/component/CodegenBinding {
 	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/CodegenBinding$Intrinsic;
 	public fun equals (Ljava/lang/Object;)Z
 	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 	public fun toString ()Ljava/lang/String;
 }
 
@@ -220,6 +258,7 @@ public final class dev/rotalex/lutter/schema/component/EditorHints$None : dev/ro
 }
 
 public final class dev/rotalex/lutter/schema/component/EmitCase {
+	public static final field Companion Ldev/rotalex/lutter/schema/component/EmitCase$Companion;
 	public fun <init> (Ljava/util/Set;Ljava/lang/String;Ljava/util/List;)V
 	public synthetic fun <init> (Ljava/util/Set;Ljava/lang/String;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/util/Set;
@@ -235,7 +274,23 @@ public final class dev/rotalex/lutter/schema/component/EmitCase {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final synthetic class dev/rotalex/lutter/schema/component/EmitCase$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/EmitCase$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/schema/component/EmitCase;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/schema/component/EmitCase;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/schema/component/EmitCase$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class dev/rotalex/lutter/schema/component/EmitterId {
+	public static final field Companion Ldev/rotalex/lutter/schema/component/EmitterId$Companion;
 	public static final synthetic fun box-impl (Ljava/lang/String;)Ldev/rotalex/lutter/schema/component/EmitterId;
 	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
 	public fun equals (Ljava/lang/Object;)Z
@@ -247,6 +302,21 @@ public final class dev/rotalex/lutter/schema/component/EmitterId {
 	public fun toString ()Ljava/lang/String;
 	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
 	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/schema/component/EmitterId$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/EmitterId$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun deserialize-qFk7GlY (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/String;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public final fun serialize-O8HvUQc (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/String;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/schema/component/EmitterId$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
 public final class dev/rotalex/lutter/schema/component/EventArgSpec {
@@ -263,6 +333,7 @@ public final class dev/rotalex/lutter/schema/component/EventArgSpec {
 }
 
 public final class dev/rotalex/lutter/schema/component/EventBinding {
+	public static final field Companion Ldev/rotalex/lutter/schema/component/EventBinding$Companion;
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1-S-bTLXs ()Ljava/lang/String;
@@ -276,6 +347,21 @@ public final class dev/rotalex/lutter/schema/component/EventBinding {
 	public final fun getParam ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/schema/component/EventBinding$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/EventBinding$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/schema/component/EventBinding;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/schema/component/EventBinding;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/schema/component/EventBinding$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
 public final class dev/rotalex/lutter/schema/component/EventSpec {
@@ -299,6 +385,7 @@ public final class dev/rotalex/lutter/schema/component/IterationSpec {
 }
 
 public final class dev/rotalex/lutter/schema/component/KotlinSymbol {
+	public static final field Companion Ldev/rotalex/lutter/schema/component/KotlinSymbol$Companion;
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/lang/String;
@@ -311,10 +398,31 @@ public final class dev/rotalex/lutter/schema/component/KotlinSymbol {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final synthetic class dev/rotalex/lutter/schema/component/KotlinSymbol$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/KotlinSymbol$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/schema/component/KotlinSymbol;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/schema/component/KotlinSymbol$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public abstract interface class dev/rotalex/lutter/schema/component/LambdaTarget {
+	public static final field Companion Ldev/rotalex/lutter/schema/component/LambdaTarget$Companion;
+}
+
+public final class dev/rotalex/lutter/schema/component/LambdaTarget$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
 public final class dev/rotalex/lutter/schema/component/LambdaTarget$NamedParam : dev/rotalex/lutter/schema/component/LambdaTarget {
+	public static final field Companion Ldev/rotalex/lutter/schema/component/LambdaTarget$NamedParam$Companion;
 	public fun <init> (Ljava/lang/String;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun copy (Ljava/lang/String;)Ldev/rotalex/lutter/schema/component/LambdaTarget$NamedParam;
@@ -325,10 +433,26 @@ public final class dev/rotalex/lutter/schema/component/LambdaTarget$NamedParam :
 	public fun toString ()Ljava/lang/String;
 }
 
+public final synthetic class dev/rotalex/lutter/schema/component/LambdaTarget$NamedParam$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/LambdaTarget$NamedParam$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/schema/component/LambdaTarget$NamedParam;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/schema/component/LambdaTarget$NamedParam;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/schema/component/LambdaTarget$NamedParam$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class dev/rotalex/lutter/schema/component/LambdaTarget$Trailing : dev/rotalex/lutter/schema/component/LambdaTarget {
 	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/LambdaTarget$Trailing;
 	public fun equals (Ljava/lang/Object;)Z
 	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 	public fun toString ()Ljava/lang/String;
 }
 
@@ -372,6 +496,7 @@ public final class dev/rotalex/lutter/schema/component/ModifierPolicy$Only : dev
 }
 
 public final class dev/rotalex/lutter/schema/component/ParamBinding {
+	public static final field Companion Ldev/rotalex/lutter/schema/component/ParamBinding$Companion;
 	public fun <init> (Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/schema/component/ValueEmit;Ldev/rotalex/lutter/schema/component/Positional;Z)V
 	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/schema/component/ValueEmit;Ldev/rotalex/lutter/schema/component/Positional;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
@@ -391,6 +516,21 @@ public final class dev/rotalex/lutter/schema/component/ParamBinding {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final synthetic class dev/rotalex/lutter/schema/component/ParamBinding$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/ParamBinding$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/schema/component/ParamBinding;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/schema/component/ParamBinding;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/schema/component/ParamBinding$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class dev/rotalex/lutter/schema/component/PlatformTag : java/lang/Enum {
 	public static final field Android Ldev/rotalex/lutter/schema/component/PlatformTag;
 	public static final field Companion Ldev/rotalex/lutter/schema/component/PlatformTag$Companion;
@@ -407,11 +547,16 @@ public final class dev/rotalex/lutter/schema/component/PlatformTag$Companion {
 }
 
 public final class dev/rotalex/lutter/schema/component/Positional : java/lang/Enum {
+	public static final field Companion Ldev/rotalex/lutter/schema/component/Positional$Companion;
 	public static final field Never Ldev/rotalex/lutter/schema/component/Positional;
 	public static final field WhenSole Ldev/rotalex/lutter/schema/component/Positional;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/schema/component/Positional;
 	public static fun values ()[Ldev/rotalex/lutter/schema/component/Positional;
+}
+
+public final class dev/rotalex/lutter/schema/component/Positional$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
 public abstract interface class dev/rotalex/lutter/schema/component/PropertyRule {
@@ -495,6 +640,7 @@ public final class dev/rotalex/lutter/schema/component/ScopeId {
 }
 
 public final class dev/rotalex/lutter/schema/component/SlotBinding {
+	public static final field Companion Ldev/rotalex/lutter/schema/component/SlotBinding$Companion;
 	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/schema/component/LambdaTarget;Ldev/rotalex/lutter/schema/component/KotlinSymbol;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/schema/component/LambdaTarget;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1-P6TfaEA ()Ljava/lang/String;
@@ -508,6 +654,21 @@ public final class dev/rotalex/lutter/schema/component/SlotBinding {
 	public final fun getTarget ()Ldev/rotalex/lutter/schema/component/LambdaTarget;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/schema/component/SlotBinding$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/SlotBinding$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/schema/component/SlotBinding;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/schema/component/SlotBinding;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/schema/component/SlotBinding$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
 public final class dev/rotalex/lutter/schema/component/SlotSpec {
@@ -542,9 +703,11 @@ public final class dev/rotalex/lutter/schema/component/SpecOrigin$Static : dev/r
 }
 
 public abstract interface class dev/rotalex/lutter/schema/component/ValueEmit {
+	public static final field Companion Ldev/rotalex/lutter/schema/component/ValueEmit$Companion;
 }
 
 public final class dev/rotalex/lutter/schema/component/ValueEmit$Cases : dev/rotalex/lutter/schema/component/ValueEmit {
+	public static final field Companion Ldev/rotalex/lutter/schema/component/ValueEmit$Cases$Companion;
 	public fun <init> (Ljava/util/List;)V
 	public final fun component1 ()Ljava/util/List;
 	public final fun copy (Ljava/util/List;)Ldev/rotalex/lutter/schema/component/ValueEmit$Cases;
@@ -555,10 +718,30 @@ public final class dev/rotalex/lutter/schema/component/ValueEmit$Cases : dev/rot
 	public fun toString ()Ljava/lang/String;
 }
 
+public final synthetic class dev/rotalex/lutter/schema/component/ValueEmit$Cases$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/ValueEmit$Cases$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/schema/component/ValueEmit$Cases;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/schema/component/ValueEmit$Cases;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/schema/component/ValueEmit$Cases$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/schema/component/ValueEmit$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class dev/rotalex/lutter/schema/component/ValueEmit$Direct : dev/rotalex/lutter/schema/component/ValueEmit {
 	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/ValueEmit$Direct;
 	public fun equals (Ljava/lang/Object;)Z
 	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 	public fun toString ()Ljava/lang/String;
 }
 
