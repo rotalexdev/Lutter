@@ -10,7 +10,7 @@
 # belong to the shared catalog, and a second copy of any of them is a second thing to forget
 # to update.
 #
-# Add the two entries below to the shared catalog and delete this file. Until then, keep it
+# Add the entries below to the shared catalog and delete this file. Until then, keep it
 # to the smallest possible gap.
 
 [versions]
@@ -23,3 +23,11 @@ junit-jupiter = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+# `NodeTable`'s backing persistent map, PLAN §33.1. The version is on the library line rather
+# than in `[versions]` only because a `version.ref` here does not fit in 120 columns.
+#
+# PLAN §33.1:2405 says this version must come from `rootLibs`; catalog 1.2.7 carries no such
+# entry, so that requirement cannot be met and this file — whose stated purpose is
+# "coordinates that catalog does not have yet" — is where it goes meanwhile. The *coordinate*
+# is the thing that must not drift, and it is spelled the shared catalog's way.
+kotlinx-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version = "0.5.2" }
