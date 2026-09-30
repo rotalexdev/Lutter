@@ -1,6 +1,5 @@
 package dev.rotalex.lutter.model.index
 
-import dev.rotalex.lutter.model.action.ActionId
 import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
 import dev.rotalex.lutter.model.doc.AppSpec
@@ -11,12 +10,13 @@ import dev.rotalex.lutter.model.doc.NodeTable
 import dev.rotalex.lutter.model.doc.Page
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.expr.Expr
-import dev.rotalex.lutter.model.expr.FunctionId
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.expr.RefTarget
+import dev.rotalex.lutter.model.ids.ActionId
 import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.EventKey
+import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.ids.ModifierType
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
