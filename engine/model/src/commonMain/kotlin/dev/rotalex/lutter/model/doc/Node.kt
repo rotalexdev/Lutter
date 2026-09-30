@@ -121,7 +121,7 @@ import kotlinx.serialization.Serializable
  * and `type` would be the first thing to have to move.
  *
  * @see ModifierEntry for the ordered pair this record holds, and why order is meaning.
- * @see Value for the seventeen things a [PropertyValue.Const] can carry, and for why the
+ * @see Value for the eighteen things a [PropertyValue.Const] can carry, and for why the
  *   union is closed.
  */
 @Serializable

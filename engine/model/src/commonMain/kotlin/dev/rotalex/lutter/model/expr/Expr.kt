@@ -111,7 +111,7 @@ public sealed interface Expr {
      * A literal, already typed and already canonicalized.
      *
      * The payload is a [Value], not a Kotlin primitive, and that is what lets `Const` cover
-     * all seventeen of them without seventeen variants of its own. The number reaching a
+     * all eighteen of them without eighteen variants of its own. The number reaching a
      * document through here is written by `CanonicalFloat`/`CanonicalDouble`, so D1 holds for
      * an expression exactly as it holds for a property.
      */

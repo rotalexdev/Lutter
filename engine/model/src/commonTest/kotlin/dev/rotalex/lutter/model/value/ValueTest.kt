@@ -17,7 +17,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * The `Value` contract: seventeen variants that all have to survive a document, a rename, a
+ * The `Value` contract: eighteen variants that all have to survive a document, a rename, a
  * JDK upgrade and a reader that has never heard of what the document names.
  *
  * The tests are grouped by the promise each one defends:
@@ -27,7 +27,7 @@ import kotlinx.serialization.json.jsonPrimitive
  *    encoder would put in a document.
  *  * **Decoding consults nothing** (D4), which is the property the whole format is built for.
  *  * **A colour is eight hex digits** and its channels cannot be out of range.
- *  * **A kind accepts its own value and refuses the other sixteen.**
+ *  * **A kind accepts its own value and refuses the other seventeen.**
  */
 class ValueTest {
 
@@ -39,7 +39,7 @@ class ValueTest {
     private data class Case(val value: Value, val tag: String)
 
     /**
-     * All seventeen of PLAN §5.4's variants, each with the tag it must write.
+     * All eighteen of PLAN §5.4's variants, each with the tag it must write.
      *
      * One list carrying both, because a list of values and a separate list of tags would
      * drift: a variant added to one and not the other still compiles, still passes the round
@@ -76,7 +76,7 @@ class ValueTest {
     )
 
     @Test
-    fun `the union has seventeen variants and no two share a tag`() {
+    fun `the union has eighteen variants and no two share a tag`() {
         // Every variant, transcribed from §5.4. The count is asserted because the union is closed
         // and a variant that quietly went missing would still compile and still pass every
         // other test in this file, while failing to read a document that used it.
@@ -110,7 +110,7 @@ class ValueTest {
             // itself.
             assertEquals(case.tag, discriminatorOf(text), "wrong discriminator in '$text'")
 
-            // And the rename guard. All seventeen differ from their class name today, which
+            // And the rename guard. All eighteen differ from their class name today, which
             // is what lets the assertion be made without exceptions: a variant whose tag
             // started following its class name would read no document written before the
             // rename, and this is the line that catches it.
@@ -381,7 +381,7 @@ class ValueTest {
     // -----------------------------------------------------------------------------------
 
     /**
-     * A kind and one value of the seventeen that belongs to it.
+     * A kind and one value of the eighteen that belongs to it.
      *
      * The type is stated rather than left to inference because the eleven pairs have
      * eleven different types, and a `listOf` over them infers a least upper bound that a
@@ -402,10 +402,10 @@ class ValueTest {
     )
 
     @Test
-    fun `a kind accepts its own value and refuses the other sixteen`() {
+    fun `a kind accepts its own value and refuses the other seventeen`() {
         // The matrix. A kind that accepted two variants would be a type check that can be
         // fooled by a document, and the variant that fools it would be the one it was not
-        // written for. Seventeen by eleven, and every cell is asserted.
+        // written for. Eighteen by eleven, and every cell is asserted.
         for ((kind, own) in kinds) {
             for (value in cases.map { it.value }) {
                 // The oracle is the *variant*, not the value. `accepts` is a type check, so
@@ -472,7 +472,7 @@ class ValueTest {
 
     @Test
     fun `a value no kind claims is refused by all of them`() {
-        // Six of the seventeen have no model kind: Null, Ref, Icon, Token, ListOf and Obj.
+        // Six of the eighteen have no model kind: Null, Ref, Icon, Token, ListOf and Obj.
         // Each needs a schema, a theme, an analysis pass or a declared shape to become
         // anything a renderer can use, and a kind here that pretended otherwise would have to
         // invent the answer.

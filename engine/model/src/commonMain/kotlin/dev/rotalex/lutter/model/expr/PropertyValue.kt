@@ -36,7 +36,7 @@ public sealed interface PropertyValue {
     /**
      * A literal, already canonicalized.
      *
-     * A [Value] and not a bare `String` or a primitive, so the seventeen variants keep their
+     * A [Value] and not a bare `String` or a primitive, so the eighteen variants keep their
      * own tags and D1's number spelling reaches a property through here unchanged. The
      * asymmetry with [Computed] is that this arm needs no scope, no analysis and no
      * evaluation: it is the arm a document can be checked against without understanding a
