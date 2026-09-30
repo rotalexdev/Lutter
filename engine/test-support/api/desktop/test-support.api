@@ -1,0 +1,11 @@
+public final class dev/rotalex/lutter/testsupport/Golden {
+	public static final field INSTANCE Ldev/rotalex/lutter/testsupport/Golden;
+	public final fun assertEquals (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/testsupport/GoldenSource;Z)Ljava/lang/String;
+	public static synthetic fun assertEquals$default (Ldev/rotalex/lutter/testsupport/Golden;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/testsupport/GoldenSource;ZILjava/lang/Object;)Ljava/lang/String;
+	public final fun read (Ljava/lang/String;Ldev/rotalex/lutter/testsupport/GoldenSource;)Ljava/lang/String;
+}
+
+public abstract interface class dev/rotalex/lutter/testsupport/GoldenSource {
+	public abstract fun read (Ljava/lang/String;)Ljava/lang/String;
+}
+
