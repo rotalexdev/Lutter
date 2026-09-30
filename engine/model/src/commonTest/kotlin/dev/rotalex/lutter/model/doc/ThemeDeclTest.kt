@@ -72,12 +72,14 @@ class ThemeDeclTest {
 
         // A role is a bare string on the wire, which is what "open vocabulary" means; a
         // `TokenName` is a dotted one; and the colour is eight hex digits because `ColorSpec`
-        // puts the serializer on its properties.
+        // puts the serializer on its properties. `dimensions` writes no `"type"` because its
+        // values are statically `Value.Dp` — a concrete type writes no discriminator, while
+        // `custom`'s `Value` values do.
         assertEquals(
             """{"id":"t_dark","name":"Dark","colors":{"primary":{"light":"#FF6200EE"}},""" +
                 """"typography":{"headlineMedium":{"fontSize":{"type":"sp","v":24}}},""" +
                 """"shapes":{"small":{"radius":{"type":"dp","v":4}}},""" +
-                """"dimensions":{"md.spacing.medium":{"type":"dp","v":16}},""" +
+                """"dimensions":{"md.spacing.medium":{"v":16}},""" +
                 """"custom":{"brand.accent":{"type":"color","argb":"#FFFFBB33"}}}""",
             text,
         )

@@ -47,8 +47,8 @@ class NodeTableTest {
         assertEquals(emptyList(), NodeTable.EMPTY.ids().toList())
         assertNull(NodeTable.EMPTY[NodeId("n_1")])
         assertFalse(NodeId("n_1") in NodeTable.EMPTY)
-        assertEquals("{}", Json.encodeToString<NodeTable>(NodeTable.EMPTY))
-        assertEquals(NodeTable.EMPTY, Json.decodeFromString<NodeTable>("{}"))
+        assertEquals("{}", Json.encodeToString(NodeTableSerializer(),NodeTable.EMPTY))
+        assertEquals(NodeTable.EMPTY, Json.decodeFromString(NodeTableSerializer(),"{}"))
 
         // And it is immutable in the way a table is for: `with` returns a new one.
         val grown = NodeTable.EMPTY.with(column("n_1"))
@@ -116,9 +116,9 @@ class NodeTableTest {
         assertEquals(oneWay, other)
         assertEquals(oneWay.hashCode(), other.hashCode())
         assertEquals("""{"n_1":{"id":"n_1","type":"core.Column"},"n_2":{"id":"n_2","type":"core.Column"}}""",
-            Json.encodeToString<NodeTable>(oneWay))
+            Json.encodeToString(NodeTableSerializer(),oneWay))
         assertEquals("""{"n_1":{"id":"n_1","type":"core.Column"},"n_2":{"id":"n_2","type":"core.Column"}}""",
-            Json.encodeToString<NodeTable>(other))
+            Json.encodeToString(NodeTableSerializer(),other))
 
         // And a different node is a different table, which is what makes the equality above
         // worth having: an identity comparison would have passed it too.
@@ -184,7 +184,7 @@ class NodeTableTest {
             .with(column("n_a"))
             .with(column("n_b"))
 
-        val text = Json.encodeToString<NodeTable>(table)
+        val text = Json.encodeToString(NodeTableSerializer(),table)
 
         assertEquals(
             """{"n_a":{"id":"n_a","type":"core.Column"},"n_b":{"id":"n_b","type":"core.Column"},""" +
@@ -207,7 +207,7 @@ class NodeTableTest {
                 .getValue("id").jsonPrimitive.content,
         )
 
-        assertEquals(table, Json.decodeFromString<NodeTable>(text))
+        assertEquals(table, Json.decodeFromString(NodeTableSerializer(),text))
     }
 
     @Test
@@ -218,12 +218,12 @@ class NodeTableTest {
         // being refused: an index that reads a document nobody can open helps nobody.
         val text = """{"n_other":{"id":"n_a","type":"core.Column"}}"""
 
-        val table = Json.decodeFromString<NodeTable>(text)
+        val table = Json.decodeFromString(NodeTableSerializer(),text)
 
         assertEquals(1, table.size)
         assertEquals(NodeId("n_a"), table.ids().single())
         assertNull(table[NodeId("n_other")])
-        assertEquals("""{"n_a":{"id":"n_a","type":"core.Column"}}""", Json.encodeToString<NodeTable>(table))
+        assertEquals("""{"n_a":{"id":"n_a","type":"core.Column"}}""", Json.encodeToString(NodeTableSerializer(),table))
     }
 
     @Test
@@ -246,23 +246,23 @@ class NodeTableTest {
         // wrap what a value's constructor throws — so this arrives as
         // `IllegalArgumentException`, the same rule `ColorSpecTest` pins for a bad colour.
         assertFailsWith<IllegalArgumentException> {
-            Json.decodeFromString<NodeTable>("""{"has space":{"id":"has space","type":"core.Column"}}""")
+            Json.decodeFromString(NodeTableSerializer(),"""{"has space":{"id":"has space","type":"core.Column"}}""")
         }
         assertFailsWith<IllegalArgumentException> {
-            Json.decodeFromString<NodeTable>("""{"n_1":{"id":"n_1","type":"no dot"}}""")
+            Json.decodeFromString(NodeTableSerializer(),"""{"n_1":{"id":"n_1","type":"no dot"}}""")
         }
 
         // A structural problem is the serializer's, not the id's: the body is not a node at
         // all, and that is a `SerializationException`.
         assertFailsWith<SerializationException> {
-            Json.decodeFromString<NodeTable>("""{"n_1":"core.Column"}""")
+            Json.decodeFromString(NodeTableSerializer(),"""{"n_1":"core.Column"}""")
         }
         assertFailsWith<SerializationException> {
-            Json.decodeFromString<NodeTable>("""{"n_1":{"type":"core.Column"}}""")
+            Json.decodeFromString(NodeTableSerializer(),"""{"n_1":{"type":"core.Column"}}""")
         }
         // A node is one shape with no alternatives, so there is nothing to discriminate.
         assertFailsWith<SerializationException> {
-            Json.decodeFromString<NodeTable>("""{"n_1":{"id":"n_1","type":"core.Column","kind":"x"}}""")
+            Json.decodeFromString(NodeTableSerializer(),"""{"n_1":{"id":"n_1","type":"core.Column","kind":"x"}}""")
         }
     }
 }

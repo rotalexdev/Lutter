@@ -101,10 +101,17 @@ public class DocumentIndex(private val document: UiDocument) {
      * §6.2:514 names this as one of the two halves of the dirty set and §26.2's
      * `touchedNodes` is the other. A batch in and a [Set] out, because the caller wants
      * membership and folding [pathTo] per id gives it a [List] with duplicates.
+     *
+     * An id with no node in the table contributes nothing: [pathTo] returns a one-element
+     * path for it, but a dirty set naming a node that does not exist is not a set the
+     * caller can use.
      */
     public fun ancestorsOf(ids: Collection<NodeId>): Set<NodeId> {
         val dirty = mutableSetOf<NodeId>()
-        for (id in ids) dirty += pathTo(id)
+        for (id in ids) {
+            if (id !in document.nodes) continue
+            dirty += pathTo(id)
+        }
         return dirty
     }
 
