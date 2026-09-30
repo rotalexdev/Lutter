@@ -5,6 +5,7 @@ import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.ids.ModifierType
 import dev.rotalex.lutter.model.ids.TypeId
+import dev.rotalex.lutter.schema.registry.DuplicateKeyException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
