@@ -385,7 +385,7 @@ public class NodeTable internal constructor(private val map: PersistentMap<NodeI
 }
 ```
 
-`NodeTableSerializer` lives in `:engine:model`, beside the class, and is `internal`. The annotation above names it by unqualified symbol, so it has to be resolvable from the module that declares the annotated type; `:engine:serialization` is the wrong home for that (and §23.3:1727 forbids the model from depending on it), which is why §33.3's row for it is corrected. `internal` is not a leak: the persistent map is already an internal detail (this section's own note, and §24.1:1754), so nothing in the public surface of `NodeTable` names a type from the library.
+`NodeTableSerializer` lives in `:engine:model`, beside the class, and is `public`. The annotation above names it by unqualified symbol, so it has to be resolvable from the module that declares the annotated type; `:engine:serialization` is the wrong home for that (and §23.3:1727 forbids the model from depending on it), which is why §33.3's row for it is corrected. It is public rather than `internal` because an internal custom serializer on a public type throws `SerializationException` on Wasm — the generated lookup cannot reach it there, while JVM and Android can. Public is not a leak: the persistent map stays an internal detail (this section's own note, and §24.1:1754), and the serializer's only public fact is that a table writes as a map.
 
 Four members the table needs and does not have, each with the text that requires it:
 
@@ -412,7 +412,7 @@ Each row was an open question in this section's closure — a type this section 
 | The `UiDocument` work and the `NodeTable` work are **one** unit, and the arrow runs from the former to the latter | `nodes: NodeTable` carries no default (this section), so the root record does not compile without the table it holds | The feature task list's "T8 needs T7" is the wrong way round: there is no cut point at which `UiDocument` compiles and `NodeTable` does not. The order is set by the type graph, not by preference |
 | `PluginRequirement.version: String` | §30.2:2043 and §27.1:1912 | The `plugins` field's `versionRange` comment — one site against two, and corrected in place above |
 | `DataModelDecl`/`FieldDecl` shapes | §16.6:1307's emission target (`data class User(val name: String, val age: Int)`) | Not a design space: the generated source *is* the specification |
-| `NodeTableSerializer` is in `:engine:model` and `internal` | §5.5:371's annotation names it; §33.1:2385 files it with `NodeTable` | §33.3:2438, which cannot hold it: §23.3:1727 forbids the model from depending on `:engine:serialization` |
+| `NodeTableSerializer` is in `:engine:model` and `public` | §5.5:371's annotation names it; §33.1:2385 files it with `NodeTable` | §33.3:2438, which cannot hold it: §23.3:1727 forbids the model from depending on `:engine:serialization` |
 | `NodeBody` is retired; the encoding is `Map<NodeId, Node>` | §5.3:218 requires `id` | §30.2:2050-2071 writes bodies without one. A `FORMAT_VERSION` event, and §19.2:1497 means it is free |
 | `ResourceKind` has no `Color` entry | §20:1559 — "Colors/typography are tokens (§14), not resources" — and §9.2:768 gives colour a colour-picker, not a resource picker | §20:1522's trailing comment listed it; corrected in place in §20 |
 | `ResourceVariant.qualifiers` stays a `Set` | §18.2:1414 orders object keys and arrays and says nothing about sets | Fixed by a canonical-writer rule in §18.2, not by a type change: qualifiers are a predicate, so their order carries no meaning to preserve |
@@ -2382,7 +2382,7 @@ Base package `dev.rotalex.lutter.<module>`. "Pub" = public API (ABI-tracked), "I
 | `expr/Expr.kt` | Expression AST | `Expr`, `RefTarget`, `UnaryOp`, `BinaryOp` | Value | Pub |
 | `action/ActionSequence.kt` | Action data | `ActionSequence`, `ActionStep` | PropertyValue | Pub |
 | `doc/Node.kt` | Node + modifier record | `Node`, `ModifierEntry` | Ids, PropertyValue, ActionSequence | Pub |
-| `doc/NodeTable.kt` | Normalized persistent table | `NodeTable`, `NodeTableSerializer` (`internal`) | Node | Pub / Int (serializer) |
+| `doc/NodeTable.kt` | Normalized persistent table | `NodeTable`, `NodeTableSerializer` (public) | Node | Pub |
 | `doc/Page.kt` | Page & params | `Page`, `ParamDecl` | Ids, TypeRef, StateDecl | Pub |
 | `doc/ComponentDecl.kt` | Reusable components | `ComponentDecl`, `SlotDecl` | Ids | Pub |
 | `doc/StateDecl.kt` | State | `StateDecl`, `Persistence` | Expr, TypeRef | Pub |
@@ -2402,7 +2402,7 @@ Base package `dev.rotalex.lutter.<module>`. "Pub" = public API (ABI-tracked), "I
 
 Tests (`commonTest`): `IdsTest`, `DecimalTest`, `ValueFactoryTest`, `NodeTableTest`, `DocumentIndexTest` (+ property-based), `TraversalTest`, `DslTest`.
 
-**Dependencies.** `:engine:model` has one non-project dependency beyond `kotlinx-serialization`: `org.jetbrains.kotlinx:kotlinx-collections-immutable`, **0.5.2**, which `NodeTable`'s backing map needs (§5.5, ADR-007). §23.3:1727 already permits it, and nothing else does. It is declared `implementation`, not `api`, because the persistent map is an internal detail of `NodeTable` and appears in no public signature (§5.5's own note; the same reasoning that keeps the serializer `internal`). The version comes from the shared `rootLibs` catalog named in `settings.gradle.kts` — **not** from `gradle/libs.versions.toml`, which does not carry it and must not gain a second copy of a version the shared catalog owns.
+**Dependencies.** `:engine:model` has one non-project dependency beyond `kotlinx-serialization`: `org.jetbrains.kotlinx:kotlinx-collections-immutable`, **0.5.2**, which `NodeTable`'s backing map needs (§5.5, ADR-007). §23.3:1727 already permits it, and nothing else does. It is declared `implementation`, not `api`, because the persistent map is an internal detail of `NodeTable` and appears in no public signature (§5.5's own note). The version comes from `gradle/libs.versions.toml` — the shared `rootLibs` catalog (1.2.7) carries no such entry, so that file's own "coordinates that catalog does not have yet" rule is what places it there.
 
 **The 0.5.x API note, for whoever writes `NodeTable` next.** 0.5 renamed every copy-returning method on `PersistentCollection`/`PersistentList`/`PersistentMap` to the participial form KEEP-0459 requires, and kept the old spellings as `@Deprecated(WARNING)` with `ReplaceWith`: `put` → `putting`, `remove` → `removing`, `putAll` → `puttingAll`, `add` → `adding`, `set` → `replacingAt`, `removeAt` → `removingAt`, `clear` → `cleared`. The imperative names become a compile error in 0.6.0 and are removed in 0.7.0, so **a missed rename is a warning today, not a failure** — which is exactly the case where it is worth writing the new names the first time. `NodeTable.with`/`without` are written directly on this API (§5.5), so nothing else in the module will notice the difference. The zero-length map comes from `persistentHashMapOf()`/`persistentMapOf()`: the `immutableMapOf` spelling is the deprecated alias of the latter, and the two differ in what their iteration order is.
 
@@ -2435,7 +2435,7 @@ Tests (`commonTest`): `IdsTest`, `DecimalTest`, `ValueFactoryTest`, `NodeTableTe
 | `ForgeJson.kt` | Single `Json` configuration | Int |
 | `Envelope.kt` | Envelope record + read/write | Pub |
 | `CanonicalJsonWriter.kt` | Sorted keys, formatting, numbers | Int |
-| ~~`NodeTableSerializer.kt`~~ | *moved to `:engine:model` `doc/NodeTable.kt`, `internal`: §5.5's `@Serializable(with = …)` names it and §23.3:1727 forbids the model from depending on this module* | — |
+| ~~`NodeTableSerializer.kt`~~ | *moved to `:engine:model` `doc/NodeTable.kt`, public: §5.5's `@Serializable(with = …)` names it, §23.3:1727 forbids the model from depending on this module, and an internal serializer on a public type throws on Wasm* | — |
 | `DocumentCodec.kt` | `DocumentCodec`, `DecodeOptions`, `DecodeResult` | Pub |
 | `JsonDocumentCodec.kt` | JSON implementation | Pub |
 | `migration/Migration.kt` | `Migration`, `MigrationChain`, `MigrationResult` | Pub |

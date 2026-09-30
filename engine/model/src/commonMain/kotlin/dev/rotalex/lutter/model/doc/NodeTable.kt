@@ -122,12 +122,14 @@ public class NodeTable internal constructor(private val map: PersistentMap<NodeI
 /**
  * Reads and writes a [NodeTable] as a JSON object keyed by id, entries in ascending order.
  *
- * `internal` and it lives here rather than in `:engine:serialization`, for the reason
+ * `public` and it lives here rather than in `:engine:serialization`, for the reason
  * §5.5:388 gives: the annotation on `NodeTable` names it by unqualified symbol, so it has to
  * be resolvable from the module that declares the annotated type, and §23.3 forbids this
- * module from depending on `:engine:serialization`. `internal` is not a leak — the persistent
- * map is already an internal detail, so nothing in `NodeTable`'s public surface names a type
- * from the library.
+ * module from depending on `:engine:serialization`. It is public rather than internal
+ * because an internal custom serializer on a public type throws `SerializationException`
+ * on Wasm — the generated lookup cannot reach it there, while JVM and Android can.
+ * Public is not a leak: the persistent map stays an internal detail, and the serializer's
+ * only public fact is that a table writes as a map.
  *
  * ### The entries are `Node`, id included
  *
@@ -150,7 +152,7 @@ public class NodeTable internal constructor(private val map: PersistentMap<NodeI
  * is a [LinkedHashMap] for the same reason: `MapSerializer` writes a map in its own iteration
  * order, and a `PersistentHashMap` has none to promise.
  */
-internal class NodeTableSerializer : KSerializer<NodeTable> {
+public class NodeTableSerializer : KSerializer<NodeTable> {
 
     /**
      * The surrogate's own descriptor, because the wire form *is* a `Map<NodeId, Node>`.

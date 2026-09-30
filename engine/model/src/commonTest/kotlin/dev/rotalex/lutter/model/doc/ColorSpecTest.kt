@@ -59,7 +59,7 @@ class ColorSpecTest {
         val lightOnly = ColorSpec(light = ColorArgb.parse("#FF6200EE"))
         val pair = ColorSpec(
             light = ColorArgb.parse("#FF6200EE"),
-            dark = ColorArgb.parse("#FFBB33"),
+            dark = ColorArgb.parse("#FFFFBB33"),
         )
 
         assertEquals("""{"light":"#FF6200EE"}""", Json.encodeToString<ColorSpec>(lightOnly))
@@ -68,7 +68,7 @@ class ColorSpecTest {
             Json.parseToJsonElement(Json.encodeToString<ColorSpec>(lightOnly)).jsonObject.keys.toList(),
         )
         assertEquals(
-            """{"light":"#FF6200EE","dark":"#FFBB33"}""",
+            """{"light":"#FF6200EE","dark":"#FFFFBB33"}""",
             Json.encodeToString<ColorSpec>(pair),
         )
 
@@ -78,7 +78,7 @@ class ColorSpecTest {
         assertNull(Json.decodeFromString<ColorSpec>("""{"light":"#FF6200EE","dark":null}""").dark)
         assertEquals(
             pair,
-            Json.decodeFromString<ColorSpec>("""{"light":"#FF6200EE","dark":"#FFBB33"}"""),
+            Json.decodeFromString<ColorSpec>("""{"light":"#FF6200EE","dark":"#FFFFBB33"}"""),
         )
     }
 
@@ -98,18 +98,18 @@ class ColorSpecTest {
         // re-encodes to the upper-case spelling, so it is not byte-identical. A fragment already
         // in upper case — the canonical form, and what the first test writes — is preserved
         // exactly, which is the property a stored document depends on.
-        val mixed = """{"light":"#FF6200EE","dark":"#ffbb33"}"""
+        val mixed = """{"light":"#FF6200EE","dark":"#ffffbb33"}"""
         assertNotEquals(
             mixed,
             Json.encodeToString<ColorSpec>(Json.decodeFromString<ColorSpec>(mixed)),
             "a mixed-case fragment came back unchanged",
         )
         assertEquals(
-            """{"light":"#FF6200EE","dark":"#FFBB33"}""",
+            """{"light":"#FF6200EE","dark":"#FFFFBB33"}""",
             Json.encodeToString<ColorSpec>(Json.decodeFromString<ColorSpec>(mixed)),
         )
 
-        val canonical = """{"light":"#FF6200EE","dark":"#FFBB33"}"""
+        val canonical = """{"light":"#FF6200EE","dark":"#FFFFBB33"}"""
         assertEquals(
             canonical,
             Json.encodeToString<ColorSpec>(Json.decodeFromString<ColorSpec>(canonical)),

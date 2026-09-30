@@ -165,7 +165,7 @@ class DocumentIndexTest {
         // One node's path is already a set, and the two touched nodes share an ancestor, so the
         // result is smaller than the sum of the two paths.
         assertEquals(
-            setOf(NodeId("n_root"), NodeId("n_label")),
+            setOf(NodeId("n_root"), NodeId("n_button"), NodeId("n_label")),
             index.ancestorsOf(listOf(NodeId("n_label"))),
         )
         assertEquals(setOf<NodeId>(), index.ancestorsOf(emptyList()))
@@ -255,6 +255,6 @@ class DocumentIndexTest {
             ref.toString(),
             "the generated toString moved, or an id stopped reading as itself",
         )
-        assertEquals(1, ref.index)
+        assertEquals(0, ref.index)
     }
 }

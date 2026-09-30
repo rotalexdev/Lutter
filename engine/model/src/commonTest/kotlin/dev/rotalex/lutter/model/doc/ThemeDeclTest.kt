@@ -65,7 +65,7 @@ class ThemeDeclTest {
             ),
             shapes = mapOf(ShapeRole("small") to mapOf(PropertyKey("radius") to Value.Dp(4f))),
             dimensions = mapOf(TokenName("md.spacing.medium") to Value.Dp(16f)),
-            custom = mapOf(TokenName("brand.accent") to Value.Color(ColorArgb.parse("#FFBB33"))),
+            custom = mapOf(TokenName("brand.accent") to Value.Color(ColorArgb.parse("#FFFFBB33"))),
         )
 
         val text = Json.encodeToString<ThemeDecl>(theme)
@@ -78,7 +78,7 @@ class ThemeDeclTest {
                 """"typography":{"headlineMedium":{"fontSize":{"type":"sp","v":24}}},""" +
                 """"shapes":{"small":{"radius":{"type":"dp","v":4}}},""" +
                 """"dimensions":{"md.spacing.medium":{"type":"dp","v":16}},""" +
-                """"custom":{"brand.accent":{"type":"color","argb":"#FFBB33"}}}""",
+                """"custom":{"brand.accent":{"type":"color","argb":"#FFFFBB33"}}}""",
             text,
         )
         assertEquals(theme, Json.decodeFromString<ThemeDecl>(text))
