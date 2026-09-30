@@ -229,13 +229,14 @@ public class NodeScope internal constructor(
         block: NodeScope.() -> Unit = {},
     ): NodeId = node(ComponentType(type), id, name, block)
 
-    /** Fills a slot with children, in render order. */
-    public fun slot(name: SlotName, vararg children: NodeId): Unit {
+    /** Fills a slot with children, in render order. A list and not a `vararg`: Kotlin
+     * forbids a `vararg` of a value class, and [NodeId] is one. */
+    public fun slot(name: SlotName, children: List<NodeId>): Unit {
         slots.getOrPut(name) { mutableListOf() }.addAll(children)
     }
 
     /** Fills a slot, spelling its name as a string. */
-    public fun slot(name: String, vararg children: NodeId): Unit = slot(SlotName(name), *children)
+    public fun slot(name: String, children: List<NodeId>): Unit = slot(SlotName(name), children)
 
     /** A literal property. The value is wrapped as a constant. */
     public fun prop(key: PropertyKey, value: Value): Unit {

@@ -39,18 +39,20 @@ class DslTest {
             node("core.Column") {
                 slot(
                     "children",
-                    node("m3.Text") { prop("text", Value.Str("Welcome")) },
-                    node("m3.Button") {
-                        slot("content", node("m3.Text") { prop("text", Value.Str("Go")) })
-                        event("onClick", ActionSequence(listOf(ActionStep(ActionId("nav.navigate")))))
-                    },
+                    listOf(
+                        node("m3.Text") { prop("text", Value.Str("Welcome")) },
+                        node("m3.Button") {
+                            slot("content", listOf(node("m3.Text") { prop("text", Value.Str("Go")) }))
+                            event("onClick", ActionSequence(listOf(ActionStep(ActionId("nav.navigate")))))
+                        },
+                    ),
                 )
                 modifier("layout.fillMaxSize")
             }
         }
         component(ComponentDeclId("Card"), "Card") {
             node("core.Column") {
-                slot("children", node("m3.Text") { computed("text", Expr.Const(Value.Int32(1))) })
+                slot("children", listOf(node("m3.Text") { computed("text", Expr.Const(Value.Int32(1))) }))
             }
         }
     }
