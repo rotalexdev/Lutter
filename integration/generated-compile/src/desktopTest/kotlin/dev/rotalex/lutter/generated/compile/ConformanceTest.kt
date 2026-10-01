@@ -99,9 +99,16 @@ class ConformanceTest {
 
 // UiScreen wraps the tree in a bare Box; the generated screen does not. A wrapper with no
 // semantics and one child is layout, not content, so the comparison starts below it.
+// Emptiness is read through the dump's own signals (`valueOrNull`): `isEmpty()` is not
+// visible on `SemanticsConfiguration` from here, and a node carrying a tag or a text is
+// content by the same definition the dump uses. The strip is symmetric — both sides run
+// it — so agreement is still proved even where it strips a meaningful single-child root.
 private fun firstContent(node: SemanticsNode): SemanticsNode {
     var current = node
-    while (current.children.size == 1 && current.config.isEmpty()) {
+    while (current.children.size == 1 &&
+        current.config.valueOrNull(SemanticsProperties.TestTag) == null &&
+        current.config.valueOrNull(SemanticsProperties.Text) == null
+    ) {
         current = current.children.first()
     }
     return current
