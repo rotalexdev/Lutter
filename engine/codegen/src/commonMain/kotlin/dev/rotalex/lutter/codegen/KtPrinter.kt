@@ -229,45 +229,62 @@ public class KtPrinter(
         repeat(indent * formatting.indentWidth) { append(' ') }
     }
 
+    // Members, not locals: exprs and stmt recurse into each other, and local
+    // functions cannot forward-reference. State travels in parameters.
+    private fun recordSymbol(
+        symbol: KotlinSymbol,
+        filePkg: String,
+        seen: MutableMap<String, MutableList<KotlinSymbol>>,
+    ): Unit {
+        if (symbol.packageName in policy.defaultPackages) return
+        if (symbol.packageName == filePkg) return
+        seen.getOrPut(symbol.name) { mutableListOf() } += symbol
+    }
+
+    private fun collectExprSymbols(
+        expr: KtExpr,
+        filePkg: String,
+        seen: MutableMap<String, MutableList<KotlinSymbol>>,
+    ): Unit {
+        if (expr is KtExpr.Ref) recordSymbol(expr.symbol.symbol, filePkg, seen)
+        if (expr is KtExpr.Literal) expr.imports.forEach { recordSymbol(it, filePkg, seen) }
+        if (expr is KtExpr.Snippet) expr.symbols.forEach { recordSymbol(it, filePkg, seen) }
+        if (expr is KtExpr.Member) collectExprSymbols(expr.receiver, filePkg, seen)
+        if (expr is KtExpr.Lambda) expr.body.forEach { collectStmtSymbols(it, filePkg, seen) }
+        if (expr is KtExpr.Call) {
+            collectExprSymbols(expr.callee, filePkg, seen)
+            expr.args.forEach { collectExprSymbols(it.value, filePkg, seen) }
+            expr.trailing?.body?.forEach { collectStmtSymbols(it, filePkg, seen) }
+        }
+        if (expr is KtExpr.Chain) {
+            collectExprSymbols(expr.receiver, filePkg, seen)
+            expr.calls.forEach { call ->
+                recordSymbol(call.function, filePkg, seen)
+                call.args.forEach { collectExprSymbols(it.value, filePkg, seen) }
+            }
+        }
+    }
+
+    private fun collectStmtSymbols(
+        stmt: KtStmt,
+        filePkg: String,
+        seen: MutableMap<String, MutableList<KotlinSymbol>>,
+    ): Unit {
+        val single: KtStmt.Expr = stmt as? KtStmt.Expr
+            ?: throw CodegenBug("Skeleton prints expression statements only, got " + stmt)
+        collectExprSymbols(single.expr, filePkg, seen)
+    }
+
     private fun collectSymbols(file: KtFile, seen: MutableMap<String, MutableList<KotlinSymbol>>): Unit {
-        fun record(symbol: KotlinSymbol): Unit {
-            if (symbol.packageName in policy.defaultPackages) return
-            if (symbol.packageName == file.pkg) return
-            seen.getOrPut(symbol.name) { mutableListOf() } += symbol
-        }
-        fun exprs(expr: KtExpr): Unit {
-            if (expr is KtExpr.Ref) record(expr.symbol.symbol)
-            if (expr is KtExpr.Literal) expr.imports.forEach(::record)
-            if (expr is KtExpr.Snippet) expr.symbols.forEach(::record)
-            if (expr is KtExpr.Member) exprs(expr.receiver)
-            if (expr is KtExpr.Lambda) expr.body.forEach(::stmt)
-            if (expr is KtExpr.Call) {
-                exprs(expr.callee)
-                expr.args.forEach { exprs(it.value) }
-                expr.trailing?.body?.forEach(::stmt)
-            }
-            if (expr is KtExpr.Chain) {
-                exprs(expr.receiver)
-                expr.calls.forEach { call ->
-                    record(call.function)
-                    call.args.forEach { exprs(it.value) }
-                }
-            }
-        }
-        fun stmt(stmt: KtStmt): Unit {
-            val single: KtStmt.Expr = stmt as? KtStmt.Expr
-                ?: throw CodegenBug("Skeleton prints expression statements only, got " + stmt)
-            exprs(single.expr)
-        }
         for (declaration in file.declarations) {
             val function: KtDeclaration.Function = declaration as? KtDeclaration.Function
                 ?: throw CodegenBug("Skeleton prints functions only, got " + declaration)
-            function.annotations.forEach(::record)
+            function.annotations.forEach { recordSymbol(it, file.pkg, seen) }
             for (param in function.params) {
-                record(param.type)
-                param.default?.let(::exprs)
+                recordSymbol(param.type, file.pkg, seen)
+                param.default?.let { collectExprSymbols(it, file.pkg, seen) }
             }
-            function.body.forEach(::stmt)
+            function.body.forEach { collectStmtSymbols(it, file.pkg, seen) }
         }
     }
 
