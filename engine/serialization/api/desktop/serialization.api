@@ -144,3 +144,16 @@ public final class dev/rotalex/lutter/serialization/UnsupportedFutureVersion : k
 	public final fun getSupported ()I
 }
 
+public abstract interface class dev/rotalex/lutter/serialization/storage/DocumentStorage {
+	public abstract fun read (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun write (Ljava/lang/String;[BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/rotalex/lutter/serialization/storage/FileDocumentStorage : dev/rotalex/lutter/serialization/storage/DocumentStorage {
+	public fun <init> ()V
+	public fun <init> (Lkotlinx/io/files/FileSystem;)V
+	public synthetic fun <init> (Lkotlinx/io/files/FileSystem;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun read (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun write (Ljava/lang/String;[BLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+

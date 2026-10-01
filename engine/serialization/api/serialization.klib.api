@@ -6,6 +6,11 @@
 // - Show declarations: true
 
 // Library unique name: <dev.rotalex.lutter:serialization>
+abstract interface dev.rotalex.lutter.serialization.storage/DocumentStorage { // dev.rotalex.lutter.serialization.storage/DocumentStorage|null[0]
+    abstract suspend fun read(kotlin/String): kotlin/ByteArray // dev.rotalex.lutter.serialization.storage/DocumentStorage.read|read(kotlin.String){}[0]
+    abstract suspend fun write(kotlin/String, kotlin/ByteArray) // dev.rotalex.lutter.serialization.storage/DocumentStorage.write|write(kotlin.String;kotlin.ByteArray){}[0]
+}
+
 abstract interface dev.rotalex.lutter.serialization/DocumentCodec { // dev.rotalex.lutter.serialization/DocumentCodec|null[0]
     abstract val formatId // dev.rotalex.lutter.serialization/DocumentCodec.formatId|{}formatId[0]
         abstract fun <get-formatId>(): kotlin/String // dev.rotalex.lutter.serialization/DocumentCodec.formatId.<get-formatId>|<get-formatId>(){}[0]
