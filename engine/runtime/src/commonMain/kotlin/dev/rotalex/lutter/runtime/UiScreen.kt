@@ -10,8 +10,8 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
+import dev.rotalex.lutter.interpreter.constantOrNull
 import dev.rotalex.lutter.model.doc.TokenName
-import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.ParamName
 import dev.rotalex.lutter.model.ids.PropertyKey
@@ -74,9 +74,9 @@ internal class MapPropertyReader(
     @Suppress("UNCHECKED_CAST")
     override fun <T> get(spec: PropertySpec<T>): T {
         val prop = props[spec.key] ?: return null as T
-        val const = (prop.value as? PropertyValue.Const)?.value
+        val const = prop.value.constantOrNull()
             ?: throw IllegalStateException(
-                "Property '${spec.key}' is computed; expression evaluation is not wired yet",
+                "Property '${spec.key}' needs expression evaluation (Phase 6); the skeleton resolves constants only",
             )
         val decoded = ValueKinds.kindFor(spec.type).decode(const)
         if (decoded is Value.Token) return TokenName(decoded.name) as T

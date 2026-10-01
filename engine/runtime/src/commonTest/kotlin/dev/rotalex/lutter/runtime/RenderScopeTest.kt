@@ -8,11 +8,13 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
 import dev.rotalex.lutter.model.doc.TokenName
 import dev.rotalex.lutter.model.expr.Expr
 import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.expr.RefTarget
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.ParamName
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.StateId
 import dev.rotalex.lutter.model.type.TokenKind
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.ColorArgb
@@ -27,8 +29,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
-/** Reads decode through the kind table; absent is null; computed refuses. */
+/** Reads decode through the kind table; absent is null; computed constants resolve. */
 class RenderScopeTest {
 
     private val text: PropertySpec<String> = prop("text", TypeRef.Str, required = true)
@@ -61,7 +64,7 @@ class RenderScopeTest {
     }
 
     @Test
-    fun `a computed value fails until evaluation is wired`() {
+    fun `a computed constant resolves without the evaluator`() {
         val reader = reader(
             ResolvedProp(
                 text.key,
@@ -71,7 +74,22 @@ class RenderScopeTest {
             ),
         )
 
-        assertFailsWith<IllegalStateException> { reader[text] }
+        assertEquals("Hi", reader[text])
+    }
+
+    @Test
+    fun `a computed expression fails naming full evaluation`() {
+        val reader = reader(
+            ResolvedProp(
+                text.key,
+                PropertyValue.Computed(Expr.Ref(RefTarget.State(StateId("s_count")))),
+                PropOrigin.Specified,
+                null,
+            ),
+        )
+
+        val failure = assertFailsWith<IllegalStateException> { reader[text] }
+        assertTrue(failure.message?.contains("Phase 6") == true)
     }
 
     @Test

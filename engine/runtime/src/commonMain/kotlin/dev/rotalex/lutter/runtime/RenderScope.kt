@@ -12,7 +12,7 @@ import dev.rotalex.lutter.schema.component.PropertySpec
  * Typed reads over one resolved node. Defaults are already applied upstream.
  *
  * Absent reads as null, which suits optional handles; required ones are proven
- * present by analysis. Computed values throw: evaluation lands with A3's scope.
+ * present by analysis. Computed constants resolve; other expressions throw until Phase 6.
  */
 public interface PropertyReader {
     public operator fun <T> get(spec: PropertySpec<T>): T
