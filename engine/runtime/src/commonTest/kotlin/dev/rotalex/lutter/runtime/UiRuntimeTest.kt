@@ -21,7 +21,7 @@ class UiRuntimeTest {
 
     @Test
     fun `full coverage constructs`() {
-        val runtime = builds(column, text)
+        val runtime = builds(listOf(column, text))
 
         assertTrue(column in runtime.renderers)
         assertTrue(text in runtime.renderers)
@@ -30,13 +30,13 @@ class UiRuntimeTest {
     @Test
     fun `a spec without a renderer fails naming the type`() {
         val failure = assertFailsWith<IllegalStateException> {
-            builds(text)
+            builds(listOf(text))
         }
 
         assertTrue(failure.message?.contains("core.Column") == true)
     }
 
-    private fun builds(vararg wired: ComponentType): UiRuntime {
+    private fun builds(wired: List<ComponentType>): UiRuntime {
         val renderers = RendererRegistryBuilder()
             .apply { for (type in wired) register(type, StubRenderer) }
             .build()
