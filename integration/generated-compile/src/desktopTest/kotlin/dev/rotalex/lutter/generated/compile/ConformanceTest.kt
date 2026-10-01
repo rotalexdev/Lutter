@@ -1,8 +1,10 @@
 package dev.rotalex.lutter.generated.compile
 
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsConfiguration
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.captureToImage
@@ -105,20 +107,31 @@ private fun firstContent(node: SemanticsNode): SemanticsNode {
     return current
 }
 
+// `SemanticsConfiguration` has no optional read in this Compose version — the member
+// `getOrNull` does not exist here, so every call site failed at once. This helper is the
+// only optional read, built on `get` (which certainly exists) plus stdlib `runCatching`.
+private fun <T> SemanticsConfiguration.valueOrNull(key: SemanticsPropertyKey<T>): T? =
+    runCatching { get(key) }.getOrNull()
+
 private fun StringBuilder.render(node: SemanticsNode): Unit {
     append("(")
-    append(node.config.getOrNull(SemanticsProperties.TestTag) ?: "node")
-    node.config.getOrNull(SemanticsProperties.Text)?.let { texts ->
+    append(node.config.valueOrNull(SemanticsProperties.TestTag) ?: "node")
+    node.config.valueOrNull(SemanticsProperties.Text)?.let { texts ->
         append(" text=")
         append(texts.joinToString("|") { it.text })
         // Spans carry color and style; the plain string would hide them.
         val spans = texts.flatMap { it.spanStyles }.joinToString("|")
         if (spans.isNotEmpty()) append(" spans=[$spans]")
     }
-    // No ContentDescription/Role/Disabled branches: those three keys do not resolve
-    // from a no-toolchain environment (three CI runs proved it: TestTag and Text do, these
-    // do not), and no fixture sets any of them — so the branches could never fire here.
-    // Restore them from a compiled environment if a fixture ever carries one.
+    node.config.valueOrNull(SemanticsProperties.ContentDescription)?.let { descriptions ->
+        append(" desc=")
+        append(descriptions.joinToString("|"))
+    }
+    node.config.valueOrNull(SemanticsProperties.Role)?.let { role ->
+        append(" role=")
+        append(role.toString())
+    }
+    if (node.config.valueOrNull(SemanticsProperties.Disabled) != null) append(" disabled")
     for (child in node.children) {
         append(" ")
         render(child)
