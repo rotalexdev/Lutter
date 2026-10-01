@@ -1,9 +1,9 @@
 package dev.rotalex.lutter.builtins.compose
 
-import androidx.compose.foundation.layout.Alignment
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RectangleShape
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import dev.rotalex.lutter.analysis.resolved.PropOrigin
 import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.builtins.AlignModifier

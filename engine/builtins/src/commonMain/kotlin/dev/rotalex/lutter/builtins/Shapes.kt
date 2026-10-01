@@ -22,7 +22,7 @@ public object ShapeSpec {
 
     /** Every entry, with the shape function each one names. */
     public val entries: List<EnumEntrySpec> = listOf(
-        EnumEntrySpec("Rectangle", KotlinSymbol("androidx.compose.foundation.shape", "RectangleShape")),
+        EnumEntrySpec("Rectangle", KotlinSymbol("androidx.compose.ui.graphics", "RectangleShape")),
         EnumEntrySpec("Circle", KotlinSymbol("androidx.compose.foundation.shape", "CircleShape")),
     )
 

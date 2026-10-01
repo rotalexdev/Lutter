@@ -57,10 +57,18 @@ class BuiltinModifierSpecsTest {
 
     @Test
     fun `the argument-free modifiers carry no params and no cases`() {
-        for (spec in listOf(FillMaxSizeModifier, FillMaxWidthModifier, FillMaxHeightModifier, ClickableModifier)) {
-            assertEquals(emptyList(), spec.spec.params, "${spec.spec.type}")
-            assertEquals(emptyList(), spec.spec.emit.cases, "${spec.spec.type}")
-            assertEquals(emptySet(), spec.spec.requiresScope, "${spec.spec.type}")
+        // The four holders share no supertype, so a `listOf` of the objects infers `Any` and
+        // every `.spec` on it stops resolving. Collect the specs instead.
+        val bare: List<ModifierSpec> = listOf(
+            FillMaxSizeModifier.spec,
+            FillMaxWidthModifier.spec,
+            FillMaxHeightModifier.spec,
+            ClickableModifier.spec,
+        )
+        for (spec in bare) {
+            assertEquals(emptyList(), spec.params, "${spec.type}")
+            assertEquals(emptyList(), spec.emit.cases, "${spec.type}")
+            assertEquals(emptySet(), spec.requiresScope, "${spec.type}")
         }
         assertEquals(
             "androidx.compose.foundation.layout",
@@ -157,7 +165,7 @@ class BuiltinModifierSpecsTest {
         assertEquals(listOf("Rectangle", "Circle"), ShapeSpec.entries.map { it.name })
         assertEquals(
             listOf(
-                KotlinSymbol("androidx.compose.foundation.shape", "RectangleShape"),
+                KotlinSymbol("androidx.compose.ui.graphics", "RectangleShape"),
                 KotlinSymbol("androidx.compose.foundation.shape", "CircleShape"),
             ),
             ShapeSpec.entries.map { it.kotlin },
