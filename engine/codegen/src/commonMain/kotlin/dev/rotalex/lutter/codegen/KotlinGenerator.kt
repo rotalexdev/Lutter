@@ -248,15 +248,18 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
                 refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "No emission case matches")
                 return null
             }
-            val text: String = fillPattern(match.pattern, node) ?: return null
-            return KtExpr.Snippet(text, match.imports)
+            val filled = fillPattern(match.pattern, node) ?: return null
+            return KtExpr.Snippet(filled.first, match.imports + filled.second)
         }
         throw CodegenBug("Unknown ValueEmit: " + emit)
     }
 
     // Every `{key}` becomes the property's literal; unknown or computed keys refuse.
-    private fun fillPattern(pattern: String, node: ResolvedNode): String? {
+    // Returns the text plus the literals' imports: a value filled into a pattern (a `dp`
+    // inside `Arrangement.spacedBy({spacing})`) still needs its own symbols recorded.
+    private fun fillPattern(pattern: String, node: ResolvedNode): Pair<String, List<KotlinSymbol>>? {
         val filled: StringBuilder = StringBuilder()
+        val symbols: MutableList<KotlinSymbol> = mutableListOf()
         var index: Int = 0
         while (index < pattern.length) {
             val open: Int = pattern.indexOf('{', index)
@@ -285,9 +288,10 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
             val literal: KtExpr.Literal? = literalOf(prop, node)
             if (literal == null) return null
             filled.append(literal.text)
+            symbols.addAll(literal.imports)
             index = close + 1
         }
-        return filled.toString()
+        return filled.toString() to symbols
     }
 
     // A literal, or a refusal: computed values and unspeakable kinds emit nothing.
