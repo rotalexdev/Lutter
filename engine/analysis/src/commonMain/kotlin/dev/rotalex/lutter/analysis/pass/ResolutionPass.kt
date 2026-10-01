@@ -20,7 +20,7 @@ import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.ComponentSpec
-import dev.rotalex.lutter.schema.component.ModifierSpec
+import dev.rotalex.lutter.schema.modifier.ModifierSpec
 
 /**
  * Pass 7: lowers a clean document — defaults applied, scopes computed, tokens resolved.

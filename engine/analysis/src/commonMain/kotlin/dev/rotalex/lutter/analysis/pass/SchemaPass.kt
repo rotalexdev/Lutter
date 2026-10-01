@@ -17,7 +17,7 @@ import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.Cardinality
 import dev.rotalex.lutter.schema.component.ChildFilter
 import dev.rotalex.lutter.schema.component.ComponentSpec
-import dev.rotalex.lutter.schema.component.ModifierSpec
+import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import dev.rotalex.lutter.schema.component.PropertyRule
 import dev.rotalex.lutter.schema.component.ScopeId
 import dev.rotalex.lutter.schema.kind.ValueKinds
