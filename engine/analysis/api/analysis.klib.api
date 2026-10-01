@@ -283,6 +283,12 @@ final value class dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode { // dev
 }
 
 final object dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes { // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes|null[0]
+    final val CodegenNameCollision // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNameCollision|{}CodegenNameCollision[0]
+        final fun <get-CodegenNameCollision>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNameCollision.<get-CodegenNameCollision>|<get-CodegenNameCollision>(){}[0]
+    final val CodegenNoBinding // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNoBinding|{}CodegenNoBinding[0]
+        final fun <get-CodegenNoBinding>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNoBinding.<get-CodegenNoBinding>|<get-CodegenNoBinding>(){}[0]
+    final val CodegenStrategyUnsupported // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenStrategyUnsupported|{}CodegenStrategyUnsupported[0]
+        final fun <get-CodegenStrategyUnsupported>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenStrategyUnsupported.<get-CodegenStrategyUnsupported>|<get-CodegenStrategyUnsupported>(){}[0]
     final val ComponentChildNotAllowed // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ComponentChildNotAllowed|{}ComponentChildNotAllowed[0]
         final fun <get-ComponentChildNotAllowed>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ComponentChildNotAllowed.<get-ComponentChildNotAllowed>|<get-ComponentChildNotAllowed>(){}[0]
     final val ComponentConflictingProperties // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ComponentConflictingProperties|{}ComponentConflictingProperties[0]
