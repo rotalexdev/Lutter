@@ -1,0 +1,175 @@
+// Klib ABI Dump
+// Targets: [wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <dev.rotalex.lutter:serialization>
+abstract interface dev.rotalex.lutter.serialization.storage/DocumentStorage { // dev.rotalex.lutter.serialization.storage/DocumentStorage|null[0]
+    abstract suspend fun read(kotlin/String): kotlin/ByteArray // dev.rotalex.lutter.serialization.storage/DocumentStorage.read|read(kotlin.String){}[0]
+    abstract suspend fun write(kotlin/String, kotlin/ByteArray) // dev.rotalex.lutter.serialization.storage/DocumentStorage.write|write(kotlin.String;kotlin.ByteArray){}[0]
+}
+
+abstract interface dev.rotalex.lutter.serialization/DocumentCodec { // dev.rotalex.lutter.serialization/DocumentCodec|null[0]
+    abstract val formatId // dev.rotalex.lutter.serialization/DocumentCodec.formatId|{}formatId[0]
+        abstract fun <get-formatId>(): kotlin/String // dev.rotalex.lutter.serialization/DocumentCodec.formatId.<get-formatId>|<get-formatId>(){}[0]
+
+    abstract fun decode(kotlin/ByteArray, dev.rotalex.lutter.serialization/DecodeOptions = ...): dev.rotalex.lutter.serialization/DecodeResult // dev.rotalex.lutter.serialization/DocumentCodec.decode|decode(kotlin.ByteArray;dev.rotalex.lutter.serialization.DecodeOptions){}[0]
+    abstract fun encode(dev.rotalex.lutter.model.doc/UiDocument): kotlin/ByteArray // dev.rotalex.lutter.serialization/DocumentCodec.encode|encode(dev.rotalex.lutter.model.doc.UiDocument){}[0]
+}
+
+abstract interface dev.rotalex.lutter.serialization/Migration { // dev.rotalex.lutter.serialization/Migration|null[0]
+    abstract val from // dev.rotalex.lutter.serialization/Migration.from|{}from[0]
+        abstract fun <get-from>(): kotlin/Int // dev.rotalex.lutter.serialization/Migration.from.<get-from>|<get-from>(){}[0]
+    abstract val to // dev.rotalex.lutter.serialization/Migration.to|{}to[0]
+        abstract fun <get-to>(): kotlin/Int // dev.rotalex.lutter.serialization/Migration.to.<get-to>|<get-to>(){}[0]
+
+    abstract fun apply(kotlinx.serialization.json/JsonObject): kotlinx.serialization.json/JsonObject // dev.rotalex.lutter.serialization/Migration.apply|apply(kotlinx.serialization.json.JsonObject){}[0]
+}
+
+sealed interface dev.rotalex.lutter.serialization/MigrationResult { // dev.rotalex.lutter.serialization/MigrationResult|null[0]
+    final class Current : dev.rotalex.lutter.serialization/MigrationResult { // dev.rotalex.lutter.serialization/MigrationResult.Current|null[0]
+        constructor <init>(kotlinx.serialization.json/JsonObject) // dev.rotalex.lutter.serialization/MigrationResult.Current.<init>|<init>(kotlinx.serialization.json.JsonObject){}[0]
+
+        final val payload // dev.rotalex.lutter.serialization/MigrationResult.Current.payload|{}payload[0]
+            final fun <get-payload>(): kotlinx.serialization.json/JsonObject // dev.rotalex.lutter.serialization/MigrationResult.Current.payload.<get-payload>|<get-payload>(){}[0]
+
+        final fun component1(): kotlinx.serialization.json/JsonObject // dev.rotalex.lutter.serialization/MigrationResult.Current.component1|component1(){}[0]
+        final fun copy(kotlinx.serialization.json/JsonObject = ...): dev.rotalex.lutter.serialization/MigrationResult.Current // dev.rotalex.lutter.serialization/MigrationResult.Current.copy|copy(kotlinx.serialization.json.JsonObject){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.serialization/MigrationResult.Current.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // dev.rotalex.lutter.serialization/MigrationResult.Current.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // dev.rotalex.lutter.serialization/MigrationResult.Current.toString|toString(){}[0]
+    }
+
+    final class Migrated : dev.rotalex.lutter.serialization/MigrationResult { // dev.rotalex.lutter.serialization/MigrationResult.Migrated|null[0]
+        constructor <init>(kotlinx.serialization.json/JsonObject, kotlin/Int) // dev.rotalex.lutter.serialization/MigrationResult.Migrated.<init>|<init>(kotlinx.serialization.json.JsonObject;kotlin.Int){}[0]
+
+        final val migratedFrom // dev.rotalex.lutter.serialization/MigrationResult.Migrated.migratedFrom|{}migratedFrom[0]
+            final fun <get-migratedFrom>(): kotlin/Int // dev.rotalex.lutter.serialization/MigrationResult.Migrated.migratedFrom.<get-migratedFrom>|<get-migratedFrom>(){}[0]
+        final val payload // dev.rotalex.lutter.serialization/MigrationResult.Migrated.payload|{}payload[0]
+            final fun <get-payload>(): kotlinx.serialization.json/JsonObject // dev.rotalex.lutter.serialization/MigrationResult.Migrated.payload.<get-payload>|<get-payload>(){}[0]
+
+        final fun component1(): kotlinx.serialization.json/JsonObject // dev.rotalex.lutter.serialization/MigrationResult.Migrated.component1|component1(){}[0]
+        final fun component2(): kotlin/Int // dev.rotalex.lutter.serialization/MigrationResult.Migrated.component2|component2(){}[0]
+        final fun copy(kotlinx.serialization.json/JsonObject = ..., kotlin/Int = ...): dev.rotalex.lutter.serialization/MigrationResult.Migrated // dev.rotalex.lutter.serialization/MigrationResult.Migrated.copy|copy(kotlinx.serialization.json.JsonObject;kotlin.Int){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.serialization/MigrationResult.Migrated.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // dev.rotalex.lutter.serialization/MigrationResult.Migrated.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // dev.rotalex.lutter.serialization/MigrationResult.Migrated.toString|toString(){}[0]
+    }
+
+    final class TooNew : dev.rotalex.lutter.serialization/MigrationResult { // dev.rotalex.lutter.serialization/MigrationResult.TooNew|null[0]
+        constructor <init>(dev.rotalex.lutter.serialization/UnsupportedFutureVersion) // dev.rotalex.lutter.serialization/MigrationResult.TooNew.<init>|<init>(dev.rotalex.lutter.serialization.UnsupportedFutureVersion){}[0]
+
+        final val failure // dev.rotalex.lutter.serialization/MigrationResult.TooNew.failure|{}failure[0]
+            final fun <get-failure>(): dev.rotalex.lutter.serialization/UnsupportedFutureVersion // dev.rotalex.lutter.serialization/MigrationResult.TooNew.failure.<get-failure>|<get-failure>(){}[0]
+
+        final fun component1(): dev.rotalex.lutter.serialization/UnsupportedFutureVersion // dev.rotalex.lutter.serialization/MigrationResult.TooNew.component1|component1(){}[0]
+        final fun copy(dev.rotalex.lutter.serialization/UnsupportedFutureVersion = ...): dev.rotalex.lutter.serialization/MigrationResult.TooNew // dev.rotalex.lutter.serialization/MigrationResult.TooNew.copy|copy(dev.rotalex.lutter.serialization.UnsupportedFutureVersion){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.serialization/MigrationResult.TooNew.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // dev.rotalex.lutter.serialization/MigrationResult.TooNew.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // dev.rotalex.lutter.serialization/MigrationResult.TooNew.toString|toString(){}[0]
+    }
+}
+
+final class dev.rotalex.lutter.serialization/DecodeOptions { // dev.rotalex.lutter.serialization/DecodeOptions|null[0]
+    constructor <init>(kotlin/Boolean = ...) // dev.rotalex.lutter.serialization/DecodeOptions.<init>|<init>(kotlin.Boolean){}[0]
+
+    final val lenient // dev.rotalex.lutter.serialization/DecodeOptions.lenient|{}lenient[0]
+        final fun <get-lenient>(): kotlin/Boolean // dev.rotalex.lutter.serialization/DecodeOptions.lenient.<get-lenient>|<get-lenient>(){}[0]
+
+    final fun component1(): kotlin/Boolean // dev.rotalex.lutter.serialization/DecodeOptions.component1|component1(){}[0]
+    final fun copy(kotlin/Boolean = ...): dev.rotalex.lutter.serialization/DecodeOptions // dev.rotalex.lutter.serialization/DecodeOptions.copy|copy(kotlin.Boolean){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.serialization/DecodeOptions.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.serialization/DecodeOptions.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.serialization/DecodeOptions.toString|toString(){}[0]
+}
+
+final class dev.rotalex.lutter.serialization/DecodeResult { // dev.rotalex.lutter.serialization/DecodeResult|null[0]
+    constructor <init>(dev.rotalex.lutter.model.doc/UiDocument, kotlin/Int? = ..., kotlin.collections/List<kotlin/String> = ...) // dev.rotalex.lutter.serialization/DecodeResult.<init>|<init>(dev.rotalex.lutter.model.doc.UiDocument;kotlin.Int?;kotlin.collections.List<kotlin.String>){}[0]
+
+    final val document // dev.rotalex.lutter.serialization/DecodeResult.document|{}document[0]
+        final fun <get-document>(): dev.rotalex.lutter.model.doc/UiDocument // dev.rotalex.lutter.serialization/DecodeResult.document.<get-document>|<get-document>(){}[0]
+    final val migratedFrom // dev.rotalex.lutter.serialization/DecodeResult.migratedFrom|{}migratedFrom[0]
+        final fun <get-migratedFrom>(): kotlin/Int? // dev.rotalex.lutter.serialization/DecodeResult.migratedFrom.<get-migratedFrom>|<get-migratedFrom>(){}[0]
+    final val warnings // dev.rotalex.lutter.serialization/DecodeResult.warnings|{}warnings[0]
+        final fun <get-warnings>(): kotlin.collections/List<kotlin/String> // dev.rotalex.lutter.serialization/DecodeResult.warnings.<get-warnings>|<get-warnings>(){}[0]
+
+    final fun component1(): dev.rotalex.lutter.model.doc/UiDocument // dev.rotalex.lutter.serialization/DecodeResult.component1|component1(){}[0]
+    final fun component2(): kotlin/Int? // dev.rotalex.lutter.serialization/DecodeResult.component2|component2(){}[0]
+    final fun component3(): kotlin.collections/List<kotlin/String> // dev.rotalex.lutter.serialization/DecodeResult.component3|component3(){}[0]
+    final fun copy(dev.rotalex.lutter.model.doc/UiDocument = ..., kotlin/Int? = ..., kotlin.collections/List<kotlin/String> = ...): dev.rotalex.lutter.serialization/DecodeResult // dev.rotalex.lutter.serialization/DecodeResult.copy|copy(dev.rotalex.lutter.model.doc.UiDocument;kotlin.Int?;kotlin.collections.List<kotlin.String>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.serialization/DecodeResult.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.serialization/DecodeResult.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.serialization/DecodeResult.toString|toString(){}[0]
+}
+
+final class dev.rotalex.lutter.serialization/Envelope { // dev.rotalex.lutter.serialization/Envelope|null[0]
+    constructor <init>(kotlin/String, kotlin/Int, kotlin/Int, dev.rotalex.lutter.model.doc/UiDocument) // dev.rotalex.lutter.serialization/Envelope.<init>|<init>(kotlin.String;kotlin.Int;kotlin.Int;dev.rotalex.lutter.model.doc.UiDocument){}[0]
+
+    final val format // dev.rotalex.lutter.serialization/Envelope.format|{}format[0]
+        final fun <get-format>(): kotlin/String // dev.rotalex.lutter.serialization/Envelope.format.<get-format>|<get-format>(){}[0]
+    final val formatVersion // dev.rotalex.lutter.serialization/Envelope.formatVersion|{}formatVersion[0]
+        final fun <get-formatVersion>(): kotlin/Int // dev.rotalex.lutter.serialization/Envelope.formatVersion.<get-formatVersion>|<get-formatVersion>(){}[0]
+    final val payload // dev.rotalex.lutter.serialization/Envelope.payload|{}payload[0]
+        final fun <get-payload>(): dev.rotalex.lutter.model.doc/UiDocument // dev.rotalex.lutter.serialization/Envelope.payload.<get-payload>|<get-payload>(){}[0]
+    final val schemaVersion // dev.rotalex.lutter.serialization/Envelope.schemaVersion|{}schemaVersion[0]
+        final fun <get-schemaVersion>(): kotlin/Int // dev.rotalex.lutter.serialization/Envelope.schemaVersion.<get-schemaVersion>|<get-schemaVersion>(){}[0]
+
+    final fun component1(): kotlin/String // dev.rotalex.lutter.serialization/Envelope.component1|component1(){}[0]
+    final fun component2(): kotlin/Int // dev.rotalex.lutter.serialization/Envelope.component2|component2(){}[0]
+    final fun component3(): kotlin/Int // dev.rotalex.lutter.serialization/Envelope.component3|component3(){}[0]
+    final fun component4(): dev.rotalex.lutter.model.doc/UiDocument // dev.rotalex.lutter.serialization/Envelope.component4|component4(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/Int = ..., kotlin/Int = ..., dev.rotalex.lutter.model.doc/UiDocument = ...): dev.rotalex.lutter.serialization/Envelope // dev.rotalex.lutter.serialization/Envelope.copy|copy(kotlin.String;kotlin.Int;kotlin.Int;dev.rotalex.lutter.model.doc.UiDocument){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.serialization/Envelope.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.serialization/Envelope.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.serialization/Envelope.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<dev.rotalex.lutter.serialization/Envelope> { // dev.rotalex.lutter.serialization/Envelope.$serializer|null[0]
+        final val descriptor // dev.rotalex.lutter.serialization/Envelope.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // dev.rotalex.lutter.serialization/Envelope.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // dev.rotalex.lutter.serialization/Envelope.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): dev.rotalex.lutter.serialization/Envelope // dev.rotalex.lutter.serialization/Envelope.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, dev.rotalex.lutter.serialization/Envelope) // dev.rotalex.lutter.serialization/Envelope.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;dev.rotalex.lutter.serialization.Envelope){}[0]
+    }
+
+    final object Companion { // dev.rotalex.lutter.serialization/Envelope.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<dev.rotalex.lutter.serialization/Envelope> // dev.rotalex.lutter.serialization/Envelope.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class dev.rotalex.lutter.serialization/MigrationChain { // dev.rotalex.lutter.serialization/MigrationChain|null[0]
+    constructor <init>(kotlin.collections/List<dev.rotalex.lutter.serialization/Migration>) // dev.rotalex.lutter.serialization/MigrationChain.<init>|<init>(kotlin.collections.List<dev.rotalex.lutter.serialization.Migration>){}[0]
+
+    final val migrations // dev.rotalex.lutter.serialization/MigrationChain.migrations|{}migrations[0]
+        final fun <get-migrations>(): kotlin.collections/List<dev.rotalex.lutter.serialization/Migration> // dev.rotalex.lutter.serialization/MigrationChain.migrations.<get-migrations>|<get-migrations>(){}[0]
+
+    final fun migrate(kotlinx.serialization.json/JsonObject): dev.rotalex.lutter.serialization/MigrationResult // dev.rotalex.lutter.serialization/MigrationChain.migrate|migrate(kotlinx.serialization.json.JsonObject){}[0]
+}
+
+final class dev.rotalex.lutter.serialization/UnsupportedFutureVersion : kotlinx.serialization/SerializationException { // dev.rotalex.lutter.serialization/UnsupportedFutureVersion|null[0]
+    constructor <init>(kotlin/Int, kotlin/Int) // dev.rotalex.lutter.serialization/UnsupportedFutureVersion.<init>|<init>(kotlin.Int;kotlin.Int){}[0]
+
+    final val found // dev.rotalex.lutter.serialization/UnsupportedFutureVersion.found|{}found[0]
+        final fun <get-found>(): kotlin/Int // dev.rotalex.lutter.serialization/UnsupportedFutureVersion.found.<get-found>|<get-found>(){}[0]
+    final val supported // dev.rotalex.lutter.serialization/UnsupportedFutureVersion.supported|{}supported[0]
+        final fun <get-supported>(): kotlin/Int // dev.rotalex.lutter.serialization/UnsupportedFutureVersion.supported.<get-supported>|<get-supported>(){}[0]
+}
+
+final object dev.rotalex.lutter.serialization/JsonDocumentCodec : dev.rotalex.lutter.serialization/DocumentCodec { // dev.rotalex.lutter.serialization/JsonDocumentCodec|null[0]
+    final val formatId // dev.rotalex.lutter.serialization/JsonDocumentCodec.formatId|{}formatId[0]
+        final fun <get-formatId>(): kotlin/String // dev.rotalex.lutter.serialization/JsonDocumentCodec.formatId.<get-formatId>|<get-formatId>(){}[0]
+
+    final fun decode(kotlin/ByteArray, dev.rotalex.lutter.serialization/DecodeOptions): dev.rotalex.lutter.serialization/DecodeResult // dev.rotalex.lutter.serialization/JsonDocumentCodec.decode|decode(kotlin.ByteArray;dev.rotalex.lutter.serialization.DecodeOptions){}[0]
+    final fun encode(dev.rotalex.lutter.model.doc/UiDocument): kotlin/ByteArray // dev.rotalex.lutter.serialization/JsonDocumentCodec.encode|encode(dev.rotalex.lutter.model.doc.UiDocument){}[0]
+}
+
+final const val dev.rotalex.lutter.serialization/FORMAT_ID // dev.rotalex.lutter.serialization/FORMAT_ID|{}FORMAT_ID[0]
+    final fun <get-FORMAT_ID>(): kotlin/String // dev.rotalex.lutter.serialization/FORMAT_ID.<get-FORMAT_ID>|<get-FORMAT_ID>(){}[0]
+
+final val dev.rotalex.lutter.serialization/Migrations // dev.rotalex.lutter.serialization/Migrations|{}Migrations[0]
+    final fun <get-Migrations>(): dev.rotalex.lutter.serialization/MigrationChain // dev.rotalex.lutter.serialization/Migrations.<get-Migrations>|<get-Migrations>(){}[0]
+
+final fun dev.rotalex.lutter.serialization/decodeEnvelope(kotlin/String): dev.rotalex.lutter.model.doc/UiDocument // dev.rotalex.lutter.serialization/decodeEnvelope|decodeEnvelope(kotlin.String){}[0]
+final fun dev.rotalex.lutter.serialization/encodeEnvelope(dev.rotalex.lutter.model.doc/UiDocument): kotlin/String // dev.rotalex.lutter.serialization/encodeEnvelope|encodeEnvelope(dev.rotalex.lutter.model.doc.UiDocument){}[0]
