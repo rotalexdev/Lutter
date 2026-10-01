@@ -6,3 +6,29 @@
 // - Show declarations: true
 
 // Library unique name: <dev.rotalex.lutter:interpreter>
+abstract interface dev.rotalex.lutter.interpreter/EvalScope { // dev.rotalex.lutter.interpreter/EvalScope|null[0]
+    abstract fun read(dev.rotalex.lutter.model.expr/RefTarget): dev.rotalex.lutter.model.value/Value // dev.rotalex.lutter.interpreter/EvalScope.read|read(dev.rotalex.lutter.model.expr.RefTarget){}[0]
+}
+
+abstract interface dev.rotalex.lutter.interpreter/StateStore { // dev.rotalex.lutter.interpreter/StateStore|null[0]
+    abstract fun get(dev.rotalex.lutter.model.ids/StateId): dev.rotalex.lutter.model.value/Value? // dev.rotalex.lutter.interpreter/StateStore.get|get(dev.rotalex.lutter.model.ids.StateId){}[0]
+}
+
+abstract interface dev.rotalex.lutter.interpreter/StateWriter { // dev.rotalex.lutter.interpreter/StateWriter|null[0]
+    abstract fun set(dev.rotalex.lutter.model.ids/StateId, dev.rotalex.lutter.model.value/Value) // dev.rotalex.lutter.interpreter/StateWriter.set|set(dev.rotalex.lutter.model.ids.StateId;dev.rotalex.lutter.model.value.Value){}[0]
+}
+
+final class dev.rotalex.lutter.interpreter/MapEvalScope : dev.rotalex.lutter.interpreter/EvalScope { // dev.rotalex.lutter.interpreter/MapEvalScope|null[0]
+    constructor <init>(dev.rotalex.lutter.interpreter/StateStore, kotlin.collections/Map<dev.rotalex.lutter.model.ids/ParamName, dev.rotalex.lutter.model.value/Value> = ...) // dev.rotalex.lutter.interpreter/MapEvalScope.<init>|<init>(dev.rotalex.lutter.interpreter.StateStore;kotlin.collections.Map<dev.rotalex.lutter.model.ids.ParamName,dev.rotalex.lutter.model.value.Value>){}[0]
+
+    final fun read(dev.rotalex.lutter.model.expr/RefTarget): dev.rotalex.lutter.model.value/Value // dev.rotalex.lutter.interpreter/MapEvalScope.read|read(dev.rotalex.lutter.model.expr.RefTarget){}[0]
+}
+
+final class dev.rotalex.lutter.interpreter/MapStateStore : dev.rotalex.lutter.interpreter/StateStore, dev.rotalex.lutter.interpreter/StateWriter { // dev.rotalex.lutter.interpreter/MapStateStore|null[0]
+    constructor <init>(kotlin.collections/Map<dev.rotalex.lutter.model.ids/StateId, dev.rotalex.lutter.model.value/Value> = ...) // dev.rotalex.lutter.interpreter/MapStateStore.<init>|<init>(kotlin.collections.Map<dev.rotalex.lutter.model.ids.StateId,dev.rotalex.lutter.model.value.Value>){}[0]
+
+    final fun get(dev.rotalex.lutter.model.ids/StateId): dev.rotalex.lutter.model.value/Value? // dev.rotalex.lutter.interpreter/MapStateStore.get|get(dev.rotalex.lutter.model.ids.StateId){}[0]
+    final fun set(dev.rotalex.lutter.model.ids/StateId, dev.rotalex.lutter.model.value/Value) // dev.rotalex.lutter.interpreter/MapStateStore.set|set(dev.rotalex.lutter.model.ids.StateId;dev.rotalex.lutter.model.value.Value){}[0]
+}
+
+final fun (dev.rotalex.lutter.model.expr/PropertyValue).dev.rotalex.lutter.interpreter/constantOrNull(): dev.rotalex.lutter.model.value/Value? // dev.rotalex.lutter.interpreter/constantOrNull|constantOrNull@dev.rotalex.lutter.model.expr.PropertyValue(){}[0]
