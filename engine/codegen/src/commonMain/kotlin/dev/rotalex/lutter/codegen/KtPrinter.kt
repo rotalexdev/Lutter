@@ -91,7 +91,10 @@ public class KtPrinter(
             for (annotation in function.annotations.sortedBy { it.name }) {
                 append(indentOf(indent) + "@" + (aliases[annotation.fqn()] ?: annotation.name) + "\n")
             }
-            append(indentOf(indent) + "fun " + function.name + "(")
+            // Explicit `public`: the generated module builds with explicitApi, and every
+            // skeleton declaration is a public entry point. No visibility field exists on
+            // the IR because nothing generated today is anything else.
+            append(indentOf(indent) + "public fun " + function.name + "(")
             append(function.params.joinToString(", ") { renderParam(it, aliases) })
             append(") {")
             if (function.body.isEmpty()) {

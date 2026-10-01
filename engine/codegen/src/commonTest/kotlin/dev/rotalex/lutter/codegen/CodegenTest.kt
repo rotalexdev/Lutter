@@ -88,7 +88,7 @@ class CodegenTest {
             ${"import"} androidx.compose.ui.Modifier
 
             @Composable
-            fun HomeScreen(modifier: Modifier = Modifier) {
+            public fun HomeScreen(modifier: Modifier = Modifier) {
                 Column(
                     modifier = modifier,
                 ) {
