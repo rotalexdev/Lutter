@@ -114,6 +114,8 @@ class BuiltinModifierSpecsTest {
         assertEquals("compose.ColumnScope", LayoutScopes.Column.value)
         assertEquals("compose.BoxScope", LayoutScopes.Box.value)
         assertEquals(setOf(LayoutScopes.Column), ColumnSpec.children.provides)
+        assertEquals(setOf(LayoutScopes.Row), RowSpec.children.provides)
+        assertEquals(setOf(LayoutScopes.Box), BoxSpec.children.provides)
     }
 
     @Test

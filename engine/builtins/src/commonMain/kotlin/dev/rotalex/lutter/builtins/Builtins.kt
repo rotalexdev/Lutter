@@ -18,6 +18,9 @@ import dev.rotalex.lutter.schema.types.type
  */
 public fun <M : Any, A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, M, A, F, T>.registerBuiltinSpecs(): Unit {
     component(ColumnSpec.spec)
+    component(RowSpec.spec)
+    component(BoxSpec.spec)
+    component(SpacerSpec.spec)
     component(TextSpec.spec)
 }
 

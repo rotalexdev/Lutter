@@ -1,6 +1,9 @@
 package dev.rotalex.lutter.builtins.compose
 
+import dev.rotalex.lutter.builtins.BoxSpec
 import dev.rotalex.lutter.builtins.ColumnSpec
+import dev.rotalex.lutter.builtins.RowSpec
+import dev.rotalex.lutter.builtins.SpacerSpec
 import dev.rotalex.lutter.builtins.TextSpec
 import dev.rotalex.lutter.runtime.RendererRegistryBuilder
 
@@ -11,5 +14,8 @@ import dev.rotalex.lutter.runtime.RendererRegistryBuilder
  */
 public fun RendererRegistryBuilder.registerBuiltinRenderers(): Unit {
     register(ColumnSpec.spec.type, ColumnRenderer)
+    register(RowSpec.spec.type, RowRenderer)
+    register(BoxSpec.spec.type, BoxRenderer)
+    register(SpacerSpec.spec.type, SpacerRenderer)
     register(TextSpec.spec.type, TextRenderer)
 }
