@@ -55,6 +55,11 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
     // Per-run scratch, cleared on entry: the recursion below shares one collector.
     private val diagnostics: MutableList<Diagnostic> = mutableListOf()
 
+    // Fail fast on missing bindings, like UiRuntime does on missing renderers.
+    init {
+        CodegenCoverage.check(schema, extensions)
+    }
+
     /** Generates [document]; empty files plus errors is the refusal, never partial output. */
     public fun generate(document: ResolvedDocument, incoming: List<Diagnostic> = emptyList()): CodegenResult {
         if (incoming.any { it.severity == Severity.Error }) {

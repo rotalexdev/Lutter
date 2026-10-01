@@ -58,7 +58,12 @@ public object ColumnSpec {
                 from = listOf(spacing.key, verticalArrangement.key),
                 emit = ValueEmit.Cases(
                     listOf(
-                        EmitCase(setOf(spacing.key), "Arrangement.spacedBy({spacing})"),
+                        EmitCase(
+                            setOf(spacing.key),
+                            "Arrangement.spacedBy({spacing})",
+                            // Without this the snippet names a symbol nothing imports.
+                            listOf(KotlinSymbol("androidx.compose.foundation.layout", "Arrangement")),
+                        ),
                         EmitCase(setOf(verticalArrangement.key), "{verticalArrangement}"),
                     ),
                 ),
