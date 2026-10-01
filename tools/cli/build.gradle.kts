@@ -28,6 +28,7 @@ application {
 
 dependencies {
     implementation(project(":engine:model"))
+    implementation(project(":engine:schema"))
     implementation(project(":engine:serialization"))
     implementation(project(":engine:analysis"))
     implementation(project(":engine:codegen"))

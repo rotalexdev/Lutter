@@ -33,4 +33,12 @@ public object DiagnosticCodes {
     public val RefKindMismatch: DiagnosticCode = DiagnosticCode("ref.kind_mismatch")
     public val TokenUnknown: DiagnosticCode = DiagnosticCode("token.unknown")
     public val ResourceUnknown: DiagnosticCode = DiagnosticCode("resource.unknown")
+
+    /**
+     * The codegen feasibility rows (§17.3). Owned by pass 8, defined here so the
+     * generator's result already speaks the catalog before that pass exists.
+     */
+    public val CodegenNoBinding: DiagnosticCode = DiagnosticCode("codegen.no_binding")
+    public val CodegenStrategyUnsupported: DiagnosticCode = DiagnosticCode("codegen.strategy_unsupported")
+    public val CodegenNameCollision: DiagnosticCode = DiagnosticCode("codegen.name_collision")
 }
