@@ -25,6 +25,9 @@ import dev.rotalex.lutter.schema.component.prop
  * the renderer maps those three names and falls back to `Top`.
  */
 public object ColumnSpec {
+    /** The document enum id the arrangement entries are validated against. First: used below. */
+    public val ArrangementId: TypeId = TypeId("VerticalArrangement")
+
     /** Gap between children. Shorthand for `Arrangement.spacedBy`. */
     public val spacing: PropertySpec<Float?> = prop("spacing", TypeRef.Nullable(TypeRef.Dp))
 
@@ -41,9 +44,6 @@ public object ColumnSpec {
         Cardinality.Many,
         provides = setOf(ScopeId("compose.ColumnScope")),
     )
-
-    /** The document enum id the arrangement entries are validated against. */
-    public val ArrangementId: TypeId = TypeId("VerticalArrangement")
 
     /** The spec renderers, validation and codegen share. */
     public val spec: ComponentSpec = componentSpec(ComponentType("core.Column"), version = 1) {
