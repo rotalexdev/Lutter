@@ -119,7 +119,10 @@ private fun StringBuilder.render(node: SemanticsNode): Unit {
     // breaks type inference from a no-toolchain environment, and no fixture sets one —
     // so the branch could never fire here. Restore it from a compiled environment if a
     // fixture ever carries a description.
-    node.config.getOrNull(SemanticsProperties.Role)?.let { append(" role=$it") }
+    // Local + explicit null check rather than `?.let { ... $it ... }`: the latter
+    // leaves T to the call chain, which this key's declaration defeats from here.
+    val role = node.config.getOrNull(SemanticsProperties.Role)
+    if (role != null) append(" role=" + role.toString())
     if (node.config.getOrNull(SemanticsProperties.Disabled) != null) append(" disabled")
     for (child in node.children) {
         append(" ")
