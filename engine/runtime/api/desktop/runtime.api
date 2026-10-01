@@ -38,6 +38,10 @@ public final class dev/rotalex/lutter/runtime/ModifierApplierRegistryBuilder {
 	public final fun register-oGUz0Hw (Ljava/lang/String;Ldev/rotalex/lutter/runtime/ModifierApplier;)V
 }
 
+public final class dev/rotalex/lutter/runtime/ModifierAppliersKt {
+	public static final fun reader (Ljava/util/Map;)Ldev/rotalex/lutter/runtime/PropertyReader;
+}
+
 public abstract interface class dev/rotalex/lutter/runtime/Navigator {
 	public abstract fun back ()Z
 	public abstract fun navigate-yjKakfk (Ljava/lang/String;Ljava/util/Map;)V
@@ -136,12 +140,22 @@ public final class dev/rotalex/lutter/runtime/ScopeBag {
 public abstract interface class dev/rotalex/lutter/runtime/ScopeHandle {
 }
 
+public final class dev/rotalex/lutter/runtime/ScopeHandle$Box : dev/rotalex/lutter/runtime/ScopeHandle {
+	public static final field $stable I
+	public fun <init> (Landroidx/compose/foundation/layout/BoxScope;)V
+	public final fun getScope ()Landroidx/compose/foundation/layout/BoxScope;
+}
+
 public final class dev/rotalex/lutter/runtime/ScopeHandle$Column : dev/rotalex/lutter/runtime/ScopeHandle {
 	public static final field $stable I
-	public static final field INSTANCE Ldev/rotalex/lutter/runtime/ScopeHandle$Column;
-	public fun equals (Ljava/lang/Object;)Z
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
+	public fun <init> (Landroidx/compose/foundation/layout/ColumnScope;)V
+	public final fun getScope ()Landroidx/compose/foundation/layout/ColumnScope;
+}
+
+public final class dev/rotalex/lutter/runtime/ScopeHandle$Row : dev/rotalex/lutter/runtime/ScopeHandle {
+	public static final field $stable I
+	public fun <init> (Landroidx/compose/foundation/layout/RowScope;)V
+	public final fun getScope ()Landroidx/compose/foundation/layout/RowScope;
 }
 
 public final class dev/rotalex/lutter/runtime/SnapshotStateStore : dev/rotalex/lutter/runtime/StateStore {
