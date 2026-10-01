@@ -58,11 +58,11 @@ class CodegenTest {
         val first = generate(document)
         val second = generate(document)
 
-        assertEquals(first.files.map { it.path }, second.files.map { it.path })
-        for (index in first.files.indices) {
-            assertEquals(first.files[index].content, second.files[index].content)
+        assertEquals(first.files.files.map { it.path }, second.files.files.map { it.path })
+        for (index in first.files.files.indices) {
+            assertEquals(first.files.files[index].content, second.files.files[index].content)
         }
-        for (file in first.files) {
+        for (file in first.files.files) {
             assertTrue(file.content.endsWith("\n"), "no trailing newline in ${file.path}")
             assertTrue(!file.content.contains("\r"), "CR in ${file.path}")
         }
