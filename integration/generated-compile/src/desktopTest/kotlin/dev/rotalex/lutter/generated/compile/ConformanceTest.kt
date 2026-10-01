@@ -115,15 +115,10 @@ private fun StringBuilder.render(node: SemanticsNode): Unit {
         val spans = texts.flatMap { it.spanStyles }.joinToString("|")
         if (spans.isNotEmpty()) append(" spans=[$spans]")
     }
-    // No ContentDescription branch: its key's declaration shape in this Compose version
-    // breaks type inference from a no-toolchain environment, and no fixture sets one —
-    // so the branch could never fire here. Restore it from a compiled environment if a
-    // fixture ever carries a description.
-    // Local + explicit null check rather than `?.let { ... $it ... }`: the latter
-    // leaves T to the call chain, which this key's declaration defeats from here.
-    val role = node.config.getOrNull(SemanticsProperties.Role)
-    if (role != null) append(" role=" + role.toString())
-    if (node.config.getOrNull(SemanticsProperties.Disabled) != null) append(" disabled")
+    // No ContentDescription/Role/Disabled branches: those three keys do not resolve
+    // from a no-toolchain environment (three CI runs proved it: TestTag and Text do, these
+    // do not), and no fixture sets any of them — so the branches could never fire here.
+    // Restore them from a compiled environment if a fixture ever carries one.
     for (child in node.children) {
         append(" ")
         render(child)
