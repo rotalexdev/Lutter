@@ -16,9 +16,12 @@ import dev.rotalex.lutter.schema.component.PropertySpec
  *
  * Absent reads as null, which suits optional handles; required ones are proven
  * present by analysis. Computed constants resolve; other expressions throw until Phase 6.
+ *
+ * The `?` is load-bearing: a non-null return type makes the absent read throw at the call site
+ * for every spec whose `T` is non-nullable, and every applier here already reads it as optional.
  */
 public interface PropertyReader {
-    public operator fun <T> get(spec: PropertySpec<T>): T
+    public operator fun <T> get(spec: PropertySpec<T>): T?
 }
 
 /**
