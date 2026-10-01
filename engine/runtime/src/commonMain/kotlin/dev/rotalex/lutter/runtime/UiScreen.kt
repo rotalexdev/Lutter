@@ -56,18 +56,15 @@ public fun UiScreen(
  * One node through the registry. A miss renders nothing: coverage already failed
  * at construction for schema types, so a miss here is an overlay type with no
  * renderer, and blank is kinder than a crash in an editor.
+ *
+ * No recovery around the call itself: Compose forbids try/catch around composable
+ * invocations, and a renderer that throws on resolved input is a contract violation
+ * analysis already had the chance to catch — not a data condition to report.
  */
 @Composable
 public fun RenderNode(runtime: UiRuntime, node: ResolvedNode, scope: RenderScope): Unit {
     val renderer = runtime.renderers[node.type] ?: return
-    try {
-        renderer.Render(node, scope)
-    } catch (e: Exception) {
-        if (e is CancellationException) throw e
-        scope.environment.diagnostics(
-            RuntimeDiagnostic("Renderer for '${node.type}' failed: ${e.message}", node.id),
-        )
-    }
+    renderer.Render(node, scope)
 }
 
 /** Reads one node's effective props through the shared kind table. */
