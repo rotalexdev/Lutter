@@ -1,0 +1,45 @@
+public final class dev/rotalex/lutter/serialization/Envelope {
+	public static final field Companion Ldev/rotalex/lutter/serialization/Envelope$Companion;
+	public fun <init> (Ljava/lang/String;IILdev/rotalex/lutter/model/doc/UiDocument;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()Ldev/rotalex/lutter/model/doc/UiDocument;
+	public final fun copy (Ljava/lang/String;IILdev/rotalex/lutter/model/doc/UiDocument;)Ldev/rotalex/lutter/serialization/Envelope;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/serialization/Envelope;Ljava/lang/String;IILdev/rotalex/lutter/model/doc/UiDocument;ILjava/lang/Object;)Ldev/rotalex/lutter/serialization/Envelope;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFormat ()Ljava/lang/String;
+	public final fun getFormatVersion ()I
+	public final fun getPayload ()Ldev/rotalex/lutter/model/doc/UiDocument;
+	public final fun getSchemaVersion ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/serialization/Envelope$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/serialization/Envelope$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/serialization/Envelope;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/serialization/Envelope;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/serialization/Envelope$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/serialization/EnvelopeKt {
+	public static final field FORMAT_ID Ljava/lang/String;
+	public static final fun decodeEnvelope (Ljava/lang/String;)Ldev/rotalex/lutter/model/doc/UiDocument;
+	public static final fun encodeEnvelope (Ldev/rotalex/lutter/model/doc/UiDocument;)Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/serialization/UnsupportedFutureVersion : kotlinx/serialization/SerializationException {
+	public fun <init> (II)V
+	public final fun getFound ()I
+	public final fun getSupported ()I
+}
+
