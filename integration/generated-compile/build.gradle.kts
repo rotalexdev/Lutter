@@ -29,6 +29,9 @@ dependencies {
     commonMainImplementation(rootLibs.jetbrains.compose.material3)
     // Desktop-only UI test runner; commonTest stays pure so Android host tests keep running.
     desktopTestImplementation(compose.desktop.uiTestJUnit4)
+    // Skiko's native library, or every `runComposeUiTest` dies in `LibraryLoadException` on a
+    // headless runner. uiTestJUnit4 pulls the test API, not the rendering backend.
+    desktopTestImplementation(compose.desktop.currentOs)
 }
 
 // Build-time edge to :tools:cli, not a code dependency: this configuration is outside the
