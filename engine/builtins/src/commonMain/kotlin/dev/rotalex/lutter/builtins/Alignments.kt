@@ -9,8 +9,8 @@ import dev.rotalex.lutter.schema.types.EnumTypeSpec
 /**
  * The document's `Alignment` enum: the nine alignments Compose names, as one vocabulary.
  *
- * An entry's symbol is member-qualified (`Alignment.Center`): the qualifier is what codegen
- * splits off to write the import, and the bias forms are values, which is what a closed
+ * An entry's symbol is member-qualified (`AbsoluteAlignment.TopLeft`): the qualifier is what
+ * codegen splits off to write the import, and the bias forms are values, which is what a closed
  * runtime map needs.
  */
 public object AlignmentSpec {
@@ -25,7 +25,20 @@ public object AlignmentSpec {
         "TopLeft", "TopCenter", "TopRight",
         "CenterLeft", "Center", "CenterRight",
         "BottomLeft", "BottomCenter", "BottomRight",
-    ).map { EnumEntrySpec(it, KotlinSymbol("androidx.compose.ui", "Alignment." + it)) }
+    ).map { EnumEntrySpec(it, symbolOf(it)) }
+
+    /**
+     * Compose splits its own vocabulary in two, so the owner follows the name: an entry naming
+     * a side is absolute, one naming a band is bias-aligned.
+     */
+    private fun symbolOf(entry: String): KotlinSymbol {
+        val owner = if (entry.endsWith("Left") || entry.endsWith("Right")) {
+            "AbsoluteAlignment"
+        } else {
+            "Alignment"
+        }
+        return KotlinSymbol("androidx.compose.ui", "$owner.$entry")
+    }
 
     /** The schema-side declaration of the enum. */
     public val spec: EnumTypeSpec = EnumTypeSpec(Id, entries)

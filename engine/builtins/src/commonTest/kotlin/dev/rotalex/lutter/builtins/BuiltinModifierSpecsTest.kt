@@ -157,6 +157,12 @@ class BuiltinModifierSpecsTest {
             KotlinSymbol("androidx.compose.ui", "Alignment.Center"),
             AlignmentSpec.entries[4].kotlin,
         )
+        // Compose keeps the six side names on a different object; without this the enum would
+        // emit an import of a symbol that does not exist.
+        assertEquals(
+            KotlinSymbol("androidx.compose.ui", "AbsoluteAlignment.TopLeft"),
+            AlignmentSpec.entries[0].kotlin,
+        )
         assertEquals(AlignmentSpec.Id, AlignmentSpec.spec.id)
     }
 

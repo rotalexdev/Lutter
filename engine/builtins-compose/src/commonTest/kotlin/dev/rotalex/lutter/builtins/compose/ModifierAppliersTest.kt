@@ -1,6 +1,7 @@
 package dev.rotalex.lutter.builtins.compose
 
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -109,18 +110,18 @@ class ModifierAppliersTest {
     fun `an alignment entry projects onto the axis its own name states`() {
         // A row moves its children vertically, a column horizontally, so `TopLeft` is Top in
         // a row and Left in a column. Reading one form for the other is the bug this pins.
-        assertEquals(Alignment.Vertical.Top, AlignmentMaps.vertical("TopLeft"))
-        assertEquals(Alignment.Vertical.Bottom, AlignmentMaps.vertical("BottomRight"))
-        assertEquals(Alignment.Horizontal.Left, AlignmentMaps.horizontal("TopLeft"))
-        assertEquals(Alignment.Horizontal.Right, AlignmentMaps.horizontal("BottomRight"))
-        assertEquals(Alignment.CenterRight, AlignmentMaps.box("CenterRight"))
+        assertEquals(Alignment.Top, AlignmentMaps.vertical("TopLeft"))
+        assertEquals(Alignment.Bottom, AlignmentMaps.vertical("BottomRight"))
+        assertEquals(AbsoluteAlignment.Left, AlignmentMaps.horizontal("TopLeft"))
+        assertEquals(AbsoluteAlignment.Right, AlignmentMaps.horizontal("BottomRight"))
+        assertEquals(AbsoluteAlignment.CenterRight, AlignmentMaps.box("CenterRight"))
     }
 
     @Test
     fun `an entry no map knows falls back to the centre of its axis`() {
         assertEquals(Alignment.Center, AlignmentMaps.box("Sideways"))
-        assertEquals(Alignment.Horizontal.Center, AlignmentMaps.horizontal("Sideways"))
-        assertEquals(Alignment.Vertical.Center, AlignmentMaps.vertical("Sideways"))
+        assertEquals(Alignment.CenterHorizontally, AlignmentMaps.horizontal("Sideways"))
+        assertEquals(Alignment.CenterVertically, AlignmentMaps.vertical("Sideways"))
     }
 
     @Test
