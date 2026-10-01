@@ -1,0 +1,33 @@
+// Klib ABI Dump
+// Targets: [wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <dev.rotalex.lutter:builtins>
+final object dev.rotalex.lutter.builtins/ColumnSpec { // dev.rotalex.lutter.builtins/ColumnSpec|null[0]
+    final val ArrangementId // dev.rotalex.lutter.builtins/ColumnSpec.ArrangementId|{}ArrangementId[0]
+        final fun <get-ArrangementId>(): dev.rotalex.lutter.model.ids/TypeId // dev.rotalex.lutter.builtins/ColumnSpec.ArrangementId.<get-ArrangementId>|<get-ArrangementId>(){}[0]
+    final val children // dev.rotalex.lutter.builtins/ColumnSpec.children|{}children[0]
+        final fun <get-children>(): dev.rotalex.lutter.schema.component/SlotSpec // dev.rotalex.lutter.builtins/ColumnSpec.children.<get-children>|<get-children>(){}[0]
+    final val spacing // dev.rotalex.lutter.builtins/ColumnSpec.spacing|{}spacing[0]
+        final fun <get-spacing>(): dev.rotalex.lutter.schema.component/PropertySpec<kotlin/Float?> // dev.rotalex.lutter.builtins/ColumnSpec.spacing.<get-spacing>|<get-spacing>(){}[0]
+    final val spec // dev.rotalex.lutter.builtins/ColumnSpec.spec|{}spec[0]
+        final fun <get-spec>(): dev.rotalex.lutter.schema.component/ComponentSpec // dev.rotalex.lutter.builtins/ColumnSpec.spec.<get-spec>|<get-spec>(){}[0]
+    final val verticalArrangement // dev.rotalex.lutter.builtins/ColumnSpec.verticalArrangement|{}verticalArrangement[0]
+        final fun <get-verticalArrangement>(): dev.rotalex.lutter.schema.component/PropertySpec<kotlin/String?> // dev.rotalex.lutter.builtins/ColumnSpec.verticalArrangement.<get-verticalArrangement>|<get-verticalArrangement>(){}[0]
+}
+
+final object dev.rotalex.lutter.builtins/TextSpec { // dev.rotalex.lutter.builtins/TextSpec|null[0]
+    final val color // dev.rotalex.lutter.builtins/TextSpec.color|{}color[0]
+        final fun <get-color>(): dev.rotalex.lutter.schema.component/PropertySpec<dev.rotalex.lutter.model.value/ColorArgb?> // dev.rotalex.lutter.builtins/TextSpec.color.<get-color>|<get-color>(){}[0]
+    final val spec // dev.rotalex.lutter.builtins/TextSpec.spec|{}spec[0]
+        final fun <get-spec>(): dev.rotalex.lutter.schema.component/ComponentSpec // dev.rotalex.lutter.builtins/TextSpec.spec.<get-spec>|<get-spec>(){}[0]
+    final val style // dev.rotalex.lutter.builtins/TextSpec.style|{}style[0]
+        final fun <get-style>(): dev.rotalex.lutter.schema.component/PropertySpec<dev.rotalex.lutter.model.doc/TokenName?> // dev.rotalex.lutter.builtins/TextSpec.style.<get-style>|<get-style>(){}[0]
+    final val text // dev.rotalex.lutter.builtins/TextSpec.text|{}text[0]
+        final fun <get-text>(): dev.rotalex.lutter.schema.component/PropertySpec<kotlin/String> // dev.rotalex.lutter.builtins/TextSpec.text.<get-text>|<get-text>(){}[0]
+}
+
+final fun <#A: kotlin/Any, #B: kotlin/Any, #C: kotlin/Any, #D: kotlin/Any> (dev.rotalex.lutter.schema/SchemaBuilder<dev.rotalex.lutter.schema.component/ComponentSpec, #A, #B, #C, #D>).dev.rotalex.lutter.builtins/registerBuiltinSpecs() // dev.rotalex.lutter.builtins/registerBuiltinSpecs|registerBuiltinSpecs@dev.rotalex.lutter.schema.SchemaBuilder<dev.rotalex.lutter.schema.component.ComponentSpec,0:0,0:1,0:2,0:3>(){0§<kotlin.Any>;1§<kotlin.Any>;2§<kotlin.Any>;3§<kotlin.Any>}[0]
