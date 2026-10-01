@@ -184,6 +184,39 @@ class SchemaPassTest {
     }
 
     @Test
+    fun `scoped modifier inside its scope reports nothing`() {
+        val codes = codesOf {
+            node(ColumnType) {
+                val title = node(TextType) {
+                    prop("text", Value.Str("Hi"))
+                    modifier(WeightType, mapOf(PropertyKey("weight") to constOf(Value.Float32(1f))))
+                }
+                slot("children", listOf(title))
+            }
+        }
+
+        assertTrue(codes.none { it == DiagnosticCodes.ModifierScopeMissing.value }, "got $codes")
+    }
+
+    @Test
+    fun `a scope reaches a grandchild, not only a direct child`() {
+        val codes = codesOf {
+            node(ColumnType) {
+                val middle = node(ColumnType) {
+                    val deep = node(TextType) {
+                        prop("text", Value.Str("Deep"))
+                        modifier(WeightType, mapOf(PropertyKey("weight") to constOf(Value.Float32(1f))))
+                    }
+                    slot("children", listOf(deep))
+                }
+                slot("children", listOf(middle))
+            }
+        }
+
+        assertTrue(codes.none { it == DiagnosticCodes.ModifierScopeMissing.value }, "got $codes")
+    }
+
+    @Test
     fun `undeclared modifier argument reports arg invalid`() {
         val codes = codesOf {
             node(ColumnType) {

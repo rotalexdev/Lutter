@@ -24,19 +24,31 @@ public class UiRuntime(
 /**
  * The §4.5 fail-fast: every spec in the schema renders, or construction refuses.
  *
+ * Both halves of the plugin pair are checked, because an unwired modifier fails the same way
+ * an unwired component does — silently, as a node drawn without what the document asked for.
+ *
  * Document-overlay types (`doc.*`) are not schema members, so they are not checked
  * here; their renderer is resolved per node at render time instead.
  */
 public object RuntimeCoverage {
-    /** Every component type in [schema] must read back out of [runtime]'s registry. */
-    public fun check(schema: SchemaView<ComponentSpec, *, *, *, *>, runtime: UiRuntime): Unit {
-        val missing = schema.components.all()
+    /** Every component and modifier type in [schema] must read back out of [runtime]. */
+    public fun check(schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>, runtime: UiRuntime): Unit {
+        val unwiredComponents = schema.components.all()
             .map { it.type }
             .filter { it !in runtime.renderers }
             .sortedBy { it.value }
-        if (missing.isNotEmpty()) {
+        if (unwiredComponents.isNotEmpty()) {
             throw IllegalStateException(
-                "UiRuntime has no renderer for ${missing.joinToString { "'$it'" }}",
+                "UiRuntime has no renderer for ${unwiredComponents.joinToString { "'$it'" }}",
+            )
+        }
+        val unwiredModifiers = schema.modifiers.all()
+            .map { it.type }
+            .filter { it !in runtime.modifiers }
+            .sortedBy { it.value }
+        if (unwiredModifiers.isNotEmpty()) {
+            throw IllegalStateException(
+                "UiRuntime has no modifier applier for ${unwiredModifiers.joinToString { "'$it'" }}",
             )
         }
     }

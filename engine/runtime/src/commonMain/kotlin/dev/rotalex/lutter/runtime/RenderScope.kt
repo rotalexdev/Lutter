@@ -1,5 +1,8 @@
 package dev.rotalex.lutter.runtime
 
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
@@ -29,12 +32,21 @@ public interface ThemeHandle {
 }
 
 /**
- * The layout scope a renderer opened. Opaque on purpose: receiver arms arrive
- * with the first scope-gated modifier, and a guess now would name them wrong.
+ * The layout scope a renderer opened: the receiver a gated modifier applies against.
+ *
+ * Each arm carries its receiver because the implicit one does not reach a modifier applier —
+ * a nested function body has no access to the `RowScope` the caller's lambda introduced. An
+ * applier casts to the arm it needs and reads the receiver there.
  */
 public sealed interface ScopeHandle {
-    /** Inside a Column's content lambda. The only provider the skeleton has. */
-    public data object Column : ScopeHandle
+    /** Inside a Column's content lambda. */
+    public class Column(public val scope: ColumnScope) : ScopeHandle
+
+    /** Inside a Row's content lambda. */
+    public class Row(public val scope: RowScope) : ScopeHandle
+
+    /** Inside a Box's content lambda. */
+    public class Box(public val scope: BoxScope) : ScopeHandle
 }
 
 /**

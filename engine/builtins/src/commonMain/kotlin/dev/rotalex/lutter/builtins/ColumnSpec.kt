@@ -12,7 +12,6 @@ import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.LambdaTarget
 import dev.rotalex.lutter.schema.component.PropertyRule
 import dev.rotalex.lutter.schema.component.PropertySpec
-import dev.rotalex.lutter.schema.component.ScopeId
 import dev.rotalex.lutter.schema.component.SlotSpec
 import dev.rotalex.lutter.schema.component.ValueEmit
 import dev.rotalex.lutter.schema.component.componentSpec
@@ -42,7 +41,7 @@ public object ColumnSpec {
     public val children: SlotSpec = SlotSpec(
         SlotName("children"),
         Cardinality.Many,
-        provides = setOf(ScopeId("compose.ColumnScope")),
+        provides = setOf(LayoutScopes.Column),
     )
 
     /** The spec renderers, validation and codegen share. */

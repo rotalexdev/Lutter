@@ -25,7 +25,7 @@ internal object ColumnRenderer : ComponentRenderer {
             if (spacing != null) Arrangement.spacedBy(spacing.dp)
             else arrangementOf(props[ColumnSpec.verticalArrangement]),
         ) {
-            scope.withScope(ScopeHandle.Column) { RenderSlot(node, ColumnSpec.children.name) }
+            scope.withScope(ScopeHandle.Column(this)) { RenderSlot(node, ColumnSpec.children.name) }
         }
     }
 }

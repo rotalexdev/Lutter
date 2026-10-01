@@ -11,7 +11,6 @@ import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.LambdaTarget
 import dev.rotalex.lutter.schema.component.Positional
 import dev.rotalex.lutter.schema.component.PropertyRule
-import dev.rotalex.lutter.schema.component.ScopeId
 import dev.rotalex.lutter.schema.component.ValueEmit
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -47,7 +46,7 @@ class BuiltinSpecsTest {
             ColumnSpec.spec.rules.single(),
         )
         assertEquals(Cardinality.Many, ColumnSpec.children.cardinality)
-        assertEquals(setOf(ScopeId("compose.ColumnScope")), ColumnSpec.children.provides)
+        assertEquals(setOf(LayoutScopes.Column), ColumnSpec.children.provides)
 
         val call = assertIs<CodegenBinding.ComposeCall>(ColumnSpec.spec.codegen)
         val arrangement = call.params.single()

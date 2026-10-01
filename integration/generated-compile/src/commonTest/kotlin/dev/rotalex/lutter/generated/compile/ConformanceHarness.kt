@@ -2,7 +2,9 @@ package dev.rotalex.lutter.generated.compile
 
 import dev.rotalex.lutter.analysis.Analyzer
 import dev.rotalex.lutter.analysis.AnalysisResult
+import dev.rotalex.lutter.builtins.compose.registerBuiltinModifierAppliers
 import dev.rotalex.lutter.builtins.compose.registerBuiltinRenderers
+import dev.rotalex.lutter.builtins.registerBuiltinModifiers
 import dev.rotalex.lutter.builtins.registerBuiltinSpecs
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.PageId
@@ -26,14 +28,19 @@ import dev.rotalex.lutter.serialization.JsonDocumentCodec
  * generation runs its own check, so both fail-fast gates execute on every fixture.
  */
 internal object ConformanceHarness {
-    /** The walking-skeleton schema: the two builtin specs, nothing else. */
+    /** The walking-skeleton schema: the builtin component specs and the §31.2 modifier set. */
     fun schema(): Schema<ComponentSpec, ModifierSpec, Unit, Unit, Unit> =
-        Schema.build { registerBuiltinSpecs() }
+        Schema.build {
+            registerBuiltinSpecs()
+            registerBuiltinModifiers()
+        }
 
-    /** A runtime over [schema]. Construction itself proves renderer coverage. */
+    /** A runtime over [schema]. Construction itself proves renderer and applier coverage. */
     fun runtime(schema: Schema<ComponentSpec, ModifierSpec, Unit, Unit, Unit>): UiRuntime {
         val renderers = RendererRegistryBuilder().apply { registerBuiltinRenderers() }.build()
-        val modifiers = ModifierApplierRegistryBuilder().build()
+        val modifiers = ModifierApplierRegistryBuilder()
+            .apply { registerBuiltinModifierAppliers() }
+            .build()
         return UiRuntime(renderers, modifiers, Implementations.None, schema)
     }
 

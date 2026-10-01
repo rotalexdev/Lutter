@@ -5,6 +5,7 @@ import dev.rotalex.lutter.analysis.AnalysisResult
 import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
 import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
+import dev.rotalex.lutter.builtins.registerBuiltinModifiers
 import dev.rotalex.lutter.builtins.registerBuiltinSpecs
 import dev.rotalex.lutter.codegen.CodegenOptions
 import dev.rotalex.lutter.codegen.CodegenResult
@@ -49,7 +50,10 @@ private fun runGenerate(args: List<String>): Unit {
     }
     val outDir = File(optionValue(args, "--out") ?: "generated")
     val schema: Schema<ComponentSpec, ModifierSpec, Unit, Unit, Unit> =
-        Schema.build<ComponentSpec, ModifierSpec, Unit, Unit, Unit> { registerBuiltinSpecs() }
+        Schema.build<ComponentSpec, ModifierSpec, Unit, Unit, Unit> {
+            registerBuiltinSpecs()
+            registerBuiltinModifiers()
+        }
     val document: UiDocument = decode(File(input))
     val analysis: AnalysisResult = Analyzer(schema).analyze(document)
     for (diagnostic in analysis.diagnostics) {
