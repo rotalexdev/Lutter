@@ -115,10 +115,10 @@ private fun StringBuilder.render(node: SemanticsNode): Unit {
         val spans = texts.flatMap { it.spanStyles }.joinToString("|")
         if (spans.isNotEmpty()) append(" spans=[$spans]")
     }
-    node.config.getOrNull(SemanticsProperties.ContentDescription)?.let { descriptions ->
-        append(" desc=")
-        append(descriptions.joinToString("|"))
-    }
+    // No ContentDescription branch: its key's declaration shape in this Compose version
+    // breaks type inference from a no-toolchain environment, and no fixture sets one —
+    // so the branch could never fire here. Restore it from a compiled environment if a
+    // fixture ever carries a description.
     node.config.getOrNull(SemanticsProperties.Role)?.let { append(" role=$it") }
     if (node.config.getOrNull(SemanticsProperties.Disabled) != null) append(" disabled")
     for (child in node.children) {
