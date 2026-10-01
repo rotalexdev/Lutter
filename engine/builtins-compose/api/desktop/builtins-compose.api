@@ -1,0 +1,4 @@
+public final class dev/rotalex/lutter/builtins/compose/BuiltinRenderersKt {
+	public static final fun registerBuiltinRenderers (Ldev/rotalex/lutter/runtime/RendererRegistryBuilder;)V
+}
+

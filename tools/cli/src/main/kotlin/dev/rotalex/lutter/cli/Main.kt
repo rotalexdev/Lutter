@@ -1,30 +1,97 @@
 package dev.rotalex.lutter.cli
 
+import dev.rotalex.lutter.analysis.Analyzer
+import dev.rotalex.lutter.analysis.AnalysisResult
+import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
+import dev.rotalex.lutter.analysis.diagnostic.Severity
+import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
+import dev.rotalex.lutter.builtins.registerBuiltinSpecs
+import dev.rotalex.lutter.codegen.CodegenOptions
+import dev.rotalex.lutter.codegen.CodegenResult
+import dev.rotalex.lutter.codegen.KotlinGenerator
+import dev.rotalex.lutter.model.doc.UiDocument
+import dev.rotalex.lutter.schema.Schema
+import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.modifier.ModifierSpec
+import dev.rotalex.lutter.serialization.JsonDocumentCodec
+import java.io.File
+import kotlin.system.exitProcess
+
 /**
- * Entry point of the `forge` command.
- *
- * Phase 0 wires the CLI into the build so the module graph and the JVM toolchain are proven
- * end to end. The four subcommands are not implemented and this deliberately does not
- * pretend otherwise: `validate`, `generate` and `diff` arrive in Phase 4 with the analyzer
- * and the generator, and `migrate` in Phase 10 with the migration format.
- *
- * It exits normally and returns 0, because a build tool that fails the build for being
- * unfinished would make the unfinished state harder to see, not easier.
+ * The `forge` command: `generate` runs decode, validation and generation over a file.
+ * The other subcommands stay stubs until their units land.
  */
-public fun main() {
-    println(
-        """
-        forge — Forge Engine CLI (Phase 0 stub)
+public fun main(args: Array<String>) {
+    if (args.isEmpty() || args[0] != "generate") {
+        printUsage()
+        exitProcess(if (args.isEmpty()) 0 else 1)
+    }
+    runGenerate(args.drop(1))
+}
 
-        No subcommand is implemented yet. The command surface is fixed, so scripts written
-        against it now will keep working:
+private fun printUsage(): Unit = println(
+    """
+    forge — Forge Engine CLI
 
-          forge validate <document.json>   diagnose a document     (Phase 4)
-          forge generate <document.json>   emit Kotlin/Compose     (Phase 4)
-          forge diff <a.json> <b.json>      structural difference   (Phase 4)
-          forge migrate <document.json>    upgrade to the current  (Phase 10)
+      forge generate <document.json> [--out <dir>] [--package <pkg>]   emit Kotlin/Compose
+      forge validate <document.json>   diagnose a document     (later unit)
+      forge diff <a.json> <b.json>      structural difference   (later unit)
+      forge migrate <document.json>    upgrade to the current  (Phase 10)
+    """.trimIndent(),
+)
 
-        Exit code is 0: the stub reports its state, it does not signal a failure.
-        """.trimIndent(),
-    )
+// Decodes, validates, generates, writes: each stage refuses before the next one runs.
+private fun runGenerate(args: List<String>): Unit {
+    val input: String? = args.firstOrNull { !it.startsWith("--") }
+    if (input == null) {
+        System.err.println("forge generate: missing <document.json>")
+        exitProcess(2)
+    }
+    val outDir = File(optionValue(args, "--out") ?: "generated")
+    val schema: Schema<ComponentSpec, ModifierSpec, Unit, Unit, Unit> =
+        Schema.build<ComponentSpec, ModifierSpec, Unit, Unit, Unit> { registerBuiltinSpecs() }
+    val document: UiDocument = decode(File(input))
+    val analysis: AnalysisResult = Analyzer(schema).analyze(document)
+    for (diagnostic in analysis.diagnostics) {
+        System.err.println(describe(diagnostic))
+    }
+    if (analysis.hasErrors) exitProcess(1)
+    val resolved: ResolvedDocument = checkNotNull(analysis.resolved) {
+        "Analysis passed but resolved nothing"
+    }
+    val options = CodegenOptions(optionValue(args, "--package") ?: document.app.packageName)
+    val result: CodegenResult =
+        KotlinGenerator(schema, options).generate(resolved, analysis.diagnostics)
+    for (diagnostic in result.diagnostics) {
+        if (diagnostic !in analysis.diagnostics) System.err.println(describe(diagnostic))
+    }
+    if (result.diagnostics.any { it.severity == Severity.Error }) exitProcess(1)
+    val written: List<File> = FileSink.write(outDir, result.files)
+    println("forge generate: wrote ${written.size} files to '${outDir.path}'")
+}
+
+private fun decode(file: File): UiDocument {
+    if (!file.isFile) {
+        System.err.println("forge generate: no such file '${file.path}'")
+        exitProcess(2)
+    }
+    return try {
+        JsonDocumentCodec.decode(file.readBytes()).document
+    } catch (failure: Exception) {
+        System.err.println("forge generate: cannot decode '${file.path}': ${failure.message}")
+        exitProcess(2)
+    }
+}
+
+private fun describe(diagnostic: Diagnostic): String {
+    val where = diagnostic.location.nodeId?.toString()
+        ?: diagnostic.location.pageId?.toString()
+        ?: "document"
+    return "${diagnostic.severity} ${diagnostic.code} at $where: ${diagnostic.message}"
+}
+
+private fun optionValue(args: List<String>, flag: String): String? {
+    val index: Int = args.indexOf(flag)
+    if (index < 0 || index + 1 >= args.size) return null
+    return args[index + 1]
 }

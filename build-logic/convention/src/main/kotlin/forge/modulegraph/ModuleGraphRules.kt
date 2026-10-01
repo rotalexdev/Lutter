@@ -91,6 +91,7 @@ object ModuleGraphRules {
         ),
         ":tools:cli" to setOf(
             ":engine:model",
+            ":engine:schema",
             ":engine:serialization",
             ":engine:analysis",
             ":engine:codegen",

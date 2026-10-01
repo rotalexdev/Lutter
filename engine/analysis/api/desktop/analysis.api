@@ -1,0 +1,251 @@
+public final class dev/rotalex/lutter/analysis/AnalysisResult {
+	public fun <init> (Ljava/util/List;Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;)V
+	public final fun getDiagnostics ()Ljava/util/List;
+	public final fun getHasErrors ()Z
+	public final fun getResolved ()Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;
+}
+
+public final class dev/rotalex/lutter/analysis/Analyzer {
+	public fun <init> (Ldev/rotalex/lutter/schema/SchemaView;)V
+	public final fun analyze (Ldev/rotalex/lutter/model/doc/UiDocument;)Ldev/rotalex/lutter/analysis/AnalysisResult;
+}
+
+public final class dev/rotalex/lutter/analysis/diagnostic/Diagnostic {
+	public synthetic fun <init> (Ldev/rotalex/lutter/analysis/diagnostic/Severity;Ljava/lang/String;Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;Ljava/lang/String;Ljava/util/Map;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/analysis/diagnostic/Severity;Ljava/lang/String;Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;Ljava/lang/String;Ljava/util/Map;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ldev/rotalex/lutter/analysis/diagnostic/Severity;
+	public final fun component2-6lSHpRw ()Ljava/lang/String;
+	public final fun component3 ()Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/util/Map;
+	public final fun component6 ()Ljava/util/List;
+	public final fun copy-KQKcPEo (Ldev/rotalex/lutter/analysis/diagnostic/Severity;Ljava/lang/String;Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;Ljava/lang/String;Ljava/util/Map;Ljava/util/List;)Ldev/rotalex/lutter/analysis/diagnostic/Diagnostic;
+	public static synthetic fun copy-KQKcPEo$default (Ldev/rotalex/lutter/analysis/diagnostic/Diagnostic;Ldev/rotalex/lutter/analysis/diagnostic/Severity;Ljava/lang/String;Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;Ljava/lang/String;Ljava/util/Map;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/analysis/diagnostic/Diagnostic;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArgs ()Ljava/util/Map;
+	public final fun getCode-6lSHpRw ()Ljava/lang/String;
+	public final fun getLocation ()Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getSeverity ()Ldev/rotalex/lutter/analysis/diagnostic/Severity;
+	public final fun getSuggestions ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/analysis/diagnostic/DiagnosticCode {
+	public static final synthetic fun box-impl (Ljava/lang/String;)Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticCode;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/analysis/diagnostic/DiagnosticCodes {
+	public static final field INSTANCE Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticCodes;
+	public final fun getCodegenNameCollision-6lSHpRw ()Ljava/lang/String;
+	public final fun getCodegenNoBinding-6lSHpRw ()Ljava/lang/String;
+	public final fun getCodegenStrategyUnsupported-6lSHpRw ()Ljava/lang/String;
+	public final fun getComponentChildNotAllowed-6lSHpRw ()Ljava/lang/String;
+	public final fun getComponentConflictingProperties-6lSHpRw ()Ljava/lang/String;
+	public final fun getComponentSlotCardinality-6lSHpRw ()Ljava/lang/String;
+	public final fun getComponentSlotUnknown-6lSHpRw ()Ljava/lang/String;
+	public final fun getComponentUnknown-6lSHpRw ()Ljava/lang/String;
+	public final fun getModifierArgInvalid-6lSHpRw ()Ljava/lang/String;
+	public final fun getModifierScopeMissing-6lSHpRw ()Ljava/lang/String;
+	public final fun getModifierUnknown-6lSHpRw ()Ljava/lang/String;
+	public final fun getPropEnumEntryInvalid-6lSHpRw ()Ljava/lang/String;
+	public final fun getPropNotBindable-6lSHpRw ()Ljava/lang/String;
+	public final fun getPropRange-6lSHpRw ()Ljava/lang/String;
+	public final fun getPropRequiredMissing-6lSHpRw ()Ljava/lang/String;
+	public final fun getPropTypeMismatch-6lSHpRw ()Ljava/lang/String;
+	public final fun getPropUnknown-6lSHpRw ()Ljava/lang/String;
+	public final fun getRefDangling-6lSHpRw ()Ljava/lang/String;
+	public final fun getRefKindMismatch-6lSHpRw ()Ljava/lang/String;
+	public final fun getResourceUnknown-6lSHpRw ()Ljava/lang/String;
+	public final fun getStructCycle-6lSHpRw ()Ljava/lang/String;
+	public final fun getStructDuplicateId-6lSHpRw ()Ljava/lang/String;
+	public final fun getStructMissingNode-6lSHpRw ()Ljava/lang/String;
+	public final fun getStructMissingRoot-6lSHpRw ()Ljava/lang/String;
+	public final fun getStructMultipleParents-6lSHpRw ()Ljava/lang/String;
+	public final fun getStructOrphan-6lSHpRw ()Ljava/lang/String;
+	public final fun getTokenUnknown-6lSHpRw ()Ljava/lang/String;
+	public final fun getValueNonFinite-6lSHpRw ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/String;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/String;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-3crtHuc ()Ljava/lang/String;
+	public final fun component2-mioi_pY ()Ljava/lang/String;
+	public final fun component3-05jdo6Y ()Ljava/lang/String;
+	public final fun component4-rE79kGE ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/Integer;
+	public final fun component6-wGiQZ7k ()Ljava/lang/String;
+	public final fun component7 ()Ljava/util/List;
+	public final fun copy-q5aSIiI (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/String;Ljava/util/List;)Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;
+	public static synthetic fun copy-q5aSIiI$default (Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getComponentDeclId-mioi_pY ()Ljava/lang/String;
+	public final fun getEvent-wGiQZ7k ()Ljava/lang/String;
+	public final fun getModifierIndex ()Ljava/lang/Integer;
+	public final fun getNodeId-05jdo6Y ()Ljava/lang/String;
+	public final fun getPageId-3crtHuc ()Ljava/lang/String;
+	public final fun getPath ()Ljava/util/List;
+	public final fun getProperty-rE79kGE ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/analysis/diagnostic/Severity : java/lang/Enum {
+	public static final field Error Ldev/rotalex/lutter/analysis/diagnostic/Severity;
+	public static final field Info Ldev/rotalex/lutter/analysis/diagnostic/Severity;
+	public static final field Warning Ldev/rotalex/lutter/analysis/diagnostic/Severity;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/analysis/diagnostic/Severity;
+	public static fun values ()[Ldev/rotalex/lutter/analysis/diagnostic/Severity;
+}
+
+public final class dev/rotalex/lutter/analysis/diagnostic/Suggestion {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ldev/rotalex/lutter/analysis/diagnostic/Suggestion;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/analysis/diagnostic/Suggestion;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/analysis/diagnostic/Suggestion;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLabel ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/analysis/resolved/PropOrigin : java/lang/Enum {
+	public static final field Default Ldev/rotalex/lutter/analysis/resolved/PropOrigin;
+	public static final field Specified Ldev/rotalex/lutter/analysis/resolved/PropOrigin;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/analysis/resolved/PropOrigin;
+	public static fun values ()[Ldev/rotalex/lutter/analysis/resolved/PropOrigin;
+}
+
+public final class dev/rotalex/lutter/analysis/resolved/ResolvedDocument {
+	public fun <init> (Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;Ldev/rotalex/lutter/analysis/resolved/ResolvedTheme;)V
+	public final fun component1 ()Ljava/util/Map;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun component3 ()Ljava/util/Map;
+	public final fun component4 ()Ldev/rotalex/lutter/analysis/resolved/ResolvedTheme;
+	public final fun copy (Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;Ldev/rotalex/lutter/analysis/resolved/ResolvedTheme;)Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;Ldev/rotalex/lutter/analysis/resolved/ResolvedTheme;ILjava/lang/Object;)Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getComponents ()Ljava/util/Map;
+	public final fun getNodes ()Ljava/util/Map;
+	public final fun getPages ()Ljava/util/Map;
+	public final fun getTheme ()Ldev/rotalex/lutter/analysis/resolved/ResolvedTheme;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/analysis/resolved/ResolvedModifier {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-7JALVuA ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun copy-oGUz0Hw (Ljava/lang/String;Ljava/util/Map;)Ldev/rotalex/lutter/analysis/resolved/ResolvedModifier;
+	public static synthetic fun copy-oGUz0Hw$default (Ldev/rotalex/lutter/analysis/resolved/ResolvedModifier;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Ldev/rotalex/lutter/analysis/resolved/ResolvedModifier;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArgs ()Ljava/util/Map;
+	public final fun getType-7JALVuA ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/analysis/resolved/ResolvedNode {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/util/List;Ljava/util/Map;Ljava/util/Set;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2-RCZ7MqM ()Ljava/lang/String;
+	public final fun component3 ()Ljava/util/Map;
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()Ljava/util/Map;
+	public final fun component6 ()Ljava/util/Set;
+	public final fun copy-lzaeBj0 (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/util/List;Ljava/util/Map;Ljava/util/Set;)Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;
+	public static synthetic fun copy-lzaeBj0$default (Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/util/List;Ljava/util/Map;Ljava/util/Set;ILjava/lang/Object;)Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-qw1I0Vk ()Ljava/lang/String;
+	public final fun getModifiers ()Ljava/util/List;
+	public final fun getProps ()Ljava/util/Map;
+	public final fun getScopes ()Ljava/util/Set;
+	public final fun getSlots ()Ljava/util/Map;
+	public final fun getType-RCZ7MqM ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/analysis/resolved/ResolvedPage {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-rrQF154 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;
+	public final fun copy-Ey6PMDk (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;)Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;
+	public static synthetic fun copy-Ey6PMDk$default (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;ILjava/lang/Object;)Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-rrQF154 ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getRoot ()Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;
+	public final fun getRoute ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/analysis/resolved/ResolvedProp {
+	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/expr/PropertyValue;Ldev/rotalex/lutter/analysis/resolved/PropOrigin;Ldev/rotalex/lutter/analysis/resolved/ResolvedToken;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-ciGozWU ()Ljava/lang/String;
+	public final fun component2 ()Ldev/rotalex/lutter/model/expr/PropertyValue;
+	public final fun component3 ()Ldev/rotalex/lutter/analysis/resolved/PropOrigin;
+	public final fun component4 ()Ldev/rotalex/lutter/analysis/resolved/ResolvedToken;
+	public final fun copy-TTFUq2c (Ljava/lang/String;Ldev/rotalex/lutter/model/expr/PropertyValue;Ldev/rotalex/lutter/analysis/resolved/PropOrigin;Ldev/rotalex/lutter/analysis/resolved/ResolvedToken;)Ldev/rotalex/lutter/analysis/resolved/ResolvedProp;
+	public static synthetic fun copy-TTFUq2c$default (Ldev/rotalex/lutter/analysis/resolved/ResolvedProp;Ljava/lang/String;Ldev/rotalex/lutter/model/expr/PropertyValue;Ldev/rotalex/lutter/analysis/resolved/PropOrigin;Ldev/rotalex/lutter/analysis/resolved/ResolvedToken;ILjava/lang/Object;)Ldev/rotalex/lutter/analysis/resolved/ResolvedProp;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getKey-ciGozWU ()Ljava/lang/String;
+	public final fun getOrigin ()Ldev/rotalex/lutter/analysis/resolved/PropOrigin;
+	public final fun getToken ()Ldev/rotalex/lutter/analysis/resolved/ResolvedToken;
+	public final fun getValue ()Ldev/rotalex/lutter/model/expr/PropertyValue;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/analysis/resolved/ResolvedTheme {
+	public fun <init> (Ldev/rotalex/lutter/model/doc/ThemeDecl;)V
+	public final fun component1 ()Ldev/rotalex/lutter/model/doc/ThemeDecl;
+	public final fun copy (Ldev/rotalex/lutter/model/doc/ThemeDecl;)Ldev/rotalex/lutter/analysis/resolved/ResolvedTheme;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/analysis/resolved/ResolvedTheme;Ldev/rotalex/lutter/model/doc/ThemeDecl;ILjava/lang/Object;)Ldev/rotalex/lutter/analysis/resolved/ResolvedTheme;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getTheme ()Ldev/rotalex/lutter/model/doc/ThemeDecl;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/analysis/resolved/ResolvedToken {
+	public fun <init> (Ldev/rotalex/lutter/model/type/TokenKind;Ljava/lang/String;Ldev/rotalex/lutter/analysis/resolved/TokenSource;)V
+	public final fun component1 ()Ldev/rotalex/lutter/model/type/TokenKind;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ldev/rotalex/lutter/analysis/resolved/TokenSource;
+	public final fun copy (Ldev/rotalex/lutter/model/type/TokenKind;Ljava/lang/String;Ldev/rotalex/lutter/analysis/resolved/TokenSource;)Ldev/rotalex/lutter/analysis/resolved/ResolvedToken;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/analysis/resolved/ResolvedToken;Ldev/rotalex/lutter/model/type/TokenKind;Ljava/lang/String;Ldev/rotalex/lutter/analysis/resolved/TokenSource;ILjava/lang/Object;)Ldev/rotalex/lutter/analysis/resolved/ResolvedToken;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getKind ()Ldev/rotalex/lutter/model/type/TokenKind;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getSource ()Ldev/rotalex/lutter/analysis/resolved/TokenSource;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/analysis/resolved/TokenSource : java/lang/Enum {
+	public static final field Custom Ldev/rotalex/lutter/analysis/resolved/TokenSource;
+	public static final field Material Ldev/rotalex/lutter/analysis/resolved/TokenSource;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/analysis/resolved/TokenSource;
+	public static fun values ()[Ldev/rotalex/lutter/analysis/resolved/TokenSource;
+}
+
