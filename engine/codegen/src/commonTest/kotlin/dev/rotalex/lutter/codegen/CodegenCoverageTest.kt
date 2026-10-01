@@ -34,7 +34,7 @@ class CodegenCoverageTest {
 
     @Test
     fun `the generator refuses an uncovered schema at construction`() {
-        val schema = boundSchema()
+        val schema = boundSchema(ghost = true)
         val failure = assertFailsWith<IllegalStateException> {
             KotlinGenerator(schema, CodegenOptions("com.example.app"))
         }
@@ -112,7 +112,7 @@ class CodegenCoverageTest {
         assertTrue(failure.message?.contains("test.Column") == true, "got: ${failure.message}")
     }
 
-    private fun boundSchema(): Schema<ComponentSpec, ModifierSpec, String, String, String> =
+    private fun boundSchema(ghost: Boolean = false): Schema<ComponentSpec, ModifierSpec, String, String, String> =
         Schema.build {
             component(
                 componentSpec(columnType, 1) {
@@ -133,12 +133,16 @@ class CodegenCoverageTest {
                     }
                 },
             )
-            component(
-                componentSpec(ComponentType("test.Ghost"), 1) {
-                    metadata("Ghost", Category.Basic)
-                    intrinsic()
-                },
-            )
+            // The uncovered case lives only in the test that expects the refusal: a schema
+            // cannot both pass coverage and contain it.
+            if (ghost) {
+                component(
+                    componentSpec(ComponentType("test.Ghost"), 1) {
+                        metadata("Ghost", Category.Basic)
+                        intrinsic()
+                    },
+                )
+            }
         }
 
     private fun componentMetadata(): ComponentMetadata =
