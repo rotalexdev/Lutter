@@ -165,7 +165,10 @@ internal class SchemaPass(
             } else if (rule is PropertyRule.Range) {
                 val const = (node.props[rule.key] as? PropertyValue.Const)?.value ?: continue
                 val number = numberOf(const) ?: continue
-                if ((rule.min != null && number < rule.min) || (rule.max != null && number > rule.max)) {
+                // Locals, not smart casts: min/max are cross-module public properties.
+                val min = rule.min
+                val max = rule.max
+                if ((min != null && number < min) || (max != null && number > max)) {
                     diags += Diagnostic(
                         Severity.Error, DiagnosticCodes.PropRange,
                         DiagnosticLocation(nodeId = node.id, property = rule.key),
