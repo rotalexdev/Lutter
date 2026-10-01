@@ -11,7 +11,7 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.ComponentSpec
-import dev.rotalex.lutter.schema.component.ModifierSpec
+import dev.rotalex.lutter.schema.modifier.ModifierSpec
 
 /**
  * The document gate: validates a [UiDocument] and lowers it when clean.

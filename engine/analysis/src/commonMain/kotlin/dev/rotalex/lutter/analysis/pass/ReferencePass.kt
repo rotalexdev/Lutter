@@ -16,7 +16,7 @@ import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.ComponentSpec
-import dev.rotalex.lutter.schema.component.ModifierSpec
+import dev.rotalex.lutter.schema.modifier.ModifierSpec
 
 /**
  * Pass 4: references name live targets — pages, components, resources, models and tokens.
