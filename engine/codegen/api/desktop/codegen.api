@@ -2,6 +2,12 @@ public final class dev/rotalex/lutter/codegen/CodegenBug : java/lang/IllegalStat
 	public fun <init> (Ljava/lang/String;)V
 }
 
+public final class dev/rotalex/lutter/codegen/CodegenCoverage {
+	public static final field INSTANCE Ldev/rotalex/lutter/codegen/CodegenCoverage;
+	public final fun check (Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/codegen/CodegenExtensions;)V
+	public static synthetic fun check$default (Ldev/rotalex/lutter/codegen/CodegenCoverage;Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/codegen/CodegenExtensions;ILjava/lang/Object;)V
+}
+
 public final class dev/rotalex/lutter/codegen/CodegenExtensions {
 	public static final field Companion Ldev/rotalex/lutter/codegen/CodegenExtensions$Companion;
 	public fun <init> (Ljava/util/Map;)V

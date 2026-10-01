@@ -1,7 +1,0 @@
-public final class dev/rotalex/lutter/generated/compile/FixturePaths {
-	public static final field $stable I
-	public static final field FIXTURES_DIR Ljava/lang/String;
-	public static final field INSTANCE Ldev/rotalex/lutter/generated/compile/FixturePaths;
-	public final fun fixture (Ljava/lang/String;)Ljava/lang/String;
-}
-

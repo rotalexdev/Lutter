@@ -475,4 +475,8 @@ final class dev.rotalex.lutter.codegen/PlannedFile { // dev.rotalex.lutter.codeg
     final fun toString(): kotlin/String // dev.rotalex.lutter.codegen/PlannedFile.toString|toString(){}[0]
 }
 
+final object dev.rotalex.lutter.codegen/CodegenCoverage { // dev.rotalex.lutter.codegen/CodegenCoverage|null[0]
+    final fun check(dev.rotalex.lutter.schema/SchemaView<dev.rotalex.lutter.schema.component/ComponentSpec, dev.rotalex.lutter.schema.modifier/ModifierSpec, *, *, *>, dev.rotalex.lutter.codegen/CodegenExtensions = ...) // dev.rotalex.lutter.codegen/CodegenCoverage.check|check(dev.rotalex.lutter.schema.SchemaView<dev.rotalex.lutter.schema.component.ComponentSpec,dev.rotalex.lutter.schema.modifier.ModifierSpec,*,*,*>;dev.rotalex.lutter.codegen.CodegenExtensions){}[0]
+}
+
 final fun dev.rotalex.lutter.codegen/planDocument(dev.rotalex.lutter.analysis.resolved/ResolvedDocument, kotlin/String): dev.rotalex.lutter.codegen/GenPlan // dev.rotalex.lutter.codegen/planDocument|planDocument(dev.rotalex.lutter.analysis.resolved.ResolvedDocument;kotlin.String){}[0]
