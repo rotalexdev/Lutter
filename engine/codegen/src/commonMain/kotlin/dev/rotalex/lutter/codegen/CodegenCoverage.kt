@@ -40,7 +40,16 @@ public object CodegenCoverage {
             if (extensions.emitters.containsKey(binding.emitterId)) return null
             return spec.type.value to "custom emitter '${binding.emitterId}' is not registered"
         }
-        return spec.type.value to "intrinsic emission is not implemented"
+        val reason = intrinsicProblem(spec) ?: return null
+        return spec.type.value to reason
+    }
+
+    // The engine-owned path reads a node's properties and the synthesis around it; a slot or an
+    // event on the spec is one that path has nowhere to put, so it fails rather than vanishes.
+    private fun intrinsicProblem(spec: ComponentSpec): String? {
+        spec.slots.firstOrNull()?.let { return "slot '${it.name.value}' emits nothing yet" }
+        spec.events.firstOrNull()?.let { return "event '${it.key.value}' emits nothing yet" }
+        return null
     }
 
     // One reason per spec: the first gap is the fix, the rest is the same fix repeated.

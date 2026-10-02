@@ -5,6 +5,7 @@ import dev.rotalex.lutter.analysis.AnalysisResult
 import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
 import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
+import dev.rotalex.lutter.builtins.registerBuiltinEnums
 import dev.rotalex.lutter.builtins.registerBuiltinModifiers
 import dev.rotalex.lutter.builtins.registerBuiltinSpecs
 import dev.rotalex.lutter.codegen.CodegenOptions
@@ -14,6 +15,7 @@ import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.schema.Schema
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
+import dev.rotalex.lutter.schema.types.TypeSpec
 import dev.rotalex.lutter.serialization.JsonDocumentCodec
 import java.io.File
 import kotlin.system.exitProcess
@@ -49,10 +51,13 @@ private fun runGenerate(args: List<String>): Unit {
         exitProcess(2)
     }
     val outDir = File(optionValue(args, "--out") ?: "generated")
-    val schema: Schema<ComponentSpec, ModifierSpec, Unit, Unit, Unit> =
-        Schema.build<ComponentSpec, ModifierSpec, Unit, Unit, Unit> {
+    // `TypeSpec` in the last slot, or `registerBuiltinEnums` cannot apply and every document
+    // naming an enum entry — an arrangement, a shape — refuses instead of generating.
+    val schema: Schema<ComponentSpec, ModifierSpec, Unit, Unit, TypeSpec> =
+        Schema.build<ComponentSpec, ModifierSpec, Unit, Unit, TypeSpec> {
             registerBuiltinSpecs()
             registerBuiltinModifiers()
+            registerBuiltinEnums()
         }
     val document: UiDocument = decode(File(input))
     val analysis: AnalysisResult = Analyzer(schema).analyze(document)

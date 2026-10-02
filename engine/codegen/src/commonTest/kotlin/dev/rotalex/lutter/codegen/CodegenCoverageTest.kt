@@ -67,6 +67,40 @@ class CodegenCoverageTest {
     }
 
     @Test
+    fun `an intrinsic passes while it declares nothing the engine path cannot emit`() {
+        val schema: Schema<ComponentSpec, ModifierSpec, String, String, String> =
+            Schema.build {
+                component(
+                    componentSpec(ComponentType("test.Outlet"), 1) {
+                        metadata("Outlet", Category.Basic)
+                        property(prop<String>("slot", TypeRef.Str, required = true))
+                        intrinsic()
+                    },
+                )
+            }
+
+        CodegenCoverage.check(schema)
+    }
+
+    @Test
+    fun `an intrinsic declaring a slot or an event refuses`() {
+        val schema: Schema<ComponentSpec, ModifierSpec, String, String, String> =
+            Schema.build {
+                component(
+                    componentSpec(ComponentType("test.Outlet"), 1) {
+                        metadata("Outlet", Category.Basic)
+                        slot("content", Cardinality.ExactlyOne)
+                        event(EventKey("onFill"))
+                        intrinsic()
+                    },
+                )
+            }
+
+        val failure = assertFailsWith<IllegalStateException> { CodegenCoverage.check(schema) }
+        assertTrue(failure.message?.contains("content") == true, "got: ${failure.message}")
+    }
+
+    @Test
     fun `a param reading an undeclared property fails naming it`() {
         val schema: Schema<ComponentSpec, ModifierSpec, String, String, String> =
             Schema.build {
@@ -139,6 +173,7 @@ class CodegenCoverageTest {
                 component(
                     componentSpec(ComponentType("test.Ghost"), 1) {
                         metadata("Ghost", Category.Basic)
+                        slot("content", Cardinality.ExactlyOne)
                         intrinsic()
                     },
                 )
