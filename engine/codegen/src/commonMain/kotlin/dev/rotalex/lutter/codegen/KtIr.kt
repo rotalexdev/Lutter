@@ -56,9 +56,14 @@ public data class KtSymbolRef(
  * One chain entry written as a call: a modifier's function plus that call's own args.
  *
  * A subtype of [KtExpr] rather than a shape beside it, because a chain holds expressions and a
- * case-selected entry is spec text rather than a call this IR can name.
+ * case-selected entry is spec text rather than a call this IR can name. [imported] is false for
+ * a scope member's name, which resolves through a receiver rather than an FQN.
  */
-public data class KtCall(public val function: KotlinSymbol, public val args: List<KtArg>) : KtExpr
+public data class KtCall(
+    public val function: KotlinSymbol,
+    public val args: List<KtArg>,
+    public val imported: Boolean = true,
+) : KtExpr
 
 /** One argument: named, or positional when the binding shortens to one. */
 public data class KtArg(public val name: String?, public val value: KtExpr)

@@ -12,6 +12,7 @@ import dev.rotalex.lutter.schema.component.prop
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -81,6 +82,31 @@ class ModifierSpecTest {
         assertEquals(
             KotlinSymbol("androidx.compose.foundation.layout", "weight"),
             weightSpec.emit.function,
+        )
+    }
+
+    @Test
+    fun `a fresh emit imports its function and names no scope`() {
+        assertFalse(weightSpec.emit.scopeMember)
+        assertEquals(emptyMap(), weightSpec.emit.scopeEntries)
+    }
+
+    @Test
+    fun `a scope member declares the entry each scope reads`() {
+        val rowScope = ScopeId("compose.RowScope")
+        val emit = ModifierEmit(
+            function = KotlinSymbol("androidx.compose.foundation.layout", "align"),
+            cases = listOf(EmitCase(setOf(PropertyKey("alignment")), "align({alignment})")),
+            scopeMember = true,
+            scopeEntries = mapOf(
+                rowScope to mapOf("BottomRight" to KotlinSymbol("androidx.compose.ui", "Alignment.Bottom")),
+            ),
+        )
+
+        assertTrue(emit.scopeMember)
+        assertEquals(
+            KotlinSymbol("androidx.compose.ui", "Alignment.Bottom"),
+            emit.scopeEntries.getValue(rowScope).getValue("BottomRight"),
         )
     }
 

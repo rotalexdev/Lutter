@@ -30,6 +30,7 @@ import dev.rotalex.lutter.schema.component.EmitCase
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.LambdaTarget
 import dev.rotalex.lutter.schema.component.Positional
+import dev.rotalex.lutter.schema.component.ScopeId
 import dev.rotalex.lutter.schema.component.ValueEmit
 import dev.rotalex.lutter.schema.component.component
 import dev.rotalex.lutter.schema.component.componentSpec
@@ -53,18 +54,27 @@ class CodegenTest {
     private val textType: ComponentType = ComponentType("test.Text")
     private val ghostType: ComponentType = ComponentType("test.Ghost")
     private val rowType: ComponentType = ComponentType("test.Row")
+    private val boxType: ComponentType = ComponentType("test.Box")
     private val choiceType: ComponentType = ComponentType("test.Choice")
     private val paddingType: ModifierType = ModifierType("test.padding")
     private val casedPaddingType: ModifierType = ModifierType("test.casedPadding")
+    private val weightType: ModifierType = ModifierType("test.weight")
+    private val alignType: ModifierType = ModifierType("test.align")
     private val textKey: PropertyKey = PropertyKey("text")
     private val spacingKey: PropertyKey = PropertyKey("spacing")
     private val valueKey: PropertyKey = PropertyKey("value")
     private val allKey: PropertyKey = PropertyKey("all")
     private val horizontalKey: PropertyKey = PropertyKey("horizontal")
     private val verticalKey: PropertyKey = PropertyKey("vertical")
+    private val weightKey: PropertyKey = PropertyKey("weight")
+    private val alignKey: PropertyKey = PropertyKey("alignment")
     private val arrangementKey: PropertyKey = PropertyKey("horizontalArrangement")
     private val childrenSlot: SlotName = SlotName("children")
     private val arrangementId: TypeId = TypeId("testArrangement")
+    private val alignmentId: TypeId = TypeId("testAlignment")
+    private val rowScope: ScopeId = ScopeId("compose.RowScope")
+    private val columnScope: ScopeId = ScopeId("compose.ColumnScope")
+    private val boxScope: ScopeId = ScopeId("compose.BoxScope")
 
     // One entry, member-qualified the way an `EnumTypeSpec` declares it: the owner is the import.
     private val arrangementEnum: EnumTypeSpec = EnumTypeSpec(
@@ -321,6 +331,59 @@ class CodegenTest {
     }
 
     @Test
+    fun `a scope member's name is not written as an import`() {
+        val content = screenOf(scopedResult(rowType, weightEntry()), "row weight")
+
+        // `RowScope.weight` has no importable FQN; the call resolves through the receiver the
+        // parent's content lambda opens, so an import would name something that does not exist.
+        assertTrue(content.contains(".weight(weight = 1f)"), content)
+        assertTrue(!content.contains("import androidx.compose.foundation.layout.weight"), content)
+    }
+
+    @Test
+    fun `align reads the vertical band inside a row`() {
+        val content = screenOf(scopedResult(rowType, alignEntry()), "row align")
+
+        assertTrue(content.contains(".align(Alignment.Bottom)"), content)
+        assertTrue(content.contains("import androidx.compose.ui.Alignment\n"), content)
+        assertTrue(!content.contains("import androidx.compose.foundation.layout.align"), content)
+    }
+
+    @Test
+    fun `align reads the horizontal band inside a column`() {
+        val content = screenOf(scopedResult(columnType, alignEntry()), "column align")
+
+        assertTrue(content.contains(".align(AbsoluteAlignment.Right)"), content)
+        assertTrue(content.contains("import androidx.compose.ui.AbsoluteAlignment\n"), content)
+    }
+
+    @Test
+    fun `align reads both axes inside a box`() {
+        val content = screenOf(scopedResult(boxType, alignEntry()), "box align")
+
+        assertTrue(content.contains(".align(AbsoluteAlignment.BottomRight)"), content)
+    }
+
+    @Test
+    fun `the nearest open scope reads the entry`() {
+        // A row inside a box: the row is what the aligned node sits in, so the row's axis wins.
+        val content = screenOf(scopedResult(boxType, alignEntry(), nested = true), "row in box")
+
+        assertTrue(content.contains(".align(Alignment.Bottom)"), content)
+        assertTrue(!content.contains("BottomRight"), content)
+    }
+
+    @Test
+    fun `align outside a layout scope refuses`() {
+        val root = textAs("n_root", textType, "Hi").copy(modifiers = listOf(alignEntry()))
+        val result = KotlinGenerator(scopedSchema(), CodegenOptions("com.example.app"))
+            .generate(homeDocument(root))
+
+        assertTrue(result.files.files.isEmpty())
+        assertEquals(listOf("codegen.strategy_unsupported"), result.diagnostics.map { it.code.value })
+    }
+
+    @Test
     fun `a parameter reads the property the node carries and nothing else`() {
         val value = ResolvedProp(valueKey, PropertyValue.Const(Value.Str("Hi")), PropOrigin.Specified, null)
         val root = ResolvedNode(
@@ -352,6 +415,113 @@ class CodegenTest {
         assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
         return result.files.files.single { it.path == "screens/HomeScreen.kt" }.content
     }
+
+    /**
+     * A layout of [parent] type at the root holding one Text that carries [modifier].
+     *
+     * [nested] puts a row between them, which is the only way a node can have two open scopes.
+     */
+    private fun scopedResult(
+        parent: ComponentType,
+        modifier: ResolvedModifier,
+        nested: Boolean = false,
+    ): CodegenResult {
+        val child = textAs("n_a", textType, "Hi").copy(modifiers = listOf(modifier))
+        val kids = if (nested) listOf(layoutNode("n_mid", rowType, listOf(child))) else listOf(child)
+        val root = layoutNode("n_root", parent, kids)
+        return KotlinGenerator(scopedSchema(), CodegenOptions("com.example.app"))
+            .generate(homeDocument(root))
+    }
+
+    private fun screenOf(result: CodegenResult, fixture: String): String {
+        assertTrue(result.diagnostics.isEmpty(), "$fixture: ${result.diagnostics}")
+        return result.files.files.single { it.path == "screens/HomeScreen.kt" }.content
+    }
+
+    private fun weightEntry(): ResolvedModifier = ResolvedModifier(
+        weightType,
+        mapOf(
+            weightKey to ResolvedProp(
+                weightKey,
+                PropertyValue.Const(Value.Float32(1f)),
+                PropOrigin.Specified,
+                null,
+            ),
+        ),
+    )
+
+    private fun alignEntry(): ResolvedModifier = ResolvedModifier(
+        alignType,
+        mapOf(
+            alignKey to ResolvedProp(
+                alignKey,
+                PropertyValue.Const(Value.Enum("BottomRight")),
+                PropOrigin.Specified,
+                null,
+            ),
+        ),
+    )
+
+    /** One entry, the three projections `AlignModifier` declares for it. */
+    private val alignEntries: Map<ScopeId, Map<String, KotlinSymbol>> = mapOf(
+        rowScope to mapOf("BottomRight" to KotlinSymbol("androidx.compose.ui", "Alignment.Bottom")),
+        columnScope to mapOf("BottomRight" to KotlinSymbol("androidx.compose.ui", "AbsoluteAlignment.Right")),
+        boxScope to mapOf("BottomRight" to KotlinSymbol("androidx.compose.ui", "AbsoluteAlignment.BottomRight")),
+    )
+
+    private fun scopedSchema(): Schema<ComponentSpec, ModifierSpec, String, String, TypeSpec> =
+        Schema.build<ComponentSpec, ModifierSpec, String, String, TypeSpec> {
+            component(layoutStub(rowType, "Row", rowScope))
+            component(layoutStub(columnType, "Column", columnScope))
+            component(layoutStub(boxType, "Box", boxScope))
+            component(textStub(textType, KotlinSymbol("androidx.compose.material3", "Text")))
+            modifier(weightStub())
+            modifier(alignStub())
+            type(
+                EnumTypeSpec(
+                    alignmentId,
+                    listOf(
+                        EnumEntrySpec(
+                            "BottomRight",
+                            KotlinSymbol("androidx.compose.ui", "AbsoluteAlignment.BottomRight"),
+                        ),
+                    ),
+                ),
+            )
+        }
+
+    /** A layout whose `children` slot provides [scope], which is what the scope tests walk into. */
+    private fun layoutStub(type: ComponentType, name: String, scope: ScopeId): ComponentSpec =
+        componentSpec(type, 1) {
+            metadata(name, Category.Layout)
+            slot("children", Cardinality.Many, provides = setOf(scope))
+            composeCall(KotlinSymbol("androidx.compose.foundation.layout", name)) {
+                slot("children", LambdaTarget.Trailing)
+            }
+        }
+
+    private fun weightStub(): ModifierSpec = ModifierSpec(
+        weightType,
+        ModifierMetadata("Weight"),
+        listOf(prop<Float>("weight", TypeRef.Float32)),
+        requiresScope = setOf(rowScope),
+        emit = ModifierEmit(
+            KotlinSymbol("androidx.compose.foundation.layout", "weight"),
+            scopeMember = true,
+        ),
+    )
+
+    private fun alignStub(): ModifierSpec = ModifierSpec(
+        alignType,
+        ModifierMetadata("Align"),
+        listOf(prop<String>("alignment", TypeRef.Enum(alignmentId), required = true)),
+        emit = ModifierEmit(
+            KotlinSymbol("androidx.compose.foundation.layout", "align"),
+            listOf(EmitCase(setOf(alignKey), "align({alignment})")),
+            scopeMember = true,
+            scopeEntries = alignEntries,
+        ),
+    )
 
     // The enum is registered or not, which is the whole difference between the two arrangement
     // tests: a symbol nobody declared cannot be written down.
@@ -429,6 +599,16 @@ class CodegenTest {
         if (kids.isEmpty()) emptyMap() else mapOf(childrenSlot to kids),
         emptySet(),
     )
+
+    private fun layoutNode(id: String, type: ComponentType, kids: List<ResolvedNode>): ResolvedNode =
+        ResolvedNode(
+            NodeId(id),
+            type,
+            emptyMap(),
+            emptyList(),
+            if (kids.isEmpty()) emptyMap() else mapOf(childrenSlot to kids),
+            emptySet(),
+        )
 
     private fun testSchema(): Schema<ComponentSpec, ModifierSpec, String, String, String> =
         Schema.build {

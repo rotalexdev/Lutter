@@ -261,7 +261,7 @@ public class KtPrinter(
         if (expr is KtExpr.Literal) expr.imports.forEach { recordSymbol(it, filePkg, seen) }
         if (expr is KtExpr.Snippet) expr.symbols.forEach { recordSymbol(it, filePkg, seen) }
         if (expr is KtCall) {
-            recordSymbol(expr.function, filePkg, seen)
+            if (expr.imported) recordSymbol(expr.function, filePkg, seen)
             expr.args.forEach { collectExprSymbols(it.value, filePkg, seen) }
         }
         if (expr is KtExpr.Member) collectExprSymbols(expr.receiver, filePkg, seen)
