@@ -31,6 +31,12 @@ public final class dev/rotalex/lutter/builtins/BorderModifier {
 	public final fun getWidth ()Ldev/rotalex/lutter/schema/component/PropertySpec;
 }
 
+public final class dev/rotalex/lutter/builtins/BoxSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/BoxSpec;
+	public final fun getChildren ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
 public final class dev/rotalex/lutter/builtins/BuiltinsKt {
 	public static final fun registerBuiltinEnums (Ldev/rotalex/lutter/schema/SchemaBuilder;)V
 	public static final fun registerBuiltinModifiers (Ldev/rotalex/lutter/schema/SchemaBuilder;)V
@@ -108,6 +114,15 @@ public final class dev/rotalex/lutter/builtins/PaddingModifier {
 	public final fun getVertical ()Ldev/rotalex/lutter/schema/component/PropertySpec;
 }
 
+public final class dev/rotalex/lutter/builtins/RowSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/RowSpec;
+	public final fun getArrangementId-7JNyzJc ()Ljava/lang/String;
+	public final fun getChildren ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getHorizontalArrangement ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpacing ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
 public final class dev/rotalex/lutter/builtins/ShapeSpec {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/ShapeSpec;
 	public final fun getEntries ()Ljava/util/List;
@@ -121,6 +136,11 @@ public final class dev/rotalex/lutter/builtins/SizeModifier {
 	public final fun getHeight ()Ldev/rotalex/lutter/schema/component/PropertySpec;
 	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
 	public final fun getWidth ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+}
+
+public final class dev/rotalex/lutter/builtins/SpacerSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/SpacerSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
 }
 
 public final class dev/rotalex/lutter/builtins/TextSpec {

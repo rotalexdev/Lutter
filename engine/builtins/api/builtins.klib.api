@@ -47,6 +47,13 @@ final object dev.rotalex.lutter.builtins/BorderModifier { // dev.rotalex.lutter.
         final fun <get-width>(): dev.rotalex.lutter.schema.component/PropertySpec<kotlin/Float> // dev.rotalex.lutter.builtins/BorderModifier.width.<get-width>|<get-width>(){}[0]
 }
 
+final object dev.rotalex.lutter.builtins/BoxSpec { // dev.rotalex.lutter.builtins/BoxSpec|null[0]
+    final val children // dev.rotalex.lutter.builtins/BoxSpec.children|{}children[0]
+        final fun <get-children>(): dev.rotalex.lutter.schema.component/SlotSpec // dev.rotalex.lutter.builtins/BoxSpec.children.<get-children>|<get-children>(){}[0]
+    final val spec // dev.rotalex.lutter.builtins/BoxSpec.spec|{}spec[0]
+        final fun <get-spec>(): dev.rotalex.lutter.schema.component/ComponentSpec // dev.rotalex.lutter.builtins/BoxSpec.spec.<get-spec>|<get-spec>(){}[0]
+}
+
 final object dev.rotalex.lutter.builtins/ClickableModifier { // dev.rotalex.lutter.builtins/ClickableModifier|null[0]
     final val spec // dev.rotalex.lutter.builtins/ClickableModifier.spec|{}spec[0]
         final fun <get-spec>(): dev.rotalex.lutter.schema.modifier/ModifierSpec // dev.rotalex.lutter.builtins/ClickableModifier.spec.<get-spec>|<get-spec>(){}[0]
@@ -129,6 +136,19 @@ final object dev.rotalex.lutter.builtins/PaddingModifier { // dev.rotalex.lutter
         final fun <get-vertical>(): dev.rotalex.lutter.schema.component/PropertySpec<kotlin/Float?> // dev.rotalex.lutter.builtins/PaddingModifier.vertical.<get-vertical>|<get-vertical>(){}[0]
 }
 
+final object dev.rotalex.lutter.builtins/RowSpec { // dev.rotalex.lutter.builtins/RowSpec|null[0]
+    final val ArrangementId // dev.rotalex.lutter.builtins/RowSpec.ArrangementId|{}ArrangementId[0]
+        final fun <get-ArrangementId>(): dev.rotalex.lutter.model.ids/TypeId // dev.rotalex.lutter.builtins/RowSpec.ArrangementId.<get-ArrangementId>|<get-ArrangementId>(){}[0]
+    final val children // dev.rotalex.lutter.builtins/RowSpec.children|{}children[0]
+        final fun <get-children>(): dev.rotalex.lutter.schema.component/SlotSpec // dev.rotalex.lutter.builtins/RowSpec.children.<get-children>|<get-children>(){}[0]
+    final val horizontalArrangement // dev.rotalex.lutter.builtins/RowSpec.horizontalArrangement|{}horizontalArrangement[0]
+        final fun <get-horizontalArrangement>(): dev.rotalex.lutter.schema.component/PropertySpec<kotlin/String?> // dev.rotalex.lutter.builtins/RowSpec.horizontalArrangement.<get-horizontalArrangement>|<get-horizontalArrangement>(){}[0]
+    final val spacing // dev.rotalex.lutter.builtins/RowSpec.spacing|{}spacing[0]
+        final fun <get-spacing>(): dev.rotalex.lutter.schema.component/PropertySpec<kotlin/Float?> // dev.rotalex.lutter.builtins/RowSpec.spacing.<get-spacing>|<get-spacing>(){}[0]
+    final val spec // dev.rotalex.lutter.builtins/RowSpec.spec|{}spec[0]
+        final fun <get-spec>(): dev.rotalex.lutter.schema.component/ComponentSpec // dev.rotalex.lutter.builtins/RowSpec.spec.<get-spec>|<get-spec>(){}[0]
+}
+
 final object dev.rotalex.lutter.builtins/ShapeSpec { // dev.rotalex.lutter.builtins/ShapeSpec|null[0]
     final val Id // dev.rotalex.lutter.builtins/ShapeSpec.Id|{}Id[0]
         final fun <get-Id>(): dev.rotalex.lutter.model.ids/TypeId // dev.rotalex.lutter.builtins/ShapeSpec.Id.<get-Id>|<get-Id>(){}[0]
@@ -147,6 +167,11 @@ final object dev.rotalex.lutter.builtins/SizeModifier { // dev.rotalex.lutter.bu
         final fun <get-spec>(): dev.rotalex.lutter.schema.modifier/ModifierSpec // dev.rotalex.lutter.builtins/SizeModifier.spec.<get-spec>|<get-spec>(){}[0]
     final val width // dev.rotalex.lutter.builtins/SizeModifier.width|{}width[0]
         final fun <get-width>(): dev.rotalex.lutter.schema.component/PropertySpec<kotlin/Float> // dev.rotalex.lutter.builtins/SizeModifier.width.<get-width>|<get-width>(){}[0]
+}
+
+final object dev.rotalex.lutter.builtins/SpacerSpec { // dev.rotalex.lutter.builtins/SpacerSpec|null[0]
+    final val spec // dev.rotalex.lutter.builtins/SpacerSpec.spec|{}spec[0]
+        final fun <get-spec>(): dev.rotalex.lutter.schema.component/ComponentSpec // dev.rotalex.lutter.builtins/SpacerSpec.spec.<get-spec>|<get-spec>(){}[0]
 }
 
 final object dev.rotalex.lutter.builtins/TextSpec { // dev.rotalex.lutter.builtins/TextSpec|null[0]
