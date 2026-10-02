@@ -171,6 +171,7 @@ Consistency between the renderer and the emitted code is guaranteed by a **singl
 | D10 | Integer division / overflow semantic parity | `/` and `%` are **not** in MVP operators | §10.6 |
 | D11 | Node identity across edits for Compose | `key(node.id)` + structural sharing + stability config | §15.6, §29 |
 | D12 | Enforcing architecture rules | Gradle module graph check + Konsist tests | §23.4 |
+| D13 | `TypedExpr` was filed in `:engine:analysis` while the `Evaluator` consuming it lives in `:engine:interpreter`, which §23.3 forbids reaching analysis from | `TypedExpr` lives in `:engine:model`; both modules already depend on it, so the layering rule stands untouched | §10.4, §33.3, §33.5 |
 
 ---
 
@@ -2380,6 +2381,7 @@ Base package `dev.rotalex.lutter.<module>`. "Pub" = public API (ABI-tracked), "I
 | `value/PropertyValue.kt` | Const/Computed wrapper | `PropertyValue` | Value, Expr | Pub |
 | `value/PropertyValueSerializer.kt` | Compact encoding (collapse `const`) | serializer | PropertyValue | Int |
 | `expr/Expr.kt` | Expression AST | `Expr`, `RefTarget`, `UnaryOp`, `BinaryOp` | Value | Pub |
+| `expr/TypedExpr.kt` | Typed expression + checker types | `TypedExpr`, `ExprType` | Expr, TypeRef | Pub |
 | `action/ActionSequence.kt` | Action data | `ActionSequence`, `ActionStep` | PropertyValue | Pub |
 | `doc/Node.kt` | Node + modifier record | `Node`, `ModifierEntry` | Ids, PropertyValue, ActionSequence | Pub |
 | `doc/NodeTable.kt` | Normalized persistent table | `NodeTable`, `NodeTableSerializer` (public) | Node | Pub |
@@ -2476,7 +2478,7 @@ Tests (`commonTest`): `IdsTest`, `DecimalTest`, `ValueFactoryTest`, `NodeTableTe
 | `pass/ActionPass.kt` | Action/nav checks | Int |
 | `pass/ResolutionPass.kt` | Build resolved tree | Int |
 | `pass/FeasibilityPass.kt` | Codegen feasibility | Int |
-| `typing/TypeChecker.kt`, `typing/TypedExpr.kt`, `typing/Assignability.kt` | Expression typing | Pub (TypedExpr) / Int |
+| `typing/TypeChecker.kt`, `typing/Assignability.kt` | Expression typing | Int |
 | `scope/ScopeAnalysis.kt` | Provided/required scopes | Int |
 | `resolved/ResolvedDocument.kt`, `ResolvedNode.kt`, `ResolvedProp.kt`, `ResolvedModifier.kt`, `ResolvedActions.kt`, `ResolvedTheme.kt`, `ResolvedPage.kt` | Derived typed model | Pub |
 
