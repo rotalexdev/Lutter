@@ -43,6 +43,19 @@ public final class dev/rotalex/lutter/builtins/BuiltinsKt {
 	public static final fun registerBuiltinSpecs (Ldev/rotalex/lutter/schema/SchemaBuilder;)V
 }
 
+public final class dev/rotalex/lutter/builtins/ButtonSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/ButtonSpec;
+	public final fun getContent ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getOnClick ()Ldev/rotalex/lutter/schema/component/EventSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/CardSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/CardSpec;
+	public final fun getContent ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
 public final class dev/rotalex/lutter/builtins/ClickableModifier {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/ClickableModifier;
 	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
@@ -141,6 +154,13 @@ public final class dev/rotalex/lutter/builtins/SizeModifier {
 public final class dev/rotalex/lutter/builtins/SpacerSpec {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/SpacerSpec;
 	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/TextFieldSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/TextFieldSpec;
+	public final fun getOnValueChange ()Ldev/rotalex/lutter/schema/component/EventSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+	public final fun getValue ()Ldev/rotalex/lutter/schema/component/PropertySpec;
 }
 
 public final class dev/rotalex/lutter/builtins/TextSpec {

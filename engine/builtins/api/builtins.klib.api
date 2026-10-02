@@ -54,6 +54,22 @@ final object dev.rotalex.lutter.builtins/BoxSpec { // dev.rotalex.lutter.builtin
         final fun <get-spec>(): dev.rotalex.lutter.schema.component/ComponentSpec // dev.rotalex.lutter.builtins/BoxSpec.spec.<get-spec>|<get-spec>(){}[0]
 }
 
+final object dev.rotalex.lutter.builtins/ButtonSpec { // dev.rotalex.lutter.builtins/ButtonSpec|null[0]
+    final val content // dev.rotalex.lutter.builtins/ButtonSpec.content|{}content[0]
+        final fun <get-content>(): dev.rotalex.lutter.schema.component/SlotSpec // dev.rotalex.lutter.builtins/ButtonSpec.content.<get-content>|<get-content>(){}[0]
+    final val onClick // dev.rotalex.lutter.builtins/ButtonSpec.onClick|{}onClick[0]
+        final fun <get-onClick>(): dev.rotalex.lutter.schema.component/EventSpec // dev.rotalex.lutter.builtins/ButtonSpec.onClick.<get-onClick>|<get-onClick>(){}[0]
+    final val spec // dev.rotalex.lutter.builtins/ButtonSpec.spec|{}spec[0]
+        final fun <get-spec>(): dev.rotalex.lutter.schema.component/ComponentSpec // dev.rotalex.lutter.builtins/ButtonSpec.spec.<get-spec>|<get-spec>(){}[0]
+}
+
+final object dev.rotalex.lutter.builtins/CardSpec { // dev.rotalex.lutter.builtins/CardSpec|null[0]
+    final val content // dev.rotalex.lutter.builtins/CardSpec.content|{}content[0]
+        final fun <get-content>(): dev.rotalex.lutter.schema.component/SlotSpec // dev.rotalex.lutter.builtins/CardSpec.content.<get-content>|<get-content>(){}[0]
+    final val spec // dev.rotalex.lutter.builtins/CardSpec.spec|{}spec[0]
+        final fun <get-spec>(): dev.rotalex.lutter.schema.component/ComponentSpec // dev.rotalex.lutter.builtins/CardSpec.spec.<get-spec>|<get-spec>(){}[0]
+}
+
 final object dev.rotalex.lutter.builtins/ClickableModifier { // dev.rotalex.lutter.builtins/ClickableModifier|null[0]
     final val spec // dev.rotalex.lutter.builtins/ClickableModifier.spec|{}spec[0]
         final fun <get-spec>(): dev.rotalex.lutter.schema.modifier/ModifierSpec // dev.rotalex.lutter.builtins/ClickableModifier.spec.<get-spec>|<get-spec>(){}[0]
@@ -172,6 +188,15 @@ final object dev.rotalex.lutter.builtins/SizeModifier { // dev.rotalex.lutter.bu
 final object dev.rotalex.lutter.builtins/SpacerSpec { // dev.rotalex.lutter.builtins/SpacerSpec|null[0]
     final val spec // dev.rotalex.lutter.builtins/SpacerSpec.spec|{}spec[0]
         final fun <get-spec>(): dev.rotalex.lutter.schema.component/ComponentSpec // dev.rotalex.lutter.builtins/SpacerSpec.spec.<get-spec>|<get-spec>(){}[0]
+}
+
+final object dev.rotalex.lutter.builtins/TextFieldSpec { // dev.rotalex.lutter.builtins/TextFieldSpec|null[0]
+    final val onValueChange // dev.rotalex.lutter.builtins/TextFieldSpec.onValueChange|{}onValueChange[0]
+        final fun <get-onValueChange>(): dev.rotalex.lutter.schema.component/EventSpec // dev.rotalex.lutter.builtins/TextFieldSpec.onValueChange.<get-onValueChange>|<get-onValueChange>(){}[0]
+    final val spec // dev.rotalex.lutter.builtins/TextFieldSpec.spec|{}spec[0]
+        final fun <get-spec>(): dev.rotalex.lutter.schema.component/ComponentSpec // dev.rotalex.lutter.builtins/TextFieldSpec.spec.<get-spec>|<get-spec>(){}[0]
+    final val value // dev.rotalex.lutter.builtins/TextFieldSpec.value|{}value[0]
+        final fun <get-value>(): dev.rotalex.lutter.schema.component/PropertySpec<kotlin/String> // dev.rotalex.lutter.builtins/TextFieldSpec.value.<get-value>|<get-value>(){}[0]
 }
 
 final object dev.rotalex.lutter.builtins/TextSpec { // dev.rotalex.lutter.builtins/TextSpec|null[0]
