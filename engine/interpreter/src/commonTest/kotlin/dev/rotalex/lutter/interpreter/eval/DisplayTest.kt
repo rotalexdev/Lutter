@@ -35,7 +35,7 @@ class DisplayTest {
     }
 
     @Test
-    fun `a floating part has no text and names num.format`() {
+    fun `a floating part has no text and names the num format function`() {
         val failure = assertFailsWith<IllegalStateException> { Value.Float64(1.5).toDisplayString() }
 
         val message = failure.message

@@ -158,7 +158,7 @@ class ExpressionPassTest {
     }
 
     @Test
-    fun `adding a float to an int names num.toDouble as the way out`() {
+    fun `adding a float to an int names the num toDouble conversion as the way out`() {
         val result = analyzer.analyze(
             homeDocument {
                 node(TextType) {
@@ -285,7 +285,7 @@ class ExpressionPassTest {
     }
 
     @Test
-    fun `a float template part names num.format`() {
+    fun `a float template part names the num format function`() {
         val result = analyzer.analyze(
             homeDocument {
                 node(TextType) {
