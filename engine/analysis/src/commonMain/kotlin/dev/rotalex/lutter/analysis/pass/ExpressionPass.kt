@@ -5,7 +5,6 @@ import dev.rotalex.lutter.analysis.diagnostic.DiagnosticLocation
 import dev.rotalex.lutter.analysis.typing.ExprScope
 import dev.rotalex.lutter.analysis.typing.TypeChecker
 import dev.rotalex.lutter.model.doc.Node
-import dev.rotalex.lutter.model.doc.NodeOwner
 import dev.rotalex.lutter.model.doc.ParamDecl
 import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.doc.UiDocument
@@ -16,6 +15,7 @@ import dev.rotalex.lutter.model.ids.ParamName
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.StateId
 import dev.rotalex.lutter.model.index.DocumentIndex
+import dev.rotalex.lutter.model.index.NodeOwner
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.ComponentSpec
