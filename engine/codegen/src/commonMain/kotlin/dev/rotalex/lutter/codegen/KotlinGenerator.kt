@@ -195,7 +195,6 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
             return null
         }
         val args: MutableList<KtArg> = mutableListOf()
-        modifierArg(binding.modifierParam, node, isRoot, scopes)?.let { args += it }
         val kept: List<KeptParam> = keptParams(binding, node)
         for (keptParam in kept) {
             val value: KtExpr = paramValue(keptParam, spec, node) ?: return null
@@ -203,6 +202,9 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
                 kept.size == 1 && keptParam.present.size == 1
             args += KtArg(if (positional) null else keptParam.binding.param, value)
         }
+        // `modifier` is always named and Compose declares it after the value arguments, so a
+        // positional one has to precede it: `Text("Left", modifier = …)`, never the reverse.
+        modifierArg(binding.modifierParam, node, isRoot, scopes)?.let { args += it }
         var trailing: KtExpr.Lambda? = null
         for (slot in binding.slots) {
             val lambda: KtExpr.Lambda = slotLambda(slot, node, spec, scopes) ?: return null
