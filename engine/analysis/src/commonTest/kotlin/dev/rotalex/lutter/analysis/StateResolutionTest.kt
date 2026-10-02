@@ -3,7 +3,6 @@ package dev.rotalex.lutter.analysis
 import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCodes
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.analysis.resolved.ResolvedState
-import dev.rotalex.lutter.model.doc.ComponentDeclId
 import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.dsl.buildDocument
@@ -11,6 +10,7 @@ import dev.rotalex.lutter.model.expr.BinaryOp
 import dev.rotalex.lutter.model.expr.Expr
 import dev.rotalex.lutter.model.expr.ExprType
 import dev.rotalex.lutter.model.expr.RefTarget
+import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.StateId
 import dev.rotalex.lutter.model.type.TypeRef
