@@ -95,7 +95,7 @@ class StateResolutionTest {
 
         assertNull(result.resolved)
         val codes = result.diagnostics.map { it.code }
-        assertTrue(DiagnosticCodes.ExprTypeMismatch.value in codes, codes.toString())
+        assertTrue(DiagnosticCodes.ExprTypeMismatch in codes, codes.toString())
     }
 
     @Test
