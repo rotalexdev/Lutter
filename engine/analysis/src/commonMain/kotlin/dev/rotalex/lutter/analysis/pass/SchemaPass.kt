@@ -11,6 +11,7 @@ import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.SchemaView
@@ -21,6 +22,7 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import dev.rotalex.lutter.schema.component.PropertyRule
 import dev.rotalex.lutter.schema.component.ScopeId
 import dev.rotalex.lutter.schema.kind.ValueKinds
+import dev.rotalex.lutter.schema.types.EnumTypeSpec
 
 /**
  * Pass 3: every node against its spec — props, rules, slots, modifiers and their scopes.
@@ -121,7 +123,7 @@ internal class SchemaPass(
             return
         }
         if (declared is TypeRef.Enum && const is Value.Enum) {
-            val entries = document.enums[declared.id]?.entries?.map { it.name }
+            val entries = enumEntries(document, declared.id)
             if (entries == null || const.entry !in entries) {
                 diags += Diagnostic(
                     Severity.Error, DiagnosticCodes.PropEnumEntryInvalid, location(),
@@ -139,6 +141,15 @@ internal class SchemaPass(
             )
         }
     }
+
+    // PLAN §9.1's row: an enum entry is valid when it exists, against the `EnumTypeSpec` the
+    // schema registered for the type. Only a `TypeId` the schema declares nothing for falls back
+    // to the document's own enum, so a plugin vocabulary is never re-declared per document.
+    // The cast is total: an assembly binding a stub in the types slot has no entry here, and the
+    // document answers for it rather than the pass throwing.
+    private fun enumEntries(document: UiDocument, id: TypeId): List<String>? =
+        (schema.types[id] as? EnumTypeSpec)?.entries?.map { it.name }
+            ?: document.enums[id]?.entries?.map { it.name }
 
     private fun checkRules(node: Node, spec: ComponentSpec, diags: MutableList<Diagnostic>) {
         val present = node.props.keys

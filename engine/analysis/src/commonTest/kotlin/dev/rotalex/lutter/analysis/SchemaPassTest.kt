@@ -1,11 +1,14 @@
 package dev.rotalex.lutter.analysis
 
 import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCodes
+import dev.rotalex.lutter.model.doc.EnumEntryDecl
+import dev.rotalex.lutter.model.doc.EnumTypeDecl
 import dev.rotalex.lutter.model.dsl.PageScope
 import dev.rotalex.lutter.model.expr.Expr
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.value.Value
+import dev.rotalex.lutter.schema.types.TypeSpec
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -14,8 +17,35 @@ class SchemaPassTest {
 
     private val analyzer: Analyzer<String, String, String> = Analyzer(testSchema())
 
+    /** Bound to `TypeSpec`, so the schema's own `EnumTypeSpec` is the vocabulary under test. */
+    private val enumAnalyzer: Analyzer<String, String, TypeSpec> = Analyzer(enumSchema())
+
     private fun codesOf(block: PageScope.() -> Unit): List<String> =
         analyzer.analyze(homeDocument(block)).diagnostics.map { it.code.value }
+
+    /** A Text carrying [entry] on its enum-typed property, against [declared] if given. */
+    private fun enumCodesOf(entry: String, declared: List<String> = emptyList()): List<String> {
+        val document = homeDocument {
+            node(TextType) {
+                prop("text", Value.Str("Hi"))
+                prop("align", Value.Enum(entry))
+            }
+        }
+        val withEnum = if (declared.isEmpty()) {
+            document
+        } else {
+            document.copy(
+                enums = mapOf(
+                    TypeId("Align") to EnumTypeDecl(
+                        TypeId("Align"),
+                        "Align",
+                        declared.map { EnumEntryDecl(it) },
+                    ),
+                ),
+            )
+        }
+        return enumAnalyzer.analyze(withEnum).diagnostics.map { it.code.value }
+    }
 
     @Test
     fun `unregistered component reports component unknown`() {
@@ -116,6 +146,29 @@ class SchemaPassTest {
         }.copy(enums = mapOf(TypeId("Align") to AlignDecl))
 
         val codes = analyzer.analyze(document).diagnostics.map { it.code.value }
+
+        assertTrue(codes.contains(DiagnosticCodes.PropEnumEntryInvalid.value), "got $codes")
+    }
+
+    @Test
+    fun `a schema-registered enum needs no declaration in the document`() {
+        val codes = enumCodesOf("Center")
+
+        assertTrue(codes.none { it == DiagnosticCodes.PropEnumEntryInvalid.value }, "got $codes")
+    }
+
+    @Test
+    fun `the schema vocabulary wins over the document's`() {
+        // `Sideways` is the only entry the document declares and the schema declares it as
+        // nobody: one owner per `TypeId`, and the schema's is the one that counts.
+        val codes = enumCodesOf("Sideways", declared = listOf("Sideways"))
+
+        assertTrue(codes.contains(DiagnosticCodes.PropEnumEntryInvalid.value), "got $codes")
+    }
+
+    @Test
+    fun `an enum neither side declares reports enum entry invalid`() {
+        val codes = enumCodesOf("Sideways")
 
         assertTrue(codes.contains(DiagnosticCodes.PropEnumEntryInvalid.value), "got $codes")
     }
