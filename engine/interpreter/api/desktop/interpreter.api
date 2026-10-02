@@ -28,3 +28,28 @@ public abstract interface class dev/rotalex/lutter/interpreter/StateWriter {
 	public abstract fun set-wfBsst0 (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value;)V
 }
 
+public final class dev/rotalex/lutter/interpreter/eval/DisplayKt {
+	public static final fun toDisplayString (Ldev/rotalex/lutter/model/value/Value;)Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/interpreter/eval/Evaluator {
+	public fun <init> ()V
+	public fun <init> (Ldev/rotalex/lutter/interpreter/eval/FunctionImpls;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/interpreter/eval/FunctionImpls;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun eval (Ldev/rotalex/lutter/model/expr/TypedExpr;Ldev/rotalex/lutter/interpreter/EvalScope;)Ldev/rotalex/lutter/model/value/Value;
+}
+
+public abstract interface class dev/rotalex/lutter/interpreter/eval/FunctionImpl {
+	public abstract fun invoke (Ljava/util/List;)Ldev/rotalex/lutter/model/value/Value;
+}
+
+public final class dev/rotalex/lutter/interpreter/eval/FunctionImpls {
+	public static final field Companion Ldev/rotalex/lutter/interpreter/eval/FunctionImpls$Companion;
+	public fun <init> (Ldev/rotalex/lutter/schema/registry/Registry;)V
+	public final fun get-ThXFe0w (Ljava/lang/String;)Ldev/rotalex/lutter/interpreter/eval/FunctionImpl;
+}
+
+public final class dev/rotalex/lutter/interpreter/eval/FunctionImpls$Companion {
+	public final fun getNone ()Ldev/rotalex/lutter/interpreter/eval/FunctionImpls;
+}
+
