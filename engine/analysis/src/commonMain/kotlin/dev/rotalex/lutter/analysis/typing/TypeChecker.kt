@@ -64,7 +64,7 @@ internal class TypeChecker(
         if (expected == null || Assignability.accepts(expected, found)) return found
         return refuse(
             ctx, DiagnosticCodes.ExprTypeMismatch,
-            "expects '${label(expected)}' but found '${label(found)}' (node '${ctx.at.nodeId}')",
+            "expects '${label(expected)}' but found '${label(found)}'${ctx.where}",
             ctx.base + mapOf("expected" to label(expected), "found" to label(found)),
         )
     }
@@ -117,8 +117,7 @@ internal class TypeChecker(
         if (payload != null) return ExprType.Of(payload)
         return refuse(
             ctx, DiagnosticCodes.ExprTypeMismatch,
-            "$what carries no type of its own; it takes one from the declared property " +
-                "(node '${ctx.at.nodeId}')",
+            "$what carries no type of its own; it takes one from the declared property${ctx.where}",
             ctx.base,
         )
     }
@@ -152,7 +151,7 @@ internal class TypeChecker(
         val holder = receiver as? ExprType.Of
             ?: return refuse(
                 ctx, DiagnosticCodes.ExprNullableAccess,
-                "a null receiver has no field '${expr.name}' (node '${ctx.at.nodeId}')",
+                "a null receiver has no field '${expr.name}'${ctx.where}",
                 ctx.base + mapOf("field" to expr.name),
             )
         val declared = holder.type
@@ -160,8 +159,7 @@ internal class TypeChecker(
         if (nullableReceiver && !expr.safe) {
             return refuse(
                 ctx, DiagnosticCodes.ExprNullableAccess,
-                "field '${expr.name}' on '${label(holder)}' needs safe access " +
-                    "(node '${ctx.at.nodeId}')",
+                "field '${expr.name}' on '${label(holder)}' needs safe access${ctx.where}",
                 ctx.base + mapOf("field" to expr.name, "receiver" to label(holder)),
             )
         }
@@ -184,7 +182,7 @@ internal class TypeChecker(
         val spec = schema.functions[expr.function] as? FunctionSpec
             ?: return refuse(
                 ctx, DiagnosticCodes.ExprUnknownFunction,
-                "calls unknown function '${expr.function}' (node '${ctx.at.nodeId}')",
+                "calls unknown function '${expr.function}'${ctx.where}",
                 ctx.base + mapOf("function" to expr.function.value),
             )
         if (expr.args.size != spec.params.size) {
@@ -256,7 +254,7 @@ internal class TypeChecker(
         if (resolved.all { it == first }) return first
         report(
             ctx, DiagnosticCodes.ExprTypeMismatch,
-            "returns one of several types and they do not agree (node '${ctx.at.nodeId}')",
+            "returns one of several types and they do not agree${ctx.where}",
             ctx.base,
         )
         return null
@@ -305,7 +303,7 @@ internal class TypeChecker(
         if (then == otherwise) return then
         return refuse(
             ctx, DiagnosticCodes.ExprTypeMismatch,
-            "'if' branches are '${label(then)}' and '${label(otherwise)}' (node '${ctx.at.nodeId}')",
+            "'if' branches are '${label(then)}' and '${label(otherwise)}'${ctx.where}",
             ctx.base + mapOf("then" to label(then), "otherwise" to label(otherwise)),
         )
     }
@@ -331,8 +329,7 @@ internal class TypeChecker(
                 clean = false
                 refuse(
                     ctx, DiagnosticCodes.ExprTypeMismatch,
-                    "a list literal holds '${label(found)}' where '${label(seen)}' already is " +
-                        "(node '${ctx.at.nodeId}')",
+                    "a list literal holds '${label(found)}' where '${label(seen)}' already is${ctx.where}",
                     ctx.base + mapOf("found" to label(found), "expected" to label(seen)),
                 )
             }
@@ -342,8 +339,7 @@ internal class TypeChecker(
         if (element == null) {
             return refuse(
                 ctx, DiagnosticCodes.ExprTypeMismatch,
-                "a list literal takes its element type from the declared property " +
-                    "(node '${ctx.at.nodeId}')",
+                "a list literal takes its element type from the declared property${ctx.where}",
                 ctx.base,
             )
         }
@@ -369,11 +365,9 @@ internal class TypeChecker(
             clean = false
             val declared = (found as? ExprType.Of)?.type
             val message = if (declared != null && floating(declared)) {
-                "a template part of type '${label(found)}' has to go through num.format " +
-                    "(node '${ctx.at.nodeId}')"
+                "a template part of type '${label(found)}' has to go through num.format${ctx.where}"
             } else {
-                "a template part may be str, i32, i64 or bool, and this one is '${label(found)}' " +
-                    "(node '${ctx.at.nodeId}')"
+                "a template part may be str, i32, i64 or bool, and this one is '${label(found)}'${ctx.where}"
             }
             refuse(ctx, DiagnosticCodes.ExprTypeMismatch, message, ctx.base + mapOf("found" to label(found)))
         }
@@ -396,7 +390,7 @@ internal class TypeChecker(
     private fun unbound(ctx: Context, name: String): TypeRef? {
         report(
             ctx, DiagnosticCodes.ExprTypeMismatch,
-            "returns element '$name', which this call never binds (node '${ctx.at.nodeId}')",
+            "returns element '$name', which this call never binds${ctx.where}",
             ctx.base + mapOf("element" to name),
         )
         return null
@@ -418,18 +412,18 @@ internal class TypeChecker(
         }
         return refuse(
             ctx, DiagnosticCodes.ExprTypeMismatch,
-            "'$op' takes '${label(left)}' and '${label(right)}'$hint (node '${ctx.at.nodeId}')",
+            "'$op' takes '${label(left)}' and '${label(right)}'$hint${ctx.where}",
             ctx.base + mapOf("op" to op, "left" to label(left), "right" to label(right)),
         )
     }
 
     /** A type failure that is neither an operator nor a function; the detail is already prose. */
     private fun mismatch(ctx: Context, detail: String): ExprType? =
-        refuse(ctx, DiagnosticCodes.ExprTypeMismatch, "$detail (node '${ctx.at.nodeId}')", ctx.base)
+        refuse(ctx, DiagnosticCodes.ExprTypeMismatch, "$detail${ctx.where}", ctx.base)
 
     private fun unresolved(ctx: Context, what: String): ExprType? = refuse(
         ctx, DiagnosticCodes.ExprUnresolvedRef,
-        "reads $what, which is not in scope (node '${ctx.at.nodeId}')",
+        "reads $what, which is not in scope${ctx.where}",
         ctx.base + mapOf("ref" to what),
     )
 
@@ -465,6 +459,10 @@ internal class ExprCheck(
 /**
  * One check in progress. [base] is the `node`/`property` pair §10.4 requires every one of
  * these diagnostics to carry, built once because every rule below needs it.
+ *
+ * [where] is the same location rendered for a message. §10.4 asks for the node, but a derived
+ * state's body belongs to no node, so the page or component that declared it is named instead —
+ * printing `node 'null'` there would send the reader looking for a node that was never involved.
  */
 private class Context(
     val scope: ExprScope,
@@ -476,6 +474,13 @@ private class Context(
         "node" to at.nodeId?.value.orEmpty(),
         "property" to at.property?.value.orEmpty(),
     )
+
+    val where: String = when {
+        at.nodeId != null -> " (node '${at.nodeId}')"
+        at.pageId != null -> " (page '${at.pageId}')"
+        at.componentDeclId != null -> " (component '${at.componentDeclId}')"
+        else -> ""
+    }
 }
 
 /**

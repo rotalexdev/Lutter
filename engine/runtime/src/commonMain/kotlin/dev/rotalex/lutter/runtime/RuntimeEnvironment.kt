@@ -3,6 +3,7 @@ package dev.rotalex.lutter.runtime
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.geometry.Rect
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
+import dev.rotalex.lutter.interpreter.StateStore
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.ParamName
@@ -39,14 +40,6 @@ public interface ResourceProvider {
 
 private object EmptyResources : ResourceProvider
 
-/**
- * The state a screen reads. Reads and writes land with A3; this names the hole.
- */
-public interface StateStore
-
-/** Snapshot-backed store: one `mutableStateOf` per slot, so reads subscribe. */
-public class SnapshotStateStore : StateStore
-
 /** A renderer failure, routed to [RuntimeEnvironment.diagnostics] for the host. */
 public data class RuntimeDiagnostic(
     public val message: String,
@@ -79,12 +72,16 @@ private object NoneHooks : RenderHooks {
  * Everything rendering needs from the host, in one place.
  *
  * Passed explicitly, never global: previews, tests and editors each build their own.
+ *
+ * [appState] is §12.1's app scope and is declared as the interpreter's [StateStore] rather than
+ * a runtime type of its own: §12.2 puts the interface in `:engine:interpreter` and the Compose
+ * implementation here, so the host seeds a `SnapshotStateStore` and keeps it to write through.
  */
 public class RuntimeEnvironment(
     public val navigator: Navigator,
     public val host: HostFunctions = HostFunctions.None,
     public val resources: ResourceProvider = ResourceProvider.Empty,
-    public val appState: StateStore = SnapshotStateStore(),
+    public val appState: StateStore = SnapshotStateStore.Empty,
     public val diagnostics: (RuntimeDiagnostic) -> Unit = {},
     public val hooks: RenderHooks = RenderHooks.None,
 )

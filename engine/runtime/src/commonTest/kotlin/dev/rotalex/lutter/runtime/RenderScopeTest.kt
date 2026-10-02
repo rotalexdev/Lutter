@@ -5,10 +5,15 @@ import dev.rotalex.lutter.analysis.resolved.PropOrigin
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
+import dev.rotalex.lutter.interpreter.MapEvalScope
+import dev.rotalex.lutter.interpreter.MapStateStore
+import dev.rotalex.lutter.interpreter.eval.Evaluator
 import dev.rotalex.lutter.model.doc.TokenName
 import dev.rotalex.lutter.model.expr.Expr
+import dev.rotalex.lutter.model.expr.ExprType
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.expr.RefTarget
+import dev.rotalex.lutter.model.expr.TypedExpr
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
@@ -31,8 +36,10 @@ import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
-/** Reads decode through the kind table; absent is null; computed constants resolve. */
+/** Reads decode through the kind table; absent is null; constants resolve before evaluation. */
 class RenderScopeTest {
+
+    private val count: StateId = StateId("s_count")
 
     private val text: PropertySpec<String> = prop("text", TypeRef.Str, required = true)
     private val spacing: PropertySpec<Float?> = prop("spacing", TypeRef.Nullable(TypeRef.Dp))
@@ -78,18 +85,37 @@ class RenderScopeTest {
     }
 
     @Test
-    fun `a computed expression fails naming full evaluation`() {
-        val reader = reader(
-            ResolvedProp(
-                text.key,
-                PropertyValue.Computed(Expr.Ref(RefTarget.State(StateId("s_count")))),
-                PropOrigin.Specified,
-                null,
-            ),
-        )
+    fun `a computed property runs the evaluator against the scope`() {
+        val store: MapStateStore = MapStateStore(mapOf(count to Value.Str("Hi")))
+
+        val reader = reader(textFromState(), scope = ExpressionSource(Evaluator(), MapEvalScope(store)))
+
+        assertEquals("Hi", reader[text])
+    }
+
+    @Test
+    fun `a write through the store is what the next read answers`() {
+        val store: MapStateStore = MapStateStore(mapOf(count to Value.Str("Hi")))
+        val reader = reader(textFromState(), scope = ExpressionSource(Evaluator(), MapEvalScope(store)))
+        store.set(count, Value.Str("Bye"))
+
+        assertEquals("Bye", reader[text])
+    }
+
+    @Test
+    fun `a computed property with no checked expression refuses naming pass 5`() {
+        val reader = reader(textFromState().copy(typed = null))
 
         val failure = assertFailsWith<IllegalStateException> { reader[text] }
-        assertTrue(failure.message?.contains("Phase 6") == true)
+        assertTrue(failure.message?.contains("pass 5") == true, failure.message)
+    }
+
+    @Test
+    fun `a reader with no evaluation source names the modifier path`() {
+        val reader = MapPropertyReader(mapOf(text.key to textFromState()), null)
+
+        val failure = assertFailsWith<IllegalStateException> { reader[text] }
+        assertTrue(failure.message?.contains("modifier argument") == true, failure.message)
     }
 
     @Test
@@ -100,8 +126,15 @@ class RenderScopeTest {
         assertSame(Modifier, scope.modifierFor(node))
     }
 
-    private fun reader(vararg props: ResolvedProp): PropertyReader =
-        MapPropertyReader(props.associateBy { it.key })
+    private fun reader(vararg props: ResolvedProp, scope: ExpressionSource = expressions()): PropertyReader =
+        MapPropertyReader(props.associateBy { it.key }, scope)
+
+    /** `text = <ref to s_count>` as pass 7 lowers it: a computed value and the expression behind it. */
+    private fun textFromState(): ResolvedProp {
+        val reference = Expr.Ref(RefTarget.State(count))
+        val typed = TypedExpr(reference, ExprType.Of(TypeRef.Str), setOf(reference))
+        return ResolvedProp(text.key, PropertyValue.Computed(reference), PropOrigin.Specified, null, typed)
+    }
 
     private fun constOf(key: PropertyKey, value: Value): ResolvedProp =
         ResolvedProp(key, PropertyValue.Const(value), PropOrigin.Specified, null)
@@ -127,8 +160,12 @@ class RenderScopeTest {
             DefaultThemeHandle(ResolvedTheme(null)),
             empty,
             null,
+            expressions(),
         )
     }
+
+    private fun expressions(): ExpressionSource =
+        ExpressionSource(Evaluator(), MapEvalScope(MapStateStore()))
 
     private object StubNavigator : Navigator {
         override fun navigate(page: PageId, args: Map<ParamName, Value>): Unit = Unit

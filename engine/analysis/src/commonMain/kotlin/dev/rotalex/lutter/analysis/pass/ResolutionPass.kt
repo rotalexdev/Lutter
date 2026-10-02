@@ -6,14 +6,17 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedModifier
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.analysis.resolved.ResolvedPage
 import dev.rotalex.lutter.analysis.resolved.ResolvedProp
+import dev.rotalex.lutter.analysis.resolved.ResolvedState
 import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
 import dev.rotalex.lutter.analysis.resolved.ResolvedToken
 import dev.rotalex.lutter.analysis.resolved.resolveToken
 import dev.rotalex.lutter.analysis.resolved.selectTheme
 import dev.rotalex.lutter.analysis.scope.ScopeAnalysis
+import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.doc.ThemeDecl
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.SlotName
@@ -23,12 +26,13 @@ import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
 
 /**
- * Pass 7: lowers a clean document — defaults applied, scopes computed, tokens resolved.
+ * Pass 7: lowers a clean document — defaults applied, scopes computed, tokens resolved, and
+ * §12.1's state declarations attached to the scope each was declared in.
  *
  * Runs only when no pass reported an error, so every lookup below must hit; a miss is a
  * bug rather than a document fault. [checked] is pass 5's product, attached here rather than
  * re-derived: a computed property's type is settled before this pass and neither backend
- * re-derives it.
+ * re-derives it, and the same goes for a derived body's.
  */
 internal class ResolutionPass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
@@ -87,11 +91,32 @@ internal class ResolutionPass(
         }
 
         val pages = document.pages.entries.sortedBy { it.key.value }
-            .associate { (id, page) -> id to ResolvedPage(id, page.name, page.route, build(page.root)) }
-        val components = document.components.entries.sortedBy { it.key.value }
-            .associate { (id, decl) -> id to build(decl.root) }
-        return ResolvedDocument(pages, components, index, ResolvedTheme(theme))
+            .associate { (id, page) ->
+                id to ResolvedPage(id, page.name, page.route, build(page.root), statesOf(page.state))
+            }
+        val components = LinkedHashMap<ComponentDeclId, ResolvedNode>()
+        val componentState = LinkedHashMap<ComponentDeclId, List<ResolvedState>>()
+        for ((id, decl) in document.components.entries.sortedBy { it.key.value }) {
+            components[id] = build(decl.root)
+            componentState[id] = statesOf(decl.state)
+        }
+        return ResolvedDocument(
+            pages,
+            components,
+            index,
+            ResolvedTheme(theme),
+            statesOf(document.appState),
+            componentState,
+        )
     }
+
+    /**
+     * §12.1's declarations, each in the list the document put it in: a page's on the page, the
+     * app's on the document, a component's under its declaration. The checked body of a derived
+     * one is pass 5's and is attached here rather than re-derived.
+     */
+    private fun statesOf(declarations: List<StateDecl>): List<ResolvedState> =
+        declarations.map { ResolvedState(it, checked.derived[it.id]) }
 }
 
 private fun tokenOf(actual: PropertyValue, theme: ThemeDecl?): ResolvedToken? {

@@ -38,21 +38,28 @@ internal class ExpressionPass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
 ) {
 
-    /** Findings plus the checked expressions, which is the whole of what this pass produces. */
+    /**
+     * Findings plus the checked expressions, which is the whole of what this pass produces.
+     *
+     * [typed] is keyed by address because a property is addressed; [derived] by [StateId]
+     * because a declaration is not, and §6.2 already makes one id one declaration.
+     */
     class Result(
         public val diagnostics: List<Diagnostic>,
         public val typed: Map<ExprAddress, TypedExpr>,
+        public val derived: Map<StateId, TypedExpr>,
     ) {
         public companion object {
 
             /** The answer for a document an earlier blocking pass has already refused. */
-            public val NONE: Result = Result(emptyList(), emptyMap())
+            public val NONE: Result = Result(emptyList(), emptyMap(), emptyMap())
         }
     }
 
     public fun check(document: UiDocument): Result {
         val found = mutableListOf<Diagnostic>()
         val typed = LinkedHashMap<ExprAddress, TypedExpr>()
+        val derived = LinkedHashMap<StateId, TypedExpr>()
         val index = DocumentIndex(document)
         val checker = TypeChecker(schema, document.dataModels)
         for (id in document.nodes.ids()) {
@@ -60,7 +67,8 @@ internal class ExpressionPass(
             val scope = scopeOf(document, index, id) ?: continue
             checkNode(node, checker, scope, found, typed)
         }
-        return Result(found, typed)
+        checkState(document, checker, found, derived)
+        return Result(found, typed, derived)
     }
 
     private fun checkNode(
@@ -108,6 +116,55 @@ internal class ExpressionPass(
         if (outcome.type != null) {
             typed[ExprAddress(node.id, key, modifierIndex)] =
                 TypedExpr(computed.expr, outcome.type, outcome.refs)
+        }
+    }
+
+    /**
+     * The state declarations themselves, in §12.1's three scopes.
+     *
+     * A derived body is the one computed expression no node owns, so nothing else in the
+     * pipeline walks it: without this its `Ref`s would first be resolved by the evaluator, at
+     * render time, where a throw reads as a runtime fault rather than a document fault.
+     */
+    private fun checkState(
+        document: UiDocument,
+        checker: TypeChecker,
+        found: MutableList<Diagnostic>,
+        derived: MutableMap<StateId, TypedExpr>,
+    ) {
+        // App state has no owner, so it names app state and nothing else; §12.1 puts the app
+        // store at the root, above any page or component's own.
+        val appScope = ExprScope(stateOf(document, emptyList()), emptyMap())
+        checkBodies(document.appState, appScope, DiagnosticLocation(), checker, found, derived)
+        for ((id, page) in document.pages.entries.sortedBy { it.key.value }) {
+            val scope = ExprScope(stateOf(document, page.state), paramsOf(page.params))
+            checkBodies(page.state, scope, DiagnosticLocation(pageId = id), checker, found, derived)
+        }
+        for ((id, decl) in document.components.entries.sortedBy { it.key.value }) {
+            val scope = ExprScope(stateOf(document, decl.state), paramsOf(decl.params))
+            checkBodies(decl.state, scope, DiagnosticLocation(componentDeclId = id), checker, found, derived)
+        }
+    }
+
+    /**
+     * Each derived body in [states], checked against the type it declares.
+     *
+     * A held declaration has no body and is skipped, so "exactly one of `initial` and `derived`"
+     * stays the model's to state rather than something this pass infers.
+     */
+    private fun checkBodies(
+        states: List<StateDecl>,
+        scope: ExprScope,
+        at: DiagnosticLocation,
+        checker: TypeChecker,
+        found: MutableList<Diagnostic>,
+        derived: MutableMap<StateId, TypedExpr>,
+    ) {
+        for (state in states) {
+            val body = state.derived ?: continue
+            val outcome = checker.check(body, state.type, scope, at)
+            found += outcome.diagnostics
+            if (outcome.type != null) derived[state.id] = TypedExpr(body, outcome.type, outcome.refs)
         }
     }
 

@@ -10,8 +10,11 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
+import dev.rotalex.lutter.interpreter.EvalScope
 import dev.rotalex.lutter.interpreter.constantOrNull
+import dev.rotalex.lutter.interpreter.eval.Evaluator
 import dev.rotalex.lutter.model.doc.TokenName
+import dev.rotalex.lutter.model.expr.TypedExpr
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.ParamName
 import dev.rotalex.lutter.model.ids.PropertyKey
@@ -25,8 +28,12 @@ import kotlin.coroutines.cancellation.CancellationException
 /**
  * The screen: resolves [page], then renders its root through the registry.
  *
- * Unknown pages report a diagnostic and render nothing. [args] feeds page params
- * once expressions bind them; until then it is carried, not read.
+ * Unknown pages report a diagnostic and render nothing. [args] binds the page's params, which
+ * §12.1 makes a scope apart from the page's own state: a `RefTarget.Param` resolves here and a
+ * `RefTarget.State` does not, so the two never shadow one another.
+ *
+ * The page's store and the read scope are built outside the `Box` so every renderer in the tree
+ * shares them, and so `remember` is keyed on the page rather than on the root node's `key`.
  */
 @Composable
 public fun UiScreen(
@@ -42,8 +49,24 @@ public fun UiScreen(
         environment.diagnostics(RuntimeDiagnostic("Unknown page '$page'", null))
         return
     }
+    val pageState = rememberPageStateStore(resolved)
+    // App state first and the page's last: the owner-last order pass 5 resolves a `Ref` in.
+    val screen = ScreenEvalScope(
+        document.appState + resolved.state,
+        pageState,
+        environment.appState,
+        args,
+        runtime.evaluator,
+    )
+    val expressions = ExpressionSource(runtime.evaluator, screen)
     Box(modifier = modifier) {
-        val scope = DefaultRenderScope(environment, DefaultThemeHandle(document.theme), runtime, null)
+        val scope = DefaultRenderScope(
+            environment,
+            DefaultThemeHandle(document.theme),
+            runtime,
+            null,
+            expressions,
+        )
         key(resolved.root.id) {
             environment.hooks.Decorate(resolved.root) {
                 RenderNode(runtime, resolved.root, scope)
@@ -67,18 +90,52 @@ public fun RenderNode(runtime: UiRuntime, node: ResolvedNode, scope: RenderScope
     renderer.Render(node, scope)
 }
 
-/** Reads one node's effective props through the shared kind table. */
+/**
+ * §15.3's property evaluation: the evaluator and the scope its reads resolve through.
+ *
+ * One type rather than two constructor arguments because the two only ever travel together, and
+ * one call site — a modifier entry read off a node — has neither. [eval] is the one line that
+ * keeps §15.3's spelling in one place.
+ */
+internal class ExpressionSource(
+    private val evaluator: Evaluator,
+    private val scope: EvalScope,
+) {
+    fun eval(typed: TypedExpr): Value = evaluator.eval(typed, scope)
+}
+
+/**
+ * Reads one node's or one modifier entry's effective props through the shared kind table.
+ *
+ * A constant is answered before [expressions] is consulted, so a document that resolves today
+ * resolves byte for byte as it did. Only a computed value reaches the evaluator — which is the
+ * whole of §15.3's property row.
+ *
+ * [expressions] is null on the modifier path, where §15.3 folds arguments through the appliers
+ * and no scope reaches one. A computed argument there is refused by name rather than guessed at.
+ */
 internal class MapPropertyReader(
     private val props: Map<PropertyKey, ResolvedProp>,
+    private val expressions: ExpressionSource?,
 ) : PropertyReader {
     @Suppress("UNCHECKED_CAST")
     override fun <T> get(spec: PropertySpec<T>): T? {
         val prop = props[spec.key] ?: return null
         val const = prop.value.constantOrNull()
-            ?: throw IllegalStateException(
-                "Property '${spec.key}' needs expression evaluation (Phase 6); the skeleton resolves constants only",
+        val value = if (const != null) {
+            const
+        } else {
+            val source = expressions ?: throw IllegalStateException(
+                "Property '${spec.key}' is a modifier argument, and §15.3 gives a modifier applier " +
+                    "no scope to evaluate it in",
             )
-        val decoded = ValueKinds.kindFor(spec.type).decode(const)
+            val typed = prop.typed ?: throw IllegalStateException(
+                "Property '${spec.key}' carries no checked expression; §17.1's pass 5 attaches one " +
+                    "and a document without it was refused",
+            )
+            source.eval(typed)
+        }
+        val decoded = ValueKinds.kindFor(spec.type).decode(value)
         if (decoded is Value.Token) return TokenName(decoded.name) as T
         return decoded as T
     }
@@ -96,8 +153,9 @@ internal class DefaultRenderScope(
     override val theme: ThemeHandle,
     private val runtime: UiRuntime,
     private val handle: ScopeHandle?,
+    private val expressions: ExpressionSource,
 ) : RenderScope {
-    override fun props(node: ResolvedNode): PropertyReader = MapPropertyReader(node.props)
+    override fun props(node: ResolvedNode): PropertyReader = MapPropertyReader(node.props, expressions)
 
     override fun modifierFor(node: ResolvedNode): Modifier {
         var current: Modifier = Modifier
@@ -125,7 +183,7 @@ internal class DefaultRenderScope(
         content(copy(handle = handle))
 
     private fun copy(handle: ScopeHandle?): DefaultRenderScope =
-        DefaultRenderScope(environment, theme, runtime, handle)
+        DefaultRenderScope(environment, theme, runtime, handle, expressions)
 }
 
 /**
