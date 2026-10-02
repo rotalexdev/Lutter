@@ -15,6 +15,9 @@ public final class dev/rotalex/lutter/runtime/Implementations {
 	public static final field $stable I
 	public static final field Companion Ldev/rotalex/lutter/runtime/Implementations$Companion;
 	public fun <init> ()V
+	public fun <init> (Ldev/rotalex/lutter/interpreter/eval/FunctionImpls;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/interpreter/eval/FunctionImpls;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getFunctions ()Ldev/rotalex/lutter/interpreter/eval/FunctionImpls;
 }
 
 public final class dev/rotalex/lutter/runtime/Implementations$Companion {
@@ -120,9 +123,9 @@ public final class dev/rotalex/lutter/runtime/RuntimeDiagnostic {
 
 public final class dev/rotalex/lutter/runtime/RuntimeEnvironment {
 	public static final field $stable I
-	public fun <init> (Ldev/rotalex/lutter/runtime/Navigator;Ldev/rotalex/lutter/runtime/HostFunctions;Ldev/rotalex/lutter/runtime/ResourceProvider;Ldev/rotalex/lutter/runtime/StateStore;Lkotlin/jvm/functions/Function1;Ldev/rotalex/lutter/runtime/RenderHooks;)V
-	public synthetic fun <init> (Ldev/rotalex/lutter/runtime/Navigator;Ldev/rotalex/lutter/runtime/HostFunctions;Ldev/rotalex/lutter/runtime/ResourceProvider;Ldev/rotalex/lutter/runtime/StateStore;Lkotlin/jvm/functions/Function1;Ldev/rotalex/lutter/runtime/RenderHooks;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun getAppState ()Ldev/rotalex/lutter/runtime/StateStore;
+	public fun <init> (Ldev/rotalex/lutter/runtime/Navigator;Ldev/rotalex/lutter/runtime/HostFunctions;Ldev/rotalex/lutter/runtime/ResourceProvider;Ldev/rotalex/lutter/interpreter/StateStore;Lkotlin/jvm/functions/Function1;Ldev/rotalex/lutter/runtime/RenderHooks;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/runtime/Navigator;Ldev/rotalex/lutter/runtime/HostFunctions;Ldev/rotalex/lutter/runtime/ResourceProvider;Ldev/rotalex/lutter/interpreter/StateStore;Lkotlin/jvm/functions/Function1;Ldev/rotalex/lutter/runtime/RenderHooks;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getAppState ()Ldev/rotalex/lutter/interpreter/StateStore;
 	public final fun getDiagnostics ()Lkotlin/jvm/functions/Function1;
 	public final fun getHooks ()Ldev/rotalex/lutter/runtime/RenderHooks;
 	public final fun getHost ()Ldev/rotalex/lutter/runtime/HostFunctions;
@@ -158,12 +161,16 @@ public final class dev/rotalex/lutter/runtime/ScopeHandle$Row : dev/rotalex/lutt
 	public final fun getScope ()Landroidx/compose/foundation/layout/RowScope;
 }
 
-public final class dev/rotalex/lutter/runtime/SnapshotStateStore : dev/rotalex/lutter/runtime/StateStore {
+public final class dev/rotalex/lutter/runtime/SnapshotStateStore : dev/rotalex/lutter/interpreter/StateStore, dev/rotalex/lutter/interpreter/StateWriter {
 	public static final field $stable I
-	public fun <init> ()V
+	public static final field Companion Ldev/rotalex/lutter/runtime/SnapshotStateStore$Companion;
+	public fun get-P6upbFI (Ljava/lang/String;)Ldev/rotalex/lutter/model/value/Value;
+	public fun set-wfBsst0 (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value;)V
 }
 
-public abstract interface class dev/rotalex/lutter/runtime/StateStore {
+public final class dev/rotalex/lutter/runtime/SnapshotStateStore$Companion {
+	public final fun getEmpty ()Ldev/rotalex/lutter/runtime/SnapshotStateStore;
+	public final fun seeded (Ljava/util/List;)Ldev/rotalex/lutter/runtime/SnapshotStateStore;
 }
 
 public abstract interface class dev/rotalex/lutter/runtime/ThemeHandle {
@@ -173,6 +180,7 @@ public abstract interface class dev/rotalex/lutter/runtime/ThemeHandle {
 public final class dev/rotalex/lutter/runtime/UiRuntime {
 	public static final field $stable I
 	public fun <init> (Ldev/rotalex/lutter/runtime/RendererRegistry;Ldev/rotalex/lutter/runtime/ModifierApplierRegistry;Ldev/rotalex/lutter/runtime/Implementations;Ldev/rotalex/lutter/schema/SchemaView;)V
+	public final fun getEvaluator ()Ldev/rotalex/lutter/interpreter/eval/Evaluator;
 	public final fun getImplementations ()Ldev/rotalex/lutter/runtime/Implementations;
 	public final fun getModifiers ()Ldev/rotalex/lutter/runtime/ModifierApplierRegistry;
 	public final fun getRenderers ()Ldev/rotalex/lutter/runtime/RendererRegistry;
