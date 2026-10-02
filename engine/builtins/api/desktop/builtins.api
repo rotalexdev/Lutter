@@ -183,3 +183,19 @@ public final class dev/rotalex/lutter/builtins/WidthModifier {
 	public final fun getValue ()Ldev/rotalex/lutter/schema/component/PropertySpec;
 }
 
+public final class dev/rotalex/lutter/builtins/enums/HorizontalArrangementSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/enums/HorizontalArrangementSpec;
+	public final fun getEntries ()Ljava/util/List;
+	public final fun getId-7JNyzJc ()Ljava/lang/String;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/types/EnumTypeSpec;
+	public final fun getType ()Ldev/rotalex/lutter/model/type/TypeRef;
+}
+
+public final class dev/rotalex/lutter/builtins/enums/VerticalArrangementSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/enums/VerticalArrangementSpec;
+	public final fun getEntries ()Ljava/util/List;
+	public final fun getId-7JNyzJc ()Ljava/lang/String;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/types/EnumTypeSpec;
+	public final fun getType ()Ldev/rotalex/lutter/model/type/TypeRef;
+}
+

@@ -6,6 +6,28 @@
 // - Show declarations: true
 
 // Library unique name: <dev.rotalex.lutter:builtins>
+final object dev.rotalex.lutter.builtins.enums/HorizontalArrangementSpec { // dev.rotalex.lutter.builtins.enums/HorizontalArrangementSpec|null[0]
+    final val Id // dev.rotalex.lutter.builtins.enums/HorizontalArrangementSpec.Id|{}Id[0]
+        final fun <get-Id>(): dev.rotalex.lutter.model.ids/TypeId // dev.rotalex.lutter.builtins.enums/HorizontalArrangementSpec.Id.<get-Id>|<get-Id>(){}[0]
+    final val Type // dev.rotalex.lutter.builtins.enums/HorizontalArrangementSpec.Type|{}Type[0]
+        final fun <get-Type>(): dev.rotalex.lutter.model.type/TypeRef // dev.rotalex.lutter.builtins.enums/HorizontalArrangementSpec.Type.<get-Type>|<get-Type>(){}[0]
+    final val entries // dev.rotalex.lutter.builtins.enums/HorizontalArrangementSpec.entries|{}entries[0]
+        final fun <get-entries>(): kotlin.collections/List<dev.rotalex.lutter.schema.types/EnumEntrySpec> // dev.rotalex.lutter.builtins.enums/HorizontalArrangementSpec.entries.<get-entries>|<get-entries>(){}[0]
+    final val spec // dev.rotalex.lutter.builtins.enums/HorizontalArrangementSpec.spec|{}spec[0]
+        final fun <get-spec>(): dev.rotalex.lutter.schema.types/EnumTypeSpec // dev.rotalex.lutter.builtins.enums/HorizontalArrangementSpec.spec.<get-spec>|<get-spec>(){}[0]
+}
+
+final object dev.rotalex.lutter.builtins.enums/VerticalArrangementSpec { // dev.rotalex.lutter.builtins.enums/VerticalArrangementSpec|null[0]
+    final val Id // dev.rotalex.lutter.builtins.enums/VerticalArrangementSpec.Id|{}Id[0]
+        final fun <get-Id>(): dev.rotalex.lutter.model.ids/TypeId // dev.rotalex.lutter.builtins.enums/VerticalArrangementSpec.Id.<get-Id>|<get-Id>(){}[0]
+    final val Type // dev.rotalex.lutter.builtins.enums/VerticalArrangementSpec.Type|{}Type[0]
+        final fun <get-Type>(): dev.rotalex.lutter.model.type/TypeRef // dev.rotalex.lutter.builtins.enums/VerticalArrangementSpec.Type.<get-Type>|<get-Type>(){}[0]
+    final val entries // dev.rotalex.lutter.builtins.enums/VerticalArrangementSpec.entries|{}entries[0]
+        final fun <get-entries>(): kotlin.collections/List<dev.rotalex.lutter.schema.types/EnumEntrySpec> // dev.rotalex.lutter.builtins.enums/VerticalArrangementSpec.entries.<get-entries>|<get-entries>(){}[0]
+    final val spec // dev.rotalex.lutter.builtins.enums/VerticalArrangementSpec.spec|{}spec[0]
+        final fun <get-spec>(): dev.rotalex.lutter.schema.types/EnumTypeSpec // dev.rotalex.lutter.builtins.enums/VerticalArrangementSpec.spec.<get-spec>|<get-spec>(){}[0]
+}
+
 final object dev.rotalex.lutter.builtins/AlignModifier { // dev.rotalex.lutter.builtins/AlignModifier|null[0]
     final val alignment // dev.rotalex.lutter.builtins/AlignModifier.alignment|{}alignment[0]
         final fun <get-alignment>(): dev.rotalex.lutter.schema.component/PropertySpec<kotlin/String> // dev.rotalex.lutter.builtins/AlignModifier.alignment.<get-alignment>|<get-alignment>(){}[0]

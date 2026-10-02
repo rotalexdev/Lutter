@@ -166,7 +166,7 @@ public final class dev/rotalex/lutter/codegen/KtArg {
 	public fun toString ()Ljava/lang/String;
 }
 
-public final class dev/rotalex/lutter/codegen/KtCall {
+public final class dev/rotalex/lutter/codegen/KtCall : dev/rotalex/lutter/codegen/KtExpr {
 	public fun <init> (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/util/List;)V
 	public final fun component1 ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
 	public final fun component2 ()Ljava/util/List;
