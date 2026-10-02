@@ -336,7 +336,7 @@ class CodegenTest {
 
         // `RowScope.weight` has no importable FQN; the call resolves through the receiver the
         // parent's content lambda opens, so an import would name something that does not exist.
-        assertTrue(content.contains(".weight(weight = 1f)"), content)
+        assertTrue(content.contains(".weight(weight = 1.0f)"), content)
         assertTrue(!content.contains("import androidx.compose.foundation.layout.weight"), content)
     }
 
