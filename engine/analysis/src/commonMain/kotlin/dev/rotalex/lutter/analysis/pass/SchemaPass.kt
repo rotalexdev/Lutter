@@ -274,7 +274,7 @@ internal class SchemaPass(
                 diags += Diagnostic(
                     Severity.Error, DiagnosticCodes.ModifierScopeMissing,
                     DiagnosticLocation(nodeId = node.id, modifierIndex = index),
-                    "Modifier '${entry.type}' needs ${missing.map { "'$it'" }} (node '${node.id}')",
+                    "Modifier '${entry.type}' needs ${missing.joinToString(", ") { "'$it'" }} (node '${node.id}')",
                     mapOf("node" to node.id.value, "modifier" to entry.type.value),
                 )
             }
