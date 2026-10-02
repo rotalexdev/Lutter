@@ -197,11 +197,14 @@ class ExpressionPassTest {
     fun `a field read on a nullable receiver needs safe access`() {
         val result = nullableAnalyzer.analyze(
             withUser(
-                homeDocument {
-                    node(BadgeType) {
-                        computed("label", Expr.Member(userRef(), "name", safe = false))
-                    }
-                },
+                withAppState(
+                    homeDocument {
+                        node(BadgeType) {
+                            computed("label", Expr.Member(userRef(), "name", safe = false))
+                        }
+                    },
+                    userState,
+                ),
             ),
         )
 
