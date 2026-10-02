@@ -1,5 +1,7 @@
 package dev.rotalex.lutter.builtins
 
+import dev.rotalex.lutter.builtins.enums.HorizontalArrangementSpec
+import dev.rotalex.lutter.builtins.enums.VerticalArrangementSpec
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.PropertyKey
@@ -16,6 +18,9 @@ import dev.rotalex.lutter.schema.component.LambdaTarget
 import dev.rotalex.lutter.schema.component.Positional
 import dev.rotalex.lutter.schema.component.PropertyRule
 import dev.rotalex.lutter.schema.component.ValueEmit
+import dev.rotalex.lutter.schema.modifier.ModifierSpec
+import dev.rotalex.lutter.schema.types.EnumTypeSpec
+import dev.rotalex.lutter.schema.types.TypeSpec
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -62,6 +67,32 @@ class BuiltinSpecsTest {
         val cases = assertIs<ValueEmit.Cases>(arrangement.emit)
         assertEquals(2, cases.cases.size)
         assertEquals(LambdaTarget.Trailing, call.slots.single().target)
+    }
+
+    @Test
+    fun `both layouts read one arrangement vocabulary`() {
+        assertEquals(VerticalArrangementSpec.Id, ColumnSpec.ArrangementId)
+        assertEquals(HorizontalArrangementSpec.Id, RowSpec.ArrangementId)
+        assertEquals(
+            listOf("Top", "Center", "Bottom"),
+            VerticalArrangementSpec.entries.map { it.name },
+        )
+        assertEquals(
+            listOf("Start", "Center", "End"),
+            HorizontalArrangementSpec.entries.map { it.name },
+        )
+        // Member-qualified, so codegen writes one import for the object behind both axes.
+        assertEquals(
+            listOf("Arrangement.Top", "Arrangement.Center", "Arrangement.Bottom"),
+            VerticalArrangementSpec.entries.map { it.kotlin.name },
+        )
+        val schema: Schema<ComponentSpec, ModifierSpec, String, String, TypeSpec> =
+            Schema.build<ComponentSpec, ModifierSpec, String, String, TypeSpec> {
+                registerBuiltinEnums()
+            }
+
+        assertIs<EnumTypeSpec>(schema.types[VerticalArrangementSpec.Id])
+        assertIs<EnumTypeSpec>(schema.types[HorizontalArrangementSpec.Id])
     }
 
     @Test

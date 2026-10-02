@@ -1,5 +1,7 @@
 package dev.rotalex.lutter.builtins
 
+import dev.rotalex.lutter.builtins.enums.HorizontalArrangementSpec
+import dev.rotalex.lutter.builtins.enums.VerticalArrangementSpec
 import dev.rotalex.lutter.schema.SchemaBuilder
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.component
@@ -34,8 +36,10 @@ public fun <A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, ModifierSpec
     for (spec in InteractionModifiers.all) modifier(spec)
 }
 
-/** Registers the enum types the modifier properties name. */
+/** Registers the enum types the modifier and layout properties name. */
 public fun <C : Any, M : Any, A : Any, F : Any> SchemaBuilder<C, M, A, F, TypeSpec>.registerBuiltinEnums(): Unit {
     type(AlignmentSpec.spec)
     type(ShapeSpec.spec)
+    type(VerticalArrangementSpec.spec)
+    type(HorizontalArrangementSpec.spec)
 }

@@ -7,8 +7,8 @@ import dev.rotalex.lutter.schema.component.KotlinSymbol
 /**
  * A literal's text plus the imports it needs (`dp`, `Color`, a theme member).
  *
- * Null means the value has no skeleton spelling: containers, references and icons are
- * refused by the generator, not guessed at.
+ * Null means the value has no skeleton spelling here: containers, references, icons and enum
+ * entries are refused by the generator, not guessed at.
  */
 internal data class EmittedLiteral(val text: String, val symbols: List<KotlinSymbol>)
 
@@ -37,7 +37,9 @@ internal object LiteralPrinter {
             )
             is Value.Dp -> EmittedLiteral(floatText(value.v.toDouble()) + ".dp", listOf(DpUnit))
             is Value.Sp -> EmittedLiteral(floatText(value.v.toDouble()) + ".sp", listOf(SpUnit))
-            is Value.Enum -> EmittedLiteral(value.entry, emptyList())
+            // An enum entry spells itself through the symbol its `EnumTypeSpec` declares, and
+            // this printer is given nothing but the value, so the generator answers those.
+            is Value.Enum -> null
             is Value.Token -> tokenOf(value)
             is Value.Ref -> null
             is Value.Icon -> null

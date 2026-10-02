@@ -13,6 +13,9 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedPage
 import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.TypeId
+import dev.rotalex.lutter.model.type.TypeRef
+import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.CodegenBinding
 import dev.rotalex.lutter.schema.component.ComponentSpec
@@ -21,9 +24,12 @@ import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.LambdaTarget
 import dev.rotalex.lutter.schema.component.ParamBinding
 import dev.rotalex.lutter.schema.component.Positional
+import dev.rotalex.lutter.schema.component.PropertySpec
 import dev.rotalex.lutter.schema.component.SlotBinding
 import dev.rotalex.lutter.schema.component.ValueEmit
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
+import dev.rotalex.lutter.schema.types.EnumEntrySpec
+import dev.rotalex.lutter.schema.types.EnumTypeSpec
 
 /** Plugin-owned emission, consulted only for `Custom` bindings. */
 public fun interface CustomEmitter {
@@ -188,7 +194,7 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
         modifierArg(binding.modifierParam, node, isRoot)?.let { args += it }
         val kept: List<KeptParam> = keptParams(binding, node)
         for (keptParam in kept) {
-            val value: KtExpr = paramValue(keptParam.binding, node) ?: return null
+            val value: KtExpr = paramValue(keptParam, spec, node) ?: return null
             val positional: Boolean = keptParam.binding.positional == Positional.WhenSole &&
                 kept.size == 1 && keptParam.present.size == 1
             args += KtArg(if (positional) null else keptParam.binding.param, value)
@@ -230,15 +236,31 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
         return prop.origin == PropOrigin.Default
     }
 
-    private fun paramValue(binding: ParamBinding, node: ResolvedNode): KtExpr? {
+    // One parameter's value: the single property the node carries, or the case they select.
+    private fun paramValue(
+        kept: KeptParam,
+        spec: ComponentSpec,
+        node: ResolvedNode,
+    ): KtExpr? {
+        val binding: ParamBinding = kept.binding
         val emit = binding.emit
         if (emit is ValueEmit.Direct) {
-            val key: PropertyKey? = binding.from.firstOrNull()
-            if (key == null) throw CodegenBug("Param '${binding.param}' binds no property")
+            // `from` is a preference list, not an order to fill from: only a property the node
+            // carries can supply the value, and two of them say nothing about which one meant.
+            if (kept.present.size > 1) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Param '" + binding.param + "' has several present sources",
+                )
+                return null
+            }
+            val key: PropertyKey = kept.present.singleOrNull()
+                ?: throw CodegenBug("Param '${binding.param}' binds no present property")
             val prop: ResolvedProp = checkNotNull(node.props[key]) {
                 "Present property '${key.value}' left the node"
             }
-            return propLiteral(prop, node)
+            return literalOf(prop, spec.properties, node)
         }
         if (emit is ValueEmit.Cases) {
             val match = emit.cases.firstOrNull { kase ->
@@ -248,7 +270,7 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
                 refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "No emission case matches")
                 return null
             }
-            val filled = fillPattern(match.pattern, node) ?: return null
+            val filled = fillPattern(match.pattern, node.props, spec.properties, node) ?: return null
             return KtExpr.Snippet(filled.first, match.imports + filled.second)
         }
         throw CodegenBug("Unknown ValueEmit: " + emit)
@@ -257,7 +279,12 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
     // Every `{key}` becomes the property's literal; unknown or computed keys refuse.
     // Returns the text plus the literals' imports: a value filled into a pattern (a `dp`
     // inside `Arrangement.spacedBy({spacing})`) still needs its own symbols recorded.
-    private fun fillPattern(pattern: String, node: ResolvedNode): Pair<String, List<KotlinSymbol>>? {
+    private fun fillPattern(
+        pattern: String,
+        values: Map<PropertyKey, ResolvedProp>,
+        declared: List<PropertySpec<*>>,
+        node: ResolvedNode,
+    ): Pair<String, List<KotlinSymbol>>? {
         val filled: StringBuilder = StringBuilder()
         val symbols: MutableList<KotlinSymbol> = mutableListOf()
         var index: Int = 0
@@ -280,12 +307,12 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
                 refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Bad pattern key '{$raw}'")
                 return null
             }
-            val prop: ResolvedProp? = node.props[key]
+            val prop: ResolvedProp? = values[key]
             if (prop == null) {
                 refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Pattern key '{$raw}' is absent")
                 return null
             }
-            val literal: KtExpr.Literal? = literalOf(prop, node)
+            val literal: KtExpr.Literal? = literalOf(prop, declared, node)
             if (literal == null) return null
             filled.append(literal.text)
             symbols.addAll(literal.imports)
@@ -295,22 +322,64 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
     }
 
     // A literal, or a refusal: computed values and unspeakable kinds emit nothing.
-    private fun propLiteral(prop: ResolvedProp, node: ResolvedNode): KtExpr? =
-        literalOf(prop, node)
-
-    private fun literalOf(prop: ResolvedProp, node: ResolvedNode): KtExpr.Literal? {
+    private fun literalOf(
+        prop: ResolvedProp,
+        declared: List<PropertySpec<*>>,
+        node: ResolvedNode,
+    ): KtExpr.Literal? {
         val stored = prop.value
         if (stored is PropertyValue.Computed) {
             refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Computed properties emit nothing yet")
             return null
         }
-        val literal = LiteralPrinter.emit((stored as PropertyValue.Const).value)
+        val constant: Value = (stored as PropertyValue.Const).value
+        if (constant is Value.Enum) return enumLiteral(constant.entry, declared, prop.key, node)
+        val literal = LiteralPrinter.emit(constant)
         if (literal == null) {
             refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Value kind emits nothing yet")
             return null
         }
         return KtExpr.Literal(literal.text, literal.symbols)
     }
+
+    // PLAN §16.6: an enum entry emits `EnumEntrySpec.kotlin`, which is the only place the symbol
+    // is known. Text rather than a reference, because a filled pattern is text as well.
+    private fun enumLiteral(
+        entry: String,
+        declared: List<PropertySpec<*>>,
+        key: PropertyKey,
+        node: ResolvedNode,
+    ): KtExpr.Literal? {
+        val id: TypeId? = enumIdOf(declared.firstOrNull { it.key == key }?.type)
+        val symbol: KotlinSymbol? = id?.let { typeId ->
+            enumEntries(typeId).firstOrNull { it.name == entry }?.kotlin
+        }
+        if (symbol == null) {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                node,
+                "Enum entry '" + entry + "' has no registered symbol",
+            )
+            return null
+        }
+        // A member-qualified name splits in two: the owner is what the import names.
+        val owner: KotlinSymbol = KotlinSymbol(symbol.packageName, symbol.name.substringBeforeLast('.'))
+        return KtExpr.Literal(symbol.name, listOf(owner))
+    }
+
+    // A `Value.Enum` carries no type id: the property's declared type is where it lives, through
+    // a nullable wrapper when the property is one.
+    private fun enumIdOf(declared: TypeRef?): TypeId? {
+        val inner: TypeRef? = (declared as? TypeRef.Nullable)?.inner ?: declared
+        return (inner as? TypeRef.Enum)?.id
+    }
+
+    // The enum spec behind a type id. The types registry is generic over the assembly's own type
+    // slot, so this reads it as a downcast: an assembly binding a stub there gets no entries and
+    // the entry refuses rather than emitting an unqualified name.
+    @Suppress("UNCHECKED_CAST")
+    private fun enumEntries(id: TypeId): List<EnumEntrySpec> =
+        (schema.types[id] as? EnumTypeSpec)?.entries ?: emptyList()
 
     private fun slotLambda(binding: SlotBinding, node: ResolvedNode): KtExpr.Lambda? {
         if (binding.receiver != null) {
@@ -327,7 +396,7 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
 
     // Roots thread the caller's modifier; leaves start from `Modifier`. No entry, no arg.
     private fun modifierArg(param: String?, node: ResolvedNode, isRoot: Boolean): KtArg? {
-        val calls: MutableList<KtCall> = mutableListOf()
+        val calls: MutableList<KtExpr> = mutableListOf()
         for (entry in node.modifiers) calls += emitModifier(entry, node) ?: return null
         if (param == null) {
             if (calls.isEmpty()) return null
@@ -340,26 +409,35 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
         return KtArg(param, KtExpr.Chain(root, calls))
     }
 
-    private fun emitModifier(entry: ResolvedModifier, node: ResolvedNode): KtCall? {
+    private fun emitModifier(entry: ResolvedModifier, node: ResolvedNode): KtExpr? {
         val spec: ModifierSpec? = schema.modifiers[entry.type]
         if (spec == null) {
             refuse(DiagnosticCodes.CodegenNoBinding, node, "No spec for '${entry.type}'")
             return null
         }
         val emit = spec.emit
-        // Shape-selected modifier calls need call-shaped patterns; deferred past the skeleton.
-        if (emit.cases.isNotEmpty()) {
-            refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Modifier cases emit nothing yet")
+        if (emit.cases.isEmpty()) {
+            val args: MutableList<KtArg> = mutableListOf()
+            for (key in entry.args.keys.sortedBy { it.value }) {
+                val prop: ResolvedProp = checkNotNull(entry.args[key]) {
+                    "Present modifier arg '${key.value}' left the entry"
+                }
+                args += KtArg(key.value, literalOf(prop, spec.params, node) ?: return null)
+            }
+            return KtCall(emit.function, args)
+        }
+        // First declared case whose keys the entry carries, so the order a spec writes is the
+        // precedence it means: `padding`'s `all` wins when a document also names an axis.
+        val match = emit.cases.firstOrNull { cased ->
+            cased.whenPresent.all { entry.args.containsKey(it) }
+        }
+        if (match == null) {
+            refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "No emission case matches")
             return null
         }
-        val args: MutableList<KtArg> = mutableListOf()
-        for (key in entry.args.keys.sortedBy { it.value }) {
-            val prop: ResolvedProp = checkNotNull(entry.args[key]) {
-                "Present modifier arg '${key.value}' left the entry"
-            }
-            args += KtArg(key.value, literalOf(prop, node) ?: return null)
-        }
-        return KtCall(emit.function, args)
+        val filled = fillPattern(match.pattern, entry.args, spec.params, node) ?: return null
+        // The pattern spells the whole call, so the chained function is an import of its own.
+        return KtExpr.Snippet(filled.first, listOf(emit.function) + match.imports + filled.second)
     }
 
     private fun refuse(code: DiagnosticCode, node: ResolvedNode, message: String): Unit {

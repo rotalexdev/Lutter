@@ -1,5 +1,6 @@
 package dev.rotalex.lutter.builtins
 
+import dev.rotalex.lutter.builtins.enums.HorizontalArrangementSpec
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.ids.TypeId
@@ -24,8 +25,8 @@ import dev.rotalex.lutter.schema.component.prop
  * maps those three names and falls back to `Start`, the Compose default.
  */
 public object RowSpec {
-    /** The document enum id the arrangement entries are validated against. First: used below. */
-    public val ArrangementId: TypeId = TypeId("HorizontalArrangement")
+    /** The document enum id; `enums/Arrangements.kt` owns the entries and their symbols. */
+    public val ArrangementId: TypeId = HorizontalArrangementSpec.Id
 
     /** Gap between children. Shorthand for `Arrangement.spacedBy`. */
     public val spacing: PropertySpec<Float?> = prop("spacing", TypeRef.Nullable(TypeRef.Dp))

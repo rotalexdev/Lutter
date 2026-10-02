@@ -131,6 +131,7 @@ public class KtPrinter(
             is KtExpr.Ref -> refOf(expr.symbol, aliases)
             is KtExpr.Call -> renderCall(expr, indent, aliases)
             is KtExpr.Chain -> renderChain(expr, indent, aliases)
+            is KtCall -> renderKtCall(expr, indent, aliases)
         }
 
     private fun refOf(ref: KtSymbolRef, aliases: Map<String, String>): String {
@@ -196,31 +197,38 @@ public class KtPrinter(
         }
     }
 
-    // Receiver first, then one dotted call per line; long arg lists expand like calls.
+    // Receiver first, then one entry per line; a chain call wraps its own arguments, and a
+    // case-selected entry is spec text its pattern already parenthesised.
     private fun renderChain(chain: KtExpr.Chain, indent: Int, aliases: Map<String, String>): String =
         buildString {
             append(renderExpr(chain.receiver, indent, aliases))
             for (call in chain.calls) {
-                val name: String = aliases[call.function.fqn()] ?: call.function.name
-                val inline: String = call.args.joinToString(", ") { renderChainArg(it, indent, aliases) }
-                if (!inline.contains('\n') && inline.length <= formatting.lineWidth) {
-                    append("\n" + indentOf(indent + 1) + "." + name + "(" + inline + ")")
-                } else {
-                    append("\n" + indentOf(indent + 1) + "." + name + "(\n")
-                    for (arg in call.args) {
-                        val head: String = if (arg.name == null) "" else arg.name + " = "
-                        val lines: List<String> =
-                            (head + renderExpr(arg.value, indent + 2, aliases)).split('\n')
-                        val out: MutableList<String> =
-                            mutableListOf(indentOf(indent + 2) + lines.first())
-                        for (extra in lines.drop(1)) out += extra
-                        out[out.size - 1] = out.last() + ","
-                        for (line in out) append(line + "\n")
-                    }
-                    append(indentOf(indent + 1) + ")")
-                }
+                append("\n" + indentOf(indent + 1) + "." + renderExpr(call, indent + 1, aliases))
             }
         }
+
+    // A chain call: its name, then its arguments inline or expanded, as a call expands.
+    private fun renderKtCall(call: KtCall, indent: Int, aliases: Map<String, String>): String {
+        val name: String = aliases[call.function.fqn()] ?: call.function.name
+        val inline: String = call.args.joinToString(", ") { renderChainArg(it, indent, aliases) }
+        if (!inline.contains('\n') && inline.length <= formatting.lineWidth) {
+            return name + "(" + inline + ")"
+        }
+        return buildString {
+            append(name + "(\n")
+            for (arg in call.args) {
+                val head: String = if (arg.name == null) "" else arg.name + " = "
+                val lines: List<String> =
+                    (head + renderExpr(arg.value, indent + 1, aliases)).split('\n')
+                val out: MutableList<String> =
+                    mutableListOf(indentOf(indent + 1) + lines.first())
+                for (extra in lines.drop(1)) out += extra
+                out[out.size - 1] = out.last() + ","
+                for (line in out) append(line + "\n")
+            }
+            append(indentOf(indent) + ")")
+        }
+    }
 
     private fun renderChainArg(arg: KtArg, indent: Int, aliases: Map<String, String>): String {
         val rendered: String = renderExpr(arg.value, indent, aliases)
@@ -252,6 +260,10 @@ public class KtPrinter(
         if (expr is KtExpr.Ref) recordSymbol(expr.symbol.symbol, filePkg, seen)
         if (expr is KtExpr.Literal) expr.imports.forEach { recordSymbol(it, filePkg, seen) }
         if (expr is KtExpr.Snippet) expr.symbols.forEach { recordSymbol(it, filePkg, seen) }
+        if (expr is KtCall) {
+            recordSymbol(expr.function, filePkg, seen)
+            expr.args.forEach { collectExprSymbols(it.value, filePkg, seen) }
+        }
         if (expr is KtExpr.Member) collectExprSymbols(expr.receiver, filePkg, seen)
         if (expr is KtExpr.Lambda) expr.body.forEach { collectStmtSymbols(it, filePkg, seen) }
         if (expr is KtExpr.Call) {
@@ -261,10 +273,7 @@ public class KtPrinter(
         }
         if (expr is KtExpr.Chain) {
             collectExprSymbols(expr.receiver, filePkg, seen)
-            expr.calls.forEach { call ->
-                recordSymbol(call.function, filePkg, seen)
-                call.args.forEach { collectExprSymbols(it.value, filePkg, seen) }
-            }
+            for (call in expr.calls) collectExprSymbols(call, filePkg, seen)
         }
     }
 
