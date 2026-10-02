@@ -42,6 +42,7 @@ internal val TextType: ComponentType = ComponentType("m3.Text")
 internal val LinkType: ComponentType = ComponentType("core.Link")
 internal val CardType: ComponentType = ComponentType("m3.Card")
 internal val PaddingType: ModifierType = ModifierType("layout.padding")
+internal val SizeType: ModifierType = ModifierType("layout.size")
 internal val WeightType: ModifierType = ModifierType("layout.weight")
 internal val ColumnScope: ScopeId = ScopeId("ColumnScope")
 
@@ -106,6 +107,19 @@ private fun <A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, ModifierSpe
             metadata = ModifierMetadata("Padding"),
             params = listOf(prop<Float>("all", TypeRef.Dp)),
             emit = ModifierEmit(KotlinSymbol("androidx.compose.foundation.layout", "padding")),
+        ),
+    )
+    modifier(
+        ModifierSpec(
+            type = SizeType,
+            metadata = ModifierMetadata("Size"),
+            // The one modifier whose arguments are all required, so it is what a missing-argument
+            // check has to be tested against.
+            params = listOf(
+                prop<Float>("width", TypeRef.Dp, required = true),
+                prop<Float>("height", TypeRef.Dp, required = true),
+            ),
+            emit = ModifierEmit(KotlinSymbol("androidx.compose.foundation.layout", "size")),
         ),
     )
     modifier(
