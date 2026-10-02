@@ -26,20 +26,35 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
  * Pass 7: lowers a clean document — defaults applied, scopes computed, tokens resolved.
  *
  * Runs only when no pass reported an error, so every lookup below must hit; a miss is a
- * bug rather than a document fault.
+ * bug rather than a document fault. [checked] is pass 5's product, attached here rather than
+ * re-derived: a computed property's type is settled before this pass and neither backend
+ * re-derives it.
  */
 internal class ResolutionPass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
+    private val checked: ExpressionPass.Result,
 ) {
     public fun run(document: UiDocument): ResolvedDocument {
         val theme = selectTheme(document)
         val scopes = ScopeAnalysis.computeScopes(document) { schema.components[it] }
         val index = LinkedHashMap<NodeId, ResolvedNode>()
 
-        fun propOf(key: PropertyKey, actual: PropertyValue?, default: Value?, selected: ThemeDecl?): ResolvedProp? {
+        fun propOf(
+            node: NodeId,
+            key: PropertyKey,
+            modifierIndex: Int?,
+            actual: PropertyValue?,
+            default: Value?,
+            selected: ThemeDecl?,
+        ): ResolvedProp? {
             val effective = actual ?: default?.let { PropertyValue.Const(it) } ?: return null
             val origin = if (actual != null) PropOrigin.Specified else PropOrigin.Default
-            return ResolvedProp(key, effective, origin, tokenOf(effective, selected))
+            val typed = if (actual is PropertyValue.Computed) {
+                checked.typed[ExprAddress(node, key, modifierIndex)]
+            } else {
+                null
+            }
+            return ResolvedProp(key, effective, origin, tokenOf(effective, selected), typed)
         }
 
         fun build(id: NodeId): ResolvedNode {
@@ -48,13 +63,18 @@ internal class ResolutionPass(
             val spec = checkNotNull(schema.components[node.type]) { "Resolution reached unregistered type '${node.type}'" }
             val props = LinkedHashMap<PropertyKey, ResolvedProp>()
             for (declared in spec.properties.sortedBy { it.key.value }) {
-                propOf(declared.key, node.props[declared.key], declared.default, theme)?.let { props[declared.key] = it }
+                propOf(id, declared.key, null, node.props[declared.key], declared.default, theme)
+                    ?.let { props[declared.key] = it }
             }
-            val modifiers = node.modifiers.map { entry ->
-                val params = checkNotNull(schema.modifiers[entry.type]) { "Resolution reached unregistered modifier '${entry.type}'" }.params
+            val modifiers = node.modifiers.withIndex().map { (position, entry) ->
+                val modifier = checkNotNull(schema.modifiers[entry.type]) {
+                    "Resolution reached unregistered modifier '${entry.type}'"
+                }
+                val params = modifier.params
                 val args = LinkedHashMap<PropertyKey, ResolvedProp>()
                 for (param in params.sortedBy { it.key.value }) {
-                    propOf(param.key, entry.args[param.key], param.default, theme)?.let { args[param.key] = it }
+                    propOf(id, param.key, position, entry.args[param.key], param.default, theme)
+                        ?.let { args[param.key] = it }
                 }
                 ResolvedModifier(entry.type, args)
             }
