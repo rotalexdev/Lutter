@@ -378,16 +378,19 @@ final class dev.rotalex.lutter.codegen/KtArg { // dev.rotalex.lutter.codegen/KtA
 }
 
 final class dev.rotalex.lutter.codegen/KtCall : dev.rotalex.lutter.codegen/KtExpr { // dev.rotalex.lutter.codegen/KtCall|null[0]
-    constructor <init>(dev.rotalex.lutter.schema.component/KotlinSymbol, kotlin.collections/List<dev.rotalex.lutter.codegen/KtArg>) // dev.rotalex.lutter.codegen/KtCall.<init>|<init>(dev.rotalex.lutter.schema.component.KotlinSymbol;kotlin.collections.List<dev.rotalex.lutter.codegen.KtArg>){}[0]
+    constructor <init>(dev.rotalex.lutter.schema.component/KotlinSymbol, kotlin.collections/List<dev.rotalex.lutter.codegen/KtArg>, kotlin/Boolean = ...) // dev.rotalex.lutter.codegen/KtCall.<init>|<init>(dev.rotalex.lutter.schema.component.KotlinSymbol;kotlin.collections.List<dev.rotalex.lutter.codegen.KtArg>;kotlin.Boolean){}[0]
 
     final val args // dev.rotalex.lutter.codegen/KtCall.args|{}args[0]
         final fun <get-args>(): kotlin.collections/List<dev.rotalex.lutter.codegen/KtArg> // dev.rotalex.lutter.codegen/KtCall.args.<get-args>|<get-args>(){}[0]
     final val function // dev.rotalex.lutter.codegen/KtCall.function|{}function[0]
         final fun <get-function>(): dev.rotalex.lutter.schema.component/KotlinSymbol // dev.rotalex.lutter.codegen/KtCall.function.<get-function>|<get-function>(){}[0]
+    final val imported // dev.rotalex.lutter.codegen/KtCall.imported|{}imported[0]
+        final fun <get-imported>(): kotlin/Boolean // dev.rotalex.lutter.codegen/KtCall.imported.<get-imported>|<get-imported>(){}[0]
 
     final fun component1(): dev.rotalex.lutter.schema.component/KotlinSymbol // dev.rotalex.lutter.codegen/KtCall.component1|component1(){}[0]
     final fun component2(): kotlin.collections/List<dev.rotalex.lutter.codegen/KtArg> // dev.rotalex.lutter.codegen/KtCall.component2|component2(){}[0]
-    final fun copy(dev.rotalex.lutter.schema.component/KotlinSymbol = ..., kotlin.collections/List<dev.rotalex.lutter.codegen/KtArg> = ...): dev.rotalex.lutter.codegen/KtCall // dev.rotalex.lutter.codegen/KtCall.copy|copy(dev.rotalex.lutter.schema.component.KotlinSymbol;kotlin.collections.List<dev.rotalex.lutter.codegen.KtArg>){}[0]
+    final fun component3(): kotlin/Boolean // dev.rotalex.lutter.codegen/KtCall.component3|component3(){}[0]
+    final fun copy(dev.rotalex.lutter.schema.component/KotlinSymbol = ..., kotlin.collections/List<dev.rotalex.lutter.codegen/KtArg> = ..., kotlin/Boolean = ...): dev.rotalex.lutter.codegen/KtCall // dev.rotalex.lutter.codegen/KtCall.copy|copy(dev.rotalex.lutter.schema.component.KotlinSymbol;kotlin.collections.List<dev.rotalex.lutter.codegen.KtArg>;kotlin.Boolean){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.codegen/KtCall.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // dev.rotalex.lutter.codegen/KtCall.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // dev.rotalex.lutter.codegen/KtCall.toString|toString(){}[0]

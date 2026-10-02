@@ -1101,16 +1101,22 @@ final class dev.rotalex.lutter.schema.migration/SpecMigrationRegistry { // dev.r
 }
 
 final class dev.rotalex.lutter.schema.modifier/ModifierEmit { // dev.rotalex.lutter.schema.modifier/ModifierEmit|null[0]
-    constructor <init>(dev.rotalex.lutter.schema.component/KotlinSymbol, kotlin.collections/List<dev.rotalex.lutter.schema.component/EmitCase> = ...) // dev.rotalex.lutter.schema.modifier/ModifierEmit.<init>|<init>(dev.rotalex.lutter.schema.component.KotlinSymbol;kotlin.collections.List<dev.rotalex.lutter.schema.component.EmitCase>){}[0]
+    constructor <init>(dev.rotalex.lutter.schema.component/KotlinSymbol, kotlin.collections/List<dev.rotalex.lutter.schema.component/EmitCase> = ..., kotlin/Boolean = ..., kotlin.collections/Map<dev.rotalex.lutter.schema.component/ScopeId, kotlin.collections/Map<kotlin/String, dev.rotalex.lutter.schema.component/KotlinSymbol>> = ...) // dev.rotalex.lutter.schema.modifier/ModifierEmit.<init>|<init>(dev.rotalex.lutter.schema.component.KotlinSymbol;kotlin.collections.List<dev.rotalex.lutter.schema.component.EmitCase>;kotlin.Boolean;kotlin.collections.Map<dev.rotalex.lutter.schema.component.ScopeId,kotlin.collections.Map<kotlin.String,dev.rotalex.lutter.schema.component.KotlinSymbol>>){}[0]
 
     final val cases // dev.rotalex.lutter.schema.modifier/ModifierEmit.cases|{}cases[0]
         final fun <get-cases>(): kotlin.collections/List<dev.rotalex.lutter.schema.component/EmitCase> // dev.rotalex.lutter.schema.modifier/ModifierEmit.cases.<get-cases>|<get-cases>(){}[0]
     final val function // dev.rotalex.lutter.schema.modifier/ModifierEmit.function|{}function[0]
         final fun <get-function>(): dev.rotalex.lutter.schema.component/KotlinSymbol // dev.rotalex.lutter.schema.modifier/ModifierEmit.function.<get-function>|<get-function>(){}[0]
+    final val scopeEntries // dev.rotalex.lutter.schema.modifier/ModifierEmit.scopeEntries|{}scopeEntries[0]
+        final fun <get-scopeEntries>(): kotlin.collections/Map<dev.rotalex.lutter.schema.component/ScopeId, kotlin.collections/Map<kotlin/String, dev.rotalex.lutter.schema.component/KotlinSymbol>> // dev.rotalex.lutter.schema.modifier/ModifierEmit.scopeEntries.<get-scopeEntries>|<get-scopeEntries>(){}[0]
+    final val scopeMember // dev.rotalex.lutter.schema.modifier/ModifierEmit.scopeMember|{}scopeMember[0]
+        final fun <get-scopeMember>(): kotlin/Boolean // dev.rotalex.lutter.schema.modifier/ModifierEmit.scopeMember.<get-scopeMember>|<get-scopeMember>(){}[0]
 
     final fun component1(): dev.rotalex.lutter.schema.component/KotlinSymbol // dev.rotalex.lutter.schema.modifier/ModifierEmit.component1|component1(){}[0]
     final fun component2(): kotlin.collections/List<dev.rotalex.lutter.schema.component/EmitCase> // dev.rotalex.lutter.schema.modifier/ModifierEmit.component2|component2(){}[0]
-    final fun copy(dev.rotalex.lutter.schema.component/KotlinSymbol = ..., kotlin.collections/List<dev.rotalex.lutter.schema.component/EmitCase> = ...): dev.rotalex.lutter.schema.modifier/ModifierEmit // dev.rotalex.lutter.schema.modifier/ModifierEmit.copy|copy(dev.rotalex.lutter.schema.component.KotlinSymbol;kotlin.collections.List<dev.rotalex.lutter.schema.component.EmitCase>){}[0]
+    final fun component3(): kotlin/Boolean // dev.rotalex.lutter.schema.modifier/ModifierEmit.component3|component3(){}[0]
+    final fun component4(): kotlin.collections/Map<dev.rotalex.lutter.schema.component/ScopeId, kotlin.collections/Map<kotlin/String, dev.rotalex.lutter.schema.component/KotlinSymbol>> // dev.rotalex.lutter.schema.modifier/ModifierEmit.component4|component4(){}[0]
+    final fun copy(dev.rotalex.lutter.schema.component/KotlinSymbol = ..., kotlin.collections/List<dev.rotalex.lutter.schema.component/EmitCase> = ..., kotlin/Boolean = ..., kotlin.collections/Map<dev.rotalex.lutter.schema.component/ScopeId, kotlin.collections/Map<kotlin/String, dev.rotalex.lutter.schema.component/KotlinSymbol>> = ...): dev.rotalex.lutter.schema.modifier/ModifierEmit // dev.rotalex.lutter.schema.modifier/ModifierEmit.copy|copy(dev.rotalex.lutter.schema.component.KotlinSymbol;kotlin.collections.List<dev.rotalex.lutter.schema.component.EmitCase>;kotlin.Boolean;kotlin.collections.Map<dev.rotalex.lutter.schema.component.ScopeId,kotlin.collections.Map<kotlin.String,dev.rotalex.lutter.schema.component.KotlinSymbol>>){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.schema.modifier/ModifierEmit.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // dev.rotalex.lutter.schema.modifier/ModifierEmit.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // dev.rotalex.lutter.schema.modifier/ModifierEmit.toString|toString(){}[0]

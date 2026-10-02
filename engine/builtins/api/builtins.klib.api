@@ -31,6 +31,8 @@ final object dev.rotalex.lutter.builtins.enums/VerticalArrangementSpec { // dev.
 final object dev.rotalex.lutter.builtins/AlignModifier { // dev.rotalex.lutter.builtins/AlignModifier|null[0]
     final val alignment // dev.rotalex.lutter.builtins/AlignModifier.alignment|{}alignment[0]
         final fun <get-alignment>(): dev.rotalex.lutter.schema.component/PropertySpec<kotlin/String> // dev.rotalex.lutter.builtins/AlignModifier.alignment.<get-alignment>|<get-alignment>(){}[0]
+    final val scopeEntries // dev.rotalex.lutter.builtins/AlignModifier.scopeEntries|{}scopeEntries[0]
+        final fun <get-scopeEntries>(): kotlin.collections/Map<dev.rotalex.lutter.schema.component/ScopeId, kotlin.collections/Map<kotlin/String, dev.rotalex.lutter.schema.component/KotlinSymbol>> // dev.rotalex.lutter.builtins/AlignModifier.scopeEntries.<get-scopeEntries>|<get-scopeEntries>(){}[0]
     final val spec // dev.rotalex.lutter.builtins/AlignModifier.spec|{}spec[0]
         final fun <get-spec>(): dev.rotalex.lutter.schema.modifier/ModifierSpec // dev.rotalex.lutter.builtins/AlignModifier.spec.<get-spec>|<get-spec>(){}[0]
 }

@@ -1,6 +1,7 @@
 public final class dev/rotalex/lutter/builtins/AlignModifier {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/AlignModifier;
 	public final fun getAlignment ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getScopeEntries ()Ljava/util/Map;
 	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
 }
 
