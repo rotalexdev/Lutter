@@ -36,6 +36,8 @@ final class dev.rotalex.lutter.interpreter.eval/FunctionImpls { // dev.rotalex.l
     final object Companion { // dev.rotalex.lutter.interpreter.eval/FunctionImpls.Companion|null[0]
         final val None // dev.rotalex.lutter.interpreter.eval/FunctionImpls.Companion.None|{}None[0]
             final fun <get-None>(): dev.rotalex.lutter.interpreter.eval/FunctionImpls // dev.rotalex.lutter.interpreter.eval/FunctionImpls.Companion.None.<get-None>|<get-None>(){}[0]
+
+        final fun of(kotlin.collections/List<kotlin/Pair<dev.rotalex.lutter.model.ids/FunctionId, dev.rotalex.lutter.interpreter.eval/FunctionImpl>>): dev.rotalex.lutter.interpreter.eval/FunctionImpls // dev.rotalex.lutter.interpreter.eval/FunctionImpls.Companion.of|of(kotlin.collections.List<kotlin.Pair<dev.rotalex.lutter.model.ids.FunctionId,dev.rotalex.lutter.interpreter.eval.FunctionImpl>>){}[0]
     }
 }
 

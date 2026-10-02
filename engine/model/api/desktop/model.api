@@ -2813,6 +2813,7 @@ public final class dev/rotalex/lutter/model/value/CanonicalNumbersKt {
 	public static final field MAX_CANONICAL_MAGNITUDE D
 	public static final fun canonicalize (D)D
 	public static final fun canonicalize (F)F
+	public static final fun fixedDecimalText (DI)Ljava/lang/String;
 }
 
 public final class dev/rotalex/lutter/model/value/ColorArgb {

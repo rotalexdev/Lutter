@@ -39,7 +39,9 @@ public final class dev/rotalex/lutter/builtins/BoxSpec {
 }
 
 public final class dev/rotalex/lutter/builtins/BuiltinsKt {
+	public static final fun builtinFunctionImpls ()Ldev/rotalex/lutter/interpreter/eval/FunctionImpls;
 	public static final fun registerBuiltinEnums (Ldev/rotalex/lutter/schema/SchemaBuilder;)V
+	public static final fun registerBuiltinFunctions (Ldev/rotalex/lutter/schema/SchemaBuilder;)V
 	public static final fun registerBuiltinModifiers (Ldev/rotalex/lutter/schema/SchemaBuilder;)V
 	public static final fun registerBuiltinSpecs (Ldev/rotalex/lutter/schema/SchemaBuilder;)V
 }
@@ -198,5 +200,44 @@ public final class dev/rotalex/lutter/builtins/enums/VerticalArrangementSpec {
 	public final fun getId-7JNyzJc ()Ljava/lang/String;
 	public final fun getSpec ()Ldev/rotalex/lutter/schema/types/EnumTypeSpec;
 	public final fun getType ()Ldev/rotalex/lutter/model/type/TypeRef;
+}
+
+public final class dev/rotalex/lutter/builtins/functions/CoreFunctions {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/functions/CoreFunctions;
+	public final fun getAll ()Ljava/util/List;
+	public final fun getCoalesce ()Ldev/rotalex/lutter/schema/function/FunctionSpec;
+	public final fun getImpls ()Ljava/util/List;
+	public final fun isNull ()Ldev/rotalex/lutter/schema/function/FunctionSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/functions/ListFunctions {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/functions/ListFunctions;
+	public final fun getAll ()Ljava/util/List;
+	public final fun getContains ()Ldev/rotalex/lutter/schema/function/FunctionSpec;
+	public final fun getGet ()Ldev/rotalex/lutter/schema/function/FunctionSpec;
+	public final fun getImpls ()Ljava/util/List;
+	public final fun getSize ()Ldev/rotalex/lutter/schema/function/FunctionSpec;
+	public final fun isEmpty ()Ldev/rotalex/lutter/schema/function/FunctionSpec;
+	public final fun isNotEmpty ()Ldev/rotalex/lutter/schema/function/FunctionSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/functions/NumberFunctions {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/functions/NumberFunctions;
+	public final fun getAll ()Ljava/util/List;
+	public final fun getFormat ()Ldev/rotalex/lutter/schema/function/FunctionSpec;
+	public final fun getImpls ()Ljava/util/List;
+	public final fun getToDouble ()Ldev/rotalex/lutter/schema/function/FunctionSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/functions/StringFunctions {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/functions/StringFunctions;
+	public final fun getAll ()Ljava/util/List;
+	public final fun getContains ()Ldev/rotalex/lutter/schema/function/FunctionSpec;
+	public final fun getImpls ()Ljava/util/List;
+	public final fun getLength ()Ldev/rotalex/lutter/schema/function/FunctionSpec;
+	public final fun getLowercase ()Ldev/rotalex/lutter/schema/function/FunctionSpec;
+	public final fun getTrim ()Ldev/rotalex/lutter/schema/function/FunctionSpec;
+	public final fun getUppercase ()Ldev/rotalex/lutter/schema/function/FunctionSpec;
+	public final fun isBlank ()Ldev/rotalex/lutter/schema/function/FunctionSpec;
 }
 
