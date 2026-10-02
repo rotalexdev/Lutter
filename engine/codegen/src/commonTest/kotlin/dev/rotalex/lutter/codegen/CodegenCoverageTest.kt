@@ -90,7 +90,7 @@ class CodegenCoverageTest {
                     componentSpec(ComponentType("test.Outlet"), 1) {
                         metadata("Outlet", Category.Basic)
                         slot("content", Cardinality.ExactlyOne)
-                        event(EventKey("onFill"))
+                        event("onFill")
                         intrinsic()
                     },
                 )

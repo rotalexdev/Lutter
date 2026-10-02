@@ -79,7 +79,7 @@ private fun <A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, ModifierSpe
             property(prop<Int>("maxLines", TypeRef.Int32, default = Value.Int32(1)))
             property(prop<String>("tag", TypeRef.Str, bindable = false))
             property(prop<String>("style", TypeRef.Nullable(TypeRef.Token(TokenKind.Typography))))
-            property(prop<String>("align", TypeRef.Enum(TypeId("Align")))
+            property(prop<String>("align", TypeRef.Enum(TypeId("Align"))))
             rule(PropertyRule.Range(PropertyKey("maxLines"), min = 1.0, max = 10.0))
             composeCall(KotlinSymbol("androidx.compose.material3", "Text"))
         },
