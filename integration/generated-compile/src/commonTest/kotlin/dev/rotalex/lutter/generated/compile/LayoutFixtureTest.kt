@@ -116,7 +116,7 @@ class LayoutFixtureTest {
          * over that directory and the CLI exits non-zero on an analysis error. A document that
          * is *meant* to be refused cannot live where generation reads.
          */
-        const val WEIGHT_OUTSIDE_ROW: String =
+        val WEIGHT_OUTSIDE_ROW: String =
             """
             {
               "format": "forge.ui-document",
