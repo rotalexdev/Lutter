@@ -1,13 +1,16 @@
 package dev.rotalex.lutter.builtins
 
 import dev.rotalex.lutter.model.ids.ComponentType
+import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.TypeId
+import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.schema.Schema
 import dev.rotalex.lutter.schema.component.Cardinality
 import dev.rotalex.lutter.schema.component.Category
 import dev.rotalex.lutter.schema.component.CodegenBinding
 import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.component.EventArgSpec
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.LambdaTarget
 import dev.rotalex.lutter.schema.component.Positional
@@ -123,8 +126,58 @@ class BuiltinSpecsTest {
         assertEquals(emptyList(), call.slots)
     }
 
+    @Test
+    fun `button is one label slot and a press no binding reads`() {
+        assertEquals(ComponentType("m3.Button"), ButtonSpec.spec.type)
+        assertEquals(Category.Basic, ButtonSpec.spec.metadata.category)
+        assertEquals(emptyList(), ButtonSpec.spec.properties.map { it.key })
+        assertEquals(Cardinality.ExactlyOne, ButtonSpec.content.cardinality)
+        assertEquals(setOf(LayoutScopes.Row), ButtonSpec.content.provides)
+        assertEquals(listOf(EventKey("onClick")), ButtonSpec.spec.events.map { it.key })
+
+        val call = assertIs<CodegenBinding.ComposeCall>(ButtonSpec.spec.codegen)
+        assertEquals(KotlinSymbol("androidx.compose.material3", "Button"), call.function)
+        assertEquals(emptyList(), call.params)
+        assertEquals(emptyList(), call.events, "a bound event fails CodegenCoverage")
+        assertEquals(LambdaTarget.Trailing, call.slots.single().target)
+    }
+
+    @Test
+    fun `textfield declares its edit as the event a handler is`() {
+        assertEquals(ComponentType("m3.TextField"), TextFieldSpec.spec.type)
+        assertEquals(Category.Input, TextFieldSpec.spec.metadata.category)
+        assertEquals(listOf(PropertyKey("value")), TextFieldSpec.spec.properties.map { it.key })
+        assertEquals(true, TextFieldSpec.value.required)
+
+        val handler = TextFieldSpec.spec.events.single()
+        assertEquals(EventKey("onValueChange"), handler.key)
+        assertEquals(listOf(EventArgSpec("value", TypeRef.Str)), handler.args)
+
+        val call = assertIs<CodegenBinding.ComposeCall>(TextFieldSpec.spec.codegen)
+        assertEquals(KotlinSymbol("androidx.compose.material3", "TextField"), call.function)
+        assertEquals("value", call.params.single().param)
+        assertEquals(emptyList(), call.events, "a bound event fails CodegenCoverage")
+        assertEquals(emptyList(), call.slots)
+    }
+
+    @Test
+    fun `card is a surface with a body and no scope of its own`() {
+        assertEquals(ComponentType("m3.Card"), CardSpec.spec.type)
+        assertEquals(Category.Basic, CardSpec.spec.metadata.category)
+        assertEquals(emptyList(), CardSpec.spec.properties.map { it.key })
+        assertEquals(Cardinality.Many, CardSpec.content.cardinality)
+        assertEquals(emptySet(), CardSpec.content.provides)
+
+        val call = assertIs<CodegenBinding.ComposeCall>(CardSpec.spec.codegen)
+        assertEquals(KotlinSymbol("androidx.compose.material3", "Card"), call.function)
+        assertEquals(emptyList(), call.params)
+        assertEquals(LambdaTarget.Trailing, call.slots.single().target)
+    }
+
     private companion object {
-        val allSpecs: List<ComponentSpec> =
-            listOf(ColumnSpec.spec, RowSpec.spec, BoxSpec.spec, SpacerSpec.spec, TextSpec.spec)
+        val allSpecs: List<ComponentSpec> = listOf(
+            ColumnSpec.spec, RowSpec.spec, BoxSpec.spec, SpacerSpec.spec, TextSpec.spec,
+            ButtonSpec.spec, TextFieldSpec.spec, CardSpec.spec,
+        )
     }
 }

@@ -22,6 +22,9 @@ public fun <M : Any, A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, M, 
     component(BoxSpec.spec)
     component(SpacerSpec.spec)
     component(TextSpec.spec)
+    component(ButtonSpec.spec)
+    component(TextFieldSpec.spec)
+    component(CardSpec.spec)
 }
 
 /** Registers every builtin modifier. The applier half is `registerBuiltinModifierAppliers`. */

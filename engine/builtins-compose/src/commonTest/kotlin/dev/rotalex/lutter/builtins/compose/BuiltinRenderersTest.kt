@@ -1,9 +1,12 @@
 package dev.rotalex.lutter.builtins.compose
 
 import dev.rotalex.lutter.builtins.BoxSpec
+import dev.rotalex.lutter.builtins.ButtonSpec
+import dev.rotalex.lutter.builtins.CardSpec
 import dev.rotalex.lutter.builtins.ColumnSpec
 import dev.rotalex.lutter.builtins.RowSpec
 import dev.rotalex.lutter.builtins.SpacerSpec
+import dev.rotalex.lutter.builtins.TextFieldSpec
 import dev.rotalex.lutter.builtins.TextSpec
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.runtime.RendererRegistryBuilder
@@ -26,8 +29,11 @@ class BuiltinRenderersTest {
         assertNotNull(registry[BoxSpec.spec.type])
         assertNotNull(registry[SpacerSpec.spec.type])
         assertNotNull(registry[TextSpec.spec.type])
+        assertNotNull(registry[ButtonSpec.spec.type])
+        assertNotNull(registry[TextFieldSpec.spec.type])
+        assertNotNull(registry[CardSpec.spec.type])
         // Pinned so a spec registered without its renderer fails here rather than at coverage.
-        assertEquals(5, registry.types().size)
+        assertEquals(8, registry.types().size)
     }
 
     @Test
