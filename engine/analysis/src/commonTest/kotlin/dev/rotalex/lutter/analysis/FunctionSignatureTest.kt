@@ -22,6 +22,7 @@ import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.function.ParamSig
 import dev.rotalex.lutter.schema.function.TypeSig
 import dev.rotalex.lutter.schema.function.function
+import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
