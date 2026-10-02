@@ -42,5 +42,15 @@ public class FunctionImpls(
          * answer for a call rather than a failure at construction.
          */
         public val None: FunctionImpls = FunctionImpls(RegistryBuilder<FunctionId, FunctionImpl>().build())
+
+        /**
+         * The table over [entries], each keyed by its own id.
+         *
+         * A [RegistryBuilder] rather than a map so a duplicate is refused where it is written:
+         * two assemblers claiming one id should not be settled by ordering, and the failure is
+         * §10.3's coverage test's business at run time, not a silent last-one-wins here.
+         */
+        public fun of(entries: List<Pair<FunctionId, FunctionImpl>>): FunctionImpls =
+            FunctionImpls(RegistryBuilder<FunctionId, FunctionImpl>().apply { registerAll(entries) }.build())
     }
 }

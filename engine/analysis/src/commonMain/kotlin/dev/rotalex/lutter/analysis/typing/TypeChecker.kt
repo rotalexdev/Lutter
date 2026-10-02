@@ -216,8 +216,12 @@ internal class TypeChecker(
                 val list = (found as? ExprType.Of)?.type
                 list is TypeRef.ListOf && fromSig(sig.element, ExprType.Of(list.element), elements)
             }
-
-            is TypeSig.Nullable -> found is ExprType.Null || fromSig(sig.inner, found, elements)
+            // "Or null" is read off the *sig*, so the value's own nullable layer is lifted off
+            // before the inner sig is tried. Without that a `Nullable` position matched a plain
+            // value and refused the very `T?` it names, which left `core.coalesce` untypeable: a
+            // fallback has to be the same `T` the nullable carries.
+            is TypeSig.Nullable -> found is ExprType.Null || fromSig(sig.inner, lifted(found), elements)
+            is TypeSig.OneOf -> sig.options.any { fromSig(it, found, elements) }
         }
 
     /** One binding per element variable: a second one must agree or the call is wrong. */
@@ -236,7 +240,26 @@ internal class TypeChecker(
             is TypeSig.Element -> elements[sig.name] ?: unbound(ctx, sig.name)
             is TypeSig.ListOf -> instantiate(sig.element, elements, ctx)?.let { TypeRef.ListOf(it) }
             is TypeSig.Nullable -> instantiate(sig.inner, elements, ctx)?.let { TypeRef.Nullable(it) }
+            is TypeSig.OneOf -> agreed(sig, elements, ctx)
         }
+
+    /**
+     * A union's result type: every option has to resolve to the same one.
+     *
+     * §10.3 writes no rule for reading a union back, so this refuses rather than picks the
+     * first — a call that can be two different types has no single result type to report, and
+     * guessing one would hand the emitter a type the document never agreed to.
+     */
+    private fun agreed(sig: TypeSig.OneOf, elements: Map<String, TypeRef>, ctx: Context): TypeRef? {
+        val resolved = sig.options.mapNotNull { instantiate(it, elements, ctx) }
+        val first = resolved.firstOrNull() ?: return null
+        if (resolved.all { it == first }) return first
+        return refuse(
+            ctx, DiagnosticCodes.ExprTypeMismatch,
+            "returns one of several types and they do not agree (node '${ctx.at.nodeId}')",
+            ctx.base,
+        )
+    }
 
     private fun unary(expr: Expr.Unary, ctx: Context): ExprType? {
         val operand = infer(expr.operand, null, ctx) ?: return null
@@ -469,6 +492,13 @@ private fun labelSig(sig: TypeSig): String = when (sig) {
     is TypeSig.Element -> sig.name
     is TypeSig.ListOf -> "list of ${labelSig(sig.element)}"
     is TypeSig.Nullable -> "${labelSig(sig.inner)} or null"
+    is TypeSig.OneOf -> sig.options.joinToString(" or ") { labelSig(it) }
+}
+
+/** [found] with one `Nullable` layer removed, so an "or null" sig meets a bare inner type. */
+private fun lifted(found: ExprType): ExprType {
+    val declared = (found as? ExprType.Of)?.type as? TypeRef.Nullable ?: return found
+    return ExprType.Of(declared.inner)
 }
 
 private val BOOL: ExprType = ExprType.Of(TypeRef.Bool)

@@ -126,7 +126,7 @@ private const val ELEMENT: String = "T"
 
 // One declaration, bound twice: the components and modifiers do not depend on what the types
 // slot holds, and duplicating them per binding is a copy that can drift.
-private fun <A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, ModifierSpec, A, F, T>.walkingSkeleton(): Unit {
+internal fun <A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, ModifierSpec, A, F, T>.walkingSkeleton(): Unit {
     component(
         componentSpec(ColumnType, 1) {
             metadata("Column", Category.Layout)

@@ -35,7 +35,9 @@ public data class ParamSig(
  * A signature type: an exact model type, an element variable, or a composition of either.
  *
  * Element variables are the only generics (§10.3): `list.get` is `(ListOf(Element(T)), Int32)`
- * returning `Nullable(Element(T))`. Anything richer is a post-MVP function, not a richer sig.
+ * returning `Nullable(Element(T))`. [OneOf] is not a generic — it is a union of positions the
+ * plan's own numeric rules need — and it is here because a signature that cannot be written is
+ * a function that cannot be typed.
  */
 public sealed interface TypeSig {
     public data class Exact(public val type: TypeRef) : TypeSig
@@ -46,6 +48,17 @@ public sealed interface TypeSig {
     public data class ListOf(public val element: TypeSig) : TypeSig
 
     public data class Nullable(public val inner: TypeSig) : TypeSig
+
+    /**
+     * Any one of [options] fills this position.
+     *
+     * The seed set needs it and the other three shapes cannot say it: §10.4 sends every
+     * narrower numeric type through `num.toDouble`, and there is no way to name "an `i32`, an
+     * `i64` or a float" without a union. [Element] would accept anything at all, including a
+     * string, and an over-accepting signature is worse than a missing one: the generated call
+     * would not compile.
+     */
+    public data class OneOf(public val options: List<TypeSig>) : TypeSig
 }
 
 /**
