@@ -57,7 +57,7 @@ public class Evaluator(
         }
         is Expr.If -> branch(expr, scope)
         is Expr.ListLiteral -> Value.ListOf(expr.items.map { evaluate(it, scope) })
-        is Expr.Template -> expr.parts.joinToString("") { evaluate(it, scope).toDisplayString() }
+        is Expr.Template -> Value.Str(expr.parts.joinToString("") { evaluate(it, scope).toDisplayString() })
     }
 
     /**
