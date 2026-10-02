@@ -56,6 +56,10 @@ public final class dev/rotalex/lutter/analysis/diagnostic/DiagnosticCodes {
 	public final fun getComponentSlotCardinality-6lSHpRw ()Ljava/lang/String;
 	public final fun getComponentSlotUnknown-6lSHpRw ()Ljava/lang/String;
 	public final fun getComponentUnknown-6lSHpRw ()Ljava/lang/String;
+	public final fun getExprNullableAccess-6lSHpRw ()Ljava/lang/String;
+	public final fun getExprTypeMismatch-6lSHpRw ()Ljava/lang/String;
+	public final fun getExprUnknownFunction-6lSHpRw ()Ljava/lang/String;
+	public final fun getExprUnresolvedRef-6lSHpRw ()Ljava/lang/String;
 	public final fun getModifierArgInvalid-6lSHpRw ()Ljava/lang/String;
 	public final fun getModifierScopeMissing-6lSHpRw ()Ljava/lang/String;
 	public final fun getModifierUnknown-6lSHpRw ()Ljava/lang/String;
@@ -199,17 +203,20 @@ public final class dev/rotalex/lutter/analysis/resolved/ResolvedPage {
 }
 
 public final class dev/rotalex/lutter/analysis/resolved/ResolvedProp {
-	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/expr/PropertyValue;Ldev/rotalex/lutter/analysis/resolved/PropOrigin;Ldev/rotalex/lutter/analysis/resolved/ResolvedToken;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/expr/PropertyValue;Ldev/rotalex/lutter/analysis/resolved/PropOrigin;Ldev/rotalex/lutter/analysis/resolved/ResolvedToken;Ldev/rotalex/lutter/model/expr/TypedExpr;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/expr/PropertyValue;Ldev/rotalex/lutter/analysis/resolved/PropOrigin;Ldev/rotalex/lutter/analysis/resolved/ResolvedToken;Ldev/rotalex/lutter/model/expr/TypedExpr;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1-ciGozWU ()Ljava/lang/String;
 	public final fun component2 ()Ldev/rotalex/lutter/model/expr/PropertyValue;
 	public final fun component3 ()Ldev/rotalex/lutter/analysis/resolved/PropOrigin;
 	public final fun component4 ()Ldev/rotalex/lutter/analysis/resolved/ResolvedToken;
-	public final fun copy-TTFUq2c (Ljava/lang/String;Ldev/rotalex/lutter/model/expr/PropertyValue;Ldev/rotalex/lutter/analysis/resolved/PropOrigin;Ldev/rotalex/lutter/analysis/resolved/ResolvedToken;)Ldev/rotalex/lutter/analysis/resolved/ResolvedProp;
-	public static synthetic fun copy-TTFUq2c$default (Ldev/rotalex/lutter/analysis/resolved/ResolvedProp;Ljava/lang/String;Ldev/rotalex/lutter/model/expr/PropertyValue;Ldev/rotalex/lutter/analysis/resolved/PropOrigin;Ldev/rotalex/lutter/analysis/resolved/ResolvedToken;ILjava/lang/Object;)Ldev/rotalex/lutter/analysis/resolved/ResolvedProp;
+	public final fun component5 ()Ldev/rotalex/lutter/model/expr/TypedExpr;
+	public final fun copy-9DG8SGU (Ljava/lang/String;Ldev/rotalex/lutter/model/expr/PropertyValue;Ldev/rotalex/lutter/analysis/resolved/PropOrigin;Ldev/rotalex/lutter/analysis/resolved/ResolvedToken;Ldev/rotalex/lutter/model/expr/TypedExpr;)Ldev/rotalex/lutter/analysis/resolved/ResolvedProp;
+	public static synthetic fun copy-9DG8SGU$default (Ldev/rotalex/lutter/analysis/resolved/ResolvedProp;Ljava/lang/String;Ldev/rotalex/lutter/model/expr/PropertyValue;Ldev/rotalex/lutter/analysis/resolved/PropOrigin;Ldev/rotalex/lutter/analysis/resolved/ResolvedToken;Ldev/rotalex/lutter/model/expr/TypedExpr;ILjava/lang/Object;)Ldev/rotalex/lutter/analysis/resolved/ResolvedProp;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getKey-ciGozWU ()Ljava/lang/String;
 	public final fun getOrigin ()Ldev/rotalex/lutter/analysis/resolved/PropOrigin;
 	public final fun getToken ()Ldev/rotalex/lutter/analysis/resolved/ResolvedToken;
+	public final fun getTyped ()Ldev/rotalex/lutter/model/expr/TypedExpr;
 	public final fun getValue ()Ldev/rotalex/lutter/model/expr/PropertyValue;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
