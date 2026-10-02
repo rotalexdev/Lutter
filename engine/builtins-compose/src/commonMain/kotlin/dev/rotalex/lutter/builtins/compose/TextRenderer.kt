@@ -18,7 +18,7 @@ internal object TextRenderer : ComponentRenderer {
     override fun Render(node: ResolvedNode, scope: RenderScope): Unit {
         val props = scope.props(node)
         Text(
-            text = props[TextSpec.text],
+            text = props[TextSpec.text] ?: "",
             color = props[TextSpec.color]?.toCompose() ?: Color.Unspecified,
             style = props[TextSpec.style]?.let { scope.theme.textStyle(it) } ?: LocalTextStyle.current,
             modifier = scope.modifierFor(node),

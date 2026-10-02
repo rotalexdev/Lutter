@@ -28,8 +28,13 @@ public sealed interface KtExpr {
         public val trailing: Lambda? = null,
     ) : KtExpr
 
-    /** A modifier chain: one dotted call per line off a root receiver. */
-    public data class Chain(public val receiver: KtExpr, public val calls: List<KtCall>) : KtExpr
+    /**
+     * A modifier chain: one entry per line off a root receiver.
+     *
+     * Entries are expressions because one of them is spec-authored text: a case-selected
+     * modifier fills its own pattern (`padding(horizontal = {horizontal})`) rather than a call.
+     */
+    public data class Chain(public val receiver: KtExpr, public val calls: List<KtExpr>) : KtExpr
 
     /** A content lambda: slot children, in order. Receivers arrive with scoped slots. */
     public data class Lambda(public val params: List<String>, public val body: List<KtStmt>) : KtExpr
@@ -47,8 +52,18 @@ public data class KtSymbolRef(
     public val member: String? = null,
 )
 
-/** One chained call in a [KtExpr.Chain]: its function plus the call's own args. */
-public data class KtCall(public val function: KotlinSymbol, public val args: List<KtArg>)
+/**
+ * One chain entry written as a call: a modifier's function plus that call's own args.
+ *
+ * A subtype of [KtExpr] rather than a shape beside it, because a chain holds expressions and a
+ * case-selected entry is spec text rather than a call this IR can name. [imported] is false for
+ * a scope member's name, which resolves through a receiver rather than an FQN.
+ */
+public data class KtCall(
+    public val function: KotlinSymbol,
+    public val args: List<KtArg>,
+    public val imported: Boolean = true,
+) : KtExpr
 
 /** One argument: named, or positional when the binding shortens to one. */
 public data class KtArg(public val name: String?, public val value: KtExpr)

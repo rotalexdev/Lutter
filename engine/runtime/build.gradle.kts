@@ -10,6 +10,7 @@ dependencies {
     // Api, not implementation: Modifier, Rect, Color and TextStyle appear in public
     // signatures, so consumers need them on the compile classpath.
     commonMainApi(rootLibs.jetbrains.compose.ui)
-    // Body-only: the screen root container. Nothing public names foundation types.
-    commonMainImplementation(rootLibs.jetbrains.compose.foundation)
+    // Api for the same reason as ui above: `ScopeHandle` carries a RowScope, ColumnScope or
+    // BoxScope so a modifier applier can apply against the receiver a renderer opened.
+    commonMainApi(rootLibs.jetbrains.compose.foundation)
 }

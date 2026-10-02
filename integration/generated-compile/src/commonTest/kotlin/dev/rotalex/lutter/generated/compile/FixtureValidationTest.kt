@@ -21,7 +21,10 @@ class FixtureValidationTest {
     }
 
     @Test
-    fun `the suite covers two column-text documents`() {
-        assertEquals(listOf("column_color", "column_text"), FixtureDocuments.ids)
+    fun `the suite covers every wave one layout document`() {
+        assertEquals(
+            listOf("box_align", "column_color", "column_text", "row_weight", "spacer_size"),
+            FixtureDocuments.ids,
+        )
     }
 }

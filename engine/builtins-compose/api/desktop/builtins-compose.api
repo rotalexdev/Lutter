@@ -1,3 +1,7 @@
+public final class dev/rotalex/lutter/builtins/compose/BuiltinModifierAppliersKt {
+	public static final fun registerBuiltinModifierAppliers (Ldev/rotalex/lutter/runtime/ModifierApplierRegistryBuilder;)V
+}
+
 public final class dev/rotalex/lutter/builtins/compose/BuiltinRenderersKt {
 	public static final fun registerBuiltinRenderers (Ldev/rotalex/lutter/runtime/RendererRegistryBuilder;)V
 }

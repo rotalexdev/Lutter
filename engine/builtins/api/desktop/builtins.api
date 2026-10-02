@@ -1,5 +1,71 @@
+public final class dev/rotalex/lutter/builtins/AlignModifier {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/AlignModifier;
+	public final fun getAlignment ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getScopeEntries ()Ljava/util/Map;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/AlignmentSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/AlignmentSpec;
+	public final fun getEntries ()Ljava/util/List;
+	public final fun getId-7JNyzJc ()Ljava/lang/String;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/types/EnumTypeSpec;
+	public final fun getType ()Ldev/rotalex/lutter/model/type/TypeRef;
+}
+
+public final class dev/rotalex/lutter/builtins/AlphaModifier {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/AlphaModifier;
+	public final fun getAlpha ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/BackgroundModifier {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/BackgroundModifier;
+	public final fun getColor ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/BorderModifier {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/BorderModifier;
+	public final fun getColor ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
+	public final fun getWidth ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+}
+
+public final class dev/rotalex/lutter/builtins/BoxSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/BoxSpec;
+	public final fun getChildren ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
 public final class dev/rotalex/lutter/builtins/BuiltinsKt {
+	public static final fun registerBuiltinEnums (Ldev/rotalex/lutter/schema/SchemaBuilder;)V
+	public static final fun registerBuiltinModifiers (Ldev/rotalex/lutter/schema/SchemaBuilder;)V
 	public static final fun registerBuiltinSpecs (Ldev/rotalex/lutter/schema/SchemaBuilder;)V
+}
+
+public final class dev/rotalex/lutter/builtins/ButtonSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/ButtonSpec;
+	public final fun getContent ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getOnClick ()Ldev/rotalex/lutter/schema/component/EventSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/CardSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/CardSpec;
+	public final fun getContent ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/ClickableModifier {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/ClickableModifier;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/ClipModifier {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/ClipModifier;
+	public final fun getShape ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
 }
 
 public final class dev/rotalex/lutter/builtins/ColumnSpec {
@@ -11,11 +77,126 @@ public final class dev/rotalex/lutter/builtins/ColumnSpec {
 	public final fun getVerticalArrangement ()Ldev/rotalex/lutter/schema/component/PropertySpec;
 }
 
+public final class dev/rotalex/lutter/builtins/DecorationModifiers {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/DecorationModifiers;
+	public final fun getAll ()Ljava/util/List;
+}
+
+public final class dev/rotalex/lutter/builtins/FillMaxHeightModifier {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/FillMaxHeightModifier;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/FillMaxSizeModifier {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/FillMaxSizeModifier;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/FillMaxWidthModifier {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/FillMaxWidthModifier;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/HeightModifier {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/HeightModifier;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
+	public final fun getValue ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+}
+
+public final class dev/rotalex/lutter/builtins/InteractionModifiers {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/InteractionModifiers;
+	public final fun getAll ()Ljava/util/List;
+}
+
+public final class dev/rotalex/lutter/builtins/LayoutModifiers {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/LayoutModifiers;
+	public final fun getAll ()Ljava/util/List;
+}
+
+public final class dev/rotalex/lutter/builtins/LayoutScopes {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/LayoutScopes;
+	public final fun getBox-ZWv5sfE ()Ljava/lang/String;
+	public final fun getColumn-ZWv5sfE ()Ljava/lang/String;
+	public final fun getRow-ZWv5sfE ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/builtins/PaddingModifier {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/PaddingModifier;
+	public final fun getAll ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getHorizontal ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
+	public final fun getVertical ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+}
+
+public final class dev/rotalex/lutter/builtins/RowSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/RowSpec;
+	public final fun getArrangementId-7JNyzJc ()Ljava/lang/String;
+	public final fun getChildren ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getHorizontalArrangement ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpacing ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/ShapeSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/ShapeSpec;
+	public final fun getEntries ()Ljava/util/List;
+	public final fun getId-7JNyzJc ()Ljava/lang/String;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/types/EnumTypeSpec;
+	public final fun getType ()Ldev/rotalex/lutter/model/type/TypeRef;
+}
+
+public final class dev/rotalex/lutter/builtins/SizeModifier {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/SizeModifier;
+	public final fun getHeight ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
+	public final fun getWidth ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+}
+
+public final class dev/rotalex/lutter/builtins/SpacerSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/SpacerSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/TextFieldSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/TextFieldSpec;
+	public final fun getOnValueChange ()Ldev/rotalex/lutter/schema/component/EventSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+	public final fun getValue ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+}
+
 public final class dev/rotalex/lutter/builtins/TextSpec {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/TextSpec;
 	public final fun getColor ()Ldev/rotalex/lutter/schema/component/PropertySpec;
 	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
 	public final fun getStyle ()Ldev/rotalex/lutter/schema/component/PropertySpec;
 	public final fun getText ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+}
+
+public final class dev/rotalex/lutter/builtins/WeightModifier {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/WeightModifier;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
+	public final fun getWeight ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+}
+
+public final class dev/rotalex/lutter/builtins/WidthModifier {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/WidthModifier;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
+	public final fun getValue ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+}
+
+public final class dev/rotalex/lutter/builtins/enums/HorizontalArrangementSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/enums/HorizontalArrangementSpec;
+	public final fun getEntries ()Ljava/util/List;
+	public final fun getId-7JNyzJc ()Ljava/lang/String;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/types/EnumTypeSpec;
+	public final fun getType ()Ldev/rotalex/lutter/model/type/TypeRef;
+}
+
+public final class dev/rotalex/lutter/builtins/enums/VerticalArrangementSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/enums/VerticalArrangementSpec;
+	public final fun getEntries ()Ljava/util/List;
+	public final fun getId-7JNyzJc ()Ljava/lang/String;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/types/EnumTypeSpec;
+	public final fun getType ()Ldev/rotalex/lutter/model/type/TypeRef;
 }
 

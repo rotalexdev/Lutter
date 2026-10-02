@@ -1,5 +1,6 @@
 package dev.rotalex.lutter.builtins
 
+import dev.rotalex.lutter.builtins.enums.VerticalArrangementSpec
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.ids.TypeId
@@ -12,7 +13,6 @@ import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.LambdaTarget
 import dev.rotalex.lutter.schema.component.PropertyRule
 import dev.rotalex.lutter.schema.component.PropertySpec
-import dev.rotalex.lutter.schema.component.ScopeId
 import dev.rotalex.lutter.schema.component.SlotSpec
 import dev.rotalex.lutter.schema.component.ValueEmit
 import dev.rotalex.lutter.schema.component.componentSpec
@@ -25,8 +25,8 @@ import dev.rotalex.lutter.schema.component.prop
  * the renderer maps those three names and falls back to `Top`.
  */
 public object ColumnSpec {
-    /** The document enum id the arrangement entries are validated against. First: used below. */
-    public val ArrangementId: TypeId = TypeId("VerticalArrangement")
+    /** The document enum id; `enums/Arrangements.kt` owns the entries and their symbols. */
+    public val ArrangementId: TypeId = VerticalArrangementSpec.Id
 
     /** Gap between children. Shorthand for `Arrangement.spacedBy`. */
     public val spacing: PropertySpec<Float?> = prop("spacing", TypeRef.Nullable(TypeRef.Dp))
@@ -42,7 +42,7 @@ public object ColumnSpec {
     public val children: SlotSpec = SlotSpec(
         SlotName("children"),
         Cardinality.Many,
-        provides = setOf(ScopeId("compose.ColumnScope")),
+        provides = setOf(LayoutScopes.Column),
     )
 
     /** The spec renderers, validation and codegen share. */

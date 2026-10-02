@@ -10,8 +10,20 @@ import dev.rotalex.lutter.schema.component.ScopeId
 public typealias ResolvedArgs = Map<PropertyKey, ResolvedProp>
 
 /**
+ * Typed reads over one modifier entry's arguments.
+ *
+ * The same kind table node properties read through, so an applier decodes a `dp` by handing
+ * it the [PropertySpec] the document declared rather than by casting the value itself.
+ */
+public fun ResolvedArgs.reader(): PropertyReader = MapPropertyReader(this)
+
+/**
  * What a modifier applier sees of the layout context: the node's scope set plus
  * the active scope handle, if a renderer opened one above it.
+ *
+ * The two are not redundant. [scopes] is what analysis proved and is available before
+ * anything is composed; [handle] is the live receiver, and it is absent wherever no
+ * renderer opened a scope.
  */
 public class ScopeBag(
     public val scopes: Set<ScopeId>,
@@ -19,9 +31,10 @@ public class ScopeBag(
 )
 
 /**
- * One modifier's live form: folds [args] onto [modifier] left to right.
+ * One modifier's live form: folds the entry's arguments onto the modifier left to right.
  *
- * Scope-gated modifiers read [scopes] for the receiver the analyzer proved present.
+ * A scope-gated applier reads the receiver from [ScopeBag.handle] and returns the modifier
+ * untouched when there is none.
  */
 public interface ModifierApplier {
     public fun apply(modifier: Modifier, args: ResolvedArgs, scopes: ScopeBag): Modifier

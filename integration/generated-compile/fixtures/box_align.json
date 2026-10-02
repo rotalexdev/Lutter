@@ -1,0 +1,47 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "BoxAlign"},
+    "nodes": {
+      "n_a": {
+        "id": "n_a",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Corner"}}},
+        "type": "m3.Text"
+      },
+      "n_b": {
+        "id": "n_b",
+        "modifiers": [
+          {
+            "type": "layout.align",
+            "args": {
+              "alignment": {"type": "const", "value": {"type": "enum", "entry": "BottomRight"}}
+            }
+          }
+        ],
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Opposite"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "modifiers": [
+          {
+            "type": "layout.size",
+            "args": {
+              "height": {"type": "const", "value": {"type": "dp", "v": 80}},
+              "width": {"type": "const", "value": {"type": "dp", "v": 160}}
+            }
+          }
+        ],
+        "slots": {"children": ["n_a", "n_b"]},
+        "type": "core.Box"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

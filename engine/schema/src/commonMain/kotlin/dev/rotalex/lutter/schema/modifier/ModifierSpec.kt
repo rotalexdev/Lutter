@@ -44,6 +44,20 @@ public data class ModifierMetadata(
 public data class ModifierEmit(
     public val function: KotlinSymbol,
     public val cases: List<EmitCase> = emptyList(),
+    /**
+     * True when [function] names a member of the enclosing scope's receiver — `RowScope.weight`,
+     * `BoxScope.align` — rather than a top-level extension, so it has no importable FQN and the
+     * chained call resolves through the receiver the parent's content lambda opens (PLAN §7.3).
+     */
+    public val scopeMember: Boolean = false,
+    /**
+     * Entry symbols per enclosing scope, for an enum argument the scope narrows: a row takes a
+     * `Vertical`, a column a `Horizontal`, a box the pair, so one entry is three symbols.
+     *
+     * The nearest open scope picks the table; an entry it does not declare reads through the
+     * type's `EnumTypeSpec` instead, which is what a scope taking the whole entry needs.
+     */
+    public val scopeEntries: Map<ScopeId, Map<String, KotlinSymbol>> = emptyMap(),
 )
 
 /**

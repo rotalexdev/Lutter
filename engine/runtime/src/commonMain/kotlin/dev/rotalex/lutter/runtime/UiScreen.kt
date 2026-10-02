@@ -72,8 +72,8 @@ internal class MapPropertyReader(
     private val props: Map<PropertyKey, ResolvedProp>,
 ) : PropertyReader {
     @Suppress("UNCHECKED_CAST")
-    override fun <T> get(spec: PropertySpec<T>): T {
-        val prop = props[spec.key] ?: return null as T
+    override fun <T> get(spec: PropertySpec<T>): T? {
+        val prop = props[spec.key] ?: return null
         val const = prop.value.constantOrNull()
             ?: throw IllegalStateException(
                 "Property '${spec.key}' needs expression evaluation (Phase 6); the skeleton resolves constants only",

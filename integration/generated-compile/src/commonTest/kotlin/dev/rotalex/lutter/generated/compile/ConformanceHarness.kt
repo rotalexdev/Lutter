@@ -2,7 +2,10 @@ package dev.rotalex.lutter.generated.compile
 
 import dev.rotalex.lutter.analysis.Analyzer
 import dev.rotalex.lutter.analysis.AnalysisResult
+import dev.rotalex.lutter.builtins.compose.registerBuiltinModifierAppliers
 import dev.rotalex.lutter.builtins.compose.registerBuiltinRenderers
+import dev.rotalex.lutter.builtins.registerBuiltinEnums
+import dev.rotalex.lutter.builtins.registerBuiltinModifiers
 import dev.rotalex.lutter.builtins.registerBuiltinSpecs
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.PageId
@@ -17,6 +20,7 @@ import dev.rotalex.lutter.runtime.UiRuntime
 import dev.rotalex.lutter.schema.Schema
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
+import dev.rotalex.lutter.schema.types.TypeSpec
 import dev.rotalex.lutter.serialization.JsonDocumentCodec
 
 /**
@@ -26,14 +30,25 @@ import dev.rotalex.lutter.serialization.JsonDocumentCodec
  * generation runs its own check, so both fail-fast gates execute on every fixture.
  */
 internal object ConformanceHarness {
-    /** The walking-skeleton schema: the two builtin specs, nothing else. */
-    fun schema(): Schema<ComponentSpec, ModifierSpec, Unit, Unit, Unit> =
-        Schema.build { registerBuiltinSpecs() }
+    /**
+     * The walking-skeleton schema: the builtin specs, the §31.2 modifiers and the enum types.
+     *
+     * The type slot binds [TypeSpec] rather than a stub because `registerBuiltinEnums` only
+     * exists for that binding, and an enum entry has no `KotlinSymbol` without its spec.
+     */
+    fun schema(): Schema<ComponentSpec, ModifierSpec, Unit, Unit, TypeSpec> =
+        Schema.build {
+            registerBuiltinSpecs()
+            registerBuiltinModifiers()
+            registerBuiltinEnums()
+        }
 
-    /** A runtime over [schema]. Construction itself proves renderer coverage. */
-    fun runtime(schema: Schema<ComponentSpec, ModifierSpec, Unit, Unit, Unit>): UiRuntime {
+    /** A runtime over [schema]. Construction itself proves renderer and applier coverage. */
+    fun runtime(schema: Schema<ComponentSpec, ModifierSpec, Unit, Unit, TypeSpec>): UiRuntime {
         val renderers = RendererRegistryBuilder().apply { registerBuiltinRenderers() }.build()
-        val modifiers = ModifierApplierRegistryBuilder().build()
+        val modifiers = ModifierApplierRegistryBuilder()
+            .apply { registerBuiltinModifierAppliers() }
+            .build()
         return UiRuntime(renderers, modifiers, Implementations.None, schema)
     }
 
@@ -43,7 +58,7 @@ internal object ConformanceHarness {
 
     /** The fixture decoded and analyzed, diagnostics included for the tests to assert on. */
     fun analyze(
-        schema: Schema<ComponentSpec, ModifierSpec, Unit, Unit, Unit>,
+        schema: Schema<ComponentSpec, ModifierSpec, Unit, Unit, TypeSpec>,
         id: String,
     ): AnalysisResult {
         val document: UiDocument =
