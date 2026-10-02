@@ -283,6 +283,40 @@ class SchemaPassTest {
     }
 
     @Test
+    fun `a required modifier argument the document omits reports arg invalid`() {
+        val codes = codesOf {
+            node(ColumnType) {
+                // `layout.size` needs both axes; one is the case the applier and codegen cannot
+                // survive, so the pass has to name it rather than let it reach Compose.
+                modifier(SizeType, mapOf(PropertyKey("width") to constOf(Value.Dp(10f))))
+                val title = node(TextType) { prop("text", Value.Str("Hi")) }
+                slot("children", listOf(title))
+            }
+        }
+
+        assertTrue(codes.contains(DiagnosticCodes.ModifierArgInvalid.value), "got $codes")
+    }
+
+    @Test
+    fun `both axes present leaves nothing to report`() {
+        val codes = codesOf {
+            node(ColumnType) {
+                modifier(
+                    SizeType,
+                    mapOf(
+                        PropertyKey("width") to constOf(Value.Dp(10f)),
+                        PropertyKey("height") to constOf(Value.Dp(20f)),
+                    ),
+                )
+                val title = node(TextType) { prop("text", Value.Str("Hi")) }
+                slot("children", listOf(title))
+            }
+        }
+
+        assertTrue(codes.none { it == DiagnosticCodes.ModifierArgInvalid.value }, "got $codes")
+    }
+
+    @Test
     fun `clean schema reports nothing`() {
         val codes = codesOf {
             node(ColumnType) {

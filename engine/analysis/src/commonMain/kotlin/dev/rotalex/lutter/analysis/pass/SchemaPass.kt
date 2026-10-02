@@ -302,6 +302,20 @@ internal class SchemaPass(
             }
             checkValue(document, node.id, key, param.type, param.bindable, actual, index, diags)
         }
+        // A required argument the entry does not carry is the modifier's problem, not the value's,
+        // so it reports as `arg_invalid` like its other two failures: unknown, or wrongly typed.
+        // Nothing downstream survives it — the applier returns the chain untouched and codegen
+        // would emit a call Compose rejects for want of an argument.
+        for (param in declared.params) {
+            if (param.required && param.key !in entry.args) {
+                diags += Diagnostic(
+                    Severity.Error, DiagnosticCodes.ModifierArgInvalid,
+                    DiagnosticLocation(nodeId = node.id, property = param.key, modifierIndex = index),
+                    "Modifier '${entry.type}' requires argument '${param.key.value}' (node '${node.id}')",
+                    mapOf("node" to node.id.value, "modifier" to entry.type.value, "property" to param.key.value),
+                )
+            }
+        }
     }
 }
 
