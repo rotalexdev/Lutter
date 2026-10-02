@@ -100,7 +100,13 @@ jobs:
       # `success()` unless the expression already contains a status function, so after the
       # verify step fails, a bare `steps.verify.outcome == 'failure'` is false and every
       # recovery step silently skips. The status function has to be stated.
+      # `id: regenerate` is load-bearing for every step below. On a red build this command fails
+      # *after* the `find -delete` above, which leaves the working tree with the dumps removed and
+      # nothing to put back. Committing that is not a baseline, it is its erasure, and it is how
+      # several modules lost their dumps one red run at a time. Anything that acts on a regenerated
+      # baseline therefore reads this step's outcome first.
       - name: Regenerate the ABI dumps
+        id: regenerate
         if: failure() && steps.verify.outcome == 'failure'
         run: |
           echo "::notice::check failed; regenerating the reference ABI dumps"
@@ -119,9 +125,13 @@ jobs:
       # `commit-pushed` is the first loop guard and it is free. The action commits only files
       # that actually changed, so a run whose regeneration reproduced the committed dumps
       # pushes nothing and therefore dispatches nothing.
+      #
+      # A regeneration that failed leaves nothing to commit but the deletions it made, so it
+      # gets no baseline commit. The steps below already key off `changes_detected`, so they
+      # skip themselves and the handover path runs instead.
       - name: Commit the regenerated ABI dumps
         id: baseline
-        if: failure() && steps.verify.outcome == 'failure'
+        if: failure() && steps.verify.outcome == 'failure' && steps.regenerate.outcome == 'success'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           file_pattern: '**/api/**'
@@ -139,7 +149,7 @@ jobs:
       # the entire mechanism.
       - name: Is another round trip safe
         id: converge
-        if: failure() && steps.verify.outcome == 'failure' && steps.baseline.outputs.changes_detected == 'true'
+        if: failure() && steps.verify.outcome == 'failure' && steps.regenerate.outcome == 'success' && steps.baseline.outputs.changes_detected == 'true'
         run: |
           previous=$(git log -2 --pretty=%s | sed -n '2p')
           if [ "$previous" = "chore(build): record the reference ABI dumps" ]; then
@@ -169,8 +179,14 @@ jobs:
       # access, a push to dev where there is no pull request, or regeneration that will not
       # converge. A recovery message that misdiagnoses is worse than none, so each of these
       # steps first establishes that there is something to hand over.
+      #
+      # The upload needs a regeneration that succeeded. A failed one leaves the tree holding the
+      # deletions it made, and the handover instructions below tell a human to `git add` and commit
+      # whatever is under `**/api/**` — which would commit exactly those deletions. Publishing
+      # nothing is the smaller harm; the comment step still runs and its own guard reports that no
+      # dumps were produced.
       - name: Publish the regenerated ABI dumps
-        if: failure() && steps.verify.outcome == 'failure' && (steps.baseline.outputs.changes_detected != 'true' || steps.converge.outputs.converged != 'true')
+        if: failure() && steps.verify.outcome == 'failure' && steps.regenerate.outcome == 'success' && (steps.baseline.outputs.changes_detected != 'true' || steps.converge.outputs.converged != 'true')
         uses: actions/upload-artifact@v4
         with:
           name: abi-baseline
