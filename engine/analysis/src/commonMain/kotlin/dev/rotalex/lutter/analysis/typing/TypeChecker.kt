@@ -254,11 +254,12 @@ internal class TypeChecker(
         val resolved = sig.options.mapNotNull { instantiate(it, elements, ctx) }
         val first = resolved.firstOrNull() ?: return null
         if (resolved.all { it == first }) return first
-        return refuse(
+        report(
             ctx, DiagnosticCodes.ExprTypeMismatch,
             "returns one of several types and they do not agree (node '${ctx.at.nodeId}')",
             ctx.base,
         )
+        return null
     }
 
     private fun unary(expr: Expr.Unary, ctx: Context): ExprType? {
