@@ -42,12 +42,16 @@ class NoIllegalJvmNameTest {
         assertEquals(1, SourceRules.illegalJvmNameOccurrences("private fun `a/b`() {}").size)
         assertEquals(1, SourceRules.illegalJvmNameOccurrences("internal class `A<B` {}").size)
         assertEquals(1, SourceRules.illegalJvmNameOccurrences("object `x;y` {}").size)
+
+        // The shape this repository actually shipped twice: a test name that spells a dotted
+        // function call. It reads as prose and it is the exact bug — a name is a name
+        // wherever the author found it natural to write one.
+        assertEquals(1, SourceRules.illegalJvmNameOccurrences("fun `reads a num.format call`() {}").size)
     }
 
     @Test
     fun `an ordinary name and a backticked prose reference are both left alone`() {
         assertEquals(0, SourceRules.illegalJvmNameOccurrences("fun ordinary(v: Int) {}").size)
-        assertEquals(0, SourceRules.illegalJvmNameOccurrences("fun `reads a num.format call`() {}").size)
         assertEquals(0, SourceRules.illegalJvmNameOccurrences("fun <T> generic(t: T) {}").size)
 
         // A space is legal and every test name in this repository uses one, so a rule that
