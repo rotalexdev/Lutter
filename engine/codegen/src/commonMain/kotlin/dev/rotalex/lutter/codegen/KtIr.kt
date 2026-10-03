@@ -47,6 +47,17 @@ public sealed interface KtExpr {
     ) : KtExpr
 
     /**
+     * A `by` delegate: [holder] plus the operators Kotlin resolves `by` through.
+     *
+     * Separate because the two name different imports, and which operators a `by` needs is the
+     * delegate's type's business — a fact only the strategy that chose that type holds.
+     */
+    public data class Delegate(
+        public val holder: KtExpr,
+        public val operators: List<KotlinSymbol>,
+    ) : KtExpr
+
+    /**
      * A modifier chain: one entry per line off a root receiver.
      *
      * Entries are expressions because one of them is spec-authored text: a case-selected

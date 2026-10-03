@@ -55,7 +55,13 @@ class StateFixtureTest {
         )
         val holder = files.content("state/AppState.kt")
         assertTrue(holder.contains("public class AppState {"), holder)
-        assertTrue(holder.contains("public val LocalAppState = staticCompositionLocalOf<AppState>()"), holder)
+        assertTrue(
+            holder.contains(
+                "public val LocalAppState: ProvidableCompositionLocal<AppState> = " +
+                    "staticCompositionLocalOf<AppState>()",
+            ),
+            holder,
+        )
         val root = files.content("App.kt")
         assertTrue(root.contains("CompositionLocalProvider("), root)
         assertTrue(root.contains("LocalAppState.provides(state),"), root)

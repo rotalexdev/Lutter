@@ -229,6 +229,7 @@ public class KtPrinter(
             is KtExpr.Ref -> refOf(expr.symbol, aliases)
             is KtExpr.Call -> renderCall(expr, indent, aliases)
             is KtExpr.PatternCall -> renderPatternCall(expr, indent, aliases)
+            is KtExpr.Delegate -> renderExpr(expr.holder, indent, aliases)
             is KtExpr.Chain -> renderChain(expr, indent, aliases)
             // The right operand asks for one level more: every operator here is left-associative,
             // so `a - (b - c)` and `(a - b) - c` are two trees and only one may lose the parens.
@@ -265,6 +266,8 @@ public class KtPrinter(
         is KtExpr.Unary -> KtBinding.Prefix
         is KtExpr.IfElse -> KtBinding.Conditional
         is KtExpr.PatternCall -> levelOf(expr.precedence)
+        // A delegate prints as its holder, so it binds as the holder does.
+        is KtExpr.Delegate -> levelOf(expr.holder)
         else -> KtBinding.Atom
     }
 
@@ -469,6 +472,10 @@ public class KtPrinter(
         if (expr is KtExpr.PatternCall) {
             expr.imports.forEach { recordSymbol(it, filePkg, seen) }
             expr.args.forEach { collectExprSymbols(it, filePkg, seen) }
+        }
+        if (expr is KtExpr.Delegate) {
+            expr.operators.forEach { recordSymbol(it, filePkg, seen) }
+            collectExprSymbols(expr.holder, filePkg, seen)
         }
         if (expr is KtExpr.Binary) {
             collectExprSymbols(expr.left, filePkg, seen)

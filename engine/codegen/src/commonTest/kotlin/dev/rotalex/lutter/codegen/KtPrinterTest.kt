@@ -184,6 +184,36 @@ class KtPrinterTest {
     }
 
     @Test
+    fun `a delegate names the operators its by resolves through`() {
+        // `by` is an operator call the IR never spells, so its imports come from the node
+        // rather than the text: a file with a delegate and a file without one differ here.
+        val delegate = KtExpr.Delegate(
+            KtExpr.Call(reference("androidx.compose.runtime", "mutableStateOf"), emptyList()),
+            listOf(
+                KotlinSymbol("androidx.compose.runtime", "getValue"),
+                KotlinSymbol("androidx.compose.runtime", "setValue"),
+            ),
+        )
+        val printed = KtPrinter().print(
+            ktFile(property("count", KtExpr.Name("Int"), mutable = true, delegate = delegate)),
+        )
+
+        assertEquals(
+            """
+            package com.example.app
+
+            ${"import"} androidx.compose.runtime.getValue
+            ${"import"} androidx.compose.runtime.mutableStateOf
+            ${"import"} androidx.compose.runtime.setValue
+
+            public var count: Int by mutableStateOf()
+
+            """.trimIndent(),
+            printed,
+        )
+    }
+
+    @Test
     fun `a declared class name beats a conflicting import`() {
         val drawn = KtDeclaration.Function("Draw", emptyList(), null, emptyList(), listOf(KtStmt.Expr(badgeCall())))
         val printed = KtPrinter().print(

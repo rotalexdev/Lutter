@@ -42,6 +42,11 @@ public class StateEmitter(
     private val remember: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "remember")
     private val staticCompositionLocalOf: KotlinSymbol =
         KotlinSymbol("androidx.compose.runtime", "staticCompositionLocalOf")
+    // The declared type of `LocalAppState`, and the subtype rather than its `CompositionLocal`
+    // supertype: `AppRoot` provides through `LocalAppState.provides(state)`, a member only
+    // `ProvidableCompositionLocal` has.
+    private val compositionLocal: KotlinSymbol =
+        KotlinSymbol("androidx.compose.runtime", "ProvidableCompositionLocal")
     private val provider: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "CompositionLocalProvider")
 
     /** §12.1's app row: `class AppState` and the composition local `AppRoot` provides. */
@@ -335,7 +340,7 @@ public class StateEmitter(
     )
 
     /**
-     * `val LocalAppState = staticCompositionLocalOf<AppState>()`.
+     * `val LocalAppState: ProvidableCompositionLocal<AppState> = staticCompositionLocalOf<AppState>()`.
      *
      * The no-argument overload, so a read before `AppRoot` provides it throws rather than
      * silently answering a fabricated default — which is the half of §12.1 the runtime's
@@ -344,7 +349,7 @@ public class StateEmitter(
     private fun localProperty(): KtDeclaration.Property = KtDeclaration.Property(
         name = LocalAppStateName,
         annotations = emptyList(),
-        type = null,
+        type = KtExpr.TypeApplication(KtExpr.Ref(KtSymbolRef(compositionLocal)), listOf(KtExpr.Name(AppStateName))),
         mutable = false,
         initializer = KtExpr.Call(
             KtExpr.TypeApplication(

@@ -63,6 +63,14 @@ public data object ComposeSnapshotState : StateStrategy {
     private val mutableStateOf: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "mutableStateOf")
     private val remember: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "remember")
 
+    // `by` resolves through these, extensions on `MutableState` outside Kotlin's default
+    // imports, so a file that delegates without naming them delegates to nothing. Both, because
+    // every delegate this strategy emits is a `var` and only the property knows which it is.
+    private val operators: List<KotlinSymbol> = listOf(
+        KotlinSymbol("androidx.compose.runtime", "getValue"),
+        KotlinSymbol("androidx.compose.runtime", "setValue"),
+    )
+
     override fun receiver(scope: StateScope, appState: KotlinSymbol): KtExpr? = when (scope) {
         // A component's declaration is a local of the composable that declares it.
         StateScope.Component -> null
@@ -72,11 +80,14 @@ public data object ComposeSnapshotState : StateStrategy {
 
     override fun holder(scope: StateScope, initial: KtExpr): KtExpr {
         val state: KtExpr = KtExpr.Call(KtExpr.Ref(KtSymbolRef(mutableStateOf)), listOf(KtArg(null, initial)))
-        if (scope != StateScope.Component) return state
-        return KtExpr.Call(
-            KtExpr.Ref(KtSymbolRef(remember)),
-            emptyList(),
-            KtExpr.Lambda(emptyList(), listOf(KtStmt.Expr(state))),
+        if (scope != StateScope.Component) return KtExpr.Delegate(state, operators)
+        return KtExpr.Delegate(
+            KtExpr.Call(
+                KtExpr.Ref(KtSymbolRef(remember)),
+                emptyList(),
+                KtExpr.Lambda(emptyList(), listOf(KtStmt.Expr(state))),
+            ),
+            operators,
         )
     }
 
