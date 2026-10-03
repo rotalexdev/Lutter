@@ -67,7 +67,7 @@ class SnapshotStateStoreTest {
     }
 
     @Test
-    fun `writing a derived declaration refuses naming the rule`() {
+    fun `writing a derived declaration refuses rather than replacing its body`() {
         val store: StateWriter = storeOf(doublingOf(doubled, "doubled", count))
 
         val failure = assertFailsWith<IllegalStateException> { store.set(doubled, Value.Int32(2)) }
