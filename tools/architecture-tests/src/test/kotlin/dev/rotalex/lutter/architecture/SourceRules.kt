@@ -72,6 +72,52 @@ internal object SourceRules {
 
     private val whitespace = Regex("""\s+""")
 
+    /**
+     * A backticked name on a declaration, with the keyword and any modifiers in front of it.
+     *
+     * Anchored at the line start and matched per line so a KDoc line beginning `*` and a
+     * `//` comment cannot be read as a declaration — both are common in this codebase and
+     * both carry backticked prose like `` `num.format` `` that is not a name at all.
+     */
+    private val declaredBacktickName =
+        Regex(
+            """^[ \t]*(?:[\w@]+[ \t]+)*(?:fun|class|interface|object)[ \t]+(?:<[^>\n]*>[ \t]*)?(`[^`\n]+`)""",
+            RegexOption.MULTILINE,
+        )
+
+    /**
+     * Characters the JVM refuses in a method name.
+     *
+     * `. ; [ /` are excluded by the class file format itself. `<` and `>` are legal there but
+     * break every Kotlin/Java tool that reads a signature, so a name carrying them is wrong
+     * either way.
+     *
+     * **A space is not on this list.** Kotlin's backticks exist partly to allow
+     * `` `a name with spaces` ``, which is the idiom every test in this repository uses and
+     * which the JVM accepts. An earlier draft of this rule included whitespace "to be safe"
+     * and would have reported every test name in the codebase.
+     */
+    private val illegalJvmNameCharacter = Regex("""[.;[/<>]""")
+
+    /**
+     * Declarations in [text] whose backticked name cannot be a JVM method name.
+     *
+     * Kotlin's backticks allow almost any character in an identifier, and the compiler accepts
+     * it — then the JVM backend rejects it with `Name contains illegal characters`, which
+     * fails the *whole module's* test source set rather than the one test. A dotted function
+     * name has cost this repository four CI round-trips, every one of them a red build whose
+     * only cause was a name.
+     */
+    fun illegalJvmNameOccurrences(text: String): List<String> =
+        declaredBacktickName
+            .findAll(text)
+            .mapNotNull { match ->
+                val name = match.groupValues[1]
+                val offender = illegalJvmNameCharacter.find(name)?.value ?: return@mapNotNull null
+                val line = text.take(match.range.first).count { it == '\n' } + 1
+                "$name carries '$offender', which the JVM refuses in a method name (line $line)"
+            }.toList()
+
     /** Every `Map<String, Any>` (or `Any?`, or `MutableMap`) written in [text]. */
     fun untypedStringMapOccurrences(text: String): List<String> =
         untypedStringMap.findAll(text).map { it.value }.toList()
