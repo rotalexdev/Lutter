@@ -357,12 +357,7 @@ public class StateEmitter(
                 KtExpr.Ref(KtSymbolRef(staticCompositionLocalOf)),
                 listOf(KtExpr.Name(AppStateName)),
             ),
-            listOf(
-                KtArg(
-                    null,
-                    KtExpr.Call(KtExpr.Ref(KtSymbolRef(appStateSymbol)), emptyList()),
-                ),
-            ),
+            emptyList(),
             KtExpr.Lambda(
                 emptyList(),
                 listOf(KtStmt.Expr(KtExpr.Call(KtExpr.Ref(KtSymbolRef(appStateSymbol)), emptyList()))),
