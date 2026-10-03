@@ -135,9 +135,9 @@ class ScreenEvalScopeTest {
 
     /** A derived declaration whose body is `s_count + 1`. */
     private fun doubling(): ResolvedState {
-        val reference = Expr.Ref(RefTarget.State(count))
-        val body = Expr.Binary(BinaryOp.Add, reference, Expr.Const(Value.Int32(1)))
-        val typed = TypedExpr(body, ExprType.Of(TypeRef.Int32), setOf(reference))
+        val target = RefTarget.State(count)
+        val body = Expr.Binary(BinaryOp.Add, Expr.Ref(target), Expr.Const(Value.Int32(1)))
+        val typed = TypedExpr(body, ExprType.Of(TypeRef.Int32), setOf(target))
         return ResolvedState(
             StateDecl(id = doubled, name = "doubled", type = TypeRef.Int32, derived = body),
             typed,

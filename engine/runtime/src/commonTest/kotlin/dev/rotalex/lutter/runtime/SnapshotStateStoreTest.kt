@@ -54,7 +54,7 @@ class SnapshotStateStoreTest {
 
     @Test
     fun `a held declaration with no initial holds nothing, so a read is null`() {
-        val store = storeOf(ResolvedState(held(count, "count", TypeRef.Int32), null))
+        val store = storeOf(held(count, "count", TypeRef.Int32))
 
         assertNull(store.get(count))
     }
@@ -67,7 +67,7 @@ class SnapshotStateStoreTest {
     }
 
     @Test
-    fun `writing a derived declaration refuses naming §12.3`() {
+    fun `writing a derived declaration refuses naming the rule`() {
         val store: StateWriter = storeOf(doublingOf(doubled, "doubled", count))
 
         val failure = assertFailsWith<IllegalStateException> { store.set(doubled, Value.Int32(2)) }
@@ -105,14 +105,14 @@ class SnapshotStateStoreTest {
         name: String,
         type: TypeRef,
         initial: Value? = null,
-    ): StateDecl = StateDecl(id = id, name = name, type = type, initial = initial)
+    ): ResolvedState = ResolvedState(StateDecl(id = id, name = name, type = type, initial = initial), null)
 
     /** A derived declaration whose body is `reads + 1`, which is what a read has to compute. */
     private fun doublingOf(id: StateId, name: String, reads: StateId): ResolvedState {
-        val reference = Expr.Ref(RefTarget.State(reads))
-        val body = Expr.Binary(BinaryOp.Add, reference, Expr.Const(Value.Int32(1)))
-        val typed = TypedExpr(body, ExprType.Of(TypeRef.Int32), setOf(reference))
-        return ResolvedState(held(id, name, TypeRef.Int32), typed)
+        val target = RefTarget.State(reads)
+        val body = Expr.Binary(BinaryOp.Add, Expr.Ref(target), Expr.Const(Value.Int32(1)))
+        val typed = TypedExpr(body, ExprType.Of(TypeRef.Int32), setOf(target))
+        return ResolvedState(StateDecl(id = id, name = name, type = TypeRef.Int32, derived = body), typed)
     }
 
     private object StubNavigator : Navigator {
