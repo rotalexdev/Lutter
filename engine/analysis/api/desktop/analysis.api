@@ -50,6 +50,7 @@ public final class dev/rotalex/lutter/analysis/diagnostic/DiagnosticCodes {
 	public static final field INSTANCE Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticCodes;
 	public final fun getCodegenNameCollision-6lSHpRw ()Ljava/lang/String;
 	public final fun getCodegenNoBinding-6lSHpRw ()Ljava/lang/String;
+	public final fun getCodegenNoTypeSpelling-6lSHpRw ()Ljava/lang/String;
 	public final fun getCodegenStrategyUnsupported-6lSHpRw ()Ljava/lang/String;
 	public final fun getComponentChildNotAllowed-6lSHpRw ()Ljava/lang/String;
 	public final fun getComponentConflictingProperties-6lSHpRw ()Ljava/lang/String;

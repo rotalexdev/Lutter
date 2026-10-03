@@ -315,6 +315,8 @@ final object dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes { // dev.rot
         final fun <get-CodegenNameCollision>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNameCollision.<get-CodegenNameCollision>|<get-CodegenNameCollision>(){}[0]
     final val CodegenNoBinding // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNoBinding|{}CodegenNoBinding[0]
         final fun <get-CodegenNoBinding>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNoBinding.<get-CodegenNoBinding>|<get-CodegenNoBinding>(){}[0]
+    final val CodegenNoTypeSpelling // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNoTypeSpelling|{}CodegenNoTypeSpelling[0]
+        final fun <get-CodegenNoTypeSpelling>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNoTypeSpelling.<get-CodegenNoTypeSpelling>|<get-CodegenNoTypeSpelling>(){}[0]
     final val CodegenStrategyUnsupported // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenStrategyUnsupported|{}CodegenStrategyUnsupported[0]
         final fun <get-CodegenStrategyUnsupported>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenStrategyUnsupported.<get-CodegenStrategyUnsupported>|<get-CodegenStrategyUnsupported>(){}[0]
     final val ComponentChildNotAllowed // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ComponentChildNotAllowed|{}ComponentChildNotAllowed[0]
