@@ -67,14 +67,14 @@ public data object ComposeSnapshotState : StateStrategy {
         // A component's declaration is a local of the composable that declares it.
         StateScope.Component -> null
         StateScope.Page -> KtExpr.Name("state")
-        StateScope.App -> KtExpr.Member(KtExpr.Ref(appState), "current")
+        StateScope.App -> KtExpr.Member(KtExpr.Ref(KtSymbolRef(appState)), "current")
     }
 
     override fun holder(scope: StateScope, initial: KtExpr): KtExpr {
-        val state: KtExpr = KtExpr.Call(KtExpr.Ref(mutableStateOf), listOf(KtArg(null, initial)))
+        val state: KtExpr = KtExpr.Call(KtExpr.Ref(KtSymbolRef(mutableStateOf)), listOf(KtArg(null, initial)))
         if (scope != StateScope.Component) return state
         return KtExpr.Call(
-            KtExpr.Ref(remember),
+            KtExpr.Ref(KtSymbolRef(remember)),
             emptyList(),
             KtExpr.Lambda(emptyList(), listOf(KtStmt.Expr(state))),
         )

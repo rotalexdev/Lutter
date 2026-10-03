@@ -548,7 +548,12 @@ public class KotlinGenerator<A : Any, T : Any>(
     }
 
     private fun refuse(code: DiagnosticCode, node: ResolvedNode, message: String): Unit {
-        refuse(code, DiagnosticLocation(nodeId = node.id), message + " at '" + node.id + "'")
+        diagnostics += Diagnostic(
+            Severity.Error,
+            code,
+            DiagnosticLocation(nodeId = node.id),
+            message + " at '" + node.id + "'",
+        )
     }
 
     private class KeptParam(val binding: ParamBinding, val present: List<PropertyKey>)

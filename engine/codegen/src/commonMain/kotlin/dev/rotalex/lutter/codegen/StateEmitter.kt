@@ -60,22 +60,25 @@ public class StateEmitter(
         if (document.appState.isEmpty()) return null
         val local: KtStmt.LocalProperty = KtStmt.LocalProperty(
             name = "state",
-            type = KtExpr.Ref(appStateSymbol),
+            type = KtExpr.Ref(KtSymbolRef(appStateSymbol)),
             mutable = false,
             initializer = KtExpr.Call(
-                KtExpr.Ref(remember),
+                KtExpr.Ref(KtSymbolRef(remember)),
                 emptyList(),
-                KtExpr.Lambda(emptyList(), listOf(KtStmt.Expr(KtExpr.Call(KtExpr.Ref(appStateSymbol), emptyList())))),
+                KtExpr.Lambda(
+                    emptyList(),
+                    listOf(KtStmt.Expr(KtExpr.Call(KtExpr.Ref(KtSymbolRef(appStateSymbol)), emptyList()))),
+                ),
             ),
             delegate = null,
         )
         val provides: KtExpr = KtExpr.Call(
-            KtExpr.Member(KtExpr.Ref(localAppStateSymbol), "provides"),
+            KtExpr.Member(KtExpr.Ref(KtSymbolRef(localAppStateSymbol)), "provides"),
             listOf(KtArg(null, KtExpr.Name("state"))),
         )
         val wrapped: KtStmt.Expr = KtStmt.Expr(
             KtExpr.Call(
-                KtExpr.Ref(provider),
+                KtExpr.Ref(KtSymbolRef(provider)),
                 listOf(KtArg(null, provides)),
                 KtExpr.Lambda(emptyList(), listOf(content)),
             ),
@@ -275,6 +278,7 @@ public class StateEmitter(
             mutable = true,
             initializer = null,
             delegate = strategy.holder(scope, initial),
+            getter = null,
         )
     }
 
@@ -317,7 +321,7 @@ public class StateEmitter(
                 type = KtExpr.Name(name),
                 mutable = false,
                 initializer = KtExpr.Call(
-                    KtExpr.Ref(remember),
+                    KtExpr.Ref(KtSymbolRef(remember)),
                     emptyList(),
                     KtExpr.Lambda(
                         emptyList(),
@@ -343,7 +347,10 @@ public class StateEmitter(
         type = null,
         mutable = false,
         initializer = KtExpr.Call(
-            KtExpr.TypeApplication(KtExpr.Ref(staticCompositionLocalOf), listOf(KtExpr.Name(AppStateName))),
+            KtExpr.TypeApplication(
+                KtExpr.Ref(KtSymbolRef(staticCompositionLocalOf)),
+                listOf(KtExpr.Name(AppStateName)),
+            ),
             emptyList(),
         ),
         delegate = null,

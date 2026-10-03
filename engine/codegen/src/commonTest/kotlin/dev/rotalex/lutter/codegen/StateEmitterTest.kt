@@ -266,7 +266,7 @@ class StateEmitterTest {
         assertEquals(KtExpr.Member(KtExpr.Name("state"), "count"), emitter.readInScreen(count))
         val localAppState: KotlinSymbol = KotlinSymbol("com.example.app.state", "LocalAppState")
         assertEquals(
-            KtExpr.Member(KtExpr.Member(KtExpr.Ref(localAppState), "current"), "theme"),
+            KtExpr.Member(KtExpr.Member(KtExpr.Ref(KtSymbolRef(localAppState)), "current"), "theme"),
             emitter.readInScreen(theme),
         )
         assertEquals(KtExpr.Member(KtExpr.Name("state"), "doubled"), emitter.readInScreen(doubled))
