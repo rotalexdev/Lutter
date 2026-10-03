@@ -52,4 +52,11 @@ public object DiagnosticCodes {
     public val CodegenNoBinding: DiagnosticCode = DiagnosticCode("codegen.no_binding")
     public val CodegenStrategyUnsupported: DiagnosticCode = DiagnosticCode("codegen.strategy_unsupported")
     public val CodegenNameCollision: DiagnosticCode = DiagnosticCode("codegen.name_collision")
+
+    /**
+     * A `TypeRef` the generator cannot spell as Kotlin. Separate from `codegen.no_binding`
+     * because the binding was found and read: what is missing is a Kotlin name for a type,
+     * which is a fact about the type and not about the component that carries it.
+     */
+    public val CodegenNoTypeSpelling: DiagnosticCode = DiagnosticCode("codegen.no_type_spelling")
 }

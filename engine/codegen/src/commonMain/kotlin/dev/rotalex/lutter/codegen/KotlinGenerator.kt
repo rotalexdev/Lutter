@@ -11,7 +11,9 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedModifier
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.analysis.resolved.ResolvedPage
 import dev.rotalex.lutter.analysis.resolved.ResolvedProp
+import dev.rotalex.lutter.analysis.resolved.ResolvedState
 import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TypeRef
@@ -65,6 +67,9 @@ public class KotlinGenerator<A : Any, T : Any>(
     private val printer: KtPrinter = KtPrinter(ImportPolicy(), options.formatting)
     // Per-run scratch, cleared on entry: the recursion below shares one collector.
     private val diagnostics: MutableList<Diagnostic> = mutableListOf()
+    // §12.2's seam: one emitter per document, built on entry and rebuilt per run so a second
+    // `generate` over another document cannot read the first one's declarations.
+    private var state: StateEmitter? = null
 
     // Fail fast on missing bindings, like UiRuntime does on missing renderers.
     init {
@@ -77,6 +82,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             return CodegenResult(GeneratedFiles(emptyList()), incoming)
         }
         diagnostics.clear()
+        state = StateEmitter(document, options, schema.functions)
         val plan: GenPlan = planDocument(document, options.basePackage)
         refuseCollisions(plan)
         val files: MutableList<GeneratedFile> = mutableListOf()
@@ -102,68 +108,126 @@ public class KotlinGenerator<A : Any, T : Any>(
         }
     }
 
+    // The kind decides which emitter owns the file, because the id fields alone cannot:
+    // `App.kt` and `state/AppState.kt` both carry no id.
     private fun emitPlanned(planned: PlannedFile, document: ResolvedDocument): GeneratedFile? {
-        val pageId = planned.pageId
-        if (pageId != null) {
-            val page: ResolvedPage = checkNotNull(document.pages[pageId]) {
-                "Plan reached page '$pageId' outside the document"
+        val file: KtFile? = when (planned.kind) {
+            PlannedFileKind.App -> emitApp(document)
+            PlannedFileKind.AppState -> emitAppState(planned, document)
+            PlannedFileKind.Screen -> {
+                val pageId = checkNotNull(planned.pageId) { "Plan marked '${planned.path}' with no page" }
+                val page: ResolvedPage = checkNotNull(document.pages[pageId]) {
+                    "Plan reached page '$pageId' outside the document"
+                }
+                emitScreen(page, planned)
             }
-            return emitScreen(page, planned)?.let { GeneratedFile(planned.path, printer.print(it)) }
+
+            PlannedFileKind.Component -> {
+                val componentId = checkNotNull(planned.componentId) {
+                    "Plan marked '${planned.path}' with no component declaration"
+                }
+                val root: ResolvedNode = checkNotNull(document.components[componentId]) {
+                    "Plan reached component '$componentId' outside the document"
+                }
+                emitComponent(componentId, root, planned, document)
+            }
         }
-        val componentId = planned.componentId
-        if (componentId != null) {
-            val root: ResolvedNode = checkNotNull(document.components[componentId]) {
-                "Plan reached component '$componentId' outside the document"
-            }
-            return emitComponent(componentId.value, root, planned)?.let {
-                GeneratedFile(planned.path, printer.print(it))
-            }
-        }
-        return emitApp(document)?.let { GeneratedFile(planned.path, printer.print(it)) }
+        return file?.let { GeneratedFile(planned.path, printer.print(it)) }
+    }
+
+    /** §16.5's `state/AppState.kt`: the holder and the composition local, in their own package. */
+    private fun emitAppState(planned: PlannedFile, document: ResolvedDocument): KtFile? {
+        val emitter: StateEmitter = stateEmitter() ?: return null
+        if (refuseState(document.appState, DiagnosticLocation())) return null
+        val declarations: List<KtDeclaration> = emitter.appState() ?: return null
+        return KtFile(planned.packageName, headerText(), declarations)
     }
 
     // AppRoot hosts the first page by id; routing waits for a navigation strategy.
     private fun emitApp(document: ResolvedDocument): KtFile? {
         val first: ResolvedPage? = document.pages.entries.sortedBy { it.key.value }
             .map { it.value }.firstOrNull()
-        if (first == null) {
-            return KtFile(options.basePackage, headerText(), listOf(appFunction(null)))
+        val body: List<KtStmt> = if (first == null) {
+            emptyList()
+        } else {
+            val screen: KotlinSymbol = KotlinSymbol(options.basePackage + ".screens", first.name + "Screen")
+            val call: KtStmt = KtStmt.Expr(
+                KtExpr.Call(
+                    KtExpr.Ref(KtSymbolRef(screen)),
+                    listOf(KtArg("modifier", KtExpr.Name("modifier"))),
+                ),
+            )
+            // §12.1's app row wraps the whole tree; with no app state the screen composes bare.
+            stateEmitter()?.appProvider(call) ?: listOf(call)
         }
-        val screen: KotlinSymbol = KotlinSymbol(options.basePackage + ".screens", first.name + "Screen")
-        val call: KtExpr = KtExpr.Call(
-            KtExpr.Ref(KtSymbolRef(screen)),
-            listOf(KtArg("modifier", KtExpr.Name("modifier"))),
-        )
-        return KtFile(options.basePackage, headerText(), listOf(appFunction(call)))
+        val function: KtDeclaration.Function =
+            KtDeclaration.Function("AppRoot", listOf(composable), null, listOf(modifierParam()), body)
+        return KtFile(options.basePackage, headerText(), listOf(function))
     }
 
-    private fun appFunction(content: KtExpr?): KtDeclaration.Function {
-        val body: List<KtStmt> = if (content == null) emptyList() else listOf(KtStmt.Expr(content))
-        return KtDeclaration.Function("AppRoot", listOf(composable), listOf(modifierParam()), body)
-    }
-
+    // §12.1's page row: the state class, the remember function and the screen's parameter.
     private fun emitScreen(page: ResolvedPage, planned: PlannedFile): KtFile? {
+        val at: DiagnosticLocation = DiagnosticLocation(pageId = page.id)
+        if (refuseState(page.state, at)) return null
+        val emitter: StateEmitter = stateEmitter() ?: return null
         val root: KtExpr = emitNode(page.root, true, emptyList()) ?: return null
-        val function: KtDeclaration.Function = KtDeclaration.Function(
+        val declarations: MutableList<KtDeclaration> = mutableListOf()
+        val params: MutableList<KtParam> = mutableListOf(modifierParam())
+        val held: List<KtDeclaration>? = emitter.pageState(page)
+        if (held != null) {
+            declarations += held
+            params += emitter.pageParameter(page)
+        }
+        declarations += KtDeclaration.Function(
             page.name + "Screen",
             listOf(composable),
-            listOf(modifierParam()),
+            null,
+            params,
             listOf(KtStmt.Expr(root)),
         )
-        return KtFile(planned.packageName, headerText(), listOf(function))
+        return KtFile(planned.packageName, headerText(), declarations)
     }
 
     // Component functions take no page chrome: same node emission, their own file.
-    private fun emitComponent(name: String, root: ResolvedNode, planned: PlannedFile): KtFile? {
+    private fun emitComponent(
+        componentId: ComponentDeclId,
+        root: ResolvedNode,
+        planned: PlannedFile,
+        document: ResolvedDocument,
+    ): KtFile? {
+        val emitter: StateEmitter = stateEmitter() ?: return null
+        val at: DiagnosticLocation = DiagnosticLocation(componentDeclId = componentId)
+        val held: List<ResolvedState> = document.componentState[componentId].orEmpty()
+        if (refuseState(held, at)) return null
         val body: KtExpr = emitNode(root, true, emptyList()) ?: return null
+        val statements: List<KtStmt> = emitter.componentLocals(held).orEmpty() + listOf(KtStmt.Expr(body))
         val function: KtDeclaration.Function = KtDeclaration.Function(
-            name,
+            componentId.value,
             listOf(composable),
+            null,
             listOf(modifierParam()),
-            listOf(KtStmt.Expr(body)),
+            statements,
         )
         return KtFile(planned.packageName, headerText(), listOf(function))
     }
+
+    /**
+     * Records the first declaration in [declarations] the strategy cannot emit; true when it did.
+     *
+     * One finding and a null file, the same shape every other refusal here takes: the result is
+     * empty files once any error is recorded, so a second finding would change nothing.
+     */
+    private fun refuseState(declarations: List<ResolvedState>, at: DiagnosticLocation): Boolean {
+        val emitter: StateEmitter = stateEmitter() ?: return true
+        for (declaration in declarations) {
+            val finding: Diagnostic = emitter.refusal(declaration, at) ?: continue
+            diagnostics += finding
+            return true
+        }
+        return false
+    }
+
+    private fun stateEmitter(): StateEmitter? = state
 
     private fun modifierParam(): KtParam =
         KtParam("modifier", modifierType, KtExpr.Ref(KtSymbolRef(modifierType)))
@@ -484,12 +548,7 @@ public class KotlinGenerator<A : Any, T : Any>(
     }
 
     private fun refuse(code: DiagnosticCode, node: ResolvedNode, message: String): Unit {
-        diagnostics += Diagnostic(
-            Severity.Error,
-            code,
-            DiagnosticLocation(nodeId = node.id),
-            message + " at '" + node.id + "'",
-        )
+        refuse(code, DiagnosticLocation(nodeId = node.id), message + " at '" + node.id + "'")
     }
 
     private class KeptParam(val binding: ParamBinding, val present: List<PropertyKey>)

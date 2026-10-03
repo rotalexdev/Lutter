@@ -209,9 +209,15 @@ public sealed interface KtStmt {
  * classes. The same three are legal at file scope and inside a class body, so one node each.
  */
 public sealed interface KtDeclaration {
+    /**
+     * A function. [type] is null for the `Unit`-returning shape, which is why it is null rather
+     * than absent: §12.1's `rememberHomeScreenState()` hands a screen its state and cannot be
+     * written without one.
+     */
     public data class Function(
         public val name: String,
         public val annotations: List<KotlinSymbol>,
+        public val type: KtExpr?,
         public val params: List<KtParam>,
         public val body: List<KtStmt>,
     ) : KtDeclaration

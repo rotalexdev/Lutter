@@ -120,7 +120,9 @@ public class KtPrinter(
         append(renderAnnotations(function.annotations, indent, aliases))
         append(indentOf(indent) + "public fun " + function.name + "(")
         append(function.params.joinToString(", ") { renderParam(it, aliases) })
-        append(") {")
+        append(")")
+        val returned: String = function.type?.let { ": " + renderExpr(it, indent, aliases) } ?: ""
+        append(returned + " {")
         if (function.body.isEmpty()) {
             append("}")
         } else {

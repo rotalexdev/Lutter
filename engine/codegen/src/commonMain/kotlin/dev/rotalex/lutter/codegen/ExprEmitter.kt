@@ -6,10 +6,25 @@ import dev.rotalex.lutter.model.expr.RefTarget
 import dev.rotalex.lutter.model.expr.TypedExpr
 import dev.rotalex.lutter.model.expr.UnaryOp
 import dev.rotalex.lutter.model.ids.FunctionId
+import dev.rotalex.lutter.model.ids.StateId
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.registry.Registry
+
+/**
+ * How a `RefTarget.State` reads in the construct being emitted.
+ *
+ * §12.2 makes the *shape* a [StateStrategy]'s and §6.2 makes the identifier the document's
+ * `StateDecl.name`, so neither is derivable from a [RefTarget] on its own — it carries an id
+ * and nothing else. The read is a function of which file holds the reference, which is why this
+ * is a parameter rather than a field: a screen reads `state.count`, a state class reads `count`
+ * and the same document needs both.
+ */
+public fun interface StateRead {
+    /** The read of [id], or null when no declaration the emitter can see carries it. */
+    public fun read(id: StateId): KtExpr?
+}
 
 /**
  * A checked expression as the Kotlin the printer renders: §10.5's codegen column, node for node.
@@ -22,7 +37,10 @@ import dev.rotalex.lutter.schema.registry.Registry
  * The printer owns rendering and the parentheses that come with it, so this hands over
  * expressions — including the arguments of a [FunctionSpec]'s template — and never text.
  */
-public class ExprEmitter(private val functions: Registry<FunctionId, FunctionSpec>) {
+public class ExprEmitter(
+    private val functions: Registry<FunctionId, FunctionSpec>,
+    private val state: StateRead,
+) {
 
     /** [typed] as a Kotlin expression, or a [CodegenBug] naming what has no spelling. */
     public fun emit(typed: TypedExpr): KtExpr = emitExpr(typed.expr)
@@ -59,11 +77,10 @@ public class ExprEmitter(private val functions: Registry<FunctionId, FunctionSpe
         is RefTarget.Param -> KtExpr.Name(target.name.value)
         is RefTarget.EventArg -> KtExpr.Name(target.name)
         // §12.1 writes the identifier the document declared and §12.2 makes the receiver the
-        // strategy's own choice — `state.x` on a page, `LocalAppState.current.x` on the app —
-        // and a `RefTarget.State` carries only the id. Naming both is what a caller must supply.
-        is RefTarget.State -> throw CodegenBug(
-            "No Kotlin spelling for state '" + target.id.value + "': §12.2 chooses the receiver " +
-                "and StateDecl.name (§12.1) the identifier",
+        // strategy's own choice, so [state] answers with both. Null is a lost declaration rather
+        // than a document fault: pass 5 refuses an unresolved `RefTarget.State` upstream.
+        is RefTarget.State -> state.read(target.id) ?: throw CodegenBug(
+            "State '" + target.id.value + "' left the binding table; pass 5 refused an unresolved one",
         )
         // §10.2 has no iteration, so nothing binds this name; [RefTarget]'s own KDoc defers the
         // scope check for it to the wave that introduces one.

@@ -80,7 +80,7 @@ class ExprEmitterTest {
             }
             .build()
 
-    private val emitter: ExprEmitter = ExprEmitter(functions)
+    private val emitter: ExprEmitter = ExprEmitter(functions, StateRead { id -> KtExpr.Name(id.value) })
 
     @Test
     fun `a constant is an escaped literal`() {
@@ -292,12 +292,26 @@ class ExprEmitterTest {
     }
 
     @Test
-    fun `a state reference names what the strategy has to choose`() {
-        val failure = assertFailsWith<CodegenBug> { emit(Expr.Ref(RefTarget.State(StateId("s_count")))) }
+    fun `a state reference reads through whatever the caller bound`() {
+        // §12.1 makes the identifier the document's and §12.2 makes the receiver the strategy's,
+        // so the emitter holds neither: the read arrives whole, and this only asserts it is used.
+        val screen = ExprEmitter(functions, StateRead { id -> KtExpr.Member(KtExpr.Name("state"), id.value) })
+
+        assertEquals("state.s_count", body(screen.emit(checked(Expr.Ref(RefTarget.State(StateId("s_count")))))))
+    }
+
+    @Test
+    fun `a state reference no declaration carries is a bug rather than a document fault`() {
+        // Pass 5 refuses an unresolved `RefTarget.State` upstream as `expr.unresolved_ref`, so a
+        // null read means the binding table lost a declaration — never something a user wrote.
+        val blind = ExprEmitter(functions, StateRead { null })
+
+        val failure = assertFailsWith<CodegenBug> {
+            blind.emit(checked(Expr.Ref(RefTarget.State(StateId("s_count")))))
+        }
 
         assertEquals(
-            "No Kotlin spelling for state 's_count': §12.2 chooses the receiver " +
-                "and StateDecl.name (§12.1) the identifier",
+            "State 's_count' left the binding table; pass 5 refused an unresolved one",
             failure.message,
         )
     }
@@ -338,6 +352,8 @@ class ExprEmitterTest {
      */
     private fun emit(expr: Expr): KtExpr = emitter.emit(TypedExpr(expr, ExprType.Of(TypeRef.Int32), emptySet()))
 
+    private fun checked(expr: Expr): TypedExpr = TypedExpr(expr, ExprType.Of(TypeRef.Int32), emptySet())
+
     private fun param(name: String): Expr = Expr.Ref(RefTarget.Param(ParamName(name)))
 
     private fun isNullOf(argument: Expr): Expr = Expr.Call(FunctionId("core.isNull"), listOf(argument))
@@ -351,6 +367,7 @@ class ExprEmitterTest {
                 KtDeclaration.Function(
                     "value",
                     emptyList(),
+                    null,
                     emptyList(),
                     listOf(KtStmt.Expr(expr)),
                 ),

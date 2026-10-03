@@ -64,7 +64,7 @@ class KtPrinterTest {
     fun `a class with no members still emits braces`() {
         val printed = KtPrinter().print(
             ktFile(
-                KtDeclaration.Function("Alpha", emptyList(), emptyList(), emptyList()),
+                KtDeclaration.Function("Alpha", emptyList(), null, emptyList(), emptyList()),
                 KtDeclaration.Class("Beta", emptyList(), emptyList()),
             ),
         )
@@ -78,6 +78,25 @@ class KtPrinterTest {
             public fun Alpha() {}
 
             public class Beta {}
+
+            """.trimIndent(),
+            printed,
+        )
+    }
+
+    @Test
+    fun `a declared return type prints between the parameter list and the brace`() {
+        // §12.1's `rememberHomeScreenState()` hands a screen its state, and a function that
+        // returns something cannot be spelled without one.
+        val printed = KtPrinter().print(
+            ktFile(KtDeclaration.Function("make", emptyList(), KtExpr.Name("Home"), emptyList(), emptyList())),
+        )
+
+        assertEquals(
+            """
+            package com.example.app
+
+            public fun make(): Home {}
 
             """.trimIndent(),
             printed,
@@ -124,6 +143,7 @@ class KtPrinterTest {
                 KtDeclaration.Function(
                     "draw",
                     emptyList(),
+                    null,
                     emptyList(),
                     listOf(
                         KtStmt.LocalProperty("count", KtExpr.Name("Int"), true, KtExpr.Literal("0"), null),
@@ -165,7 +185,7 @@ class KtPrinterTest {
 
     @Test
     fun `a declared class name beats a conflicting import`() {
-        val drawn = KtDeclaration.Function("Draw", emptyList(), emptyList(), listOf(KtStmt.Expr(badgeCall())))
+        val drawn = KtDeclaration.Function("Draw", emptyList(), null, emptyList(), listOf(KtStmt.Expr(badgeCall())))
         val printed = KtPrinter().print(
             ktFile(KtDeclaration.Class("Badge", emptyList(), emptyList()), drawn),
         )
@@ -191,7 +211,7 @@ class KtPrinterTest {
 
     @Test
     fun `a declared property name beats a conflicting import`() {
-        val drawn = KtDeclaration.Function("Draw", emptyList(), emptyList(), listOf(KtStmt.Expr(badgeCall())))
+        val drawn = KtDeclaration.Function("Draw", emptyList(), null, emptyList(), listOf(KtStmt.Expr(badgeCall())))
         val printed = KtPrinter().print(ktFile(property("Badge", KtExpr.Name("String")), drawn))
 
         assertEquals(
@@ -320,7 +340,7 @@ class KtPrinterTest {
             KtExpr.Literal("0"),
             KtExpr.Name("lazy"),
         )
-        val body = KtDeclaration.Function("draw", emptyList(), emptyList(), listOf(broken))
+        val body = KtDeclaration.Function("draw", emptyList(), null, emptyList(), listOf(broken))
 
         val failure = assertFailsWith<CodegenBug> { KtPrinter().print(ktFile(body)) }
 
@@ -586,7 +606,7 @@ class KtPrinterTest {
 
     /** A function whose body is one expression, which is where precedence shows up. */
     private fun drawn(value: KtExpr): KtDeclaration.Function =
-        KtDeclaration.Function("value", emptyList(), emptyList(), listOf(KtStmt.Expr(value)))
+        KtDeclaration.Function("value", emptyList(), null, emptyList(), listOf(KtStmt.Expr(value)))
 
     private fun ktFile(vararg declarations: KtDeclaration): KtFile =
         KtFile("com.example.app", null, declarations.toList())
