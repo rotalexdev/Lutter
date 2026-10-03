@@ -96,8 +96,15 @@ internal object SourceRules {
      * `` `a name with spaces` ``, which is the idiom every test in this repository uses and
      * which the JVM accepts. An earlier draft of this rule included whitespace "to be safe"
      * and would have reported every test name in the codebase.
+     *
+     * The `[` is escaped because an unescaped one inside a character class opens a *nested*
+     * class in `java.util.regex` and the whole pattern fails to compile. Python's `re` accepts
+     * the unescaped spelling, so a port-and-check pass cannot catch this one — it throws
+     * `PatternSyntaxException` from `SourceRules`' initialiser and fails every rule in this
+     * module at once, because an `object`'s property initialisers run before any of its
+     * functions.
      */
-    private val illegalJvmNameCharacter = Regex("""[.;[/<>]""")
+    private val illegalJvmNameCharacter = Regex("""[.;\[\]/<>]""")
 
     /**
      * Declarations in [text] whose backticked name cannot be a JVM method name.

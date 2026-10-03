@@ -163,6 +163,7 @@ warnings = OrderedDict()
 lines = open(sys.argv[1], encoding="utf-8", errors="replace").read().splitlines()
 
 timestamp = re.compile(r"^\d{4}-\d{2}-\d{2}T[\d:.]+Z\s*")
+problem_found = re.compile(r"Problem found:\s+Kotlin compiler\s+(\w+)")
 
 def payload(line):
     """The message column of a log line, without the job/step/time columns.
@@ -172,6 +173,25 @@ def payload(line):
     """
     parts = line.split("\t")
     return timestamp.sub("", parts[-1] if len(parts) > 1 else line)
+
+def declared_kind(index):
+    """Whether the problem block owning line `index` was announced as an error or a warning.
+
+    The Actions problem report uses a `Location:` line for *both* kinds, so the Location alone
+    does not say which it is — the `Problem found: Kotlin compiler warning|error` header a few
+    lines above does. Reading every Location as an error puts this project's three permanent
+    `w:` warnings in the error list, which is the same misdiagnosis `-Werror` already caused
+    once: a warning promoted to a red by a reader that assumed rather than looked.
+    """
+    for back in range(1, 12):
+        if index - back < 0:
+            break
+        found = problem_found.search(payload(lines[index - back]))
+        if found:
+            return found.group(1)
+        if payload(lines[index - back]).startswith("Location:"):
+            break
+    return None
 
 for index, raw in enumerate(lines):
     line = payload(raw)
@@ -190,7 +210,8 @@ for index, raw in enumerate(lines):
                 break
             message = candidate
             break
-        errors.setdefault(f"{path}:{number}", message or "(no message above the Location)")
+        target = warnings if declared_kind(index) == "warning" else errors
+        target.setdefault(f"{path}:{number}", message or "(no message above the Location)")
         continue
 
     kotlin = re.match(r"^([ew]): file://(\S+?):(\d+):(\d+)\s+(.*)$", line.strip())
