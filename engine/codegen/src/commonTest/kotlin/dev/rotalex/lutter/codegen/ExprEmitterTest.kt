@@ -73,10 +73,10 @@ class ExprEmitterTest {
     private val functions: Registry<FunctionId, FunctionSpec> =
         RegistryBuilder<FunctionId, FunctionSpec>()
             .apply {
-                register(isNull)
-                register(coalesce)
-                register(trim)
-                register(size)
+                register(isNull.id, isNull)
+                register(coalesce.id, coalesce)
+                register(trim.id, trim)
+                register(size.id, size)
             }
             .build()
 
@@ -303,7 +303,7 @@ class ExprEmitterTest {
     }
 
     @Test
-    fun `an item reference is refused while §10.2 has no iteration`() {
+    fun `an item reference is refused while no iteration can bind it`() {
         val failure = assertFailsWith<CodegenBug> { emit(Expr.Ref(RefTarget.Item("row"))) }
 
         assertEquals(
@@ -320,7 +320,7 @@ class ExprEmitterTest {
     }
 
     @Test
-    fun `a value §9.2 settles as a symbol is refused by name`() {
+    fun `a value the type table settles as a symbol is refused by name`() {
         val failure = assertFailsWith<CodegenBug> {
             emit(Expr.Const(Value.Icon("material", "Home")))
         }
