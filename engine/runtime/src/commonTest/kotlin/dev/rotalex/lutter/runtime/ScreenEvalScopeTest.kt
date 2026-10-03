@@ -31,28 +31,28 @@ class ScreenEvalScopeTest {
 
     @Test
     fun `a held page declaration resolves`() {
-        val scope = scopeOf(page = store(count, Value.Int32(3)))
+        val scope = scopeOf(page = store(count to Value.Int32(3)))
 
         assertEquals(Value.Int32(3), scope.read(RefTarget.State(count)))
     }
 
     @Test
     fun `a held app declaration resolves through the environment's store`() {
-        val scope = scopeOf(app = store(count, Value.Int32(3)))
+        val scope = scopeOf(app = store(count to Value.Int32(3)))
 
         assertEquals(Value.Int32(3), scope.read(RefTarget.State(count)))
     }
 
     @Test
     fun `the page store answers before the app store for one id`() {
-        val scope = scopeOf(store(count, Value.Int32(3)), store(count, Value.Int32(9)))
+        val scope = scopeOf(store(count to Value.Int32(3)), store(count to Value.Int32(9)))
 
         assertEquals(Value.Int32(3), scope.read(RefTarget.State(count)))
     }
 
     @Test
     fun `a derived declaration is computed, not stored`() {
-        val page = store(count, Value.Int32(3))
+        val page = store(count to Value.Int32(3))
         val scope = scopeOf(page, declarations = listOf(doubling()))
 
         assertEquals(Value.Int32(4), scope.read(RefTarget.State(doubled)))
@@ -61,7 +61,7 @@ class ScreenEvalScopeTest {
 
     @Test
     fun `a derived read reflects the write it depends on`() {
-        val page = store(count, Value.Int32(3))
+        val page = store(count to Value.Int32(3))
         val scope = scopeOf(page, declarations = listOf(doubling()))
         page.set(count, Value.Int32(10))
 
@@ -71,7 +71,7 @@ class ScreenEvalScopeTest {
     @Test
     fun `a derived declaration in the app scope is computed too`() {
         val scope = scopeOf(
-            app = store(count, Value.Int32(5)),
+            app = store(count to Value.Int32(5)),
             declarations = listOf(doubling()),
         )
 

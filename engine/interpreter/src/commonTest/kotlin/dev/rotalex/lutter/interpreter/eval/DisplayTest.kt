@@ -39,8 +39,8 @@ class DisplayTest {
         val failure = assertFailsWith<IllegalStateException> { Value.Float64(1.5).toDisplayString() }
 
         val message = failure.message
-        assertTrue(message?.contains("num.format") == true, message.orEmpty())
-        assertTrue(message?.contains("str, i32, i64 and bool") == true, message.orEmpty())
+        assertTrue(message.contains("num.format") == true, message.orEmpty())
+        assertTrue(message.contains("str, i32, i64 and bool") == true, message.orEmpty())
     }
 
     @Test

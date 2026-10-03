@@ -132,7 +132,7 @@ class RenderScopeTest {
     /** `text = <ref to s_count>` as pass 7 lowers it: a computed value and the expression behind it. */
     private fun textFromState(): ResolvedProp {
         val reference = Expr.Ref(RefTarget.State(count))
-        val typed = TypedExpr(reference, ExprType.Of(TypeRef.Str), setOf(reference))
+        val typed = TypedExpr(reference, ExprType.Of(TypeRef.Str), setOf(reference.target))
         return ResolvedProp(text.key, PropertyValue.Computed(reference), PropOrigin.Specified, null, typed)
     }
 

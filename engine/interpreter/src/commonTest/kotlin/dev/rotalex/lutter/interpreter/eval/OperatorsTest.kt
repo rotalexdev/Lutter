@@ -59,8 +59,8 @@ class OperatorsTest {
         }
 
         val message = failure.message
-        assertTrue(message?.contains("no implicit numeric conversion") == true, message.orEmpty())
-        assertTrue(message?.contains("num.toDouble") == true, message.orEmpty())
+        assertTrue(message.contains("no implicit numeric conversion") == true, message.orEmpty())
+        assertTrue(message.contains("num.toDouble") == true, message.orEmpty())
     }
 
     @Test
@@ -103,7 +103,7 @@ class OperatorsTest {
         }
 
         val message = failure.message
-        assertTrue(message?.contains("text comparison is limited to ==") == true, message.orEmpty())
+        assertTrue(message.contains("text comparison is limited to ==") == true, message.orEmpty())
     }
 
     // ---------------------------------------------------------------------------------
