@@ -68,18 +68,61 @@ public data class KtCall(
 /** One argument: named, or positional when the binding shortens to one. */
 public data class KtArg(public val name: String?, public val value: KtExpr)
 
-/** A statement: today only an expression, since actions emit nothing yet. */
+/**
+ * A statement inside a body: an expression, a local declaration, or an assignment.
+ *
+ * The split follows Kotlin's grammar rather than convenience. `get()` is legal on a property
+ * and illegal on a function-local, so the getter field belongs to
+ * [KtDeclaration.Property] alone and [LocalProperty] has none. That absence is the shape.
+ */
 public sealed interface KtStmt {
     public data class Expr(public val expr: KtExpr) : KtStmt
+
+    /** A function-local property. No getter: Kotlin has no `get()` on a local. */
+    public data class LocalProperty(
+        public val name: String,
+        public val type: KtExpr?,
+        public val mutable: Boolean,
+        public val initializer: KtExpr?,
+        public val delegate: KtExpr?,
+    ) : KtStmt
+
+    public data class Assign(public val target: KtExpr, public val value: KtExpr) : KtStmt
 }
 
-/** A top-level declaration: today only a composable function; models arrive with data. */
+/**
+ * A declaration: a screen or component, state and models as properties, generated models as
+ * classes. The same three are legal at file scope and inside a class body, so one node each.
+ */
 public sealed interface KtDeclaration {
     public data class Function(
         public val name: String,
         public val annotations: List<KotlinSymbol>,
         public val params: List<KtParam>,
         public val body: List<KtStmt>,
+    ) : KtDeclaration
+
+    /**
+     * A property, at file scope or as a class member.
+     *
+     * [initializer] and [delegate] are mutually exclusive in Kotlin, and a node carrying both
+     * is an invariant breach the printer refuses rather than one it silently drops.
+     */
+    public data class Property(
+        public val name: String,
+        public val annotations: List<KotlinSymbol>,
+        public val type: KtExpr?,
+        public val mutable: Boolean,
+        public val initializer: KtExpr?,
+        public val delegate: KtExpr?,
+        public val getter: KtExpr?,
+    ) : KtDeclaration
+
+    /** A class and its members; a nested class arrives as a member that is itself a class. */
+    public data class Class(
+        public val name: String,
+        public val annotations: List<KotlinSymbol>,
+        public val members: List<KtDeclaration>,
     ) : KtDeclaration
 }
 

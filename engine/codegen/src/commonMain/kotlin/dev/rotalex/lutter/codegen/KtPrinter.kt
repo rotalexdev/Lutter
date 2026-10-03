@@ -32,9 +32,7 @@ public class KtPrinter(
 
     // Declared names win: any import sharing one aliases, so generated code still compiles.
     private fun renderImports(file: KtFile): ImportBlock {
-        val declared: Set<String> = file.declarations.mapNotNull {
-            (it as? KtDeclaration.Function)?.name
-        }.toSet()
+        val declared: Set<String> = file.declarations.mapNotNull { declaredNameOf(it) }.toSet()
         val seen: MutableMap<String, MutableList<KotlinSymbol>> = LinkedHashMap()
         collectSymbols(file, seen)
         val plain: MutableList<String> = mutableListOf()
@@ -66,6 +64,18 @@ public class KtPrinter(
         return ImportBlock(plain.sorted() + aliased.sorted(), aliases)
     }
 
+    /**
+     * The name this declaration introduces at file scope.
+     *
+     * File scope only: a class member cannot shadow a top-level import, so naming it a
+     * declared name would alias an import nothing collides with.
+     */
+    private fun declaredNameOf(declaration: KtDeclaration): String? = when (declaration) {
+        is KtDeclaration.Function -> declaration.name
+        is KtDeclaration.Property -> declaration.name
+        is KtDeclaration.Class -> declaration.name
+    }
+
     // Alias from the owning package's last segment: `material.Text` becomes `MaterialText`.
     private fun aliasOf(symbol: KotlinSymbol, taken: MutableSet<String>): String {
         val stem: String = symbol.packageName.substringAfterLast('.')
@@ -84,26 +94,86 @@ public class KtPrinter(
         declaration: KtDeclaration,
         indent: Int,
         aliases: Map<String, String>,
+    ): String = when (declaration) {
+        is KtDeclaration.Function -> renderFunction(declaration, indent, aliases)
+        is KtDeclaration.Property -> renderProperty(declaration, indent, aliases)
+        is KtDeclaration.Class -> renderClass(declaration, indent, aliases)
+    }
+
+    /** One `@` line per annotation, sorted by name so two runs over one tree agree. */
+    private fun renderAnnotations(
+        annotations: List<KotlinSymbol>,
+        indent: Int,
+        aliases: Map<String, String>,
+    ): String = annotations.sortedBy { it.name }.joinToString("") {
+        indentOf(indent) + "@" + (aliases[it.fqn()] ?: it.name) + "\n"
+    }
+
+    // Explicit `public`: the generated module builds with explicitApi, and the IR carries no
+    // visibility to write. The property and class branches print it for the same reason.
+    private fun renderFunction(
+        function: KtDeclaration.Function,
+        indent: Int,
+        aliases: Map<String, String>,
+    ): String = buildString {
+        append(renderAnnotations(function.annotations, indent, aliases))
+        append(indentOf(indent) + "public fun " + function.name + "(")
+        append(function.params.joinToString(", ") { renderParam(it, aliases) })
+        append(") {")
+        if (function.body.isEmpty()) {
+            append("}")
+        } else {
+            append("\n")
+            for (stmt in function.body) append(renderStmt(stmt, indent + 1, aliases) + "\n")
+            append(indentOf(indent) + "}")
+        }
+    }
+
+    /**
+     * `val`/`var`, an optional type, then `=`, `by` or `get()`.
+     *
+     * The three sources of a value are separate fields because Kotlin spells them differently
+     * and accepts only one: a node carrying an initializer and a delegate is refused.
+     */
+    private fun renderProperty(
+        property: KtDeclaration.Property,
+        indent: Int,
+        aliases: Map<String, String>,
     ): String {
-        val function: KtDeclaration.Function = declaration as? KtDeclaration.Function
-            ?: throw CodegenBug("Skeleton prints functions only, got " + declaration)
-        return buildString {
-            for (annotation in function.annotations.sortedBy { it.name }) {
-                append(indentOf(indent) + "@" + (aliases[annotation.fqn()] ?: annotation.name) + "\n")
+        if (property.initializer != null && property.delegate != null) {
+            throw CodegenBug(
+                "Property '" + property.name + "' has an initializer and a delegate; Kotlin allows one",
+            )
+        }
+        val keyword: String = if (property.mutable) "public var " else "public val "
+        val declared: String = property.type?.let { ": " + renderExpr(it, indent, aliases) } ?: ""
+        val assigned: String = property.initializer?.let { " = " + renderExpr(it, indent, aliases) }
+            ?: property.delegate?.let { " by " + renderExpr(it, indent, aliases) }
+            ?: ""
+        val getter: String = property.getter?.let {
+            "\n" + indentOf(indent + 1) + "get() = " + renderExpr(it, indent + 1, aliases)
+        } ?: ""
+        return renderAnnotations(property.annotations, indent, aliases) +
+            indentOf(indent) + keyword + property.name + declared + assigned + getter
+    }
+
+    /** Braces on the head line when empty, one blank line between members otherwise. */
+    private fun renderClass(
+        clazz: KtDeclaration.Class,
+        indent: Int,
+        aliases: Map<String, String>,
+    ): String = buildString {
+        append(renderAnnotations(clazz.annotations, indent, aliases))
+        append(indentOf(indent) + "public class " + clazz.name)
+        if (clazz.members.isEmpty()) {
+            append(" {}")
+        } else {
+            append(" {\n")
+            for ((index, member) in clazz.members.withIndex()) {
+                if (index > 0) append("\n")
+                append(renderDeclaration(member, indent + 1, aliases) + "\n")
             }
-            // Explicit `public`: the generated module builds with explicitApi, and every
-            // skeleton declaration is a public entry point. No visibility field exists on
-            // the IR because nothing generated today is anything else.
-            append(indentOf(indent) + "public fun " + function.name + "(")
-            append(function.params.joinToString(", ") { renderParam(it, aliases) })
-            append(") {")
-            if (function.body.isEmpty()) {
-                append("}")
-            } else {
-                append("\n")
-                for (stmt in function.body) append(renderStmt(stmt, indent + 1, aliases) + "\n")
-                append(indentOf(indent) + "}")
-            }
+            append(indentOf(indent) + "}")
         }
     }
 
@@ -114,10 +184,31 @@ public class KtPrinter(
         return param.name + ": " + type + " = " + renderExpr(default, 0, aliases)
     }
 
-    private fun renderStmt(stmt: KtStmt, indent: Int, aliases: Map<String, String>): String {
-        val expr: KtStmt.Expr = stmt as? KtStmt.Expr
-            ?: throw CodegenBug("Skeleton prints expression statements only, got " + stmt)
-        return indentOf(indent) + renderExpr(expr.expr, indent, aliases)
+    private fun renderStmt(stmt: KtStmt, indent: Int, aliases: Map<String, String>): String =
+        when (stmt) {
+            is KtStmt.Expr -> indentOf(indent) + renderExpr(stmt.expr, indent, aliases)
+            is KtStmt.LocalProperty -> indentOf(indent) + renderLocalProperty(stmt, indent, aliases)
+            is KtStmt.Assign -> indentOf(indent) + renderExpr(stmt.target, indent, aliases) +
+                " = " + renderExpr(stmt.value, indent, aliases)
+        }
+
+    // No `public` here: a local is not a declaration, and explicitApi governs declarations.
+    private fun renderLocalProperty(
+        stmt: KtStmt.LocalProperty,
+        indent: Int,
+        aliases: Map<String, String>,
+    ): String {
+        if (stmt.initializer != null && stmt.delegate != null) {
+            throw CodegenBug(
+                "Local '" + stmt.name + "' has an initializer and a delegate; Kotlin allows one",
+            )
+        }
+        val keyword: String = if (stmt.mutable) "var " else "val "
+        val declared: String = stmt.type?.let { ": " + renderExpr(it, indent, aliases) } ?: ""
+        val assigned: String = stmt.initializer?.let { " = " + renderExpr(it, indent, aliases) }
+            ?: stmt.delegate?.let { " by " + renderExpr(it, indent, aliases) }
+            ?: ""
+        return keyword + stmt.name + declared + assigned
     }
 
     // First line unindented (the caller positions it); continuations carry absolute indent.
@@ -281,22 +372,56 @@ public class KtPrinter(
         stmt: KtStmt,
         filePkg: String,
         seen: MutableMap<String, MutableList<KotlinSymbol>>,
-    ): Unit {
-        val single: KtStmt.Expr = stmt as? KtStmt.Expr
-            ?: throw CodegenBug("Skeleton prints expression statements only, got " + stmt)
-        collectExprSymbols(single.expr, filePkg, seen)
+    ): Unit = when (stmt) {
+        is KtStmt.Expr -> collectExprSymbols(stmt.expr, filePkg, seen)
+        is KtStmt.LocalProperty -> {
+            collectOptional(stmt.type, filePkg, seen)
+            collectOptional(stmt.initializer, filePkg, seen)
+            collectOptional(stmt.delegate, filePkg, seen)
+        }
+        is KtStmt.Assign -> {
+            collectExprSymbols(stmt.target, filePkg, seen)
+            collectExprSymbols(stmt.value, filePkg, seen)
+        }
     }
 
+    private fun collectOptional(
+        expr: KtExpr?,
+        filePkg: String,
+        seen: MutableMap<String, MutableList<KotlinSymbol>>,
+    ): Unit = expr?.let { collectExprSymbols(it, filePkg, seen) } ?: Unit
+
     private fun collectSymbols(file: KtFile, seen: MutableMap<String, MutableList<KotlinSymbol>>): Unit {
-        for (declaration in file.declarations) {
-            val function: KtDeclaration.Function = declaration as? KtDeclaration.Function
-                ?: throw CodegenBug("Skeleton prints functions only, got " + declaration)
-            function.annotations.forEach { recordSymbol(it, file.pkg, seen) }
-            for (param in function.params) {
-                recordSymbol(param.type, file.pkg, seen)
-                param.default?.let { collectExprSymbols(it, file.pkg, seen) }
+        for (declaration in file.declarations) collectDeclarationSymbols(declaration, file.pkg, seen)
+    }
+
+    // Every path that can hold a symbol, class members included: a type reference or an
+    // initial value missed here is an import the emitted file needs and never gets.
+    private fun collectDeclarationSymbols(
+        declaration: KtDeclaration,
+        filePkg: String,
+        seen: MutableMap<String, MutableList<KotlinSymbol>>,
+    ): Unit {
+        when (declaration) {
+            is KtDeclaration.Function -> {
+                declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                for (param in declaration.params) {
+                    recordSymbol(param.type, filePkg, seen)
+                    param.default?.let { collectExprSymbols(it, filePkg, seen) }
+                }
+                declaration.body.forEach { collectStmtSymbols(it, filePkg, seen) }
             }
-            function.body.forEach { collectStmtSymbols(it, file.pkg, seen) }
+            is KtDeclaration.Property -> {
+                declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                collectOptional(declaration.type, filePkg, seen)
+                collectOptional(declaration.initializer, filePkg, seen)
+                collectOptional(declaration.delegate, filePkg, seen)
+                collectOptional(declaration.getter, filePkg, seen)
+            }
+            is KtDeclaration.Class -> {
+                declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                declaration.members.forEach { collectDeclarationSymbols(it, filePkg, seen) }
+            }
         }
     }
 
