@@ -58,7 +58,7 @@ class StateFixtureTest {
         assertTrue(
             holder.contains(
                 "public val LocalAppState: ProvidableCompositionLocal<AppState> = " +
-                    "staticCompositionLocalOf<AppState>()",
+                    "staticCompositionLocalOf<AppState> {",
             ),
             holder,
         )

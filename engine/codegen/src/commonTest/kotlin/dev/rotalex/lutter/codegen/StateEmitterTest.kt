@@ -177,7 +177,9 @@ class StateEmitterTest {
                 public var theme: String by mutableStateOf("light")
             }
 
-            public val LocalAppState: ProvidableCompositionLocal<AppState> = staticCompositionLocalOf<AppState>()
+            public val LocalAppState: ProvidableCompositionLocal<AppState> = staticCompositionLocalOf<AppState> {
+                AppState()
+            }
 
             """.trimIndent(),
             content(files, "state/AppState.kt"),

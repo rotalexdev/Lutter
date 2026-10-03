@@ -340,10 +340,11 @@ public class StateEmitter(
     )
 
     /**
-     * `val LocalAppState: ProvidableCompositionLocal<AppState> = staticCompositionLocalOf<AppState>()`.
+     * `val LocalAppState: ProvidableCompositionLocal<AppState> = staticCompositionLocalOf { AppState() }`.
      *
-     * The no-argument overload, so a read before `AppRoot` provides it throws rather than
-     * silently answering a fabricated default — which is the half of §12.1 the runtime's
+     * A lambda, not a no-argument call: `staticCompositionLocalOf` takes a `defaultFactory` and
+     * has no empty overload, so `()` does not compile. The factory exists only to satisfy the
+     * signature — Compose throws if it is ever read, which is the half of §12.1 the runtime's
      * `ScreenEvalScope` cannot paper over either.
      */
     private fun localProperty(): KtDeclaration.Property = KtDeclaration.Property(
@@ -356,7 +357,16 @@ public class StateEmitter(
                 KtExpr.Ref(KtSymbolRef(staticCompositionLocalOf)),
                 listOf(KtExpr.Name(AppStateName)),
             ),
-            emptyList(),
+            listOf(
+                KtArg(
+                    null,
+                    KtExpr.Call(KtExpr.Ref(KtSymbolRef(appStateSymbol)), emptyList()),
+                ),
+            ),
+            KtExpr.Lambda(
+                emptyList(),
+                listOf(KtStmt.Expr(KtExpr.Call(KtExpr.Ref(KtSymbolRef(appStateSymbol)), emptyList()))),
+            ),
         ),
         delegate = null,
         getter = null,
