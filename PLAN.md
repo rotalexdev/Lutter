@@ -174,6 +174,8 @@ Consistency between the renderer and the emitted code is guaranteed by a **singl
 | D13 | `TypedExpr` was filed in `:engine:analysis` while the `Evaluator` consuming it lives in `:engine:interpreter`, which §23.3 forbids reaching analysis from | `TypedExpr` lives in `:engine:model`; both modules already depend on it, so the layering rule stands untouched | §10.4, §33.3, §33.5 |
 | D14 | §12.1 needs a property inside a function body, one inside a class body, one with a getter, and an assignment; §16.2 named `KtProperty` only as a *top-level* declaration and never specified `KtStmt` at all | **Mirror Kotlin's own grammar rather than collapsing the four into one node.** `KtDeclaration.Property` carries top-level and class-member properties — the only place a getter is legal — `KtStmt.LocalProperty` carries function-locals, `KtStmt.Assign` carries assignments, and `KtDeclaration.Class` carries members. Two printers beat one node reused in positions Kotlin itself keeps distinct, and the getter stops being an awkward fit. A property's type is a `KtExpr` name reference, not a new node: a Kotlin type *is* a symbol, so §16.2's reference rule already covers it | §12.1, §16.2 |
 | D15 | §10.5 requires "precedence-aware parenthesization" but `FunctionPrecedence` had only `Atom` and `Call`, so `core.isNull`'s `{0} == null` bound looser than its own level claimed — a violation the source documented rather than modelled | **Add the level the requirement implies** rather than have the emitter key parenthesisation off pattern text. A `Comparison` level makes `FunctionSpec`'s stated invariant true for every spec instead of leaving it a documented lie, and a convention keyed on template text would keep drifting the moment a spec is written by hand | §10.5, §16.2 |
+| D16 | A property's type is a `KtExpr`, and `KtExpr` could not spell `T?` or `List<T>`, so `TypeRef.Nullable`/`ListOf`/`MapOf` had no generated form and optional state was unreachable | **Two composed nodes, mirroring Kotlin's two productions**, rather than one node with a `nullable` flag. `?` is postfix and `<>` is infix in the grammar, so `KtExpr.Nullable(TypeApplication(…))` composes freely and reaches `Map<String, Int?>`, which a single flag on the outer node cannot: the flag would have to be repeated per argument. Same reasoning as D14 — the grammar's own shape is the cheaper one | §12.1, §16.2, §16.6 |
+| D17 | An unmappable `TypeRef` came from the user's document, so §16.7's "the generator never throws for domain errors" applies, but §17.3 had no code for it and the mapper threw `CodegenBug` — an internal-breach type for a domain fault | **A new feasibility code, `codegen.no_type_spelling`.** Reusing `codegen.strategy_unsupported` would have been fewer moving parts, but a type mapping is not a strategy and the name would have become a lie someone later had to undo — the same failure D15 corrected. §16.7 draws the line between a domain fault and a bug; this sits on the domain side of it | §16.7, §17.3 |
 
 ---
 
@@ -1255,6 +1257,8 @@ public sealed interface KtExpr {
     public data class IfElse(val c: KtExpr, val a: KtExpr, val b: KtExpr) : KtExpr
     public data class StringTemplate(val parts: List<KtTemplatePart>) : KtExpr
     public data class Lambda(val params: List<String>, val body: List<KtStmt>) : KtExpr
+    public data class TypeApplication(val base: KtExpr, val args: List<KtExpr>) : KtExpr           // List<T>, Map<K, V>
+    public data class Nullable(val inner: KtExpr) : KtExpr                                        // T?
 }
 public data class KtSymbol(val pkg: String, val name: String, val member: String? = null)     // "androidx.compose.material3", "Text"
 public sealed interface KtDeclaration {
@@ -1399,7 +1403,7 @@ Diagnostics are sorted deterministically: `(severity desc, pageId, nodeId, code,
 | `expr.unknown_function`, `expr.type_mismatch`, `expr.nullable_access`, `expr.unresolved_ref` | Expressions |
 | `action.unknown`, `action.arg_invalid`, `action.state_not_writable`, `nav.args_mismatch` | Actions/navigation |
 | `name.invalid_identifier`, `name.duplicate`, `name.keyword` | Naming |
-| `codegen.no_binding`, `codegen.strategy_unsupported`, `codegen.name_collision` | Feasibility |
+| `codegen.no_binding`, `codegen.strategy_unsupported`, `codegen.name_collision`, `codegen.no_type_spelling` | Feasibility |
 | `plugin.missing`, `plugin.version_mismatch`, `version.component_newer` | Loading |
 
 ### 17.4 Component-defined validation
