@@ -172,7 +172,7 @@ Consistency between the renderer and the emitted code is guaranteed by a **singl
 | D11 | Node identity across edits for Compose | `key(node.id)` + structural sharing + stability config | §15.6, §29 |
 | D12 | Enforcing architecture rules | Gradle module graph check + Konsist tests | §23.4 |
 | D13 | `TypedExpr` was filed in `:engine:analysis` while the `Evaluator` consuming it lives in `:engine:interpreter`, which §23.3 forbids reaching analysis from | `TypedExpr` lives in `:engine:model`; both modules already depend on it, so the layering rule stands untouched | §10.4, §33.3, §33.5 |
-| D14 | §12.1 needs a property inside a function body, one inside a class body, one with a getter, and an assignment; §16.2 named `KtProperty` only as a *top-level* declaration and never specified `KtStmt` at all | **Mirror Kotlin's own grammar rather than collapsing the four into one node.** `KtDeclaration.Property` carries top-level and class-member properties — the only place a getter is legal — `KtStmt.LocalProperty` carries function-locals, `KtStmt.Assign` carries assignments, and `KtDeclaration.Class` carries members. Two printers beat one node reused in positions Kotlin itself keeps distinct, and the getter stops being an awkward fit | §12.1, §16.2 |
+| D14 | §12.1 needs a property inside a function body, one inside a class body, one with a getter, and an assignment; §16.2 named `KtProperty` only as a *top-level* declaration and never specified `KtStmt` at all | **Mirror Kotlin's own grammar rather than collapsing the four into one node.** `KtDeclaration.Property` carries top-level and class-member properties — the only place a getter is legal — `KtStmt.LocalProperty` carries function-locals, `KtStmt.Assign` carries assignments, and `KtDeclaration.Class` carries members. Two printers beat one node reused in positions Kotlin itself keeps distinct, and the getter stops being an awkward fit. A property's type is a `KtExpr` name reference, not a new node: a Kotlin type *is* a symbol, so §16.2's reference rule already covers it | §12.1, §16.2 |
 
 ---
 
@@ -1258,13 +1258,13 @@ public sealed interface KtExpr {
 public data class KtSymbol(val pkg: String, val name: String, val member: String? = null)     // "androidx.compose.material3", "Text"
 public sealed interface KtDeclaration {
     public data class Function(val name: String, val annotations: List<KtSymbol>, val params: List<KtParam>, val body: List<KtStmt>)
-    public data class Property(val name: String, val annotations: List<KtSymbol>, val type: KtType?, val mutable: Boolean,
+    public data class Property(val name: String, val annotations: List<KtSymbol>, val type: KtExpr?, val mutable: Boolean,
                                val initializer: KtExpr?, val delegate: KtExpr?, val getter: KtExpr?)  // top-level or class member; only here is `get()` legal
     public data class Class(val name: String, val annotations: List<KtSymbol>, val members: List<KtDeclaration>)
 }
 public sealed interface KtStmt {
     public data class Expr(val expr: KtExpr)
-    public data class LocalProperty(val name: String, val type: KtType?, val mutable: Boolean,
+    public data class LocalProperty(val name: String, val type: KtExpr?, val mutable: Boolean,
                                     val initializer: KtExpr?, val delegate: KtExpr?)   // function-local; no getter
     public data class Assign(val target: KtExpr, val value: KtExpr)
 }
