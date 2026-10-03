@@ -67,6 +67,7 @@ final enum class dev.rotalex.lutter.schema.component/Positional : kotlin/Enum<de
 final enum class dev.rotalex.lutter.schema.function/FunctionPrecedence : kotlin/Enum<dev.rotalex.lutter.schema.function/FunctionPrecedence> { // dev.rotalex.lutter.schema.function/FunctionPrecedence|null[0]
     enum entry Atom // dev.rotalex.lutter.schema.function/FunctionPrecedence.Atom|null[0]
     enum entry Call // dev.rotalex.lutter.schema.function/FunctionPrecedence.Call|null[0]
+    enum entry Comparison // dev.rotalex.lutter.schema.function/FunctionPrecedence.Comparison|null[0]
 
     final val entries // dev.rotalex.lutter.schema.function/FunctionPrecedence.entries|#static{}entries[0]
         final fun <get-entries>(): kotlin.enums/EnumEntries<dev.rotalex.lutter.schema.function/FunctionPrecedence> // dev.rotalex.lutter.schema.function/FunctionPrecedence.entries.<get-entries>|<get-entries>#static(){}[0]
