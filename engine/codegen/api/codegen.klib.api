@@ -266,6 +266,19 @@ sealed interface dev.rotalex.lutter.codegen/KtExpr { // dev.rotalex.lutter.codeg
         final fun toString(): kotlin/String // dev.rotalex.lutter.codegen/KtExpr.Name.toString|toString(){}[0]
     }
 
+    final class Nullable : dev.rotalex.lutter.codegen/KtExpr { // dev.rotalex.lutter.codegen/KtExpr.Nullable|null[0]
+        constructor <init>(dev.rotalex.lutter.codegen/KtExpr) // dev.rotalex.lutter.codegen/KtExpr.Nullable.<init>|<init>(dev.rotalex.lutter.codegen.KtExpr){}[0]
+
+        final val inner // dev.rotalex.lutter.codegen/KtExpr.Nullable.inner|{}inner[0]
+            final fun <get-inner>(): dev.rotalex.lutter.codegen/KtExpr // dev.rotalex.lutter.codegen/KtExpr.Nullable.inner.<get-inner>|<get-inner>(){}[0]
+
+        final fun component1(): dev.rotalex.lutter.codegen/KtExpr // dev.rotalex.lutter.codegen/KtExpr.Nullable.component1|component1(){}[0]
+        final fun copy(dev.rotalex.lutter.codegen/KtExpr = ...): dev.rotalex.lutter.codegen/KtExpr.Nullable // dev.rotalex.lutter.codegen/KtExpr.Nullable.copy|copy(dev.rotalex.lutter.codegen.KtExpr){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.codegen/KtExpr.Nullable.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // dev.rotalex.lutter.codegen/KtExpr.Nullable.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // dev.rotalex.lutter.codegen/KtExpr.Nullable.toString|toString(){}[0]
+    }
+
     final class PatternCall : dev.rotalex.lutter.codegen/KtExpr { // dev.rotalex.lutter.codegen/KtExpr.PatternCall|null[0]
         constructor <init>(kotlin/String, kotlin.collections/List<dev.rotalex.lutter.codegen/KtExpr>, kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> = ..., dev.rotalex.lutter.schema.function/FunctionPrecedence = ...) // dev.rotalex.lutter.codegen/KtExpr.PatternCall.<init>|<init>(kotlin.String;kotlin.collections.List<dev.rotalex.lutter.codegen.KtExpr>;kotlin.collections.List<dev.rotalex.lutter.schema.component.KotlinSymbol>;dev.rotalex.lutter.schema.function.FunctionPrecedence){}[0]
 
@@ -328,6 +341,22 @@ sealed interface dev.rotalex.lutter.codegen/KtExpr { // dev.rotalex.lutter.codeg
         final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.codegen/KtExpr.StringTemplate.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // dev.rotalex.lutter.codegen/KtExpr.StringTemplate.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // dev.rotalex.lutter.codegen/KtExpr.StringTemplate.toString|toString(){}[0]
+    }
+
+    final class TypeApplication : dev.rotalex.lutter.codegen/KtExpr { // dev.rotalex.lutter.codegen/KtExpr.TypeApplication|null[0]
+        constructor <init>(dev.rotalex.lutter.codegen/KtExpr, kotlin.collections/List<dev.rotalex.lutter.codegen/KtExpr>) // dev.rotalex.lutter.codegen/KtExpr.TypeApplication.<init>|<init>(dev.rotalex.lutter.codegen.KtExpr;kotlin.collections.List<dev.rotalex.lutter.codegen.KtExpr>){}[0]
+
+        final val args // dev.rotalex.lutter.codegen/KtExpr.TypeApplication.args|{}args[0]
+            final fun <get-args>(): kotlin.collections/List<dev.rotalex.lutter.codegen/KtExpr> // dev.rotalex.lutter.codegen/KtExpr.TypeApplication.args.<get-args>|<get-args>(){}[0]
+        final val base // dev.rotalex.lutter.codegen/KtExpr.TypeApplication.base|{}base[0]
+            final fun <get-base>(): dev.rotalex.lutter.codegen/KtExpr // dev.rotalex.lutter.codegen/KtExpr.TypeApplication.base.<get-base>|<get-base>(){}[0]
+
+        final fun component1(): dev.rotalex.lutter.codegen/KtExpr // dev.rotalex.lutter.codegen/KtExpr.TypeApplication.component1|component1(){}[0]
+        final fun component2(): kotlin.collections/List<dev.rotalex.lutter.codegen/KtExpr> // dev.rotalex.lutter.codegen/KtExpr.TypeApplication.component2|component2(){}[0]
+        final fun copy(dev.rotalex.lutter.codegen/KtExpr = ..., kotlin.collections/List<dev.rotalex.lutter.codegen/KtExpr> = ...): dev.rotalex.lutter.codegen/KtExpr.TypeApplication // dev.rotalex.lutter.codegen/KtExpr.TypeApplication.copy|copy(dev.rotalex.lutter.codegen.KtExpr;kotlin.collections.List<dev.rotalex.lutter.codegen.KtExpr>){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.codegen/KtExpr.TypeApplication.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // dev.rotalex.lutter.codegen/KtExpr.TypeApplication.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // dev.rotalex.lutter.codegen/KtExpr.TypeApplication.toString|toString(){}[0]
     }
 
     final class Unary : dev.rotalex.lutter.codegen/KtExpr { // dev.rotalex.lutter.codegen/KtExpr.Unary|null[0]

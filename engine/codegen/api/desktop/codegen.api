@@ -366,6 +366,17 @@ public final class dev/rotalex/lutter/codegen/KtExpr$Name : dev/rotalex/lutter/c
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/codegen/KtExpr$Nullable : dev/rotalex/lutter/codegen/KtExpr {
+	public fun <init> (Ldev/rotalex/lutter/codegen/KtExpr;)V
+	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun copy (Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr$Nullable;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtExpr$Nullable;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtExpr$Nullable;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getInner ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/rotalex/lutter/codegen/KtExpr$PatternCall : dev/rotalex/lutter/codegen/KtExpr {
 	public fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/function/FunctionPrecedence;)V
 	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/function/FunctionPrecedence;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -415,6 +426,19 @@ public final class dev/rotalex/lutter/codegen/KtExpr$StringTemplate : dev/rotale
 	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtExpr$StringTemplate;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtExpr$StringTemplate;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getParts ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/KtExpr$TypeApplication : dev/rotalex/lutter/codegen/KtExpr {
+	public fun <init> (Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;)V
+	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtExpr$TypeApplication;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtExpr$TypeApplication;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtExpr$TypeApplication;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArgs ()Ljava/util/List;
+	public final fun getBase ()Ldev/rotalex/lutter/codegen/KtExpr;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
