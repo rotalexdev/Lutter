@@ -87,6 +87,18 @@ public sealed interface KtExpr {
 
     /** `"Hello ${name}"`: literal text and interpolations, in order. */
     public data class StringTemplate(public val parts: List<KtTemplatePart>) : KtExpr
+
+    /**
+     * `base<args…>`: `List<T>`, `Map<K, V>`.
+     *
+     * Separate from [Nullable] because Kotlin's grammar has `?` postfix and `<>` infix, so the
+     * two compose and reach `Map<String, Int?>`, which one node with a `nullable` flag cannot:
+     * the flag would have to be repeated per argument (§4.6's D16).
+     */
+    public data class TypeApplication(public val base: KtExpr, public val args: List<KtExpr>) : KtExpr
+
+    /** `inner?`, postfix. Two nodes rather than one `nullable` flag — [TypeApplication] says why. */
+    public data class Nullable(public val inner: KtExpr) : KtExpr
 }
 
 /**

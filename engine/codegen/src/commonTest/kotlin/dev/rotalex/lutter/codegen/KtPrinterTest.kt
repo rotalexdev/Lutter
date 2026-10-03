@@ -5,6 +5,7 @@ import dev.rotalex.lutter.schema.function.FunctionPrecedence
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -400,6 +401,182 @@ class KtPrinterTest {
         )
     }
 
+    @Test
+    fun `a type application with one argument prints a bracketed name`() {
+        val printed = KtPrinter().print(ktFile(property("names", typeApplied("List", "String"))))
+
+        assertEquals(
+            """
+            package com.example.app
+
+            public val names: List<String>
+
+            """.trimIndent(),
+            printed,
+        )
+    }
+
+    @Test
+    fun `two type arguments separate with a comma and a space`() {
+        // §16.3's one-argument-per-line rule belongs to calls; a type argument list is short by
+        // construction, so it stays inline and the separator is the same `, ` calls use.
+        val printed = KtPrinter().print(ktFile(property("ages", typeApplied("Map", "String", "Int"))))
+
+        assertEquals(
+            """
+            package com.example.app
+
+            public val ages: Map<String, Int>
+
+            """.trimIndent(),
+            printed,
+        )
+    }
+
+    @Test
+    fun `a nullable type composes inside a type argument`() {
+        // D16's case. Two nodes rather than one `nullable` flag is what reaches this at all:
+        // the flag would sit on the outer node, where `Int` is not, so it is built as IR.
+        val printed = KtPrinter().print(
+            ktFile(
+                property(
+                    "byName",
+                    KtExpr.TypeApplication(
+                        KtExpr.Name("Map"),
+                        listOf(KtExpr.Name("String"), KtExpr.Nullable(KtExpr.Name("Int"))),
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals(
+            """
+            package com.example.app
+
+            public val byName: Map<String, Int?>
+
+            """.trimIndent(),
+            printed,
+        )
+    }
+
+    @Test
+    fun `a nested type application closes without a space`() {
+        val inner = KtExpr.TypeApplication(KtExpr.Name("List"), listOf(KtExpr.Name("Int")))
+        val nested = KtExpr.TypeApplication(KtExpr.Name("List"), listOf(inner))
+        val printed = KtPrinter().print(ktFile(property("matrix", nested)))
+
+        assertEquals(
+            """
+            package com.example.app
+
+            public val matrix: List<List<Int>>
+
+            """.trimIndent(),
+            printed,
+        )
+        assertFalse(printed.contains(" >"), printed)
+    }
+
+    @Test
+    fun `a nullable type prints tight against its inner type`() {
+        val printed = KtPrinter().print(
+            ktFile(
+                KtDeclaration.Class(
+                    "HomeState",
+                    emptyList(),
+                    listOf(
+                        property("picked", KtExpr.Nullable(KtExpr.Name("Int"))),
+                        property("names", KtExpr.Nullable(typeApplied("List", "String"))),
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals(
+            """
+            package com.example.app
+
+            public class HomeState {
+                public val picked: Int?
+
+                public val names: List<String>?
+            }
+
+            """.trimIndent(),
+            printed,
+        )
+    }
+
+    @Test
+    fun `a type application and a nullable bind as atoms inside a binary operator`() {
+        // Both reach `levelOf`'s `else`, which is an atom, so neither operand loses a
+        // parenthesis to the operator's own level.
+        val sum = KtExpr.Binary(
+            KtOp.Add,
+            typeApplied("Map", "String", "Int"),
+            KtExpr.Nullable(KtExpr.Name("count")),
+        )
+        val printed = KtPrinter().print(ktFile(drawn(sum)))
+
+        assertEquals(
+            """
+            package com.example.app
+
+            public fun value() {
+                Map<String, Int> + count?
+            }
+
+            """.trimIndent(),
+            printed,
+        )
+    }
+
+    @Test
+    fun `a symbol in a type base, a type argument and a nullable records its import`() {
+        val printed = KtPrinter().print(
+            ktFile(
+                KtDeclaration.Class(
+                    "HomeState",
+                    emptyList(),
+                    listOf(
+                        property(
+                            "themed",
+                            KtExpr.TypeApplication(
+                                reference("com.example.ui", "Theme"),
+                                listOf(
+                                    reference("com.example.ui", "Tint"),
+                                    reference("com.example.ui", "Spacing"),
+                                ),
+                            ),
+                        ),
+                        property("picked", KtExpr.Nullable(reference("com.example.ui", "Tint"))),
+                    ),
+                ),
+            ),
+        )
+
+        // Three walks, one file: a type base and a nullable inner are paths collectExprSymbols
+        // does not otherwise reach.
+        assertEquals(
+            """
+            package com.example.app
+
+            import com.example.ui.Spacing
+            import com.example.ui.Theme
+            import com.example.ui.Tint
+
+            public class HomeState {
+                public val themed: Theme<Tint, Spacing>
+
+                public val picked: Tint?
+            }
+
+            """.trimIndent(),
+            printed,
+        )
+    }
+
     /** `name == null` as the `core.isNull` template spells it: a comparison, not a call. */
     private fun isNullOf(name: String): KtExpr = KtExpr.PatternCall(
         pattern = "{0} == null",
@@ -429,4 +606,8 @@ class KtPrinterTest {
 
     /** A call to the library's `Badge`, so a declared `Badge` collides with it. */
     private fun badgeCall(): KtExpr = KtExpr.Call(reference("androidx.compose.material", "Badge"), emptyList())
+
+    /** `base<arg…>` for bare-named arguments; a nested one is built as nested IR, not as text. */
+    private fun typeApplied(base: String, vararg args: String): KtExpr =
+        KtExpr.TypeApplication(KtExpr.Name(base), args.map { KtExpr.Name(it) })
 }

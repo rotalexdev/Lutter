@@ -237,6 +237,11 @@ public class KtPrinter(
             is KtExpr.IfElse -> "if (" + renderExpr(expr.cond, indent, aliases) + ") " +
                 renderExpr(expr.then, indent, aliases) + " else " + renderExpr(expr.otherwise, indent, aliases)
             is KtCall -> renderKtCall(expr, indent, aliases)
+            // The closing bracket follows the last argument with nothing between: the comma is
+            // what separates arguments, so `List<List<Int>>` must not grow a space before `>`.
+            is KtExpr.TypeApplication -> renderExpr(expr.base, indent, aliases) + "<" +
+                expr.args.joinToString(", ") { renderExpr(it, indent, aliases) } + ">"
+            is KtExpr.Nullable -> renderExpr(expr.inner, indent, aliases) + "?"
         }
 
     /**
@@ -488,6 +493,11 @@ public class KtPrinter(
             collectExprSymbols(expr.receiver, filePkg, seen)
             for (call in expr.calls) collectExprSymbols(call, filePkg, seen)
         }
+        if (expr is KtExpr.TypeApplication) {
+            collectExprSymbols(expr.base, filePkg, seen)
+            for (arg in expr.args) collectExprSymbols(arg, filePkg, seen)
+        }
+        if (expr is KtExpr.Nullable) collectExprSymbols(expr.inner, filePkg, seen)
     }
 
     private fun collectStmtSymbols(
