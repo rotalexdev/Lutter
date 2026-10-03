@@ -14,8 +14,12 @@ public typealias ResolvedArgs = Map<PropertyKey, ResolvedProp>
  *
  * The same kind table node properties read through, so an applier decodes a `dp` by handing
  * it the [PropertySpec] the document declared rather than by casting the value itself.
+ *
+ * No evaluation, and the signature says so: §15.3 folds arguments through the applier and an
+ * applier is handed no scope, so a computed argument is refused by name. Threading one would mean
+ * a parameter on [ModifierApplier.apply], which every registered applier would then need.
  */
-public fun ResolvedArgs.reader(): PropertyReader = MapPropertyReader(this)
+public fun ResolvedArgs.reader(): PropertyReader = MapPropertyReader(this, null)
 
 /**
  * What a modifier applier sees of the layout context: the node's scope set plus

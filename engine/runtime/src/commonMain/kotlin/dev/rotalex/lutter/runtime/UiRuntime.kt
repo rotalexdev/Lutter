@@ -1,5 +1,6 @@
 package dev.rotalex.lutter.runtime
 
+import dev.rotalex.lutter.interpreter.eval.Evaluator
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
@@ -9,6 +10,10 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
  *
  * PLAN §15.2 field for field. Construction fails naming every spec type without
  * a renderer, so a gap surfaces here and not as a blank screen.
+ *
+ * [evaluator] is built from [implementations] rather than injected, because §15.3 says the
+ * `FunctionImpl`s come from there: one place owns the dispatch table and every screen below this
+ * reads its expressions through the same evaluator.
  */
 public class UiRuntime(
     public val renderers: RendererRegistry,
@@ -16,6 +21,9 @@ public class UiRuntime(
     public val implementations: Implementations,
     schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
 ) {
+    /** §15.3's expression interpreter over the functions [implementations] carries. */
+    public val evaluator: Evaluator = Evaluator(implementations.functions)
+
     init {
         RuntimeCoverage.check(schema, this)
     }

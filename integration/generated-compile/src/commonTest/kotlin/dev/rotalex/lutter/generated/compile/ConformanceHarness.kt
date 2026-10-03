@@ -5,6 +5,7 @@ import dev.rotalex.lutter.analysis.AnalysisResult
 import dev.rotalex.lutter.builtins.compose.registerBuiltinModifierAppliers
 import dev.rotalex.lutter.builtins.compose.registerBuiltinRenderers
 import dev.rotalex.lutter.builtins.registerBuiltinEnums
+import dev.rotalex.lutter.builtins.registerBuiltinFunctions
 import dev.rotalex.lutter.builtins.registerBuiltinModifiers
 import dev.rotalex.lutter.builtins.registerBuiltinSpecs
 import dev.rotalex.lutter.model.doc.UiDocument
@@ -19,6 +20,7 @@ import dev.rotalex.lutter.runtime.RuntimeEnvironment
 import dev.rotalex.lutter.runtime.UiRuntime
 import dev.rotalex.lutter.schema.Schema
 import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import dev.rotalex.lutter.schema.types.TypeSpec
 import dev.rotalex.lutter.serialization.JsonDocumentCodec
@@ -31,20 +33,23 @@ import dev.rotalex.lutter.serialization.JsonDocumentCodec
  */
 internal object ConformanceHarness {
     /**
-     * The walking-skeleton schema: the builtin specs, the §31.2 modifiers and the enum types.
+     * The walking-skeleton schema: the builtin specs, the §31.2 modifiers, the enum types and
+     * §10.2's seed functions.
      *
-     * The type slot binds [TypeSpec] rather than a stub because `registerBuiltinEnums` only
-     * exists for that binding, and an enum entry has no `KotlinSymbol` without its spec.
+     * The type slot binds [TypeSpec] and the function slot [FunctionSpec] rather than a stub
+     * because each registrar only exists for that binding, and both questions a document can ask
+     * — is this an enum entry, is this a known function — have no answer without the spec.
      */
-    fun schema(): Schema<ComponentSpec, ModifierSpec, Unit, Unit, TypeSpec> =
+    fun schema(): Schema<ComponentSpec, ModifierSpec, Unit, FunctionSpec, TypeSpec> =
         Schema.build {
             registerBuiltinSpecs()
             registerBuiltinModifiers()
             registerBuiltinEnums()
+            registerBuiltinFunctions()
         }
 
     /** A runtime over [schema]. Construction itself proves renderer and applier coverage. */
-    fun runtime(schema: Schema<ComponentSpec, ModifierSpec, Unit, Unit, TypeSpec>): UiRuntime {
+    fun runtime(schema: Schema<ComponentSpec, ModifierSpec, Unit, FunctionSpec, TypeSpec>): UiRuntime {
         val renderers = RendererRegistryBuilder().apply { registerBuiltinRenderers() }.build()
         val modifiers = ModifierApplierRegistryBuilder()
             .apply { registerBuiltinModifierAppliers() }
@@ -58,7 +63,7 @@ internal object ConformanceHarness {
 
     /** The fixture decoded and analyzed, diagnostics included for the tests to assert on. */
     fun analyze(
-        schema: Schema<ComponentSpec, ModifierSpec, Unit, Unit, TypeSpec>,
+        schema: Schema<ComponentSpec, ModifierSpec, Unit, FunctionSpec, TypeSpec>,
         id: String,
     ): AnalysisResult {
         val document: UiDocument =

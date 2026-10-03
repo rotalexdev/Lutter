@@ -59,6 +59,11 @@ public abstract interface class dev/rotalex/lutter/codegen/CustomEmitter {
 	public abstract fun emit (Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;)Ldev/rotalex/lutter/codegen/KtExpr;
 }
 
+public final class dev/rotalex/lutter/codegen/ExprEmitter {
+	public fun <init> (Ldev/rotalex/lutter/schema/registry/Registry;)V
+	public final fun emit (Ldev/rotalex/lutter/model/expr/TypedExpr;)Ldev/rotalex/lutter/codegen/KtExpr;
+}
+
 public final class dev/rotalex/lutter/codegen/FormattingOptions {
 	public fun <init> ()V
 	public fun <init> (III)V
@@ -153,6 +158,11 @@ public final class dev/rotalex/lutter/codegen/KotlinGenerator {
 	public static synthetic fun generate$default (Ldev/rotalex/lutter/codegen/KotlinGenerator;Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/CodegenResult;
 }
 
+public final class dev/rotalex/lutter/codegen/KotlinTypes {
+	public static final field INSTANCE Ldev/rotalex/lutter/codegen/KotlinTypes;
+	public final fun exprFor (Ldev/rotalex/lutter/model/type/TypeRef;)Ldev/rotalex/lutter/codegen/KtExpr;
+}
+
 public final class dev/rotalex/lutter/codegen/KtArg {
 	public fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/codegen/KtExpr;)V
 	public final fun component1 ()Ljava/lang/String;
@@ -185,6 +195,21 @@ public final class dev/rotalex/lutter/codegen/KtCall : dev/rotalex/lutter/codege
 public abstract interface class dev/rotalex/lutter/codegen/KtDeclaration {
 }
 
+public final class dev/rotalex/lutter/codegen/KtDeclaration$Class : dev/rotalex/lutter/codegen/KtDeclaration {
+	public fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtDeclaration$Class;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtDeclaration$Class;Ljava/lang/String;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtDeclaration$Class;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnnotations ()Ljava/util/List;
+	public final fun getMembers ()Ljava/util/List;
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/rotalex/lutter/codegen/KtDeclaration$Function : dev/rotalex/lutter/codegen/KtDeclaration {
 	public fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
 	public final fun component1 ()Ljava/lang/String;
@@ -202,7 +227,45 @@ public final class dev/rotalex/lutter/codegen/KtDeclaration$Function : dev/rotal
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/codegen/KtDeclaration$Property : dev/rotalex/lutter/codegen/KtDeclaration {
+	public fun <init> (Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;ZLdev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun component4 ()Z
+	public final fun component5 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun component6 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun component7 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;ZLdev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtDeclaration$Property;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtDeclaration$Property;Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;ZLdev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtDeclaration$Property;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnnotations ()Ljava/util/List;
+	public final fun getDelegate ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun getGetter ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun getInitializer ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun getMutable ()Z
+	public final fun getName ()Ljava/lang/String;
+	public final fun getType ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public abstract interface class dev/rotalex/lutter/codegen/KtExpr {
+}
+
+public final class dev/rotalex/lutter/codegen/KtExpr$Binary : dev/rotalex/lutter/codegen/KtExpr {
+	public fun <init> (Ldev/rotalex/lutter/codegen/KtOp;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;)V
+	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtOp;
+	public final fun component2 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun component3 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun copy (Ldev/rotalex/lutter/codegen/KtOp;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr$Binary;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtExpr$Binary;Ldev/rotalex/lutter/codegen/KtOp;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtExpr$Binary;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLeft ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun getOp ()Ldev/rotalex/lutter/codegen/KtOp;
+	public final fun getRight ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class dev/rotalex/lutter/codegen/KtExpr$Call : dev/rotalex/lutter/codegen/KtExpr {
@@ -230,6 +293,21 @@ public final class dev/rotalex/lutter/codegen/KtExpr$Chain : dev/rotalex/lutter/
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getCalls ()Ljava/util/List;
 	public final fun getReceiver ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/KtExpr$IfElse : dev/rotalex/lutter/codegen/KtExpr {
+	public fun <init> (Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;)V
+	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun component2 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun component3 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun copy (Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr$IfElse;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtExpr$IfElse;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtExpr$IfElse;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCond ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun getOtherwise ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun getThen ()Ldev/rotalex/lutter/codegen/KtExpr;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -262,14 +340,17 @@ public final class dev/rotalex/lutter/codegen/KtExpr$Literal : dev/rotalex/lutte
 }
 
 public final class dev/rotalex/lutter/codegen/KtExpr$Member : dev/rotalex/lutter/codegen/KtExpr {
-	public fun <init> (Ldev/rotalex/lutter/codegen/KtExpr;Ljava/lang/String;)V
+	public fun <init> (Ldev/rotalex/lutter/codegen/KtExpr;Ljava/lang/String;Z)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/codegen/KtExpr;Ljava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtExpr;
 	public final fun component2 ()Ljava/lang/String;
-	public final fun copy (Ldev/rotalex/lutter/codegen/KtExpr;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtExpr$Member;
-	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtExpr$Member;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtExpr$Member;
+	public final fun component3 ()Z
+	public final fun copy (Ldev/rotalex/lutter/codegen/KtExpr;Ljava/lang/String;Z)Ldev/rotalex/lutter/codegen/KtExpr$Member;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtExpr$Member;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/lang/String;ZILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtExpr$Member;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getName ()Ljava/lang/String;
 	public final fun getReceiver ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun getSafe ()Z
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -281,6 +362,35 @@ public final class dev/rotalex/lutter/codegen/KtExpr$Name : dev/rotalex/lutter/c
 	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtExpr$Name;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtExpr$Name;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/KtExpr$Nullable : dev/rotalex/lutter/codegen/KtExpr {
+	public fun <init> (Ldev/rotalex/lutter/codegen/KtExpr;)V
+	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun copy (Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr$Nullable;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtExpr$Nullable;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtExpr$Nullable;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getInner ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/KtExpr$PatternCall : dev/rotalex/lutter/codegen/KtExpr {
+	public fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/function/FunctionPrecedence;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/function/FunctionPrecedence;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ljava/util/List;
+	public final fun component4 ()Ldev/rotalex/lutter/schema/function/FunctionPrecedence;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/function/FunctionPrecedence;)Ldev/rotalex/lutter/codegen/KtExpr$PatternCall;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtExpr$PatternCall;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/function/FunctionPrecedence;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtExpr$PatternCall;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArgs ()Ljava/util/List;
+	public final fun getImports ()Ljava/util/List;
+	public final fun getPattern ()Ljava/lang/String;
+	public final fun getPrecedence ()Ldev/rotalex/lutter/schema/function/FunctionPrecedence;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -309,6 +419,43 @@ public final class dev/rotalex/lutter/codegen/KtExpr$Snippet : dev/rotalex/lutte
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/codegen/KtExpr$StringTemplate : dev/rotalex/lutter/codegen/KtExpr {
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtExpr$StringTemplate;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtExpr$StringTemplate;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtExpr$StringTemplate;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getParts ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/KtExpr$TypeApplication : dev/rotalex/lutter/codegen/KtExpr {
+	public fun <init> (Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;)V
+	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtExpr$TypeApplication;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtExpr$TypeApplication;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtExpr$TypeApplication;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArgs ()Ljava/util/List;
+	public final fun getBase ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/KtExpr$Unary : dev/rotalex/lutter/codegen/KtExpr {
+	public fun <init> (Ldev/rotalex/lutter/codegen/KtOp;Ldev/rotalex/lutter/codegen/KtExpr;)V
+	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtOp;
+	public final fun component2 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun copy (Ldev/rotalex/lutter/codegen/KtOp;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr$Unary;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtExpr$Unary;Ldev/rotalex/lutter/codegen/KtOp;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtExpr$Unary;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getOp ()Ldev/rotalex/lutter/codegen/KtOp;
+	public final fun getOperand ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/rotalex/lutter/codegen/KtFile {
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)V
 	public final fun component1 ()Ljava/lang/String;
@@ -322,6 +469,26 @@ public final class dev/rotalex/lutter/codegen/KtFile {
 	public final fun getPkg ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/KtOp : java/lang/Enum {
+	public static final field Add Ldev/rotalex/lutter/codegen/KtOp;
+	public static final field And Ldev/rotalex/lutter/codegen/KtOp;
+	public static final field Eq Ldev/rotalex/lutter/codegen/KtOp;
+	public static final field Ge Ldev/rotalex/lutter/codegen/KtOp;
+	public static final field Gt Ldev/rotalex/lutter/codegen/KtOp;
+	public static final field Le Ldev/rotalex/lutter/codegen/KtOp;
+	public static final field Lt Ldev/rotalex/lutter/codegen/KtOp;
+	public static final field Mul Ldev/rotalex/lutter/codegen/KtOp;
+	public static final field Neg Ldev/rotalex/lutter/codegen/KtOp;
+	public static final field Neq Ldev/rotalex/lutter/codegen/KtOp;
+	public static final field Not Ldev/rotalex/lutter/codegen/KtOp;
+	public static final field Or Ldev/rotalex/lutter/codegen/KtOp;
+	public static final field Sub Ldev/rotalex/lutter/codegen/KtOp;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun getSymbol ()Ljava/lang/String;
+	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtOp;
+	public static fun values ()[Ldev/rotalex/lutter/codegen/KtOp;
 }
 
 public final class dev/rotalex/lutter/codegen/KtParam {
@@ -349,6 +516,19 @@ public final class dev/rotalex/lutter/codegen/KtPrinter {
 public abstract interface class dev/rotalex/lutter/codegen/KtStmt {
 }
 
+public final class dev/rotalex/lutter/codegen/KtStmt$Assign : dev/rotalex/lutter/codegen/KtStmt {
+	public fun <init> (Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;)V
+	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun component2 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun copy (Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtStmt$Assign;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtStmt$Assign;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtStmt$Assign;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getTarget ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun getValue ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/rotalex/lutter/codegen/KtStmt$Expr : dev/rotalex/lutter/codegen/KtStmt {
 	public fun <init> (Ldev/rotalex/lutter/codegen/KtExpr;)V
 	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtExpr;
@@ -356,6 +536,25 @@ public final class dev/rotalex/lutter/codegen/KtStmt$Expr : dev/rotalex/lutter/c
 	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtStmt$Expr;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtStmt$Expr;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getExpr ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/KtStmt$LocalProperty : dev/rotalex/lutter/codegen/KtStmt {
+	public fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/codegen/KtExpr;ZLdev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun component3 ()Z
+	public final fun component4 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun component5 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun copy (Ljava/lang/String;Ldev/rotalex/lutter/codegen/KtExpr;ZLdev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtStmt$LocalProperty;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtStmt$LocalProperty;Ljava/lang/String;Ldev/rotalex/lutter/codegen/KtExpr;ZLdev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtStmt$LocalProperty;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDelegate ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun getInitializer ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun getMutable ()Z
+	public final fun getName ()Ljava/lang/String;
+	public final fun getType ()Ldev/rotalex/lutter/codegen/KtExpr;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -370,6 +569,31 @@ public final class dev/rotalex/lutter/codegen/KtSymbolRef {
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getMember ()Ljava/lang/String;
 	public final fun getSymbol ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/rotalex/lutter/codegen/KtTemplatePart {
+}
+
+public final class dev/rotalex/lutter/codegen/KtTemplatePart$Interpolation : dev/rotalex/lutter/codegen/KtTemplatePart {
+	public fun <init> (Ldev/rotalex/lutter/codegen/KtExpr;)V
+	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun copy (Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtTemplatePart$Interpolation;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtTemplatePart$Interpolation;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtTemplatePart$Interpolation;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getExpr ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/KtTemplatePart$Text : dev/rotalex/lutter/codegen/KtTemplatePart {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtTemplatePart$Text;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtTemplatePart$Text;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtTemplatePart$Text;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getText ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }

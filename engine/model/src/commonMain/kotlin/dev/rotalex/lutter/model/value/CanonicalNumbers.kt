@@ -66,6 +66,15 @@ import kotlin.math.abs
  * produced by evaluation is never serialized, so it may hold any finite double, canonical or
  * not. Canonicalization is a property of the *document*, not of the arithmetic.
  *
+ * ### Fixed-width text, and why one of the two is public
+ *
+ * §10.6 rules a float out of a template and hands `num.format(v, n)` the job. A generated call
+ * carries a template and its imports and nothing else (§10.3), so the emitted Kotlin has to
+ * *call* whatever the interpreter calls. Two implementations of the same arithmetic would
+ * agree by convention until one of them was edited; one implementation cannot drift at all.
+ * [fixedDecimalText] is therefore public and lives here, beside the rounding rule it reuses,
+ * rather than in either backend.
+ *
  * @see CanonicalDouble for the serializer, and for why the text has to bypass `encodeDouble`.
  */
 
@@ -211,9 +220,10 @@ internal fun canonicalText(value: Float): String = canonicalText(value.toDouble(
  * The scaled integer a value is written from, or a failure if it has none.
  *
  * This is the one place the two rules live: finite, and within [MAX_CANONICAL_MAGNITUDE].
- * Canonicalization, formatting and decoding all go through it, which is why a value that
- * cannot be canonicalized cannot be written either — there is no second path that forgot to
- * ask.
+ * Canonicalization and decoding both go through it, which is why a value that cannot be
+ * canonicalized cannot be written either — there is no second path that forgot to ask.
+ * [fixedDecimalText] is the one formatter that does not ask, and it has to leave it out: §10.6
+ * makes functions total, and a bound a formatter may refuse is a bound it cannot have.
  */
 private fun requireUnits(value: Double): Long {
     require(value.isFinite()) { "Non-finite value: '$value'" }
@@ -225,18 +235,28 @@ private fun requireUnits(value: Double): Long {
             "the largest canonical magnitude is $MAX_CANONICAL_MAGNITUDE"
     }
 
-    val scaled = magnitude * SCALE.toDouble()
+    return roundedUnits(magnitude, SCALE.toDouble())
+}
 
-    // Truncation toward zero, and a comparison rather than an added `0.5`. The comparison
-    // is what makes the tie rule exact: `scaled - units` is a subtraction of two doubles
-    // within a factor of two of each other, so Sterbenz's lemma applies and the result is
-    // the true fractional part with no rounding of its own. `units.toDouble()` is exact for
-    // the same reason the bound is where it is — `units` is below 2^51, well under the 2^53
-    // a double holds exactly.
+/**
+ * [magnitude] times [scale], rounded to the nearest integer with ties away from zero.
+ *
+ * Truncation and a comparison rather than an added `0.5`, and the comparison is what makes the
+ * tie rule exact: `scaled - units` subtracts two doubles within a factor of two of each other,
+ * so Sterbenz's lemma applies and the difference is the true fractional part with no rounding
+ * of its own. `units.toDouble()` is exact for the same reason [MAX_CANONICAL_MAGNITUDE] is
+ * where it is.
+ *
+ * `Double.toLong()` saturates, so a magnitude too large to scale answers the largest integer
+ * instead of throwing — and the `units == Long.MAX_VALUE` guard keeps the tie from wrapping
+ * that answer back to a negative one. Total arithmetic is worth exactly this much arithmetic.
+ */
+private fun roundedUnits(magnitude: Double, scale: Double): Long {
+    val scaled = magnitude * scale
     val units = scaled.toLong()
     val fraction = scaled - units.toDouble()
-
-    return if (fraction >= 0.5) units + 1 else units
+    if (fraction < 0.5 || units == Long.MAX_VALUE) return units
+    return units + 1
 }
 
 /**
@@ -272,6 +292,61 @@ private fun textOf(units: Long, negative: Boolean): String {
     val digits = fraction.toString().padStart(SCALE_DIGITS, '0').trimEnd('0')
     return "$sign$whole.$digits"
 }
+
+// ---------------------------------------------------------------------------------------
+// Fixed-width text
+// ---------------------------------------------------------------------------------------
+
+/**
+ * [value] as text carrying exactly [decimals] fractional digits, ties rounded away from zero.
+ *
+ * `num.format`'s arithmetic, and the one function both backends call: §10.6's reason for
+ * ruling a float out of a template is that `Double.toString()` is not portable, so the digits
+ * have to come out of an integer. Total, as §10.6 requires of every function — a non-finite
+ * value is spelled rather than refused, because arithmetic reaches NaN even though no document
+ * literal can, and a caller-chosen width wider than [MAX_DECIMALS] is clamped rather than
+ * refused for the same reason.
+ *
+ * Unlike [canonicalText], which trims to the last non-zero digit: this answers a width the
+ * caller asked for, and `1.20` at two decimals is not `1.2`.
+ */
+public fun fixedDecimalText(value: Double, decimals: Int): String {
+    if (!value.isFinite()) return nonFiniteText(value)
+    val places = decimals.coerceIn(0, MAX_DECIMALS)
+    val units = roundedUnits(abs(value), DECIMAL_SCALES[places])
+    // The sign is asked of the rounded integer rather than of the value, so a value that
+    // rounds to zero is written `0` and not `-0`: one spelling for zero, as above.
+    val sign = if (units != 0L && value < 0.0) "-" else ""
+    val scale = DECIMAL_SCALES[places].toLong()
+    val whole = units / scale
+    if (places == 0) return "$sign$whole"
+    return "$sign$whole.${(units % scale).toString().padStart(places, '0')}"
+}
+
+/**
+ * The three non-finite spellings, written out instead of `toString()`ed.
+ *
+ * `toString()` on `Double` is the one thing §10.6's hazard row is about, so the formatter that
+ * exists to avoid it cannot be the thing that reintroduces it — and a hand-written spelling is
+ * also the only one that is identical on JS, JVM, Native and Wasm.
+ */
+private fun nonFiniteText(value: Double): String = when {
+    value.isNaN() -> "NaN"
+    value > 0.0 -> "Infinity"
+    else -> "-Infinity"
+}
+
+/** Widest [fixedDecimalText] accepts: the scale has to be exact and the scaled integer a `Long`. */
+private const val MAX_DECIMALS: Int = 9
+
+/**
+ * `10^n` for `n` in `0..MAX_DECIMALS`, all exact. A table rather than `pow`, which is a libm
+ * call and would put the last bit of the scale outside this file's control.
+ */
+private val DECIMAL_SCALES: DoubleArray = doubleArrayOf(
+    1.0, 10.0, 100.0, 1_000.0, 10_000.0,
+    100_000.0, 1_000_000.0, 10_000_000.0, 100_000_000.0, 1.0e9,
+)
 
 // ---------------------------------------------------------------------------------------
 // The scale

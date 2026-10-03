@@ -15,7 +15,9 @@ import dev.rotalex.lutter.schema.component.PropertySpec
  * Typed reads over one resolved node. Defaults are already applied upstream.
  *
  * Absent reads as null, which suits optional handles; required ones are proven
- * present by analysis. Computed constants resolve; other expressions throw until Phase 6.
+ * present by analysis. A computed property runs §15.3's evaluator; the reader stays
+ * non-composable, because a snapshot read subscribes the composition it happens in
+ * whichever function makes it.
  *
  * The `?` is load-bearing: a non-null return type makes the absent read throw at the call site
  * for every spec whose `T` is non-nullable, and every applier here already reads it as optional.

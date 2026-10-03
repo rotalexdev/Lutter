@@ -35,6 +35,7 @@ import dev.rotalex.lutter.schema.component.ValueEmit
 import dev.rotalex.lutter.schema.component.component
 import dev.rotalex.lutter.schema.component.componentSpec
 import dev.rotalex.lutter.schema.component.prop
+import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.modifier.ModifierEmit
 import dev.rotalex.lutter.schema.modifier.ModifierMetadata
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
@@ -137,7 +138,7 @@ class CodegenTest {
     fun `conflicting function names alias deterministically`() {
         val alpha = ComponentType("test.Alpha")
         val beta = ComponentType("test.Beta")
-        val schema: Schema<ComponentSpec, ModifierSpec, String, String, String> =
+        val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
             Schema.build {
                 component(columnStub(columnType))
                 component(textStub(alpha, KotlinSymbol("com.example.a", "Text")))
@@ -469,8 +470,8 @@ class CodegenTest {
         boxScope to mapOf("BottomRight" to KotlinSymbol("androidx.compose.ui", "AbsoluteAlignment.BottomRight")),
     )
 
-    private fun scopedSchema(): Schema<ComponentSpec, ModifierSpec, String, String, TypeSpec> =
-        Schema.build<ComponentSpec, ModifierSpec, String, String, TypeSpec> {
+    private fun scopedSchema(): Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, TypeSpec> =
+        Schema.build<ComponentSpec, ModifierSpec, String, FunctionSpec, TypeSpec> {
             component(layoutStub(rowType, "Row", rowScope))
             component(layoutStub(columnType, "Column", columnScope))
             component(layoutStub(boxType, "Box", boxScope))
@@ -526,8 +527,8 @@ class CodegenTest {
     // The enum is registered or not, which is the whole difference between the two arrangement
     // tests: a symbol nobody declared cannot be written down.
     private fun arrangementScreen(withEnum: Boolean): CodegenResult {
-        val schema: Schema<ComponentSpec, ModifierSpec, String, String, TypeSpec> =
-            Schema.build<ComponentSpec, ModifierSpec, String, String, TypeSpec> {
+        val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, TypeSpec> =
+            Schema.build<ComponentSpec, ModifierSpec, String, FunctionSpec, TypeSpec> {
                 component(rowStub())
                 if (withEnum) type(arrangementEnum)
             }
@@ -610,7 +611,7 @@ class CodegenTest {
             emptySet(),
         )
 
-    private fun testSchema(): Schema<ComponentSpec, ModifierSpec, String, String, String> =
+    private fun testSchema(): Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
         Schema.build {
             val spacing = prop<Float>("spacing", TypeRef.Dp)
             component(

@@ -67,6 +67,7 @@ final enum class dev.rotalex.lutter.schema.component/Positional : kotlin/Enum<de
 final enum class dev.rotalex.lutter.schema.function/FunctionPrecedence : kotlin/Enum<dev.rotalex.lutter.schema.function/FunctionPrecedence> { // dev.rotalex.lutter.schema.function/FunctionPrecedence|null[0]
     enum entry Atom // dev.rotalex.lutter.schema.function/FunctionPrecedence.Atom|null[0]
     enum entry Call // dev.rotalex.lutter.schema.function/FunctionPrecedence.Call|null[0]
+    enum entry Comparison // dev.rotalex.lutter.schema.function/FunctionPrecedence.Comparison|null[0]
 
     final val entries // dev.rotalex.lutter.schema.function/FunctionPrecedence.entries|#static{}entries[0]
         final fun <get-entries>(): kotlin.enums/EnumEntries<dev.rotalex.lutter.schema.function/FunctionPrecedence> // dev.rotalex.lutter.schema.function/FunctionPrecedence.entries.<get-entries>|<get-entries>#static(){}[0]
@@ -508,6 +509,19 @@ sealed interface dev.rotalex.lutter.schema.function/TypeSig { // dev.rotalex.lut
         final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.schema.function/TypeSig.Nullable.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // dev.rotalex.lutter.schema.function/TypeSig.Nullable.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // dev.rotalex.lutter.schema.function/TypeSig.Nullable.toString|toString(){}[0]
+    }
+
+    final class OneOf : dev.rotalex.lutter.schema.function/TypeSig { // dev.rotalex.lutter.schema.function/TypeSig.OneOf|null[0]
+        constructor <init>(kotlin.collections/List<dev.rotalex.lutter.schema.function/TypeSig>) // dev.rotalex.lutter.schema.function/TypeSig.OneOf.<init>|<init>(kotlin.collections.List<dev.rotalex.lutter.schema.function.TypeSig>){}[0]
+
+        final val options // dev.rotalex.lutter.schema.function/TypeSig.OneOf.options|{}options[0]
+            final fun <get-options>(): kotlin.collections/List<dev.rotalex.lutter.schema.function/TypeSig> // dev.rotalex.lutter.schema.function/TypeSig.OneOf.options.<get-options>|<get-options>(){}[0]
+
+        final fun component1(): kotlin.collections/List<dev.rotalex.lutter.schema.function/TypeSig> // dev.rotalex.lutter.schema.function/TypeSig.OneOf.component1|component1(){}[0]
+        final fun copy(kotlin.collections/List<dev.rotalex.lutter.schema.function/TypeSig> = ...): dev.rotalex.lutter.schema.function/TypeSig.OneOf // dev.rotalex.lutter.schema.function/TypeSig.OneOf.copy|copy(kotlin.collections.List<dev.rotalex.lutter.schema.function.TypeSig>){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.schema.function/TypeSig.OneOf.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // dev.rotalex.lutter.schema.function/TypeSig.OneOf.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // dev.rotalex.lutter.schema.function/TypeSig.OneOf.toString|toString(){}[0]
     }
 }
 

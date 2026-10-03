@@ -834,6 +834,7 @@ public final class dev/rotalex/lutter/schema/function/FunctionEmit {
 public final class dev/rotalex/lutter/schema/function/FunctionPrecedence : java/lang/Enum {
 	public static final field Atom Ldev/rotalex/lutter/schema/function/FunctionPrecedence;
 	public static final field Call Ldev/rotalex/lutter/schema/function/FunctionPrecedence;
+	public static final field Comparison Ldev/rotalex/lutter/schema/function/FunctionPrecedence;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/schema/function/FunctionPrecedence;
 	public static fun values ()[Ldev/rotalex/lutter/schema/function/FunctionPrecedence;
@@ -909,6 +910,17 @@ public final class dev/rotalex/lutter/schema/function/TypeSig$Nullable : dev/rot
 	public static synthetic fun copy$default (Ldev/rotalex/lutter/schema/function/TypeSig$Nullable;Ldev/rotalex/lutter/schema/function/TypeSig;ILjava/lang/Object;)Ldev/rotalex/lutter/schema/function/TypeSig$Nullable;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getInner ()Ldev/rotalex/lutter/schema/function/TypeSig;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/schema/function/TypeSig$OneOf : dev/rotalex/lutter/schema/function/TypeSig {
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Ldev/rotalex/lutter/schema/function/TypeSig$OneOf;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/schema/function/TypeSig$OneOf;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/schema/function/TypeSig$OneOf;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getOptions ()Ljava/util/List;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
