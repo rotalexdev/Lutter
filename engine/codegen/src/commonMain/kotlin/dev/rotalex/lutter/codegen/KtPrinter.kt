@@ -1,6 +1,7 @@
 package dev.rotalex.lutter.codegen
 
 import dev.rotalex.lutter.schema.component.KotlinSymbol
+import dev.rotalex.lutter.schema.function.FunctionPrecedence
 
 /**
  * IR to text: 4-space indent, LF, one blank line between declarations, trailing newline.
@@ -217,13 +218,60 @@ public class KtPrinter(
             is KtExpr.Literal -> expr.text
             is KtExpr.Name -> expr.name
             is KtExpr.Snippet -> expr.text
+            is KtExpr.StringTemplate -> renderTemplate(expr, indent, aliases)
             is KtExpr.Lambda -> renderLambda(expr, indent, aliases).trimStart()
-            is KtExpr.Member -> renderExpr(expr.receiver, indent, aliases) + "." + expr.name
+            is KtExpr.Member -> {
+                val access: String = if (expr.safe) "?." else "."
+                operand(expr.receiver, indent, aliases, KtBinding.Postfix) + access + expr.name
+            }
             is KtExpr.Ref -> refOf(expr.symbol, aliases)
             is KtExpr.Call -> renderCall(expr, indent, aliases)
+            is KtExpr.PatternCall -> renderPatternCall(expr, indent, aliases)
             is KtExpr.Chain -> renderChain(expr, indent, aliases)
+            // The right operand asks for one level more: every operator here is left-associative,
+            // so `a - (b - c)` and `(a - b) - c` are two trees and only one may lose the parens.
+            is KtExpr.Binary -> operand(expr.left, indent, aliases, expr.op.precedence) +
+                " " + expr.op.symbol + " " +
+                operand(expr.right, indent, aliases, expr.op.precedence + 1)
+            is KtExpr.Unary -> expr.op.symbol + operand(expr.operand, indent, aliases, KtBinding.Prefix)
+            is KtExpr.IfElse -> "if (" + renderExpr(expr.cond, indent, aliases) + ") " +
+                renderExpr(expr.then, indent, aliases) + " else " + renderExpr(expr.otherwise, indent, aliases)
             is KtCall -> renderKtCall(expr, indent, aliases)
         }
+
+    /**
+     * [expr] as an operand of something binding at [min], parenthesised when it binds looser.
+     *
+     * An equal level on the right parenthesises too, for the reason [renderExpr]'s binary branch
+     * gives. Every other position — a call argument, an `if` branch — is delimited by its own
+     * punctuation and passes [KtBinding.Conditional].
+     */
+    private fun operand(expr: KtExpr, indent: Int, aliases: Map<String, String>, min: Int): String {
+        val rendered: String = renderExpr(expr, indent, aliases)
+        if (levelOf(expr) >= min) return rendered
+        return "(" + rendered + ")"
+    }
+
+    /** What [expr] binds as. Anything unlisted is an atom, which is what Kotlin says it is. */
+    private fun levelOf(expr: KtExpr): Int = when (expr) {
+        is KtExpr.Binary -> expr.op.precedence
+        is KtExpr.Unary -> KtBinding.Prefix
+        is KtExpr.IfElse -> KtBinding.Conditional
+        is KtExpr.PatternCall -> levelOf(expr.precedence)
+        else -> KtBinding.Atom
+    }
+
+    /**
+     * A template's declared level, resolved into the ladder [KtOp] uses.
+     *
+     * `Comparison` maps to the looser of the two comparison levels, never the tighter one: a
+     * template that binds looser than it declared only ever gains parentheses.
+     */
+    private fun levelOf(level: FunctionPrecedence): Int = when (level) {
+        FunctionPrecedence.Atom -> KtBinding.Atom
+        FunctionPrecedence.Call -> KtBinding.Postfix
+        FunctionPrecedence.Comparison -> KtBinding.Comparison
+    }
 
     private fun refOf(ref: KtSymbolRef, aliases: Map<String, String>): String {
         val name: String = aliases[ref.symbol.fqn()] ?: ref.symbol.name
@@ -245,6 +293,61 @@ public class KtPrinter(
             }
         }
         return expandedCall(callee, call, indent, aliases)
+    }
+
+    /**
+     * A template with its `{0}` placeholders filled from [KtExpr.PatternCall.args].
+     *
+     * An argument binds at postfix level or looser: a `{0}` may be a receiver inside the pattern
+     * (`{0}.size`), and the pattern's own text is the only thing that knows which. Parentheses
+     * the pattern does not need are the price of not reading its text for a binding level.
+     */
+    private fun renderPatternCall(
+        call: KtExpr.PatternCall,
+        indent: Int,
+        aliases: Map<String, String>,
+    ): String {
+        val bound: Set<Int> = Placeholder.findAll(call.pattern)
+            .map { it.groupValues[1].toInt() }
+            .toSet()
+        if (bound != call.args.indices.toSet()) {
+            throw CodegenBug(
+                "Pattern '" + call.pattern + "' binds arguments " + bound.sorted() +
+                    " and the call carries " + call.args.indices.toList(),
+            )
+        }
+        val filled: StringBuilder = StringBuilder()
+        var cursor: Int = 0
+        for (match in Placeholder.findAll(call.pattern)) {
+            filled.append(call.pattern.substring(cursor, match.range.first))
+            filled.append(operand(call.args[match.groupValues[1].toInt()], indent, aliases, KtBinding.Postfix))
+            cursor = match.range.last + 1
+        }
+        filled.append(call.pattern.substring(cursor))
+        return filled.toString()
+    }
+
+    // `${...}` for every part, and a part that spans lines is refused rather than emitted: a
+    // string literal cannot hold one, and §16.3 forbids reflowing a literal to make room.
+    private fun renderTemplate(
+        template: KtExpr.StringTemplate,
+        indent: Int,
+        aliases: Map<String, String>,
+    ): String = buildString {
+        append('"')
+        for (part in template.parts) {
+            when (part) {
+                is KtTemplatePart.Text -> append(part.text)
+                is KtTemplatePart.Interpolation -> {
+                    val inner: String = renderExpr(part.expr, indent, aliases)
+                    if (inner.contains('\n')) {
+                        throw CodegenBug("A string template cannot hold an expression over lines: " + inner)
+                    }
+                    append("\${" + inner + "}")
+                }
+            }
+        }
+        append('"')
     }
 
     private fun expandedCall(
@@ -292,7 +395,7 @@ public class KtPrinter(
     // case-selected entry is spec text its pattern already parenthesised.
     private fun renderChain(chain: KtExpr.Chain, indent: Int, aliases: Map<String, String>): String =
         buildString {
-            append(renderExpr(chain.receiver, indent, aliases))
+            append(operand(chain.receiver, indent, aliases, KtBinding.Postfix))
             for (call in chain.calls) {
                 append("\n" + indentOf(indent + 1) + "." + renderExpr(call, indent + 1, aliases))
             }
@@ -356,6 +459,25 @@ public class KtPrinter(
             expr.args.forEach { collectExprSymbols(it.value, filePkg, seen) }
         }
         if (expr is KtExpr.Member) collectExprSymbols(expr.receiver, filePkg, seen)
+        if (expr is KtExpr.PatternCall) {
+            expr.imports.forEach { recordSymbol(it, filePkg, seen) }
+            expr.args.forEach { collectExprSymbols(it, filePkg, seen) }
+        }
+        if (expr is KtExpr.Binary) {
+            collectExprSymbols(expr.left, filePkg, seen)
+            collectExprSymbols(expr.right, filePkg, seen)
+        }
+        if (expr is KtExpr.Unary) collectExprSymbols(expr.operand, filePkg, seen)
+        if (expr is KtExpr.IfElse) {
+            collectExprSymbols(expr.cond, filePkg, seen)
+            collectExprSymbols(expr.then, filePkg, seen)
+            collectExprSymbols(expr.otherwise, filePkg, seen)
+        }
+        if (expr is KtExpr.StringTemplate) {
+            for (part in expr.parts) {
+                if (part is KtTemplatePart.Interpolation) collectExprSymbols(part.expr, filePkg, seen)
+            }
+        }
         if (expr is KtExpr.Lambda) expr.body.forEach { collectStmtSymbols(it, filePkg, seen) }
         if (expr is KtExpr.Call) {
             collectExprSymbols(expr.callee, filePkg, seen)
@@ -426,6 +548,17 @@ public class KtPrinter(
     }
 
     private fun KotlinSymbol.fqn(): String = packageName + "." + name
+
+    private companion object {
+        /**
+         * `{0}` is an argument position in a `FunctionEmit` pattern.
+         *
+         * `fillPattern` reads `{key}` for a property instead, and the two are separate grammars:
+         * digits only, so a template may also write a block or a trailing lambda and have those
+         * braces left alone.
+         */
+        val Placeholder: Regex = Regex("""\{(\d+)}""")
+    }
 
     // Import lines plus the alias each conflicting reference renders with.
     private class ImportBlock(val lines: List<String>, val aliases: Map<String, String>)

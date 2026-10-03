@@ -64,8 +64,9 @@ public sealed interface TypeSig {
 /**
  * How a call becomes Kotlin: fill [pattern]'s `{0}`, `{1}` placeholders, adding [imports].
  *
- * Operators are table-driven (§10.5), never templates, so every template here is a postfix
- * call binding at [precedence]; the emitter parenthesizes anything looser around it.
+ * Operators are table-driven (§10.5), never templates, so a template is the one place where a
+ * binding has to be declared rather than derived: [precedence] is what the filled text binds as,
+ * and the emitter parenthesizes it wherever a tighter context would read it differently.
  */
 public data class FunctionEmit(
     public val pattern: String,
@@ -73,10 +74,21 @@ public data class FunctionEmit(
     public val precedence: FunctionPrecedence = FunctionPrecedence.Call,
 )
 
-/** What the template binds as. Two levels: calls parenthesize only inside tighter contexts. */
+/**
+ * What a filled template binds as: the loosest thing its own text can be.
+ *
+ * The level is a claim about the template, so a template that binds looser than it declares is a
+ * wrong claim rather than a style, and declaring it is the alternative to reading the text.
+ */
 public enum class FunctionPrecedence {
+    /** A value or a member read: `x.size`, tighter than every operator. */
     Atom,
+
+    /** A postfix call: `x.isNotEmpty()`, parenthesized inside anything tighter. */
     Call,
+
+    /** A binary comparison: `x == null`, looser than any call. */
+    Comparison,
 }
 
 /**

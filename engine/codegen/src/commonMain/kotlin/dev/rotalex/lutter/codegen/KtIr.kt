@@ -1,12 +1,14 @@
 package dev.rotalex.lutter.codegen
 
 import dev.rotalex.lutter.schema.component.KotlinSymbol
+import dev.rotalex.lutter.schema.function.FunctionPrecedence
 
 /**
  * The Kotlin subset the generator speaks: calls with named args, trailing lambdas,
  * member chains, literals and spec-authored snippets. Symbols, never text, so imports compute.
  *
- * Operators and conditionals arrive with expression emission; this stays the skeleton shape.
+ * Every node binds at a level of [KtBinding], and that level is what decides a parenthesis:
+ * an operand binding looser than the expression around it is printed inside one.
  */
 public sealed interface KtExpr {
     /** Escaped text from [LiteralPrinter]; [imports] is what the text needs (`dp`, `Color`). */
@@ -16,7 +18,11 @@ public sealed interface KtExpr {
     public data class Name(public val name: String) : KtExpr
 
     /** A member read on a receiver: `modifier`, a theme group, a pattern's qualifier. */
-    public data class Member(public val receiver: KtExpr, public val name: String) : KtExpr
+    public data class Member(
+        public val receiver: KtExpr,
+        public val name: String,
+        public val safe: Boolean = false,
+    ) : KtExpr
 
     /** A library reference: renders as the simple name and records the import. */
     public data class Ref(public val symbol: KtSymbolRef) : KtExpr
@@ -26,6 +32,18 @@ public sealed interface KtExpr {
         public val callee: KtExpr,
         public val args: List<KtArg>,
         public val trailing: Lambda? = null,
+    ) : KtExpr
+
+    /**
+     * A call spelled by a `FunctionEmit` template: the pattern, the arguments that fill its
+     * `{0}` placeholders, and what the whole thing binds as. Its own node because only the
+     * pattern knows the binding, and neither a callee nor an argument does.
+     */
+    public data class PatternCall(
+        public val pattern: String,
+        public val args: List<KtExpr>,
+        public val imports: List<KotlinSymbol> = emptyList(),
+        public val precedence: FunctionPrecedence = FunctionPrecedence.Call,
     ) : KtExpr
 
     /**
@@ -44,6 +62,90 @@ public sealed interface KtExpr {
      * after substitution). Spec-trusted, like a symbol; the printer records [symbols].
      */
     public data class Snippet(public val text: String, public val symbols: List<KotlinSymbol>) : KtExpr
+
+    /** `a + b`, `flag && other`. The operator carries its own level, which is the parentheses. */
+    public data class Binary(
+        public val op: KtOp,
+        public val left: KtExpr,
+        public val right: KtExpr,
+    ) : KtExpr
+
+    /** `!flag`, `-amount`. A prefix binds tighter than every binary operator. */
+    public data class Unary(public val op: KtOp, public val operand: KtExpr) : KtExpr
+
+    /**
+     * `if (c) a else b`.
+     *
+     * Both branches are mandatory because an `if` without one is a statement, and a statement in
+     * a typed position is the implicit conversion §10.2 excludes.
+     */
+    public data class IfElse(
+        public val cond: KtExpr,
+        public val then: KtExpr,
+        public val otherwise: KtExpr,
+    ) : KtExpr
+
+    /** `"Hello ${name}"`: literal text and interpolations, in order. */
+    public data class StringTemplate(public val parts: List<KtTemplatePart>) : KtExpr
+}
+
+/**
+ * Kotlin's binding levels, loosest first, as the one ladder every precedence resolves into.
+ *
+ * Plain numbers because the two families that have to be compared declare different things —
+ * [KtOp] names an operator, `FunctionPrecedence` names a template's binding — and converting
+ * between them is the whole of the parenthesisation rule.
+ */
+internal object KtBinding {
+    const val Conditional: Int = 0
+    const val Disjunction: Int = 1
+    const val Conjunction: Int = 2
+    const val Equality: Int = 3
+    const val Comparison: Int = 4
+    const val Additive: Int = 5
+    const val Multiplicative: Int = 6
+    const val Prefix: Int = 7
+    const val Postfix: Int = 8
+    const val Atom: Int = 9
+}
+
+/**
+ * A Kotlin operator and the level it binds at, as one fact.
+ *
+ * An enum rather than a symbol plus a number because a level chosen per use site could put `&&`
+ * at the additive level, and a misparenthesised expression is a file that compiles and is wrong.
+ */
+public enum class KtOp(
+    public val symbol: String,
+    internal val precedence: Int,
+) {
+    Add("+", KtBinding.Additive),
+    Sub("-", KtBinding.Additive),
+    Mul("*", KtBinding.Multiplicative),
+    Eq("==", KtBinding.Equality),
+    Neq("!=", KtBinding.Equality),
+    Lt("<", KtBinding.Comparison),
+    Le("<=", KtBinding.Comparison),
+    Gt(">", KtBinding.Comparison),
+    Ge(">=", KtBinding.Comparison),
+    And("&&", KtBinding.Conjunction),
+    Or("||", KtBinding.Disjunction),
+    Not("!", KtBinding.Prefix),
+    Neg("-", KtBinding.Prefix),
+}
+
+/**
+ * One piece of a string template: literal text, or an expression interpolated into it.
+ *
+ * [Text] arrives escaped. Escape belongs to `LiteralPrinter` and the printer never escapes a
+ * literal it is handed, so a `$` a document wrote reaches the output as `\$`.
+ */
+public sealed interface KtTemplatePart {
+    /** Already-escaped text, written between the quotes as it stands. */
+    public data class Text(public val text: String) : KtTemplatePart
+
+    /** An expression, always written `${...}`: one spelling, and §16.3 cannot reflow a literal. */
+    public data class Interpolation(public val expr: KtExpr) : KtTemplatePart
 }
 
 /** A library symbol plus an optional member: `MaterialTheme` alone, or `Arrangement.spacedBy`. */

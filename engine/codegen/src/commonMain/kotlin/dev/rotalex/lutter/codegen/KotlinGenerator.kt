@@ -28,6 +28,7 @@ import dev.rotalex.lutter.schema.component.PropertySpec
 import dev.rotalex.lutter.schema.component.ScopeId
 import dev.rotalex.lutter.schema.component.SlotBinding
 import dev.rotalex.lutter.schema.component.ValueEmit
+import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import dev.rotalex.lutter.schema.types.EnumEntrySpec
 import dev.rotalex.lutter.schema.types.EnumTypeSpec
@@ -50,9 +51,12 @@ public class CodegenExtensions(public val emitters: Map<EmitterId, CustomEmitter
  *
  * Refuses error-carrying input and unemittable documents with diagnostics, not exceptions;
  * a thrown [CodegenBug] always means the generator or a spec is wrong, never the document.
+ *
+ * The function registry is [FunctionSpec] rather than a type parameter: `schema.functions` is
+ * how an expression call resolves, so a generator bound to anything else could not emit one.
  */
-public class KotlinGenerator<A : Any, F : Any, T : Any>(
-    private val schema: SchemaView<ComponentSpec, ModifierSpec, A, F, T>,
+public class KotlinGenerator<A : Any, T : Any>(
+    private val schema: SchemaView<ComponentSpec, ModifierSpec, A, FunctionSpec, T>,
     private val options: CodegenOptions,
     private val extensions: CodegenExtensions = CodegenExtensions.None,
 ) {

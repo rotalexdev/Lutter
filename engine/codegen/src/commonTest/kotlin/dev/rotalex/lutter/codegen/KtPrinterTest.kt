@@ -1,6 +1,7 @@
 package dev.rotalex.lutter.codegen
 
 import dev.rotalex.lutter.schema.component.KotlinSymbol
+import dev.rotalex.lutter.schema.function.FunctionPrecedence
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -327,6 +328,88 @@ class KtPrinterTest {
             failure.message,
         )
     }
+
+    @Test
+    fun `a binary operator parenthesises a right operand that binds as loosely as itself`() {
+        // `a - (b - c)` and `(a - b) - c` are different trees, so the right operand of a
+        // left-associative operator asks for one level more than the left one does.
+        val right = KtExpr.Binary(
+            KtOp.Sub,
+            KtExpr.Name("a"),
+            KtExpr.Binary(KtOp.Sub, KtExpr.Name("b"), KtExpr.Name("c")),
+        )
+        val left = KtExpr.Binary(
+            KtOp.Sub,
+            KtExpr.Binary(KtOp.Sub, KtExpr.Name("a"), KtExpr.Name("b")),
+            KtExpr.Name("c"),
+        )
+        val tighter = KtExpr.Binary(
+            KtOp.Add,
+            KtExpr.Name("a"),
+            KtExpr.Binary(KtOp.Mul, KtExpr.Name("b"), KtExpr.Name("c")),
+        )
+
+        assertTrue(KtPrinter().print(ktFile(drawn(right))).contains("a - (b - c)"))
+        assertTrue(KtPrinter().print(ktFile(drawn(left))).contains("a - b - c"))
+        assertTrue(KtPrinter().print(ktFile(drawn(tighter))).contains("a + b * c"))
+    }
+
+    @Test
+    fun `a comparison template parenthesises only where its level binds tighter`() {
+        val negated = KtPrinter().print(
+            ktFile(drawn(KtExpr.Unary(KtOp.Not, isNullOf("a")))),
+        )
+        val conjunction = KtPrinter().print(
+            ktFile(drawn(KtExpr.Binary(KtOp.And, isNullOf("a"), isNullOf("b")))),
+        )
+        val argument = KtPrinter().print(
+            ktFile(drawn(KtExpr.Call(KtExpr.Name("check"), listOf(KtArg(null, isNullOf("a")))))),
+        )
+
+        assertTrue(negated.contains("!(a == null)"), negated)
+        assertTrue(conjunction.contains("a == null && b == null"), conjunction)
+        assertTrue(argument.contains("check(a == null)"), argument)
+    }
+
+    @Test
+    fun `a pattern binds exactly the arguments it names`() {
+        val failure = assertFailsWith<CodegenBug> {
+            KtPrinter().print(ktFile(drawn(KtExpr.PatternCall("{0} == {1}", listOf(KtExpr.Name("a"))))))
+        }
+
+        assertEquals(
+            "Pattern '{0} == {1}' binds arguments [0, 1] and the call carries [0]",
+            failure.message,
+        )
+    }
+
+    @Test
+    fun `a string template refuses an interpolation that spans lines`() {
+        // A literal cannot hold a newline, and §16.3 forbids reflowing one to make room.
+        val expanded = KtExpr.Call(
+            KtExpr.Name("row"),
+            listOf(KtArg(null, KtExpr.Name("a")), KtArg(null, KtExpr.Name("b"))),
+        )
+        val over = KtExpr.StringTemplate(listOf(KtTemplatePart.Interpolation(expanded)))
+
+        val failure = assertFailsWith<CodegenBug> { KtPrinter().print(ktFile(drawn(over))) }
+
+        assertTrue(
+            checkNotNull(failure.message).startsWith("A string template cannot hold an expression over lines:"),
+            failure.message,
+        )
+    }
+
+    /** `name == null` as the `core.isNull` template spells it: a comparison, not a call. */
+    private fun isNullOf(name: String): KtExpr = KtExpr.PatternCall(
+        pattern = "{0} == null",
+        args = listOf(KtExpr.Name(name)),
+        precedence = FunctionPrecedence.Comparison,
+    )
+
+    /** A function whose body is one expression, which is where precedence shows up. */
+    private fun drawn(value: KtExpr): KtDeclaration.Function =
+        KtDeclaration.Function("value", emptyList(), emptyList(), listOf(KtStmt.Expr(value)))
 
     private fun ktFile(vararg declarations: KtDeclaration): KtFile =
         KtFile("com.example.app", null, declarations.toList())

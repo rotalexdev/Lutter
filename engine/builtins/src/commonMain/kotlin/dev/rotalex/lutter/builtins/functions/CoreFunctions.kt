@@ -6,6 +6,7 @@ import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.function.FunctionEmit
+import dev.rotalex.lutter.schema.function.FunctionPrecedence
 import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.function.ParamSig
 import dev.rotalex.lutter.schema.function.TypeSig
@@ -52,10 +53,10 @@ public object CoreFunctions {
         id = FunctionId("core.isNull"),
         params = listOf(ParamSig("value", TypeSig.Nullable(TypeSig.Element(ELEMENT)))),
         returns = TypeSig.Exact(TypeRef.Bool),
-        // A comparison, not a call, so `FunctionPrecedence.Call` understates what the template
-        // binds: `==` is looser than any call. The emitter has to parenthesise it inside a unary
-        // operand, and the class is the only handle it has to do that.
-        kotlin = FunctionEmit("{0} == null"),
+        // `==` binds looser than any call, so the template declares a comparison rather than a
+        // call. At the call level the emitter would leave it bare inside a unary operand, and
+        // `!isNull(x)` would read as `(!x) == null`.
+        kotlin = FunctionEmit("{0} == null", precedence = FunctionPrecedence.Comparison),
     )
 
     /** Every spec in §10.2's order. */

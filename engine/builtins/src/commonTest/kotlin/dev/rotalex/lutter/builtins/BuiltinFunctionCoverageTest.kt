@@ -97,10 +97,10 @@ class BuiltinFunctionCoverageTest {
     }
 
     @Test
-    fun `a member read binds as an atom and everything else as a call`() {
-        // The distinction the precedence class can carry for templates like these: `{0}.size` is
-        // a member read and everything else is a call, and the emitter parenthesizes on it.
-        // Nothing in the seed set is an operator, which §10.5 keeps for the operator tables.
+    fun `a member read binds as an atom and nothing else does`() {
+        // The distinctions the precedence class carries: `{0}.size` is a member read and
+        // `core.isNull`'s `{0} == null` is a comparison, and the emitter parenthesizes on it.
+        // Nothing else in the seed set is an operator, which §10.5 keeps for the tables.
         val atoms = specs().filter { it.kotlin.precedence == FunctionPrecedence.Atom }
 
         assertEquals(listOf("list.size", "str.length"), atoms.map { it.id.value }.sorted())
