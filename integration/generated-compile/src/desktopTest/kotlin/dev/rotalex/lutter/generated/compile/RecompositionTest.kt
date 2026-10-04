@@ -158,7 +158,7 @@ class RecompositionTest {
             JsonDocumentCodec.decode(DOCUMENT.encodeToByteArray()).document,
         )
         assertTrue(result.diagnostics.isEmpty(), "document: ${result.diagnostics}")
-        return assertNotNull(result.resolved) { "document resolved nothing" }
+        return assertNotNull(result.resolved, "document resolved nothing")
     }
 
     private object StubNavigator : Navigator {
