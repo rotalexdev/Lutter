@@ -447,13 +447,16 @@ public class KotlinGenerator<A : Any, T : Any>(
      * pass has errored on. A `Computed` reaching here without one is a lost record.
      */
     private fun computedOf(prop: ResolvedProp): KtExpr {
-        val typed: TypedExpr = checkNotNull(prop.typed) {
-            "Computed property '" + prop.key.value + "' carries no checked expression; " +
-                "pass 5 refused an unchecked one"
-        }
-        val emitter: ExprEmitter = checkNotNull(expressions) {
-            "Computed property '" + prop.key.value + "' reached emission with no reader"
-        }
+        // `checkNotNull` would answer a plain IllegalStateException, and §16.7 reserves this
+        // throw for CodegenBug so a caller can tell a breach from a domain refusal.
+        val key: String = prop.key.value
+        val typed: TypedExpr = prop.typed ?: throw CodegenBug(
+            "Computed property '" + key + "' carries no checked expression; " +
+                "pass 5 refused an unchecked one",
+        )
+        val emitter: ExprEmitter = expressions ?: throw CodegenBug(
+            "Computed property '" + key + "' reached emission with no reader",
+        )
         return emitter.emit(typed)
     }
 
