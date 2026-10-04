@@ -31,6 +31,7 @@ public final class dev/rotalex/lutter/generated/compile/ComposableSingletons$Gen
 	public final fun getLambda$-2023793418$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda$-603236589$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda$1797654935$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$343801297$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
 }
 
 public final class dev/rotalex/lutter/generated/compile/FixtureDocuments {
@@ -51,6 +52,29 @@ public final class dev/rotalex/lutter/generated/compile/GeneratedFixtures {
 	public static final field $stable I
 	public static final field INSTANCE Ldev/rotalex/lutter/generated/compile/GeneratedFixtures;
 	public final fun getAll ()Ljava/util/Map;
+}
+
+public final class dev/rotalex/lutter/generated/expression_corpus/AppKt {
+	public static final fun AppRoot (Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class dev/rotalex/lutter/generated/expression_corpus/screens/HomeScreenKt {
+	public static final fun HomeScreen (Landroidx/compose/ui/Modifier;Ldev/rotalex/lutter/generated/expression_corpus/screens/HomeScreenState;Landroidx/compose/runtime/Composer;II)V
+	public static final fun rememberHomeScreenState (Landroidx/compose/runtime/Composer;I)Ldev/rotalex/lutter/generated/expression_corpus/screens/HomeScreenState;
+}
+
+public final class dev/rotalex/lutter/generated/expression_corpus/screens/HomeScreenState {
+	public static final field $stable I
+	public fun <init> ()V
+	public final fun getBlank ()Ljava/lang/String;
+	public final fun getCount ()I
+	public final fun getLabel ()Ljava/lang/String;
+	public final fun getRatio ()D
+	public final fun getShout ()Ljava/lang/String;
+	public final fun setBlank (Ljava/lang/String;)V
+	public final fun setCount (I)V
+	public final fun setLabel (Ljava/lang/String;)V
+	public final fun setRatio (D)V
 }
 
 public final class dev/rotalex/lutter/generated/row_weight/AppKt {

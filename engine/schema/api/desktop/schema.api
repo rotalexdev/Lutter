@@ -835,6 +835,7 @@ public final class dev/rotalex/lutter/schema/function/FunctionPrecedence : java/
 	public static final field Atom Ldev/rotalex/lutter/schema/function/FunctionPrecedence;
 	public static final field Call Ldev/rotalex/lutter/schema/function/FunctionPrecedence;
 	public static final field Comparison Ldev/rotalex/lutter/schema/function/FunctionPrecedence;
+	public static final field Elvis Ldev/rotalex/lutter/schema/function/FunctionPrecedence;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/schema/function/FunctionPrecedence;
 	public static fun values ()[Ldev/rotalex/lutter/schema/function/FunctionPrecedence;
