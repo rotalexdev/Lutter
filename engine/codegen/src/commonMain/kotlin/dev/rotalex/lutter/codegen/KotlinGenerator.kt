@@ -426,9 +426,10 @@ public class KotlinGenerator<A : Any, T : Any>(
         node: ResolvedNode,
         entries: Map<String, KotlinSymbol> = emptyMap(),
     ): KtExpr? {
-        val stored = prop.value
-        if (stored is PropertyValue.Computed) return computedOf(prop)
-        val constant: Value = stored.value
+        val constant: Value = when (val stored = prop.value) {
+            is PropertyValue.Computed -> return computedOf(prop)
+            is PropertyValue.Const -> stored.value
+        }
         if (constant is Value.Enum) return enumLiteral(constant.entry, declared, prop.key, node, entries)
         val literal = LiteralPrinter.emit(constant)
         if (literal == null) {
