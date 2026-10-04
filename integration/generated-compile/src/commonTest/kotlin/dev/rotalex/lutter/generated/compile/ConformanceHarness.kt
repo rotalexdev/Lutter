@@ -4,6 +4,7 @@ import dev.rotalex.lutter.analysis.Analyzer
 import dev.rotalex.lutter.analysis.AnalysisResult
 import dev.rotalex.lutter.builtins.compose.registerBuiltinModifierAppliers
 import dev.rotalex.lutter.builtins.compose.registerBuiltinRenderers
+import dev.rotalex.lutter.builtins.builtinFunctionImpls
 import dev.rotalex.lutter.builtins.registerBuiltinEnums
 import dev.rotalex.lutter.builtins.registerBuiltinFunctions
 import dev.rotalex.lutter.builtins.registerBuiltinModifiers
@@ -54,7 +55,7 @@ internal object ConformanceHarness {
         val modifiers = ModifierApplierRegistryBuilder()
             .apply { registerBuiltinModifierAppliers() }
             .build()
-        return UiRuntime(renderers, modifiers, Implementations.None, schema)
+        return UiRuntime(renderers, modifiers, Implementations(builtinFunctionImpls()), schema)
     }
 
     /** A host that records nothing: the fixtures navigate nowhere and hold no state. */
