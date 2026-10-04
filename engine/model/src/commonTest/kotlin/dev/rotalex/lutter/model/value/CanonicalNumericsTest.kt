@@ -129,6 +129,66 @@ class CanonicalNumericsTest {
     }
 
     // -----------------------------------------------------------------------------------
+    // Fixed-width text
+    // -----------------------------------------------------------------------------------
+
+    @Test
+    fun `a caller-chosen width keeps the trailing zeros`() {
+        // The reason this is not `canonicalText`: a document has one spelling per value, and an
+        // expression has one per width the author asked for. At two decimals `1.2` is `1.20`.
+        assertEquals("1.20", fixedDecimalText(1.2, 2))
+        assertEquals("1.23", fixedDecimalText(1.234, 2))
+        assertEquals("2.000", fixedDecimalText(2.0, 3))
+        assertEquals("16.5000", fixedDecimalText(16.5, 4))
+        assertEquals("17", fixedDecimalText(16.5, 0))
+    }
+
+    @Test
+    fun `a width the scale cannot hold is clamped rather than refused`() {
+        // §10.6 makes functions total, and this is one of the two functions the seed set reaches
+        // through a template, so a width it cannot answer must still have an answer.
+        assertEquals(fixedDecimalText(1.5, 9), fixedDecimalText(1.5, 40))
+        assertEquals("2", fixedDecimalText(1.5, -3))
+        assertEquals("1.200000000", fixedDecimalText(1.2, 9))
+    }
+
+    @Test
+    fun `a fixed width rounds half away from zero and asks the sign of the integer`() {
+        assertEquals("2", fixedDecimalText(1.5, 0))
+        assertEquals("-2", fixedDecimalText(-1.5, 0))
+        assertEquals("-1.3", fixedDecimalText(-1.25, 1))
+        assertEquals("1.3", fixedDecimalText(1.25, 1))
+        // A value that rounds to zero is zero to a reader, and a document has one spelling for
+        // zero: not the one with a minus sign in front of nothing.
+        assertEquals("0.00", fixedDecimalText(-0.001, 2))
+        assertEquals("0", fixedDecimalText(-0.001, 0))
+    }
+
+    @Test
+    fun `a value no scaled integer can hold saturates instead of overflowing`() {
+        // A runtime Float64 may hold any finite double (§5.4), so the scaled integer can be
+        // larger than a Long. Long.MAX_VALUE to two decimals is the number below, and it is the
+        // same on every target because `Double.toLong()` saturates in the language, not in a libm.
+        assertEquals("92233720368547758.07", fixedDecimalText(1e308, 2))
+    }
+
+    @Test
+    fun `a non finite value is spelled by hand`() {
+        // The one place a float's text cannot come out of an integer, and the spellings are
+        // written out rather than `toString()`ed for the reason the hazard row exists.
+        assertEquals("NaN", fixedDecimalText(Double.NaN, 2))
+        assertEquals("Infinity", fixedDecimalText(Double.POSITIVE_INFINITY, 2))
+        assertEquals("-Infinity", fixedDecimalText(Double.NEGATIVE_INFINITY, 2))
+    }
+
+    @Test
+    fun `no exponent ever reaches the text, which is what toString would have written`() {
+        assertEquals("0.0000", fixedDecimalText(1.0e-5, 4))
+        assertEquals("100000000", fixedDecimalText(1.0e8, 0))
+        assertEquals("0.10", fixedDecimalText(1.0e-1, 2))
+    }
+
+    // -----------------------------------------------------------------------------------
     // The text
     // -----------------------------------------------------------------------------------
 

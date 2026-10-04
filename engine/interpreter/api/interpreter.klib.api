@@ -6,6 +6,10 @@
 // - Show declarations: true
 
 // Library unique name: <dev.rotalex.lutter:interpreter>
+abstract fun interface dev.rotalex.lutter.interpreter.eval/FunctionImpl { // dev.rotalex.lutter.interpreter.eval/FunctionImpl|null[0]
+    abstract fun invoke(kotlin.collections/List<dev.rotalex.lutter.model.value/Value>): dev.rotalex.lutter.model.value/Value // dev.rotalex.lutter.interpreter.eval/FunctionImpl.invoke|invoke(kotlin.collections.List<dev.rotalex.lutter.model.value.Value>){}[0]
+}
+
 abstract interface dev.rotalex.lutter.interpreter/EvalScope { // dev.rotalex.lutter.interpreter/EvalScope|null[0]
     abstract fun read(dev.rotalex.lutter.model.expr/RefTarget): dev.rotalex.lutter.model.value/Value // dev.rotalex.lutter.interpreter/EvalScope.read|read(dev.rotalex.lutter.model.expr.RefTarget){}[0]
 }
@@ -16,6 +20,25 @@ abstract interface dev.rotalex.lutter.interpreter/StateStore { // dev.rotalex.lu
 
 abstract interface dev.rotalex.lutter.interpreter/StateWriter { // dev.rotalex.lutter.interpreter/StateWriter|null[0]
     abstract fun set(dev.rotalex.lutter.model.ids/StateId, dev.rotalex.lutter.model.value/Value) // dev.rotalex.lutter.interpreter/StateWriter.set|set(dev.rotalex.lutter.model.ids.StateId;dev.rotalex.lutter.model.value.Value){}[0]
+}
+
+final class dev.rotalex.lutter.interpreter.eval/Evaluator { // dev.rotalex.lutter.interpreter.eval/Evaluator|null[0]
+    constructor <init>(dev.rotalex.lutter.interpreter.eval/FunctionImpls = ...) // dev.rotalex.lutter.interpreter.eval/Evaluator.<init>|<init>(dev.rotalex.lutter.interpreter.eval.FunctionImpls){}[0]
+
+    final fun eval(dev.rotalex.lutter.model.expr/TypedExpr, dev.rotalex.lutter.interpreter/EvalScope): dev.rotalex.lutter.model.value/Value // dev.rotalex.lutter.interpreter.eval/Evaluator.eval|eval(dev.rotalex.lutter.model.expr.TypedExpr;dev.rotalex.lutter.interpreter.EvalScope){}[0]
+}
+
+final class dev.rotalex.lutter.interpreter.eval/FunctionImpls { // dev.rotalex.lutter.interpreter.eval/FunctionImpls|null[0]
+    constructor <init>(dev.rotalex.lutter.schema.registry/Registry<dev.rotalex.lutter.model.ids/FunctionId, dev.rotalex.lutter.interpreter.eval/FunctionImpl>) // dev.rotalex.lutter.interpreter.eval/FunctionImpls.<init>|<init>(dev.rotalex.lutter.schema.registry.Registry<dev.rotalex.lutter.model.ids.FunctionId,dev.rotalex.lutter.interpreter.eval.FunctionImpl>){}[0]
+
+    final fun get(dev.rotalex.lutter.model.ids/FunctionId): dev.rotalex.lutter.interpreter.eval/FunctionImpl? // dev.rotalex.lutter.interpreter.eval/FunctionImpls.get|get(dev.rotalex.lutter.model.ids.FunctionId){}[0]
+
+    final object Companion { // dev.rotalex.lutter.interpreter.eval/FunctionImpls.Companion|null[0]
+        final val None // dev.rotalex.lutter.interpreter.eval/FunctionImpls.Companion.None|{}None[0]
+            final fun <get-None>(): dev.rotalex.lutter.interpreter.eval/FunctionImpls // dev.rotalex.lutter.interpreter.eval/FunctionImpls.Companion.None.<get-None>|<get-None>(){}[0]
+
+        final fun of(kotlin.collections/List<kotlin/Pair<dev.rotalex.lutter.model.ids/FunctionId, dev.rotalex.lutter.interpreter.eval/FunctionImpl>>): dev.rotalex.lutter.interpreter.eval/FunctionImpls // dev.rotalex.lutter.interpreter.eval/FunctionImpls.Companion.of|of(kotlin.collections.List<kotlin.Pair<dev.rotalex.lutter.model.ids.FunctionId,dev.rotalex.lutter.interpreter.eval.FunctionImpl>>){}[0]
+    }
 }
 
 final class dev.rotalex.lutter.interpreter/MapEvalScope : dev.rotalex.lutter.interpreter/EvalScope { // dev.rotalex.lutter.interpreter/MapEvalScope|null[0]
@@ -32,3 +55,4 @@ final class dev.rotalex.lutter.interpreter/MapStateStore : dev.rotalex.lutter.in
 }
 
 final fun (dev.rotalex.lutter.model.expr/PropertyValue).dev.rotalex.lutter.interpreter/constantOrNull(): dev.rotalex.lutter.model.value/Value? // dev.rotalex.lutter.interpreter/constantOrNull|constantOrNull@dev.rotalex.lutter.model.expr.PropertyValue(){}[0]
+final fun (dev.rotalex.lutter.model.value/Value).dev.rotalex.lutter.interpreter.eval/toDisplayString(): kotlin/String // dev.rotalex.lutter.interpreter.eval/toDisplayString|toDisplayString@dev.rotalex.lutter.model.value.Value(){}[0]

@@ -2,9 +2,19 @@ package dev.rotalex.lutter.builtins
 
 import dev.rotalex.lutter.builtins.enums.HorizontalArrangementSpec
 import dev.rotalex.lutter.builtins.enums.VerticalArrangementSpec
+import dev.rotalex.lutter.builtins.functions.CoreFunctions
+import dev.rotalex.lutter.builtins.functions.ListFunctions
+import dev.rotalex.lutter.builtins.functions.NumberFunctions
+import dev.rotalex.lutter.builtins.functions.StringFunctions
+import dev.rotalex.lutter.interpreter.eval.FunctionImpl
+import dev.rotalex.lutter.interpreter.eval.FunctionImpls
+import dev.rotalex.lutter.model.ids.FunctionId
+import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.SchemaBuilder
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.component
+import dev.rotalex.lutter.schema.function.FunctionSpec
+import dev.rotalex.lutter.schema.function.function
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import dev.rotalex.lutter.schema.modifier.modifier
 import dev.rotalex.lutter.schema.types.TypeSpec
@@ -43,3 +53,47 @@ public fun <C : Any, M : Any, A : Any, F : Any> SchemaBuilder<C, M, A, F, TypeSp
     type(VerticalArrangementSpec.spec)
     type(HorizontalArrangementSpec.spec)
 }
+
+/**
+ * Registers §10.2's fifteen seed functions, which are the whole of the expression vocabulary
+ * for the first production-capable version.
+ *
+ * §10.3's other half is [builtinFunctionImpls]: a spec is only half a function, and an
+ * assembly that registers these without wiring those gets every call refused at run time.
+ */
+public fun <C : Any, M : Any, A : Any, T : Any>
+    SchemaBuilder<C, M, A, FunctionSpec, T>.registerBuiltinFunctions(): Unit {
+    for (spec in ListFunctions.all) function(spec)
+    for (spec in StringFunctions.all) function(spec)
+    for (spec in NumberFunctions.all) function(spec)
+    for (spec in CoreFunctions.all) function(spec)
+}
+
+/**
+ * Every builtin [FunctionImpl], keyed by the id its `FunctionSpec` is filed under.
+ *
+ * Its own constructor rather than a `SchemaBuilder` extension because §10.3's two halves live
+ * in two registries that two assemblies build separately; §10.3's coverage test is what holds
+ * them together, because there is nowhere at construction time that sees both.
+ */
+public fun builtinFunctionImpls(): FunctionImpls = FunctionImpls.of(
+    ListFunctions.impls + StringFunctions.impls + NumberFunctions.impls + CoreFunctions.impls,
+)
+
+/**
+ * The argument a §10.3 `ParamSig` declared, or the refusal that says the checker and the
+ * implementation disagree.
+ *
+ * §10.6 makes a *value* the document does not have a `Value.Null`; this is the other half, the
+ * document that could not have got here at all. It throws for the same reason `Evaluator` does:
+ * pass 5 already refused a call whose arguments do not fill the signature, so reaching this
+ * means the two halves have stopped agreeing and hiding it would let a document render on one
+ * backend and fail on the other.
+ */
+internal inline fun <reified T : Value> declaredArgument(
+    args: List<Value>,
+    index: Int,
+    id: FunctionId,
+): T = args.getOrNull(index) as? T ?: throw IllegalStateException(
+    "'$id' argument ${index + 1} is not the type its ParamSig declares",
+)

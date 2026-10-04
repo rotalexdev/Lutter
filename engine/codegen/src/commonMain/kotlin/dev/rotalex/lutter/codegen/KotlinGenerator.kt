@@ -11,7 +11,10 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedModifier
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.analysis.resolved.ResolvedPage
 import dev.rotalex.lutter.analysis.resolved.ResolvedProp
+import dev.rotalex.lutter.analysis.resolved.ResolvedState
 import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.expr.TypedExpr
+import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TypeRef
@@ -28,6 +31,7 @@ import dev.rotalex.lutter.schema.component.PropertySpec
 import dev.rotalex.lutter.schema.component.ScopeId
 import dev.rotalex.lutter.schema.component.SlotBinding
 import dev.rotalex.lutter.schema.component.ValueEmit
+import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import dev.rotalex.lutter.schema.types.EnumEntrySpec
 import dev.rotalex.lutter.schema.types.EnumTypeSpec
@@ -50,9 +54,12 @@ public class CodegenExtensions(public val emitters: Map<EmitterId, CustomEmitter
  *
  * Refuses error-carrying input and unemittable documents with diagnostics, not exceptions;
  * a thrown [CodegenBug] always means the generator or a spec is wrong, never the document.
+ *
+ * The function registry is [FunctionSpec] rather than a type parameter: `schema.functions` is
+ * how an expression call resolves, so a generator bound to anything else could not emit one.
  */
-public class KotlinGenerator<A : Any, F : Any, T : Any>(
-    private val schema: SchemaView<ComponentSpec, ModifierSpec, A, F, T>,
+public class KotlinGenerator<A : Any, T : Any>(
+    private val schema: SchemaView<ComponentSpec, ModifierSpec, A, FunctionSpec, T>,
     private val options: CodegenOptions,
     private val extensions: CodegenExtensions = CodegenExtensions.None,
 ) {
@@ -61,6 +68,12 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
     private val printer: KtPrinter = KtPrinter(ImportPolicy(), options.formatting)
     // Per-run scratch, cleared on entry: the recursion below shares one collector.
     private val diagnostics: MutableList<Diagnostic> = mutableListOf()
+    // §12.2's seam: one emitter per document, built on entry and rebuilt per run so a second
+    // `generate` over another document cannot read the first one's declarations.
+    private var state: StateEmitter? = null
+    // The screen-site [StateRead], built per run beside [state]. A state class member builds its
+    // own reader over its siblings, because `state.count` inside one compiles and reads nothing.
+    private var expressions: ExprEmitter? = null
 
     // Fail fast on missing bindings, like UiRuntime does on missing renderers.
     init {
@@ -73,6 +86,8 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
             return CodegenResult(GeneratedFiles(emptyList()), incoming)
         }
         diagnostics.clear()
+        state = StateEmitter(document, options, schema.functions)
+        expressions = ExprEmitter(schema.functions, StateRead { id -> state?.readInScreen(id) })
         val plan: GenPlan = planDocument(document, options.basePackage)
         refuseCollisions(plan)
         val files: MutableList<GeneratedFile> = mutableListOf()
@@ -98,68 +113,126 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
         }
     }
 
+    // The kind decides which emitter owns the file, because the id fields alone cannot:
+    // `App.kt` and `state/AppState.kt` both carry no id.
     private fun emitPlanned(planned: PlannedFile, document: ResolvedDocument): GeneratedFile? {
-        val pageId = planned.pageId
-        if (pageId != null) {
-            val page: ResolvedPage = checkNotNull(document.pages[pageId]) {
-                "Plan reached page '$pageId' outside the document"
+        val file: KtFile? = when (planned.kind) {
+            PlannedFileKind.App -> emitApp(document)
+            PlannedFileKind.AppState -> emitAppState(planned, document)
+            PlannedFileKind.Screen -> {
+                val pageId = checkNotNull(planned.pageId) { "Plan marked '${planned.path}' with no page" }
+                val page: ResolvedPage = checkNotNull(document.pages[pageId]) {
+                    "Plan reached page '$pageId' outside the document"
+                }
+                emitScreen(page, planned)
             }
-            return emitScreen(page, planned)?.let { GeneratedFile(planned.path, printer.print(it)) }
+
+            PlannedFileKind.Component -> {
+                val componentId = checkNotNull(planned.componentId) {
+                    "Plan marked '${planned.path}' with no component declaration"
+                }
+                val root: ResolvedNode = checkNotNull(document.components[componentId]) {
+                    "Plan reached component '$componentId' outside the document"
+                }
+                emitComponent(componentId, root, planned, document)
+            }
         }
-        val componentId = planned.componentId
-        if (componentId != null) {
-            val root: ResolvedNode = checkNotNull(document.components[componentId]) {
-                "Plan reached component '$componentId' outside the document"
-            }
-            return emitComponent(componentId.value, root, planned)?.let {
-                GeneratedFile(planned.path, printer.print(it))
-            }
-        }
-        return emitApp(document)?.let { GeneratedFile(planned.path, printer.print(it)) }
+        return file?.let { GeneratedFile(planned.path, printer.print(it)) }
+    }
+
+    /** §16.5's `state/AppState.kt`: the holder and the composition local, in their own package. */
+    private fun emitAppState(planned: PlannedFile, document: ResolvedDocument): KtFile? {
+        val emitter: StateEmitter = stateEmitter() ?: return null
+        if (refuseState(document.appState, DiagnosticLocation())) return null
+        val declarations: List<KtDeclaration> = emitter.appState() ?: return null
+        return KtFile(planned.packageName, headerText(), declarations)
     }
 
     // AppRoot hosts the first page by id; routing waits for a navigation strategy.
     private fun emitApp(document: ResolvedDocument): KtFile? {
         val first: ResolvedPage? = document.pages.entries.sortedBy { it.key.value }
             .map { it.value }.firstOrNull()
-        if (first == null) {
-            return KtFile(options.basePackage, headerText(), listOf(appFunction(null)))
+        val body: List<KtStmt> = if (first == null) {
+            emptyList()
+        } else {
+            val screen: KotlinSymbol = KotlinSymbol(options.basePackage + ".screens", first.name + "Screen")
+            val call: KtStmt = KtStmt.Expr(
+                KtExpr.Call(
+                    KtExpr.Ref(KtSymbolRef(screen)),
+                    listOf(KtArg("modifier", KtExpr.Name("modifier"))),
+                ),
+            )
+            // §12.1's app row wraps the whole tree; with no app state the screen composes bare.
+            stateEmitter()?.appProvider(call) ?: listOf(call)
         }
-        val screen: KotlinSymbol = KotlinSymbol(options.basePackage + ".screens", first.name + "Screen")
-        val call: KtExpr = KtExpr.Call(
-            KtExpr.Ref(KtSymbolRef(screen)),
-            listOf(KtArg("modifier", KtExpr.Name("modifier"))),
-        )
-        return KtFile(options.basePackage, headerText(), listOf(appFunction(call)))
+        val function: KtDeclaration.Function =
+            KtDeclaration.Function("AppRoot", listOf(composable), null, listOf(modifierParam()), body)
+        return KtFile(options.basePackage, headerText(), listOf(function))
     }
 
-    private fun appFunction(content: KtExpr?): KtDeclaration.Function {
-        val body: List<KtStmt> = if (content == null) emptyList() else listOf(KtStmt.Expr(content))
-        return KtDeclaration.Function("AppRoot", listOf(composable), listOf(modifierParam()), body)
-    }
-
+    // §12.1's page row: the state class, the remember function and the screen's parameter.
     private fun emitScreen(page: ResolvedPage, planned: PlannedFile): KtFile? {
+        val at: DiagnosticLocation = DiagnosticLocation(pageId = page.id)
+        if (refuseState(page.state, at)) return null
+        val emitter: StateEmitter = stateEmitter() ?: return null
         val root: KtExpr = emitNode(page.root, true, emptyList()) ?: return null
-        val function: KtDeclaration.Function = KtDeclaration.Function(
+        val declarations: MutableList<KtDeclaration> = mutableListOf()
+        val params: MutableList<KtParam> = mutableListOf(modifierParam())
+        val held: List<KtDeclaration>? = emitter.pageState(page)
+        if (held != null) {
+            declarations += held
+            params += emitter.pageParameter(page)
+        }
+        declarations += KtDeclaration.Function(
             page.name + "Screen",
             listOf(composable),
-            listOf(modifierParam()),
+            null,
+            params,
             listOf(KtStmt.Expr(root)),
         )
-        return KtFile(planned.packageName, headerText(), listOf(function))
+        return KtFile(planned.packageName, headerText(), declarations)
     }
 
     // Component functions take no page chrome: same node emission, their own file.
-    private fun emitComponent(name: String, root: ResolvedNode, planned: PlannedFile): KtFile? {
+    private fun emitComponent(
+        componentId: ComponentDeclId,
+        root: ResolvedNode,
+        planned: PlannedFile,
+        document: ResolvedDocument,
+    ): KtFile? {
+        val emitter: StateEmitter = stateEmitter() ?: return null
+        val at: DiagnosticLocation = DiagnosticLocation(componentDeclId = componentId)
+        val held: List<ResolvedState> = document.componentState[componentId].orEmpty()
+        if (refuseState(held, at)) return null
         val body: KtExpr = emitNode(root, true, emptyList()) ?: return null
+        val statements: List<KtStmt> = emitter.componentLocals(held).orEmpty() + listOf(KtStmt.Expr(body))
         val function: KtDeclaration.Function = KtDeclaration.Function(
-            name,
+            componentId.value,
             listOf(composable),
+            null,
             listOf(modifierParam()),
-            listOf(KtStmt.Expr(body)),
+            statements,
         )
         return KtFile(planned.packageName, headerText(), listOf(function))
     }
+
+    /**
+     * Records the first declaration in [declarations] the strategy cannot emit; true when it did.
+     *
+     * One finding and a null file, the same shape every other refusal here takes: the result is
+     * empty files once any error is recorded, so a second finding would change nothing.
+     */
+    private fun refuseState(declarations: List<ResolvedState>, at: DiagnosticLocation): Boolean {
+        val emitter: StateEmitter = stateEmitter() ?: return true
+        for (declaration in declarations) {
+            val finding: Diagnostic = emitter.refusal(declaration, at) ?: continue
+            diagnostics += finding
+            return true
+        }
+        return false
+    }
+
+    private fun stateEmitter(): StateEmitter? = state
 
     private fun modifierParam(): KtParam =
         KtParam("modifier", modifierType, KtExpr.Ref(KtSymbolRef(modifierType)))
@@ -266,7 +339,7 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
             val prop: ResolvedProp = checkNotNull(node.props[key]) {
                 "Present property '${key.value}' left the node"
             }
-            return literalOf(prop, spec.properties, node)
+            return valueOf(prop, spec.properties, node)
         }
         if (emit is ValueEmit.Cases) {
             val match = emit.cases.firstOrNull { kase ->
@@ -282,9 +355,10 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
         throw CodegenBug("Unknown ValueEmit: " + emit)
     }
 
-    // Every `{key}` becomes the property's literal; unknown or computed keys refuse.
-    // Returns the text plus the literals' imports: a value filled into a pattern (a `dp`
-    // inside `Arrangement.spacedBy({spacing})`) still needs its own symbols recorded.
+// Every `{key}` becomes the property's literal, spliced into text: an unknown key and a
+    // computed one both refuse here, the second because a pattern has no place to put a read.
+    // Returns the text plus the literals' imports: a `dp` inside `Arrangement.spacedBy({spacing})`
+    // still needs its own symbols recorded.
     private fun fillPattern(
         pattern: String,
         values: Map<PropertyKey, ResolvedProp>,
@@ -319,28 +393,43 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
                 refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Pattern key '{$raw}' is absent")
                 return null
             }
-            val literal: KtExpr.Literal? = literalOf(prop, declared, node, entries)
-            if (literal == null) return null
-            filled.append(literal.text)
-            symbols.addAll(literal.imports)
+            val value: KtExpr? = valueOf(prop, declared, node, entries)
+            if (value == null) return null
+            // A pattern is text and the value is spliced into it, so only a literal fills one: a
+            // computed read has no spelling here, and §16.2's symbols are references, not text.
+            if (value !is KtExpr.Literal) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Pattern key '{$raw}' holds a computed value, and a pattern is text",
+                )
+                return null
+            }
+            filled.append(value.text)
+            symbols.addAll(value.imports)
             index = close + 1
         }
         return filled.toString() to symbols
     }
 
-    // A literal, or a refusal: computed values and unspeakable kinds emit nothing.
-    private fun literalOf(
+    /**
+     * A property's value as a Kotlin expression, or a refusal.
+     *
+     * A computed value is §10.5's codegen column: the checked expression, spelled by [ExprEmitter]
+     * against the [StateRead] for the site the read appears in. A constant emits exactly as it
+     * did before either arm existed, which is what keeps a document with no computed property
+     * byte-identical.
+     */
+    private fun valueOf(
         prop: ResolvedProp,
         declared: List<PropertySpec<*>>,
         node: ResolvedNode,
         entries: Map<String, KotlinSymbol> = emptyMap(),
-    ): KtExpr.Literal? {
-        val stored = prop.value
-        if (stored is PropertyValue.Computed) {
-            refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Computed properties emit nothing yet")
-            return null
+    ): KtExpr? {
+        val constant: Value = when (val stored = prop.value) {
+            is PropertyValue.Computed -> return computedOf(prop)
+            is PropertyValue.Const -> stored.value
         }
-        val constant: Value = (stored as PropertyValue.Const).value
         if (constant is Value.Enum) return enumLiteral(constant.entry, declared, prop.key, node, entries)
         val literal = LiteralPrinter.emit(constant)
         if (literal == null) {
@@ -348,6 +437,27 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
             return null
         }
         return KtExpr.Literal(literal.text, literal.symbols)
+    }
+
+    /**
+     * A computed value as its checked expression, read the way a screen reads state.
+     *
+     * Both nulls are breaches rather than findings, and §16.7 is why: pass 5 typechecks every
+     * computed value, pass 7 attaches what it produced, and pass 7 runs only over a document no
+     * pass has errored on. A `Computed` reaching here without one is a lost record.
+     */
+    private fun computedOf(prop: ResolvedProp): KtExpr {
+        // `checkNotNull` would answer a plain IllegalStateException, and §16.7 reserves this
+        // throw for CodegenBug so a caller can tell a breach from a domain refusal.
+        val key: String = prop.key.value
+        val typed: TypedExpr = prop.typed ?: throw CodegenBug(
+            "Computed property '" + key + "' carries no checked expression; " +
+                "pass 5 refused an unchecked one",
+        )
+        val emitter: ExprEmitter = expressions ?: throw CodegenBug(
+            "Computed property '" + key + "' reached emission with no reader",
+        )
+        return emitter.emit(typed)
     }
 
     // PLAN §16.6: an enum entry emits `EnumEntrySpec.kotlin`, which is the only place the symbol
@@ -458,7 +568,7 @@ public class KotlinGenerator<A : Any, F : Any, T : Any>(
                 val prop: ResolvedProp = checkNotNull(entry.args[key]) {
                     "Present modifier arg '${key.value}' left the entry"
                 }
-                args += KtArg(key.value, literalOf(prop, spec.params, node, entries) ?: return null)
+                args += KtArg(key.value, valueOf(prop, spec.params, node, entries) ?: return null)
             }
             // A scope member's name resolves through the receiver, so it is not an import.
             return KtCall(emit.function, args, imported = !emit.scopeMember)

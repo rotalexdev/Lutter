@@ -6,6 +6,7 @@ import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
 import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.builtins.registerBuiltinEnums
+import dev.rotalex.lutter.builtins.registerBuiltinFunctions
 import dev.rotalex.lutter.builtins.registerBuiltinModifiers
 import dev.rotalex.lutter.builtins.registerBuiltinSpecs
 import dev.rotalex.lutter.codegen.CodegenOptions
@@ -14,6 +15,7 @@ import dev.rotalex.lutter.codegen.KotlinGenerator
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.schema.Schema
 import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import dev.rotalex.lutter.schema.types.TypeSpec
 import dev.rotalex.lutter.serialization.JsonDocumentCodec
@@ -51,13 +53,15 @@ private fun runGenerate(args: List<String>): Unit {
         exitProcess(2)
     }
     val outDir = File(optionValue(args, "--out") ?: "generated")
-    // `TypeSpec` in the last slot, or `registerBuiltinEnums` cannot apply and every document
-    // naming an enum entry — an arrangement, a shape — refuses instead of generating.
-    val schema: Schema<ComponentSpec, ModifierSpec, Unit, Unit, TypeSpec> =
-        Schema.build<ComponentSpec, ModifierSpec, Unit, Unit, TypeSpec> {
+    // `TypeSpec` in the last slot and `FunctionSpec` in the fourth, or the two registrars
+    // cannot apply and every document naming an enum entry — an arrangement, a shape — or
+    // calling any §10.2 function refuses instead of generating.
+    val schema: Schema<ComponentSpec, ModifierSpec, Unit, FunctionSpec, TypeSpec> =
+        Schema.build<ComponentSpec, ModifierSpec, Unit, FunctionSpec, TypeSpec> {
             registerBuiltinSpecs()
             registerBuiltinModifiers()
             registerBuiltinEnums()
+            registerBuiltinFunctions()
         }
     val document: UiDocument = decode(File(input))
     val analysis: AnalysisResult = Analyzer(schema).analyze(document)

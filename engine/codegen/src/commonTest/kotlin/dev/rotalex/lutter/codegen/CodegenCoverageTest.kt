@@ -17,6 +17,7 @@ import dev.rotalex.lutter.schema.component.component
 import dev.rotalex.lutter.schema.component.componentSpec
 import dev.rotalex.lutter.schema.component.prop
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
+import dev.rotalex.lutter.schema.function.FunctionSpec
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
@@ -53,7 +54,7 @@ class CodegenCoverageTest {
             events = emptyList(),
             codegen = CodegenBinding.Custom(EmitterId("plug.draw")),
         )
-        val schema: Schema<ComponentSpec, ModifierSpec, String, String, String> =
+        val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
             Schema.build { component(custom) }
 
         val failure = assertFailsWith<IllegalStateException> { CodegenCoverage.check(schema) }
@@ -68,7 +69,7 @@ class CodegenCoverageTest {
 
     @Test
     fun `an intrinsic passes while it declares nothing the engine path cannot emit`() {
-        val schema: Schema<ComponentSpec, ModifierSpec, String, String, String> =
+        val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
             Schema.build {
                 component(
                     componentSpec(ComponentType("test.Outlet"), 1) {
@@ -84,7 +85,7 @@ class CodegenCoverageTest {
 
     @Test
     fun `an intrinsic declaring a slot or an event refuses`() {
-        val schema: Schema<ComponentSpec, ModifierSpec, String, String, String> =
+        val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
             Schema.build {
                 component(
                     componentSpec(ComponentType("test.Outlet"), 1) {
@@ -102,7 +103,7 @@ class CodegenCoverageTest {
 
     @Test
     fun `a param reading an undeclared property fails naming it`() {
-        val schema: Schema<ComponentSpec, ModifierSpec, String, String, String> =
+        val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
             Schema.build {
                 component(
                     componentSpec(columnType, 1) {
@@ -128,7 +129,7 @@ class CodegenCoverageTest {
 
     @Test
     fun `events fail until they emit`() {
-        val schema: Schema<ComponentSpec, ModifierSpec, String, String, String> =
+        val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
             Schema.build {
                 component(
                     componentSpec(columnType, 1) {
@@ -146,7 +147,7 @@ class CodegenCoverageTest {
         assertTrue(failure.message?.contains("test.Column") == true, "got: ${failure.message}")
     }
 
-    private fun boundSchema(ghost: Boolean = false): Schema<ComponentSpec, ModifierSpec, String, String, String> =
+    private fun boundSchema(ghost: Boolean = false): Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
         Schema.build {
             component(
                 componentSpec(columnType, 1) {

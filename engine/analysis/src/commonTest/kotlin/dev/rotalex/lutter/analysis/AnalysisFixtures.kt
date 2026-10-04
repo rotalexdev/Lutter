@@ -7,6 +7,7 @@ import dev.rotalex.lutter.model.dsl.PageScope
 import dev.rotalex.lutter.model.dsl.buildDocument
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.ComponentType
+import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.ids.ModifierType
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
@@ -27,6 +28,11 @@ import dev.rotalex.lutter.schema.component.ScopeId
 import dev.rotalex.lutter.schema.component.component
 import dev.rotalex.lutter.schema.component.componentSpec
 import dev.rotalex.lutter.schema.component.prop
+import dev.rotalex.lutter.schema.function.FunctionEmit
+import dev.rotalex.lutter.schema.function.FunctionSpec
+import dev.rotalex.lutter.schema.function.ParamSig
+import dev.rotalex.lutter.schema.function.TypeSig
+import dev.rotalex.lutter.schema.function.function
 import dev.rotalex.lutter.schema.modifier.ModifierEmit
 import dev.rotalex.lutter.schema.modifier.ModifierMetadata
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
@@ -41,10 +47,22 @@ internal val ColumnType: ComponentType = ComponentType("core.Column")
 internal val TextType: ComponentType = ComponentType("m3.Text")
 internal val LinkType: ComponentType = ComponentType("core.Link")
 internal val CardType: ComponentType = ComponentType("m3.Card")
+
+/**
+ * Not part of the walking skeleton: it exists because §10.4's nullability rules need a
+ * `T?` destination, and no other property here takes one except a token.
+ */
+internal val BadgeType: ComponentType = ComponentType("m3.Badge")
 internal val PaddingType: ModifierType = ModifierType("layout.padding")
 internal val SizeType: ModifierType = ModifierType("layout.size")
 internal val WeightType: ModifierType = ModifierType("layout.weight")
 internal val ColumnScope: ScopeId = ScopeId("ColumnScope")
+
+/** §10.3's exact-signature shape: one `Str` in, one `Str` out. */
+internal val UpperId: FunctionId = FunctionId("str.upper")
+
+/** §10.3's element-variable shape, so a signature that binds `T` has something to bind. */
+internal val FirstId: FunctionId = FunctionId("list.first")
 
 /** A schema with real specs, so dispatch always goes through the registry. */
 internal fun testSchema(): Schema<ComponentSpec, ModifierSpec, String, String, String> =
@@ -60,9 +78,55 @@ internal fun enumSchema(): Schema<ComponentSpec, ModifierSpec, String, String, T
         type(AlignType)
     }
 
+/**
+ * The same vocabulary plus one component with a `T?` destination, so §10.4's nullability
+ * rules are reachable at all: nothing in the walking skeleton accepts a nullable but a token.
+ */
+internal fun nullableSchema(): Schema<ComponentSpec, ModifierSpec, String, String, String> =
+    Schema.build<ComponentSpec, ModifierSpec, String, String, String> {
+        walkingSkeleton()
+        component(
+            componentSpec(BadgeType, 1) {
+                metadata("Badge", Category.Basic)
+                property(prop<String>("label", TypeRef.Str, required = true))
+                property(prop<String>("caption", TypeRef.Nullable(TypeRef.Str)))
+                composeCall(KotlinSymbol("androidx.compose.material3", "Text"))
+            },
+        )
+    }
+
+/**
+ * The same vocabulary with the functions slot bound to [FunctionSpec], so a call the checker
+ * is meant to *accept* is reachable. [testSchema] binds a stub there, where every call is an
+ * unknown function until §10.2's seed set arrives with `:engine:builtins`.
+ */
+internal fun functionSchema(): Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
+    Schema.build<ComponentSpec, ModifierSpec, String, FunctionSpec, String> {
+        walkingSkeleton()
+        function(
+            FunctionSpec(
+                id = UpperId,
+                params = listOf(ParamSig("value", TypeSig.Exact(TypeRef.Str))),
+                returns = TypeSig.Exact(TypeRef.Str),
+                kotlin = FunctionEmit("upper()"),
+            ),
+        )
+        function(
+            FunctionSpec(
+                id = FirstId,
+                params = listOf(ParamSig("items", TypeSig.ListOf(TypeSig.Element(ELEMENT)))),
+                returns = TypeSig.Element(ELEMENT),
+                kotlin = FunctionEmit("first()"),
+            ),
+        )
+    }
+
+/** The element variable [FirstId]'s signature binds and returns. Named in the plan's own style. */
+private const val ELEMENT: String = "T"
+
 // One declaration, bound twice: the components and modifiers do not depend on what the types
 // slot holds, and duplicating them per binding is a copy that can drift.
-private fun <A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, ModifierSpec, A, F, T>.walkingSkeleton(): Unit {
+internal fun <A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, ModifierSpec, A, F, T>.walkingSkeleton(): Unit {
     component(
         componentSpec(ColumnType, 1) {
             metadata("Column", Category.Layout)

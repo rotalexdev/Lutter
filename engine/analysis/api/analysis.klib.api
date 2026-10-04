@@ -119,8 +119,12 @@ final class dev.rotalex.lutter.analysis.diagnostic/Suggestion { // dev.rotalex.l
 }
 
 final class dev.rotalex.lutter.analysis.resolved/ResolvedDocument { // dev.rotalex.lutter.analysis.resolved/ResolvedDocument|null[0]
-    constructor <init>(kotlin.collections/Map<dev.rotalex.lutter.model.ids/PageId, dev.rotalex.lutter.analysis.resolved/ResolvedPage>, kotlin.collections/Map<dev.rotalex.lutter.model.ids/ComponentDeclId, dev.rotalex.lutter.analysis.resolved/ResolvedNode>, kotlin.collections/Map<dev.rotalex.lutter.model.ids/NodeId, dev.rotalex.lutter.analysis.resolved/ResolvedNode>, dev.rotalex.lutter.analysis.resolved/ResolvedTheme) // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.<init>|<init>(kotlin.collections.Map<dev.rotalex.lutter.model.ids.PageId,dev.rotalex.lutter.analysis.resolved.ResolvedPage>;kotlin.collections.Map<dev.rotalex.lutter.model.ids.ComponentDeclId,dev.rotalex.lutter.analysis.resolved.ResolvedNode>;kotlin.collections.Map<dev.rotalex.lutter.model.ids.NodeId,dev.rotalex.lutter.analysis.resolved.ResolvedNode>;dev.rotalex.lutter.analysis.resolved.ResolvedTheme){}[0]
+    constructor <init>(kotlin.collections/Map<dev.rotalex.lutter.model.ids/PageId, dev.rotalex.lutter.analysis.resolved/ResolvedPage>, kotlin.collections/Map<dev.rotalex.lutter.model.ids/ComponentDeclId, dev.rotalex.lutter.analysis.resolved/ResolvedNode>, kotlin.collections/Map<dev.rotalex.lutter.model.ids/NodeId, dev.rotalex.lutter.analysis.resolved/ResolvedNode>, dev.rotalex.lutter.analysis.resolved/ResolvedTheme, kotlin.collections/List<dev.rotalex.lutter.analysis.resolved/ResolvedState> = ..., kotlin.collections/Map<dev.rotalex.lutter.model.ids/ComponentDeclId, kotlin.collections/List<dev.rotalex.lutter.analysis.resolved/ResolvedState>> = ...) // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.<init>|<init>(kotlin.collections.Map<dev.rotalex.lutter.model.ids.PageId,dev.rotalex.lutter.analysis.resolved.ResolvedPage>;kotlin.collections.Map<dev.rotalex.lutter.model.ids.ComponentDeclId,dev.rotalex.lutter.analysis.resolved.ResolvedNode>;kotlin.collections.Map<dev.rotalex.lutter.model.ids.NodeId,dev.rotalex.lutter.analysis.resolved.ResolvedNode>;dev.rotalex.lutter.analysis.resolved.ResolvedTheme;kotlin.collections.List<dev.rotalex.lutter.analysis.resolved.ResolvedState>;kotlin.collections.Map<dev.rotalex.lutter.model.ids.ComponentDeclId,kotlin.collections.List<dev.rotalex.lutter.analysis.resolved.ResolvedState>>){}[0]
 
+    final val appState // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.appState|{}appState[0]
+        final fun <get-appState>(): kotlin.collections/List<dev.rotalex.lutter.analysis.resolved/ResolvedState> // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.appState.<get-appState>|<get-appState>(){}[0]
+    final val componentState // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.componentState|{}componentState[0]
+        final fun <get-componentState>(): kotlin.collections/Map<dev.rotalex.lutter.model.ids/ComponentDeclId, kotlin.collections/List<dev.rotalex.lutter.analysis.resolved/ResolvedState>> // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.componentState.<get-componentState>|<get-componentState>(){}[0]
     final val components // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.components|{}components[0]
         final fun <get-components>(): kotlin.collections/Map<dev.rotalex.lutter.model.ids/ComponentDeclId, dev.rotalex.lutter.analysis.resolved/ResolvedNode> // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.components.<get-components>|<get-components>(){}[0]
     final val nodes // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.nodes|{}nodes[0]
@@ -134,7 +138,9 @@ final class dev.rotalex.lutter.analysis.resolved/ResolvedDocument { // dev.rotal
     final fun component2(): kotlin.collections/Map<dev.rotalex.lutter.model.ids/ComponentDeclId, dev.rotalex.lutter.analysis.resolved/ResolvedNode> // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.component2|component2(){}[0]
     final fun component3(): kotlin.collections/Map<dev.rotalex.lutter.model.ids/NodeId, dev.rotalex.lutter.analysis.resolved/ResolvedNode> // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.component3|component3(){}[0]
     final fun component4(): dev.rotalex.lutter.analysis.resolved/ResolvedTheme // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.component4|component4(){}[0]
-    final fun copy(kotlin.collections/Map<dev.rotalex.lutter.model.ids/PageId, dev.rotalex.lutter.analysis.resolved/ResolvedPage> = ..., kotlin.collections/Map<dev.rotalex.lutter.model.ids/ComponentDeclId, dev.rotalex.lutter.analysis.resolved/ResolvedNode> = ..., kotlin.collections/Map<dev.rotalex.lutter.model.ids/NodeId, dev.rotalex.lutter.analysis.resolved/ResolvedNode> = ..., dev.rotalex.lutter.analysis.resolved/ResolvedTheme = ...): dev.rotalex.lutter.analysis.resolved/ResolvedDocument // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.copy|copy(kotlin.collections.Map<dev.rotalex.lutter.model.ids.PageId,dev.rotalex.lutter.analysis.resolved.ResolvedPage>;kotlin.collections.Map<dev.rotalex.lutter.model.ids.ComponentDeclId,dev.rotalex.lutter.analysis.resolved.ResolvedNode>;kotlin.collections.Map<dev.rotalex.lutter.model.ids.NodeId,dev.rotalex.lutter.analysis.resolved.ResolvedNode>;dev.rotalex.lutter.analysis.resolved.ResolvedTheme){}[0]
+    final fun component5(): kotlin.collections/List<dev.rotalex.lutter.analysis.resolved/ResolvedState> // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.component5|component5(){}[0]
+    final fun component6(): kotlin.collections/Map<dev.rotalex.lutter.model.ids/ComponentDeclId, kotlin.collections/List<dev.rotalex.lutter.analysis.resolved/ResolvedState>> // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.component6|component6(){}[0]
+    final fun copy(kotlin.collections/Map<dev.rotalex.lutter.model.ids/PageId, dev.rotalex.lutter.analysis.resolved/ResolvedPage> = ..., kotlin.collections/Map<dev.rotalex.lutter.model.ids/ComponentDeclId, dev.rotalex.lutter.analysis.resolved/ResolvedNode> = ..., kotlin.collections/Map<dev.rotalex.lutter.model.ids/NodeId, dev.rotalex.lutter.analysis.resolved/ResolvedNode> = ..., dev.rotalex.lutter.analysis.resolved/ResolvedTheme = ..., kotlin.collections/List<dev.rotalex.lutter.analysis.resolved/ResolvedState> = ..., kotlin.collections/Map<dev.rotalex.lutter.model.ids/ComponentDeclId, kotlin.collections/List<dev.rotalex.lutter.analysis.resolved/ResolvedState>> = ...): dev.rotalex.lutter.analysis.resolved/ResolvedDocument // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.copy|copy(kotlin.collections.Map<dev.rotalex.lutter.model.ids.PageId,dev.rotalex.lutter.analysis.resolved.ResolvedPage>;kotlin.collections.Map<dev.rotalex.lutter.model.ids.ComponentDeclId,dev.rotalex.lutter.analysis.resolved.ResolvedNode>;kotlin.collections.Map<dev.rotalex.lutter.model.ids.NodeId,dev.rotalex.lutter.analysis.resolved.ResolvedNode>;dev.rotalex.lutter.analysis.resolved.ResolvedTheme;kotlin.collections.List<dev.rotalex.lutter.analysis.resolved.ResolvedState>;kotlin.collections.Map<dev.rotalex.lutter.model.ids.ComponentDeclId,kotlin.collections.List<dev.rotalex.lutter.analysis.resolved.ResolvedState>>){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // dev.rotalex.lutter.analysis.resolved/ResolvedDocument.toString|toString(){}[0]
@@ -185,7 +191,7 @@ final class dev.rotalex.lutter.analysis.resolved/ResolvedNode { // dev.rotalex.l
 }
 
 final class dev.rotalex.lutter.analysis.resolved/ResolvedPage { // dev.rotalex.lutter.analysis.resolved/ResolvedPage|null[0]
-    constructor <init>(dev.rotalex.lutter.model.ids/PageId, kotlin/String, kotlin/String, dev.rotalex.lutter.analysis.resolved/ResolvedNode) // dev.rotalex.lutter.analysis.resolved/ResolvedPage.<init>|<init>(dev.rotalex.lutter.model.ids.PageId;kotlin.String;kotlin.String;dev.rotalex.lutter.analysis.resolved.ResolvedNode){}[0]
+    constructor <init>(dev.rotalex.lutter.model.ids/PageId, kotlin/String, kotlin/String, dev.rotalex.lutter.analysis.resolved/ResolvedNode, kotlin.collections/List<dev.rotalex.lutter.analysis.resolved/ResolvedState> = ...) // dev.rotalex.lutter.analysis.resolved/ResolvedPage.<init>|<init>(dev.rotalex.lutter.model.ids.PageId;kotlin.String;kotlin.String;dev.rotalex.lutter.analysis.resolved.ResolvedNode;kotlin.collections.List<dev.rotalex.lutter.analysis.resolved.ResolvedState>){}[0]
 
     final val id // dev.rotalex.lutter.analysis.resolved/ResolvedPage.id|{}id[0]
         final fun <get-id>(): dev.rotalex.lutter.model.ids/PageId // dev.rotalex.lutter.analysis.resolved/ResolvedPage.id.<get-id>|<get-id>(){}[0]
@@ -195,19 +201,22 @@ final class dev.rotalex.lutter.analysis.resolved/ResolvedPage { // dev.rotalex.l
         final fun <get-root>(): dev.rotalex.lutter.analysis.resolved/ResolvedNode // dev.rotalex.lutter.analysis.resolved/ResolvedPage.root.<get-root>|<get-root>(){}[0]
     final val route // dev.rotalex.lutter.analysis.resolved/ResolvedPage.route|{}route[0]
         final fun <get-route>(): kotlin/String // dev.rotalex.lutter.analysis.resolved/ResolvedPage.route.<get-route>|<get-route>(){}[0]
+    final val state // dev.rotalex.lutter.analysis.resolved/ResolvedPage.state|{}state[0]
+        final fun <get-state>(): kotlin.collections/List<dev.rotalex.lutter.analysis.resolved/ResolvedState> // dev.rotalex.lutter.analysis.resolved/ResolvedPage.state.<get-state>|<get-state>(){}[0]
 
     final fun component1(): dev.rotalex.lutter.model.ids/PageId // dev.rotalex.lutter.analysis.resolved/ResolvedPage.component1|component1(){}[0]
     final fun component2(): kotlin/String // dev.rotalex.lutter.analysis.resolved/ResolvedPage.component2|component2(){}[0]
     final fun component3(): kotlin/String // dev.rotalex.lutter.analysis.resolved/ResolvedPage.component3|component3(){}[0]
     final fun component4(): dev.rotalex.lutter.analysis.resolved/ResolvedNode // dev.rotalex.lutter.analysis.resolved/ResolvedPage.component4|component4(){}[0]
-    final fun copy(dev.rotalex.lutter.model.ids/PageId = ..., kotlin/String = ..., kotlin/String = ..., dev.rotalex.lutter.analysis.resolved/ResolvedNode = ...): dev.rotalex.lutter.analysis.resolved/ResolvedPage // dev.rotalex.lutter.analysis.resolved/ResolvedPage.copy|copy(dev.rotalex.lutter.model.ids.PageId;kotlin.String;kotlin.String;dev.rotalex.lutter.analysis.resolved.ResolvedNode){}[0]
+    final fun component5(): kotlin.collections/List<dev.rotalex.lutter.analysis.resolved/ResolvedState> // dev.rotalex.lutter.analysis.resolved/ResolvedPage.component5|component5(){}[0]
+    final fun copy(dev.rotalex.lutter.model.ids/PageId = ..., kotlin/String = ..., kotlin/String = ..., dev.rotalex.lutter.analysis.resolved/ResolvedNode = ..., kotlin.collections/List<dev.rotalex.lutter.analysis.resolved/ResolvedState> = ...): dev.rotalex.lutter.analysis.resolved/ResolvedPage // dev.rotalex.lutter.analysis.resolved/ResolvedPage.copy|copy(dev.rotalex.lutter.model.ids.PageId;kotlin.String;kotlin.String;dev.rotalex.lutter.analysis.resolved.ResolvedNode;kotlin.collections.List<dev.rotalex.lutter.analysis.resolved.ResolvedState>){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.analysis.resolved/ResolvedPage.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // dev.rotalex.lutter.analysis.resolved/ResolvedPage.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // dev.rotalex.lutter.analysis.resolved/ResolvedPage.toString|toString(){}[0]
 }
 
 final class dev.rotalex.lutter.analysis.resolved/ResolvedProp { // dev.rotalex.lutter.analysis.resolved/ResolvedProp|null[0]
-    constructor <init>(dev.rotalex.lutter.model.ids/PropertyKey, dev.rotalex.lutter.model.expr/PropertyValue, dev.rotalex.lutter.analysis.resolved/PropOrigin, dev.rotalex.lutter.analysis.resolved/ResolvedToken?) // dev.rotalex.lutter.analysis.resolved/ResolvedProp.<init>|<init>(dev.rotalex.lutter.model.ids.PropertyKey;dev.rotalex.lutter.model.expr.PropertyValue;dev.rotalex.lutter.analysis.resolved.PropOrigin;dev.rotalex.lutter.analysis.resolved.ResolvedToken?){}[0]
+    constructor <init>(dev.rotalex.lutter.model.ids/PropertyKey, dev.rotalex.lutter.model.expr/PropertyValue, dev.rotalex.lutter.analysis.resolved/PropOrigin, dev.rotalex.lutter.analysis.resolved/ResolvedToken?, dev.rotalex.lutter.model.expr/TypedExpr? = ...) // dev.rotalex.lutter.analysis.resolved/ResolvedProp.<init>|<init>(dev.rotalex.lutter.model.ids.PropertyKey;dev.rotalex.lutter.model.expr.PropertyValue;dev.rotalex.lutter.analysis.resolved.PropOrigin;dev.rotalex.lutter.analysis.resolved.ResolvedToken?;dev.rotalex.lutter.model.expr.TypedExpr?){}[0]
 
     final val key // dev.rotalex.lutter.analysis.resolved/ResolvedProp.key|{}key[0]
         final fun <get-key>(): dev.rotalex.lutter.model.ids/PropertyKey // dev.rotalex.lutter.analysis.resolved/ResolvedProp.key.<get-key>|<get-key>(){}[0]
@@ -215,6 +224,8 @@ final class dev.rotalex.lutter.analysis.resolved/ResolvedProp { // dev.rotalex.l
         final fun <get-origin>(): dev.rotalex.lutter.analysis.resolved/PropOrigin // dev.rotalex.lutter.analysis.resolved/ResolvedProp.origin.<get-origin>|<get-origin>(){}[0]
     final val token // dev.rotalex.lutter.analysis.resolved/ResolvedProp.token|{}token[0]
         final fun <get-token>(): dev.rotalex.lutter.analysis.resolved/ResolvedToken? // dev.rotalex.lutter.analysis.resolved/ResolvedProp.token.<get-token>|<get-token>(){}[0]
+    final val typed // dev.rotalex.lutter.analysis.resolved/ResolvedProp.typed|{}typed[0]
+        final fun <get-typed>(): dev.rotalex.lutter.model.expr/TypedExpr? // dev.rotalex.lutter.analysis.resolved/ResolvedProp.typed.<get-typed>|<get-typed>(){}[0]
     final val value // dev.rotalex.lutter.analysis.resolved/ResolvedProp.value|{}value[0]
         final fun <get-value>(): dev.rotalex.lutter.model.expr/PropertyValue // dev.rotalex.lutter.analysis.resolved/ResolvedProp.value.<get-value>|<get-value>(){}[0]
 
@@ -222,10 +233,27 @@ final class dev.rotalex.lutter.analysis.resolved/ResolvedProp { // dev.rotalex.l
     final fun component2(): dev.rotalex.lutter.model.expr/PropertyValue // dev.rotalex.lutter.analysis.resolved/ResolvedProp.component2|component2(){}[0]
     final fun component3(): dev.rotalex.lutter.analysis.resolved/PropOrigin // dev.rotalex.lutter.analysis.resolved/ResolvedProp.component3|component3(){}[0]
     final fun component4(): dev.rotalex.lutter.analysis.resolved/ResolvedToken? // dev.rotalex.lutter.analysis.resolved/ResolvedProp.component4|component4(){}[0]
-    final fun copy(dev.rotalex.lutter.model.ids/PropertyKey = ..., dev.rotalex.lutter.model.expr/PropertyValue = ..., dev.rotalex.lutter.analysis.resolved/PropOrigin = ..., dev.rotalex.lutter.analysis.resolved/ResolvedToken? = ...): dev.rotalex.lutter.analysis.resolved/ResolvedProp // dev.rotalex.lutter.analysis.resolved/ResolvedProp.copy|copy(dev.rotalex.lutter.model.ids.PropertyKey;dev.rotalex.lutter.model.expr.PropertyValue;dev.rotalex.lutter.analysis.resolved.PropOrigin;dev.rotalex.lutter.analysis.resolved.ResolvedToken?){}[0]
+    final fun component5(): dev.rotalex.lutter.model.expr/TypedExpr? // dev.rotalex.lutter.analysis.resolved/ResolvedProp.component5|component5(){}[0]
+    final fun copy(dev.rotalex.lutter.model.ids/PropertyKey = ..., dev.rotalex.lutter.model.expr/PropertyValue = ..., dev.rotalex.lutter.analysis.resolved/PropOrigin = ..., dev.rotalex.lutter.analysis.resolved/ResolvedToken? = ..., dev.rotalex.lutter.model.expr/TypedExpr? = ...): dev.rotalex.lutter.analysis.resolved/ResolvedProp // dev.rotalex.lutter.analysis.resolved/ResolvedProp.copy|copy(dev.rotalex.lutter.model.ids.PropertyKey;dev.rotalex.lutter.model.expr.PropertyValue;dev.rotalex.lutter.analysis.resolved.PropOrigin;dev.rotalex.lutter.analysis.resolved.ResolvedToken?;dev.rotalex.lutter.model.expr.TypedExpr?){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.analysis.resolved/ResolvedProp.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // dev.rotalex.lutter.analysis.resolved/ResolvedProp.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // dev.rotalex.lutter.analysis.resolved/ResolvedProp.toString|toString(){}[0]
+}
+
+final class dev.rotalex.lutter.analysis.resolved/ResolvedState { // dev.rotalex.lutter.analysis.resolved/ResolvedState|null[0]
+    constructor <init>(dev.rotalex.lutter.model.doc/StateDecl, dev.rotalex.lutter.model.expr/TypedExpr?) // dev.rotalex.lutter.analysis.resolved/ResolvedState.<init>|<init>(dev.rotalex.lutter.model.doc.StateDecl;dev.rotalex.lutter.model.expr.TypedExpr?){}[0]
+
+    final val decl // dev.rotalex.lutter.analysis.resolved/ResolvedState.decl|{}decl[0]
+        final fun <get-decl>(): dev.rotalex.lutter.model.doc/StateDecl // dev.rotalex.lutter.analysis.resolved/ResolvedState.decl.<get-decl>|<get-decl>(){}[0]
+    final val derived // dev.rotalex.lutter.analysis.resolved/ResolvedState.derived|{}derived[0]
+        final fun <get-derived>(): dev.rotalex.lutter.model.expr/TypedExpr? // dev.rotalex.lutter.analysis.resolved/ResolvedState.derived.<get-derived>|<get-derived>(){}[0]
+
+    final fun component1(): dev.rotalex.lutter.model.doc/StateDecl // dev.rotalex.lutter.analysis.resolved/ResolvedState.component1|component1(){}[0]
+    final fun component2(): dev.rotalex.lutter.model.expr/TypedExpr? // dev.rotalex.lutter.analysis.resolved/ResolvedState.component2|component2(){}[0]
+    final fun copy(dev.rotalex.lutter.model.doc/StateDecl = ..., dev.rotalex.lutter.model.expr/TypedExpr? = ...): dev.rotalex.lutter.analysis.resolved/ResolvedState // dev.rotalex.lutter.analysis.resolved/ResolvedState.copy|copy(dev.rotalex.lutter.model.doc.StateDecl;dev.rotalex.lutter.model.expr.TypedExpr?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.analysis.resolved/ResolvedState.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.analysis.resolved/ResolvedState.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.analysis.resolved/ResolvedState.toString|toString(){}[0]
 }
 
 final class dev.rotalex.lutter.analysis.resolved/ResolvedTheme { // dev.rotalex.lutter.analysis.resolved/ResolvedTheme|null[0]
@@ -287,6 +315,8 @@ final object dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes { // dev.rot
         final fun <get-CodegenNameCollision>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNameCollision.<get-CodegenNameCollision>|<get-CodegenNameCollision>(){}[0]
     final val CodegenNoBinding // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNoBinding|{}CodegenNoBinding[0]
         final fun <get-CodegenNoBinding>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNoBinding.<get-CodegenNoBinding>|<get-CodegenNoBinding>(){}[0]
+    final val CodegenNoTypeSpelling // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNoTypeSpelling|{}CodegenNoTypeSpelling[0]
+        final fun <get-CodegenNoTypeSpelling>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNoTypeSpelling.<get-CodegenNoTypeSpelling>|<get-CodegenNoTypeSpelling>(){}[0]
     final val CodegenStrategyUnsupported // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenStrategyUnsupported|{}CodegenStrategyUnsupported[0]
         final fun <get-CodegenStrategyUnsupported>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenStrategyUnsupported.<get-CodegenStrategyUnsupported>|<get-CodegenStrategyUnsupported>(){}[0]
     final val ComponentChildNotAllowed // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ComponentChildNotAllowed|{}ComponentChildNotAllowed[0]
@@ -299,6 +329,14 @@ final object dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes { // dev.rot
         final fun <get-ComponentSlotUnknown>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ComponentSlotUnknown.<get-ComponentSlotUnknown>|<get-ComponentSlotUnknown>(){}[0]
     final val ComponentUnknown // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ComponentUnknown|{}ComponentUnknown[0]
         final fun <get-ComponentUnknown>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ComponentUnknown.<get-ComponentUnknown>|<get-ComponentUnknown>(){}[0]
+    final val ExprNullableAccess // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ExprNullableAccess|{}ExprNullableAccess[0]
+        final fun <get-ExprNullableAccess>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ExprNullableAccess.<get-ExprNullableAccess>|<get-ExprNullableAccess>(){}[0]
+    final val ExprTypeMismatch // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ExprTypeMismatch|{}ExprTypeMismatch[0]
+        final fun <get-ExprTypeMismatch>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ExprTypeMismatch.<get-ExprTypeMismatch>|<get-ExprTypeMismatch>(){}[0]
+    final val ExprUnknownFunction // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ExprUnknownFunction|{}ExprUnknownFunction[0]
+        final fun <get-ExprUnknownFunction>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ExprUnknownFunction.<get-ExprUnknownFunction>|<get-ExprUnknownFunction>(){}[0]
+    final val ExprUnresolvedRef // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ExprUnresolvedRef|{}ExprUnresolvedRef[0]
+        final fun <get-ExprUnresolvedRef>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ExprUnresolvedRef.<get-ExprUnresolvedRef>|<get-ExprUnresolvedRef>(){}[0]
     final val ModifierArgInvalid // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ModifierArgInvalid|{}ModifierArgInvalid[0]
         final fun <get-ModifierArgInvalid>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ModifierArgInvalid.<get-ModifierArgInvalid>|<get-ModifierArgInvalid>(){}[0]
     final val ModifierScopeMissing // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ModifierScopeMissing|{}ModifierScopeMissing[0]
