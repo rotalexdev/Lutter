@@ -1,0 +1,111 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "ExpressionCorpus"},
+    "nodes": {
+      "n_trim": {
+        "id": "n_trim",
+        "props": {"text": {"type": "expr", "expr": {"type": "call", "function": "str.trim", "args": [{"type": "ref", "target": {"type": "state", "id": "s_label"}}]}}},
+        "type": "m3.Text"
+      },
+      "n_upper": {
+        "id": "n_upper",
+        "props": {"text": {"type": "expr", "expr": {"type": "call", "function": "str.uppercase", "args": [{"type": "ref", "target": {"type": "state", "id": "s_label"}}]}}},
+        "type": "m3.Text"
+      },
+      "n_round": {
+        "id": "n_round",
+        "props": {"text": {"type": "expr", "expr": {"type": "call", "function": "str.lowercase", "args": [{"type": "call", "function": "str.uppercase", "args": [{"type": "ref", "target": {"type": "state", "id": "s_label"}}]}]}}},
+        "type": "m3.Text"
+      },
+      "n_blank": {
+        "id": "n_blank",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "Blank: "}}, {"type": "call", "function": "str.isBlank", "args": [{"type": "ref", "target": {"type": "state", "id": "s_blank"}}]}]}}},
+        "type": "m3.Text"
+      },
+      "n_contains": {
+        "id": "n_contains",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "Has: "}}, {"type": "call", "function": "str.contains", "args": [{"type": "ref", "target": {"type": "state", "id": "s_label"}}, {"type": "const", "value": {"type": "str", "v": "ta"}}]}]}}},
+        "type": "m3.Text"
+      },
+      "n_tally": {
+        "id": "n_tally",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "Count: "}}, {"type": "ref", "target": {"type": "state", "id": "s_count"}}, {"type": "const", "value": {"type": "str", "v": " of "}}, {"type": "call", "function": "str.length", "args": [{"type": "ref", "target": {"type": "state", "id": "s_label"}}]}]}}},
+        "type": "m3.Text"
+      },
+      "n_fixed": {
+        "id": "n_fixed",
+        "props": {"text": {"type": "expr", "expr": {"type": "call", "function": "num.format", "args": [{"type": "ref", "target": {"type": "state", "id": "s_ratio"}}, {"type": "const", "value": {"type": "i32", "v": 3}}]}}},
+        "type": "m3.Text"
+      },
+      "n_widened": {
+        "id": "n_widened",
+        "props": {"text": {"type": "expr", "expr": {"type": "call", "function": "num.format", "args": [{"type": "call", "function": "num.toDouble", "args": [{"type": "ref", "target": {"type": "state", "id": "s_count"}}]}, {"type": "const", "value": {"type": "i32", "v": 1}}]}}},
+        "type": "m3.Text"
+      },
+      "n_size": {
+        "id": "n_size",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "size="}}, {"type": "call", "function": "list.size", "args": [{"type": "list", "items": [{"type": "const", "value": {"type": "str", "v": "a"}}]}]}, {"type": "const", "value": {"type": "str", "v": " of "}}, {"type": "call", "function": "list.contains", "args": [{"type": "list", "items": [{"type": "const", "value": {"type": "str", "v": "a"}}]}, {"type": "const", "value": {"type": "str", "v": "a"}}]}]}}},
+        "type": "m3.Text"
+      },
+      "n_empty": {
+        "id": "n_empty",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "empty="}}, {"type": "call", "function": "list.isEmpty", "args": [{"type": "list", "items": [{"type": "const", "value": {"type": "str", "v": "a"}}]}]}]}}},
+        "type": "m3.Text"
+      },
+      "n_full": {
+        "id": "n_full",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "full="}}, {"type": "call", "function": "list.isNotEmpty", "args": [{"type": "list", "items": [{"type": "const", "value": {"type": "str", "v": "a"}}]}]}]}}},
+        "type": "m3.Text"
+      },
+      "n_missing": {
+        "id": "n_missing",
+        "props": {"text": {"type": "expr", "expr": {"type": "call", "function": "core.coalesce", "args": [{"type": "call", "function": "list.get", "args": [{"type": "list", "items": [{"type": "const", "value": {"type": "str", "v": "a"}}]}, {"type": "const", "value": {"type": "i32", "v": 7}}]}, {"type": "const", "value": {"type": "str", "v": "missing"}}]}}},
+        "type": "m3.Text"
+      },
+      "n_present": {
+        "id": "n_present",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "Present: "}}, {"type": "unary", "op": "not", "operand": {"type": "call", "function": "core.isNull", "args": [{"type": "call", "function": "list.get", "args": [{"type": "list", "items": [{"type": "const", "value": {"type": "str", "v": "a"}}]}, {"type": "const", "value": {"type": "i32", "v": 7}}]}]}}]}}},
+        "type": "m3.Text"
+      },
+      "n_shout": {
+        "id": "n_shout",
+        "props": {"text": {"type": "expr", "expr": {"type": "ref", "target": {"type": "state", "id": "s_shout"}}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "slots": {"children": ["n_trim", "n_upper", "n_round", "n_blank", "n_contains", "n_tally", "n_fixed", "n_widened", "n_size", "n_empty", "n_full", "n_missing", "n_present", "n_shout"]},
+        "type": "core.Column"
+      }
+    },
+    "pages": {
+      "p_home": {
+        "id": "p_home",
+        "name": "Home",
+        "root": "n_root",
+        "route": "home",
+        "state": [
+          {"id": "s_count", "name": "count", "type": {"type": "i32"}, "initial": {"type": "i32", "v": 2}},
+          {"id": "s_label", "name": "label", "type": {"type": "str"}, "initial": {"type": "str", "v": "  taps  "}},
+          {"id": "s_blank", "name": "blank", "type": {"type": "str"}, "initial": {"type": "str", "v": "   "}},
+          {"id": "s_ratio", "name": "ratio", "type": {"type": "f64"}, "initial": {"type": "f64", "v": 1.25}},
+          {
+            "id": "s_shout",
+            "name": "shout",
+            "type": {"type": "str"},
+            "derived": {
+              "type": "call",
+              "function": "str.uppercase",
+              "args": [{"type": "ref", "target": {"type": "state", "id": "s_label"}}]
+            }
+          }
+        ]
+      }
+    }
+  }
+}
