@@ -44,6 +44,9 @@ import kotlin.test.assertTrue
  *  * **`core.isNull` under `!`** — D15's `Comparison` level. Without it the emitted text is
  *    `!x == null`, which Kotlin reads as `(!x) == null`: always false, and a warning rather
  *    than an error, so the corpus is what notices.
+ *  * **`core.isNull` against `core.isNull`** — the same level, one operator tighter. The
+ *    template is an equality, so beside another `==` its right-hand side has to be
+ *    parenthesised: `a == null == b == null` is four operands and two of them are `null`.
  *  * **`num.toDouble` inside `num.format`** — §10.4 allows no implicit conversion, so this is
  *    the only route from an `i32` to text. `2.0`, not the `2` a half that stayed an integer gives.
  *  * **a derived read** — the interpreter re-evaluates the body on every read and the generated
@@ -69,7 +72,7 @@ class ExpressionCorpusTest {
         val HOME: PageId = PageId("p_home")
 
         /**
-         * What every one of the fourteen nodes renders, in slot order.
+         * What every one of the fifteen nodes renders, in slot order.
          *
          * The list is the corpus: conformance proves the two backends agree on it, and this
          * literal proves they agree on *this* rather than on anything at all.
@@ -88,6 +91,7 @@ class ExpressionCorpusTest {
             "full=true",
             "missing",
             "Present: false",
+            "Agree: false",
             "  TAPS  ",
         )
     }
@@ -148,8 +152,11 @@ class ExpressionCorpusTest {
                     Text("size=${'$'}{listOf("a").size} of ${'$'}{listOf("a").contains("a")}")
                     Text("empty=${'$'}{listOf("a").isEmpty()}")
                     Text("full=${'$'}{listOf("a").isNotEmpty()}")
-                    Text(kotlin.coalesce(listOf("a").getOrNull(7), "missing"))
+                    Text(listOf("a").getOrNull(7) ?: "missing")
                     Text("Present: ${'$'}{!(listOf("a").getOrNull(7) == null)}")
+                    Text(
+                        "Agree: ${'$'}{listOf("a").getOrNull(7) == null == (listOf("a").getOrNull(0) == null)}",
+                    )
                     Text(state.shout)
                 }
             }

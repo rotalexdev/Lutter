@@ -35,10 +35,9 @@ public object CoreFunctions {
             ParamSig("fallback", TypeSig.Element(ELEMENT)),
         ),
         returns = TypeSig.Element(ELEMENT),
-        // `kotlin.coalesce` rather than `?:`, because §10.5's operators are table rows and a
-        // template is not a table row; both overloads answer a non-null type when the fallback
-        // is one, which is what the signature promises.
-        kotlin = FunctionEmit("kotlin.coalesce({0}, {1})"),
+        // `?:`, at the level it binds at: under `&&` and over `==`. Declared rather than read
+        // out of the text, or a `?:` beside a `==` reads as the comparison's right operand.
+        kotlin = FunctionEmit("{0} ?: {1}", precedence = FunctionPrecedence.Elvis),
     )
 
     /**

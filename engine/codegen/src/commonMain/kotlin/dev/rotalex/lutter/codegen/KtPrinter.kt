@@ -274,13 +274,14 @@ public class KtPrinter(
     /**
      * A template's declared level, resolved into the ladder [KtOp] uses.
      *
-     * `Comparison` maps to the looser of the two comparison levels, never the tighter one: a
-     * template that binds looser than it declared only ever gains parentheses.
+     * `Comparison` is the equality level, not the ordering one: `core.isNull`'s `{0} == null` is
+     * `==`, and a level looser than its own text is how `a == null == b == null` got emitted.
      */
     private fun levelOf(level: FunctionPrecedence): Int = when (level) {
         FunctionPrecedence.Atom -> KtBinding.Atom
         FunctionPrecedence.Call -> KtBinding.Postfix
-        FunctionPrecedence.Comparison -> KtBinding.Comparison
+        FunctionPrecedence.Comparison -> KtBinding.Equality
+        FunctionPrecedence.Elvis -> KtBinding.Elvis
     }
 
     private fun refOf(ref: KtSymbolRef, aliases: Map<String, String>): String {

@@ -72,6 +72,11 @@
         "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "Present: "}}, {"type": "unary", "op": "not", "operand": {"type": "call", "function": "core.isNull", "args": [{"type": "call", "function": "list.get", "args": [{"type": "list", "items": [{"type": "const", "value": {"type": "str", "v": "a"}}]}, {"type": "const", "value": {"type": "i32", "v": 7}}]}]}}]}}},
         "type": "m3.Text"
       },
+      "n_equal": {
+        "id": "n_equal",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "Agree: "}}, {"type": "binary", "op": "eq", "left": {"type": "call", "function": "core.isNull", "args": [{"type": "call", "function": "list.get", "args": [{"type": "list", "items": [{"type": "const", "value": {"type": "str", "v": "a"}}]}, {"type": "const", "value": {"type": "i32", "v": 7}}]}]}, "right": {"type": "call", "function": "core.isNull", "args": [{"type": "call", "function": "list.get", "args": [{"type": "list", "items": [{"type": "const", "value": {"type": "str", "v": "a"}}]}, {"type": "const", "value": {"type": "i32", "v": 0}}]}]}}]}}},
+        "type": "m3.Text"
+      },
       "n_shout": {
         "id": "n_shout",
         "props": {"text": {"type": "expr", "expr": {"type": "ref", "target": {"type": "state", "id": "s_shout"}}}},
@@ -79,7 +84,7 @@
       },
       "n_root": {
         "id": "n_root",
-        "slots": {"children": ["n_trim", "n_upper", "n_round", "n_blank", "n_contains", "n_tally", "n_fixed", "n_widened", "n_size", "n_empty", "n_full", "n_missing", "n_present", "n_shout"]},
+        "slots": {"children": ["n_trim", "n_upper", "n_round", "n_blank", "n_contains", "n_tally", "n_fixed", "n_widened", "n_size", "n_empty", "n_full", "n_missing", "n_present", "n_equal", "n_shout"]},
         "type": "core.Column"
       }
     },

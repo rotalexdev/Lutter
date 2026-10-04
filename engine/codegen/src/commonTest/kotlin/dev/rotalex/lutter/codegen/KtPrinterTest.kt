@@ -423,6 +423,32 @@ class KtPrinterTest {
     }
 
     @Test
+    fun `an equality template is parenthesised on the right of another equality`() {
+        // Left-associative, so only the right one needs parentheses: `a == null == b == null`
+        // is four operands and two of them are `null`, which is not what the tree says.
+        val printed = KtPrinter().print(
+            ktFile(drawn(KtExpr.Binary(KtOp.Eq, isNullOf("a"), isNullOf("b")))),
+        )
+
+        assertTrue(printed.contains("a == null == (b == null)"), printed)
+    }
+
+    @Test
+    fun `an elvis template parenthesises under equality and not under conjunction`() {
+        // The level is only right if it sits between the two, so both neighbours are asserted:
+        // `?:` binds looser than `==` and tighter than `&&`.
+        val equality = KtPrinter().print(
+            ktFile(drawn(KtExpr.Binary(KtOp.Eq, coalesceOf("a", "b"), KtExpr.Name("c")))),
+        )
+        val conjunction = KtPrinter().print(
+            ktFile(drawn(KtExpr.Binary(KtOp.And, coalesceOf("a", "b"), KtExpr.Name("c")))),
+        )
+
+        assertTrue(equality.contains("(a ?: b) == c"), equality)
+        assertTrue(conjunction.contains("a ?: b && c"), conjunction)
+    }
+
+    @Test
     fun `a pattern binds exactly the arguments it names`() {
         val failure = assertFailsWith<CodegenBug> {
             KtPrinter().print(ktFile(drawn(KtExpr.PatternCall("{0} == {1}", listOf(KtExpr.Name("a"))))))
@@ -632,6 +658,13 @@ class KtPrinterTest {
         pattern = "{0} == null",
         args = listOf(KtExpr.Name(name)),
         precedence = FunctionPrecedence.Comparison,
+    )
+
+    /** `a ?: b` as the `core.coalesce` template spells it, which binds between `==` and `&&`. */
+    private fun coalesceOf(left: String, right: String): KtExpr = KtExpr.PatternCall(
+        pattern = "{0} ?: {1}",
+        args = listOf(KtExpr.Name(left), KtExpr.Name(right)),
+        precedence = FunctionPrecedence.Elvis,
     )
 
     /** A function whose body is one expression, which is where precedence shows up. */

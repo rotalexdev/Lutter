@@ -123,13 +123,14 @@ internal object KtBinding {
     const val Conditional: Int = 0
     const val Disjunction: Int = 1
     const val Conjunction: Int = 2
-    const val Equality: Int = 3
-    const val Comparison: Int = 4
-    const val Additive: Int = 5
-    const val Multiplicative: Int = 6
-    const val Prefix: Int = 7
-    const val Postfix: Int = 8
-    const val Atom: Int = 9
+    const val Elvis: Int = 3
+    const val Equality: Int = 4
+    const val Comparison: Int = 5
+    const val Additive: Int = 6
+    const val Multiplicative: Int = 7
+    const val Prefix: Int = 8
+    const val Postfix: Int = 9
+    const val Atom: Int = 10
 }
 
 /**

@@ -50,7 +50,7 @@ class ExprEmitterTest {
             ParamSig("fallback", TypeSig.Element("T")),
         ),
         returns = TypeSig.Element("T"),
-        kotlin = FunctionEmit("kotlin.coalesce({0}, {1})"),
+        kotlin = FunctionEmit("{0} ?: {1}", precedence = FunctionPrecedence.Elvis),
     )
 
     private val trim: FunctionSpec = FunctionSpec(
@@ -231,7 +231,7 @@ class ExprEmitterTest {
 
         // The parentheses around `x + y` are the price of not reading the pattern for a binding
         // level: a `{0}` may be a receiver inside one, and only the pattern knows that.
-        assertEquals("kotlin.coalesce(a, (x + y))", body(emit(call)))
+        assertEquals("a ?: (x + y)", body(emit(call)))
     }
 
     @Test
