@@ -12,7 +12,7 @@
     "nodes": {
       "n_a": {
         "id": "n_a",
-        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Clicks"}}},
+        "props": {"text": {"type": "expr", "expr": {"type": "ref", "target": {"type": "state", "id": "s_label"}}}},
         "type": "m3.Text"
       },
       "n_b": {

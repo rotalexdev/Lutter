@@ -13,6 +13,7 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedPage
 import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.analysis.resolved.ResolvedState
 import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.expr.TypedExpr
 import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.TypeId
@@ -70,6 +71,9 @@ public class KotlinGenerator<A : Any, T : Any>(
     // §12.2's seam: one emitter per document, built on entry and rebuilt per run so a second
     // `generate` over another document cannot read the first one's declarations.
     private var state: StateEmitter? = null
+    // The screen-site [StateRead], built per run beside [state]. A state class member builds its
+    // own reader over its siblings, because `state.count` inside one compiles and reads nothing.
+    private var expressions: ExprEmitter? = null
 
     // Fail fast on missing bindings, like UiRuntime does on missing renderers.
     init {
@@ -83,6 +87,7 @@ public class KotlinGenerator<A : Any, T : Any>(
         }
         diagnostics.clear()
         state = StateEmitter(document, options, schema.functions)
+        expressions = ExprEmitter(schema.functions, StateRead { id -> state?.readInScreen(id) })
         val plan: GenPlan = planDocument(document, options.basePackage)
         refuseCollisions(plan)
         val files: MutableList<GeneratedFile> = mutableListOf()
@@ -334,7 +339,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             val prop: ResolvedProp = checkNotNull(node.props[key]) {
                 "Present property '${key.value}' left the node"
             }
-            return literalOf(prop, spec.properties, node)
+            return valueOf(prop, spec.properties, node)
         }
         if (emit is ValueEmit.Cases) {
             val match = emit.cases.firstOrNull { kase ->
@@ -350,9 +355,10 @@ public class KotlinGenerator<A : Any, T : Any>(
         throw CodegenBug("Unknown ValueEmit: " + emit)
     }
 
-    // Every `{key}` becomes the property's literal; unknown or computed keys refuse.
-    // Returns the text plus the literals' imports: a value filled into a pattern (a `dp`
-    // inside `Arrangement.spacedBy({spacing})`) still needs its own symbols recorded.
+// Every `{key}` becomes the property's literal, spliced into text: an unknown key and a
+    // computed one both refuse here, the second because a pattern has no place to put a read.
+    // Returns the text plus the literals' imports: a `dp` inside `Arrangement.spacedBy({spacing})`
+    // still needs its own symbols recorded.
     private fun fillPattern(
         pattern: String,
         values: Map<PropertyKey, ResolvedProp>,
@@ -387,28 +393,42 @@ public class KotlinGenerator<A : Any, T : Any>(
                 refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Pattern key '{$raw}' is absent")
                 return null
             }
-            val literal: KtExpr.Literal? = literalOf(prop, declared, node, entries)
-            if (literal == null) return null
-            filled.append(literal.text)
-            symbols.addAll(literal.imports)
+            val value: KtExpr? = valueOf(prop, declared, node, entries)
+            if (value == null) return null
+            // A pattern is text and the value is spliced into it, so only a literal fills one: a
+            // computed read has no spelling here, and §16.2's symbols are references, not text.
+            if (value !is KtExpr.Literal) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Pattern key '{$raw}' holds a computed value, and a pattern is text",
+                )
+                return null
+            }
+            filled.append(value.text)
+            symbols.addAll(value.imports)
             index = close + 1
         }
         return filled.toString() to symbols
     }
 
-    // A literal, or a refusal: computed values and unspeakable kinds emit nothing.
-    private fun literalOf(
+    /**
+     * A property's value as a Kotlin expression, or a refusal.
+     *
+     * A computed value is §10.5's codegen column: the checked expression, spelled by [ExprEmitter]
+     * against the [StateRead] for the site the read appears in. A constant emits exactly as it
+     * did before either arm existed, which is what keeps a document with no computed property
+     * byte-identical.
+     */
+    private fun valueOf(
         prop: ResolvedProp,
         declared: List<PropertySpec<*>>,
         node: ResolvedNode,
         entries: Map<String, KotlinSymbol> = emptyMap(),
-    ): KtExpr.Literal? {
+    ): KtExpr? {
         val stored = prop.value
-        if (stored is PropertyValue.Computed) {
-            refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Computed properties emit nothing yet")
-            return null
-        }
-        val constant: Value = (stored as PropertyValue.Const).value
+        if (stored is PropertyValue.Computed) return computedOf(prop)
+        val constant: Value = stored.value
         if (constant is Value.Enum) return enumLiteral(constant.entry, declared, prop.key, node, entries)
         val literal = LiteralPrinter.emit(constant)
         if (literal == null) {
@@ -416,6 +436,24 @@ public class KotlinGenerator<A : Any, T : Any>(
             return null
         }
         return KtExpr.Literal(literal.text, literal.symbols)
+    }
+
+    /**
+     * A computed value as its checked expression, read the way a screen reads state.
+     *
+     * Both nulls are breaches rather than findings, and §16.7 is why: pass 5 typechecks every
+     * computed value, pass 7 attaches what it produced, and pass 7 runs only over a document no
+     * pass has errored on. A `Computed` reaching here without one is a lost record.
+     */
+    private fun computedOf(prop: ResolvedProp): KtExpr {
+        val typed: TypedExpr = checkNotNull(prop.typed) {
+            "Computed property '" + prop.key.value + "' carries no checked expression; " +
+                "pass 5 refused an unchecked one"
+        }
+        val emitter: ExprEmitter = checkNotNull(expressions) {
+            "Computed property '" + prop.key.value + "' reached emission with no reader"
+        }
+        return emitter.emit(typed)
     }
 
     // PLAN §16.6: an enum entry emits `EnumEntrySpec.kotlin`, which is the only place the symbol
@@ -526,7 +564,7 @@ public class KotlinGenerator<A : Any, T : Any>(
                 val prop: ResolvedProp = checkNotNull(entry.args[key]) {
                     "Present modifier arg '${key.value}' left the entry"
                 }
-                args += KtArg(key.value, literalOf(prop, spec.params, node, entries) ?: return null)
+                args += KtArg(key.value, valueOf(prop, spec.params, node, entries) ?: return null)
             }
             // A scope member's name resolves through the receiver, so it is not an import.
             return KtCall(emit.function, args, imported = !emit.scopeMember)
