@@ -54,3 +54,9 @@ public final class dev/rotalex/lutter/interpreter/eval/FunctionImpls$Companion {
 	public final fun of (Ljava/util/List;)Ldev/rotalex/lutter/interpreter/eval/FunctionImpls;
 }
 
+public final class dev/rotalex/lutter/interpreter/eval/OperatorRows {
+	public static final field INSTANCE Ldev/rotalex/lutter/interpreter/eval/OperatorRows;
+	public final fun getBinary ()Ljava/util/Map;
+	public final fun getUnary ()Ljava/util/Map;
+}
+

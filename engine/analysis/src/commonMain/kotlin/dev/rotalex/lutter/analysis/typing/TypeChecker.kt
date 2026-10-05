@@ -10,7 +10,6 @@ import dev.rotalex.lutter.model.expr.BinaryOp
 import dev.rotalex.lutter.model.expr.Expr
 import dev.rotalex.lutter.model.expr.ExprType
 import dev.rotalex.lutter.model.expr.RefTarget
-import dev.rotalex.lutter.model.expr.UnaryOp
 import dev.rotalex.lutter.model.ids.DataModelId
 import dev.rotalex.lutter.model.ids.ParamName
 import dev.rotalex.lutter.model.ids.StateId
@@ -260,37 +259,27 @@ internal class TypeChecker(
         return null
     }
 
+    /** §10.4's unary rules, read from [OperatorRules]: the row settles the type or refuses. */
     private fun unary(expr: Expr.Unary, ctx: Context): ExprType? {
         val operand = infer(expr.operand, null, ctx) ?: return null
         val op = expr.op.name.lowercase()
-        return when (expr.op) {
-            UnaryOp.Not -> if (operand == BOOL) BOOL else mismatch(ctx, "'$op' needs a bool")
-            UnaryOp.Neg -> if (numeric(operand)) operand else mismatch(ctx, "'$op' needs a number")
-        }
+        val row: UnaryRow = OperatorRules.unary[expr.op]
+            ?: return mismatch(ctx, "'$op' has no operand rule")
+        return row.answer(operand) ?: mismatch(ctx, "'$op' ${row.refusal}")
     }
 
     /**
-     * §10.4's no-implicit-conversion rule, structurally: the two sides of an arithmetic
-     * operator must already be the same type, because [Assignability] never widens a number.
-     * §10.6 rules locale-dependent ordering out, so text is not an operand here either.
+     * §10.4's no-implicit-conversion rule, structurally: the two sides of an arithmetic operator
+     * must already be the same type, because [Assignability] never widens a number. The rows live in
+     * [OperatorRules], so the checker and the contract read one table rather than two.
      */
     private fun binary(expr: Expr.Binary, ctx: Context): ExprType? {
         val left = infer(expr.left, null, ctx)
         val right = infer(expr.right, null, ctx)
         if (left == null || right == null) return null
-        return when (expr.op) {
-            BinaryOp.Add, BinaryOp.Sub, BinaryOp.Mul ->
-                if (left == right && (numeric(left) || left == TEXT)) left else operands(ctx, expr, left, right)
-
-            BinaryOp.Eq, BinaryOp.Neq ->
-                if (sameOrNull(left, right)) BOOL else operands(ctx, expr, left, right)
-
-            BinaryOp.Lt, BinaryOp.Le, BinaryOp.Gt, BinaryOp.Ge ->
-                if (left == right && numeric(left)) BOOL else operands(ctx, expr, left, right)
-
-            BinaryOp.And, BinaryOp.Or ->
-                if (left == BOOL && right == BOOL) BOOL else operands(ctx, expr, left, right)
-        }
+        val row: BinaryRow = OperatorRules.binary[expr.op]
+            ?: return mismatch(ctx, "'${expr.op.name.lowercase()}' has no operand rule")
+        return row.answer(left, right) ?: operands(ctx, expr, left, right)
     }
 
     private fun conditional(expr: Expr.If, expected: ExprType?, ctx: Context): ExprType? {
@@ -507,8 +496,8 @@ private fun lifted(found: ExprType): ExprType {
     return ExprType.Of(declared.inner)
 }
 
-private val BOOL: ExprType = ExprType.Of(TypeRef.Bool)
-private val TEXT: ExprType = ExprType.Of(TypeRef.Str)
+internal val BOOL: ExprType = ExprType.Of(TypeRef.Bool)
+internal val TEXT: ExprType = ExprType.Of(TypeRef.Str)
 
 /** §10.6's ordering operators: locale-dependent comparison, which `str` may not take part in. */
 private val ORDERING: Set<BinaryOp> = setOf(BinaryOp.Lt, BinaryOp.Le, BinaryOp.Gt, BinaryOp.Ge)
@@ -522,7 +511,7 @@ private val TEMPLATE_PARTS: Set<ExprType> = setOf(
 )
 
 /** §10.4's arithmetic types. `dp` and `sp` are quantities rather than numbers to add. */
-private fun numeric(type: ExprType): Boolean {
+internal fun numeric(type: ExprType): Boolean {
     val declared = (type as? ExprType.Of)?.type ?: return false
     return when (declared) {
         TypeRef.Int32, TypeRef.Int64, TypeRef.Float32, TypeRef.Float64 -> true
@@ -532,10 +521,3 @@ private fun numeric(type: ExprType): Boolean {
 
 /** §10.4:856's "floating types", which are the ones `num.format` exists to print. */
 private fun floating(declared: TypeRef): Boolean = declared == TypeRef.Float32 || declared == TypeRef.Float64
-
-/**
- * §10.6 makes functions total and index errors return `Null`, so a null is a value a
- * comparison can legally hold; comparing two unlike types still is not.
- */
-private fun sameOrNull(left: ExprType, right: ExprType): Boolean =
-    left == right || left is ExprType.Null || right is ExprType.Null

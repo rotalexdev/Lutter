@@ -82,9 +82,49 @@
         "props": {"text": {"type": "expr", "expr": {"type": "ref", "target": {"type": "state", "id": "s_shout"}}}},
         "type": "m3.Text"
       },
+      "n_wide_add": {
+        "id": "n_wide_add",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "Wide: "}}, {"type": "binary", "op": "add", "left": {"type": "ref", "target": {"type": "state", "id": "s_wide"}}, "right": {"type": "const", "value": {"type": "i64", "v": 1}}}]}}},
+        "type": "m3.Text"
+      },
+      "n_wide_neg": {
+        "id": "n_wide_neg",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "Neg: "}}, {"type": "unary", "op": "neg", "operand": {"type": "ref", "target": {"type": "state", "id": "s_wide"}}}]}}},
+        "type": "m3.Text"
+      },
+      "n_assoc": {
+        "id": "n_assoc",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "Left: "}}, {"type": "binary", "op": "sub", "left": {"type": "binary", "op": "sub", "left": {"type": "const", "value": {"type": "i32", "v": 10}}, "right": {"type": "const", "value": {"type": "i32", "v": 3}}}, "right": {"type": "const", "value": {"type": "i32", "v": 2}}}]}}},
+        "type": "m3.Text"
+      },
+      "n_prec": {
+        "id": "n_prec",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "Prec: "}}, {"type": "binary", "op": "add", "left": {"type": "ref", "target": {"type": "state", "id": "s_count"}}, "right": {"type": "binary", "op": "mul", "left": {"type": "ref", "target": {"type": "state", "id": "s_count"}}, "right": {"type": "const", "value": {"type": "i32", "v": 3}}}}]}}},
+        "type": "m3.Text"
+      },
+      "n_flag_and": {
+        "id": "n_flag_and",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "And: "}}, {"type": "binary", "op": "and", "left": {"type": "call", "function": "str.contains", "args": [{"type": "ref", "target": {"type": "state", "id": "s_label"}}, {"type": "const", "value": {"type": "str", "v": "ta"}}]}, "right": {"type": "call", "function": "str.isBlank", "args": [{"type": "ref", "target": {"type": "state", "id": "s_blank"}}]}}]}}},
+        "type": "m3.Text"
+      },
+      "n_flag_or": {
+        "id": "n_flag_or",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "Or: "}}, {"type": "binary", "op": "or", "left": {"type": "call", "function": "list.isEmpty", "args": [{"type": "list", "items": [{"type": "const", "value": {"type": "str", "v": "a"}}]}]}, "right": {"type": "call", "function": "str.isBlank", "args": [{"type": "ref", "target": {"type": "state", "id": "s_blank"}}]}}]}}},
+        "type": "m3.Text"
+      },
+      "n_text_eq": {
+        "id": "n_text_eq",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "Same: "}}, {"type": "binary", "op": "eq", "left": {"type": "call", "function": "str.uppercase", "args": [{"type": "ref", "target": {"type": "state", "id": "s_label"}}]}, "right": {"type": "call", "function": "str.uppercase", "args": [{"type": "ref", "target": {"type": "state", "id": "s_label"}}]}}]}}},
+        "type": "m3.Text"
+      },
+      "n_less": {
+        "id": "n_less",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "Less: "}}, {"type": "binary", "op": "lt", "left": {"type": "ref", "target": {"type": "state", "id": "s_count"}}, "right": {"type": "call", "function": "str.length", "args": [{"type": "ref", "target": {"type": "state", "id": "s_label"}}]}}]}}},
+        "type": "m3.Text"
+      },
       "n_root": {
         "id": "n_root",
-        "slots": {"children": ["n_trim", "n_upper", "n_round", "n_blank", "n_contains", "n_tally", "n_fixed", "n_widened", "n_size", "n_empty", "n_full", "n_missing", "n_present", "n_equal", "n_shout"]},
+        "slots": {"children": ["n_trim", "n_upper", "n_round", "n_blank", "n_contains", "n_tally", "n_fixed", "n_widened", "n_size", "n_empty", "n_full", "n_missing", "n_present", "n_equal", "n_shout", "n_wide_add", "n_wide_neg", "n_assoc", "n_prec", "n_flag_and", "n_flag_or", "n_text_eq", "n_less"]},
         "type": "core.Column"
       }
     },
@@ -108,7 +148,9 @@
               "function": "str.uppercase",
               "args": [{"type": "ref", "target": {"type": "state", "id": "s_label"}}]
             }
-          }
+          },
+          {"id": "s_flag", "name": "flag", "type": {"type": "bool"}, "initial": {"type": "bool", "v": true}},
+          {"id": "s_wide", "name": "wide", "type": {"type": "i64"}, "initial": {"type": "i64", "v": 9007199254740993}}
         ]
       }
     }
