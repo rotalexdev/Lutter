@@ -4,6 +4,7 @@ import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
 import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCodes
 import dev.rotalex.lutter.analysis.diagnostic.DiagnosticLocation
 import dev.rotalex.lutter.analysis.diagnostic.Severity
+import dev.rotalex.lutter.analysis.resolved.isMaterialToken
 import dev.rotalex.lutter.analysis.resolved.selectTheme
 import dev.rotalex.lutter.analysis.resolved.themeKnows
 import dev.rotalex.lutter.model.doc.Node
@@ -148,7 +149,9 @@ internal class ReferencePass(
         diags: MutableList<Diagnostic>,
     ) {
         val theme = selectTheme(document)
-        if (theme == null || !themeKnows(theme, token.name)) {
+        // A selected theme is the whole vocabulary; with none selected, `md.*` is Material's.
+        val declared = theme?.let { themeKnows(it, token.name) } ?: isMaterialToken(token.name)
+        if (!declared) {
             diags += Diagnostic(
                 Severity.Error, DiagnosticCodes.TokenUnknown, location,
                 "Token '${token.name}' is not declared by the selected theme",
