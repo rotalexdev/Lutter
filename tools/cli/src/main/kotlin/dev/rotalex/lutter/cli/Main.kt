@@ -5,6 +5,7 @@ import dev.rotalex.lutter.analysis.AnalysisResult
 import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
 import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
+import dev.rotalex.lutter.builtins.registerBuiltinActions
 import dev.rotalex.lutter.builtins.registerBuiltinEnums
 import dev.rotalex.lutter.builtins.registerBuiltinFunctions
 import dev.rotalex.lutter.builtins.registerBuiltinModifiers
@@ -14,6 +15,7 @@ import dev.rotalex.lutter.codegen.CodegenResult
 import dev.rotalex.lutter.codegen.KotlinGenerator
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.schema.Schema
+import dev.rotalex.lutter.schema.action.ActionSpec
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
@@ -53,15 +55,16 @@ private fun runGenerate(args: List<String>): Unit {
         exitProcess(2)
     }
     val outDir = File(optionValue(args, "--out") ?: "generated")
-    // `TypeSpec` in the last slot and `FunctionSpec` in the fourth, or the two registrars
-    // cannot apply and every document naming an enum entry — an arrangement, a shape — or
-    // calling any §10.2 function refuses instead of generating.
-    val schema: Schema<ComponentSpec, ModifierSpec, Unit, FunctionSpec, TypeSpec> =
-        Schema.build<ComponentSpec, ModifierSpec, Unit, FunctionSpec, TypeSpec> {
+    // `TypeSpec` in the last slot, `FunctionSpec` in the fourth and `ActionSpec` in the third,
+    // or the three registrars cannot apply. The action slot is the one slot where nothing has to
+    // name a spec yet: no pass reads it, so binding it changes no document's fate today.
+    val schema: Schema<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec> =
+        Schema.build<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec> {
             registerBuiltinSpecs()
             registerBuiltinModifiers()
             registerBuiltinEnums()
             registerBuiltinFunctions()
+            registerBuiltinActions()
         }
     val document: UiDocument = decode(File(input))
     val analysis: AnalysisResult = Analyzer(schema).analyze(document)

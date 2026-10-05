@@ -1,5 +1,10 @@
 package dev.rotalex.lutter.builtins
 
+import dev.rotalex.lutter.builtins.actions.FlowActions
+import dev.rotalex.lutter.builtins.actions.HostActions
+import dev.rotalex.lutter.builtins.actions.NavActions
+import dev.rotalex.lutter.builtins.actions.StateActions
+import dev.rotalex.lutter.builtins.actions.UiActions
 import dev.rotalex.lutter.builtins.enums.HorizontalArrangementSpec
 import dev.rotalex.lutter.builtins.enums.VerticalArrangementSpec
 import dev.rotalex.lutter.builtins.functions.CoreFunctions
@@ -11,6 +16,8 @@ import dev.rotalex.lutter.interpreter.eval.FunctionImpls
 import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.SchemaBuilder
+import dev.rotalex.lutter.schema.action.ActionSpec
+import dev.rotalex.lutter.schema.action.action
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.component
 import dev.rotalex.lutter.schema.function.FunctionSpec
@@ -67,6 +74,20 @@ public fun <C : Any, M : Any, A : Any, T : Any>
     for (spec in StringFunctions.all) function(spec)
     for (spec in NumberFunctions.all) function(spec)
     for (spec in CoreFunctions.all) function(spec)
+}
+
+/**
+ * Registers §11.4's six MVP action specs, all intrinsic because §11.4 calls state, navigation,
+ * control flow and host calls engine-owned. None of them is executable: `ActionHandler` does not
+ * exist, so this registry is descriptions only, and no test may read it as handler coverage.
+ */
+public fun <C : Any, M : Any, F : Any, T : Any>
+    SchemaBuilder<C, M, ActionSpec, F, T>.registerBuiltinActions(): Unit {
+    for (spec in NavActions.all) action(spec)
+    for (spec in StateActions.all) action(spec)
+    for (spec in FlowActions.all) action(spec)
+    for (spec in HostActions.all) action(spec)
+    for (spec in UiActions.all) action(spec)
 }
 
 /**
