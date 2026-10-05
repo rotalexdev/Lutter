@@ -13,9 +13,11 @@ import dev.rotalex.lutter.schema.component.ScopeId
  *
  * A tree, not table rows — single parenthood is already proven, so nesting loses nothing.
  *
- * [events] defaults because a node that binds no handler should not have to say so, and the
- * pass is the only production constructor, so the default cannot stand in for a handler that
- * was in the document.
+ * [events] is last and defaulted. Last because thirteen construction sites already pass
+ * [scopes] positionally, and inserting a parameter ahead of it turns every one of them into a
+ * type error — a compiler's job, not a reader's. Defaulted because a node that binds no
+ * handler should not have to say so, and the pass is the only production constructor, so the
+ * default cannot stand in for a handler that was in the document.
  */
 public data class ResolvedNode(
     public val id: NodeId,
@@ -23,6 +25,7 @@ public data class ResolvedNode(
     public val props: Map<PropertyKey, ResolvedProp>,
     public val modifiers: List<ResolvedModifier>,
     public val slots: Map<SlotName, List<ResolvedNode>>,
+    public val scopes: Set<ScopeId>,
 
     /**
      * The handlers as the document wrote them, carried through untouched: the one place a
@@ -30,6 +33,4 @@ public data class ResolvedNode(
      * call are both held to.
      */
     public val events: Map<EventKey, ActionSequence> = emptyMap(),
-
-    public val scopes: Set<ScopeId>,
 )
