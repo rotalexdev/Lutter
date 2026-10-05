@@ -140,7 +140,7 @@ class OperatorContractTest {
             }
         }
         assertNotNull(
-            OperatorRules.binary[BinaryOp.Add]?.answer(TypeRef.Of(TypeRef.Int32), INT32),
+            OperatorRules.binary[BinaryOp.Add]?.answer(ExprType.Of(TypeRef.Int32), INT32),
             "two '${TypeRef.Int32.serialTag}' operands settle nothing, so the comparisons below are vacuous",
         )
     }
