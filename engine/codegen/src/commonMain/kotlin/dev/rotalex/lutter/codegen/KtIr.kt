@@ -118,14 +118,18 @@ public sealed interface KtExpr {
  * Plain numbers because the two families that have to be compared declare different things —
  * [KtOp] names an operator, `FunctionPrecedence` names a template's binding — and converting
  * between them is the whole of the parenthesisation rule.
+ *
+ * `?:` binds tighter than `==` and `<` and looser than `+`, so [Elvis] sits above [Comparison].
+ * An elvis beside a comparison therefore needs no parentheses, and reading the other way puts
+ * `a ?: b == c` where Kotlin reads `(a ?: b) == c`.
  */
 internal object KtBinding {
     const val Conditional: Int = 0
     const val Disjunction: Int = 1
     const val Conjunction: Int = 2
-    const val Elvis: Int = 3
-    const val Equality: Int = 4
-    const val Comparison: Int = 5
+    const val Equality: Int = 3
+    const val Comparison: Int = 4
+    const val Elvis: Int = 5
     const val Additive: Int = 6
     const val Multiplicative: Int = 7
     const val Prefix: Int = 8

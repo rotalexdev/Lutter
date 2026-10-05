@@ -90,7 +90,7 @@ public enum class FunctionPrecedence {
     /** A binary equality: `x == null`, looser than any call. The `==` level, not the `<` one. */
     Comparison,
 
-    /** `x ?: y`: looser than an equality and tighter than `&&`, so it is a level of its own. */
+    /** `x ?: y`: tighter than an equality and looser than a sum, so it is a level of its own. */
     Elvis,
 }
 

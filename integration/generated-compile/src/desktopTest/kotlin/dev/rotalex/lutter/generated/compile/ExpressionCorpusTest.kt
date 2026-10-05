@@ -82,6 +82,17 @@ import kotlin.test.assertTrue
  *    settle independently, one from a state read and one from a call, so a half that compared
  *    against the declared property type rather than the settled one would refuse or widen.
  *
+ * The four binding rows answer one question: which level each operator sits at. `?:` binds tighter
+ * than `==` and `<` in Kotlin, so a `core.coalesce` beside either needs no parentheses, and the
+ * three rows that place it on each side are what keeps the ladder saying so:
+ *
+ *  * **`core.isNull` on the right of `&&`** — `&&` binds looser than `==`, so the comparison is the
+ *    conjunction's own right operand and `a && b == null` already means `a && (b == null)`. A
+ *    ladder with `&&` above `==` would parenthesise it, and the parentheses would be the only sign.
+ *  * **`core.coalesce` on each side of `==`, and on the left of `<`** — the three shapes where the
+ *    elvis level is load-bearing. Parenthesised and bare are the same tree, so a wrong level here
+ *    emits text that compiles and disagrees with the IR it came from rather than failing to build.
+ *
  * `str.uppercase`'s hazard is the locale and this corpus cannot reach it: the seed is ASCII, so
  * a root-locale fold and a platform fold agree here. That is stated rather than claimed.
  *
@@ -96,6 +107,10 @@ import kotlin.test.assertTrue
  * **Mixed integer widths.** `i32 + i64` is not a row because §10.4 refuses it: an arithmetic row
  * requires the two sides to already be the same type, and `Assignability` never widens a number.
  * So the checker does not widen, and the widening question is answered rather than tested.
+ *
+ * **`?:` inside a `&&`.** Not a row because §10.4 refuses it: `&&` takes two `bool`s and
+ * `core.coalesce` answers the fallback's type, so no document can put one beside the other. The
+ * elvis level is pinned beside `==` and `<` instead, where it is reachable from both sides.
  *
  * **`&&` short circuit over something that would throw.** Not a row because nothing in this
  * language can be: every refusal in both backends is a type refusal, and §10.4 checks both
@@ -113,7 +128,7 @@ class ExpressionCorpusTest {
         val HOME: PageId = PageId("p_home")
 
         /**
-         * What every one of the twenty-three nodes renders, in slot order.
+         * What every one of the twenty-seven nodes renders, in slot order.
          *
          * The list is the corpus: conformance proves the two backends agree on it, and this
          * literal proves they agree on *this* rather than on anything at all.
@@ -142,6 +157,10 @@ class ExpressionCorpusTest {
             "Or: true",
             "Same: true",
             "Less: true",
+            "AndNull: true",
+            "CoalesceEq: false",
+            "EqCoalesce: false",
+            "CoalesceLt: true",
         )
     }
 
@@ -223,6 +242,12 @@ class ExpressionCorpusTest {
                         "Same: ${'$'}{state.label.uppercase() == state.label.uppercase()}",
                     )
                     Text("Less: ${'$'}{state.count < state.label.length}")
+                    Text(
+                        "AndNull: ${'$'}{state.blank.isBlank() && listOf("a").getOrNull(7) == null}",
+                    )
+                    Text("CoalesceEq: ${'$'}{listOf("a").getOrNull(7) ?: "d" == "a"}")
+                    Text("EqCoalesce: ${'$'}{"a" == listOf("a").getOrNull(7) ?: "d"}")
+                    Text("CoalesceLt: ${'$'}{listOf(5).getOrNull(7) ?: 0 < 3}")
                 }
             }
 

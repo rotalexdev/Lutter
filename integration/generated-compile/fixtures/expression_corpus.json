@@ -122,9 +122,29 @@
         "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "Less: "}}, {"type": "binary", "op": "lt", "left": {"type": "ref", "target": {"type": "state", "id": "s_count"}}, "right": {"type": "call", "function": "str.length", "args": [{"type": "ref", "target": {"type": "state", "id": "s_label"}}]}}]}}},
         "type": "m3.Text"
       },
+      "n_and_guard": {
+        "id": "n_and_guard",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "AndNull: "}}, {"type": "binary", "op": "and", "left": {"type": "call", "function": "str.isBlank", "args": [{"type": "ref", "target": {"type": "state", "id": "s_blank"}}]}, "right": {"type": "call", "function": "core.isNull", "args": [{"type": "call", "function": "list.get", "args": [{"type": "list", "items": [{"type": "const", "value": {"type": "str", "v": "a"}}]}, {"type": "const", "value": {"type": "i32", "v": 7}}]}]}}]}}},
+        "type": "m3.Text"
+      },
+      "n_coalesce_eq": {
+        "id": "n_coalesce_eq",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "CoalesceEq: "}}, {"type": "binary", "op": "eq", "left": {"type": "call", "function": "core.coalesce", "args": [{"type": "call", "function": "list.get", "args": [{"type": "list", "items": [{"type": "const", "value": {"type": "str", "v": "a"}}]}, {"type": "const", "value": {"type": "i32", "v": 7}}]}, {"type": "const", "value": {"type": "str", "v": "d"}}]}, "right": {"type": "const", "value": {"type": "str", "v": "a"}}}]}}},
+        "type": "m3.Text"
+      },
+      "n_eq_coalesce": {
+        "id": "n_eq_coalesce",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "EqCoalesce: "}}, {"type": "binary", "op": "eq", "left": {"type": "const", "value": {"type": "str", "v": "a"}}, "right": {"type": "call", "function": "core.coalesce", "args": [{"type": "call", "function": "list.get", "args": [{"type": "list", "items": [{"type": "const", "value": {"type": "str", "v": "a"}}]}, {"type": "const", "value": {"type": "i32", "v": 7}}]}, {"type": "const", "value": {"type": "str", "v": "d"}}]}}]}}},
+        "type": "m3.Text"
+      },
+      "n_coalesce_lt": {
+        "id": "n_coalesce_lt",
+        "props": {"text": {"type": "expr", "expr": {"type": "template", "parts": [{"type": "const", "value": {"type": "str", "v": "CoalesceLt: "}}, {"type": "binary", "op": "lt", "left": {"type": "call", "function": "core.coalesce", "args": [{"type": "call", "function": "list.get", "args": [{"type": "list", "items": [{"type": "const", "value": {"type": "i32", "v": 5}}]}, {"type": "const", "value": {"type": "i32", "v": 7}}]}, {"type": "const", "value": {"type": "i32", "v": 0}}]}, "right": {"type": "const", "value": {"type": "i32", "v": 3}}}]}}},
+        "type": "m3.Text"
+      },
       "n_root": {
         "id": "n_root",
-        "slots": {"children": ["n_trim", "n_upper", "n_round", "n_blank", "n_contains", "n_tally", "n_fixed", "n_widened", "n_size", "n_empty", "n_full", "n_missing", "n_present", "n_equal", "n_shout", "n_wide_add", "n_wide_neg", "n_assoc", "n_prec", "n_flag_and", "n_flag_or", "n_text_eq", "n_less"]},
+        "slots": {"children": ["n_trim", "n_upper", "n_round", "n_blank", "n_contains", "n_tally", "n_fixed", "n_widened", "n_size", "n_empty", "n_full", "n_missing", "n_present", "n_equal", "n_shout", "n_wide_add", "n_wide_neg", "n_assoc", "n_prec", "n_flag_and", "n_flag_or", "n_text_eq", "n_less", "n_and_guard", "n_coalesce_eq", "n_eq_coalesce", "n_coalesce_lt"]},
         "type": "core.Column"
       }
     },
