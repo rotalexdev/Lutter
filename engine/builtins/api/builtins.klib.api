@@ -6,6 +6,43 @@
 // - Show declarations: true
 
 // Library unique name: <dev.rotalex.lutter:builtins>
+final object dev.rotalex.lutter.builtins.actions/FlowActions { // dev.rotalex.lutter.builtins.actions/FlowActions|null[0]
+    final val all // dev.rotalex.lutter.builtins.actions/FlowActions.all|{}all[0]
+        final fun <get-all>(): kotlin.collections/List<dev.rotalex.lutter.schema.action/ActionSpec> // dev.rotalex.lutter.builtins.actions/FlowActions.all.<get-all>|<get-all>(){}[0]
+    final val conditional // dev.rotalex.lutter.builtins.actions/FlowActions.conditional|{}conditional[0]
+        final fun <get-conditional>(): dev.rotalex.lutter.schema.action/ActionSpec // dev.rotalex.lutter.builtins.actions/FlowActions.conditional.<get-conditional>|<get-conditional>(){}[0]
+}
+
+final object dev.rotalex.lutter.builtins.actions/HostActions { // dev.rotalex.lutter.builtins.actions/HostActions|null[0]
+    final val all // dev.rotalex.lutter.builtins.actions/HostActions.all|{}all[0]
+        final fun <get-all>(): kotlin.collections/List<dev.rotalex.lutter.schema.action/ActionSpec> // dev.rotalex.lutter.builtins.actions/HostActions.all.<get-all>|<get-all>(){}[0]
+    final val call // dev.rotalex.lutter.builtins.actions/HostActions.call|{}call[0]
+        final fun <get-call>(): dev.rotalex.lutter.schema.action/ActionSpec // dev.rotalex.lutter.builtins.actions/HostActions.call.<get-call>|<get-call>(){}[0]
+}
+
+final object dev.rotalex.lutter.builtins.actions/NavActions { // dev.rotalex.lutter.builtins.actions/NavActions|null[0]
+    final val all // dev.rotalex.lutter.builtins.actions/NavActions.all|{}all[0]
+        final fun <get-all>(): kotlin.collections/List<dev.rotalex.lutter.schema.action/ActionSpec> // dev.rotalex.lutter.builtins.actions/NavActions.all.<get-all>|<get-all>(){}[0]
+    final val back // dev.rotalex.lutter.builtins.actions/NavActions.back|{}back[0]
+        final fun <get-back>(): dev.rotalex.lutter.schema.action/ActionSpec // dev.rotalex.lutter.builtins.actions/NavActions.back.<get-back>|<get-back>(){}[0]
+    final val navigate // dev.rotalex.lutter.builtins.actions/NavActions.navigate|{}navigate[0]
+        final fun <get-navigate>(): dev.rotalex.lutter.schema.action/ActionSpec // dev.rotalex.lutter.builtins.actions/NavActions.navigate.<get-navigate>|<get-navigate>(){}[0]
+}
+
+final object dev.rotalex.lutter.builtins.actions/StateActions { // dev.rotalex.lutter.builtins.actions/StateActions|null[0]
+    final val all // dev.rotalex.lutter.builtins.actions/StateActions.all|{}all[0]
+        final fun <get-all>(): kotlin.collections/List<dev.rotalex.lutter.schema.action/ActionSpec> // dev.rotalex.lutter.builtins.actions/StateActions.all.<get-all>|<get-all>(){}[0]
+    final val set // dev.rotalex.lutter.builtins.actions/StateActions.set|{}set[0]
+        final fun <get-set>(): dev.rotalex.lutter.schema.action/ActionSpec // dev.rotalex.lutter.builtins.actions/StateActions.set.<get-set>|<get-set>(){}[0]
+}
+
+final object dev.rotalex.lutter.builtins.actions/UiActions { // dev.rotalex.lutter.builtins.actions/UiActions|null[0]
+    final val all // dev.rotalex.lutter.builtins.actions/UiActions.all|{}all[0]
+        final fun <get-all>(): kotlin.collections/List<dev.rotalex.lutter.schema.action/ActionSpec> // dev.rotalex.lutter.builtins.actions/UiActions.all.<get-all>|<get-all>(){}[0]
+    final val showSnackbar // dev.rotalex.lutter.builtins.actions/UiActions.showSnackbar|{}showSnackbar[0]
+        final fun <get-showSnackbar>(): dev.rotalex.lutter.schema.action/ActionSpec // dev.rotalex.lutter.builtins.actions/UiActions.showSnackbar.<get-showSnackbar>|<get-showSnackbar>(){}[0]
+}
+
 final object dev.rotalex.lutter.builtins.enums/HorizontalArrangementSpec { // dev.rotalex.lutter.builtins.enums/HorizontalArrangementSpec|null[0]
     final val Id // dev.rotalex.lutter.builtins.enums/HorizontalArrangementSpec.Id|{}Id[0]
         final fun <get-Id>(): dev.rotalex.lutter.model.ids/TypeId // dev.rotalex.lutter.builtins.enums/HorizontalArrangementSpec.Id.<get-Id>|<get-Id>(){}[0]
@@ -308,6 +345,7 @@ final object dev.rotalex.lutter.builtins/WidthModifier { // dev.rotalex.lutter.b
 
 final fun <#A: kotlin/Any, #B: kotlin/Any, #C: kotlin/Any, #D: kotlin/Any> (dev.rotalex.lutter.schema/SchemaBuilder<#A, #B, #C, #D, dev.rotalex.lutter.schema.types/TypeSpec>).dev.rotalex.lutter.builtins/registerBuiltinEnums() // dev.rotalex.lutter.builtins/registerBuiltinEnums|registerBuiltinEnums@dev.rotalex.lutter.schema.SchemaBuilder<0:0,0:1,0:2,0:3,dev.rotalex.lutter.schema.types.TypeSpec>(){0§<kotlin.Any>;1§<kotlin.Any>;2§<kotlin.Any>;3§<kotlin.Any>}[0]
 final fun <#A: kotlin/Any, #B: kotlin/Any, #C: kotlin/Any, #D: kotlin/Any> (dev.rotalex.lutter.schema/SchemaBuilder<#A, #B, #C, dev.rotalex.lutter.schema.function/FunctionSpec, #D>).dev.rotalex.lutter.builtins/registerBuiltinFunctions() // dev.rotalex.lutter.builtins/registerBuiltinFunctions|registerBuiltinFunctions@dev.rotalex.lutter.schema.SchemaBuilder<0:0,0:1,0:2,dev.rotalex.lutter.schema.function.FunctionSpec,0:3>(){0§<kotlin.Any>;1§<kotlin.Any>;2§<kotlin.Any>;3§<kotlin.Any>}[0]
+final fun <#A: kotlin/Any, #B: kotlin/Any, #C: kotlin/Any, #D: kotlin/Any> (dev.rotalex.lutter.schema/SchemaBuilder<#A, #B, dev.rotalex.lutter.schema.action/ActionSpec, #C, #D>).dev.rotalex.lutter.builtins/registerBuiltinActions() // dev.rotalex.lutter.builtins/registerBuiltinActions|registerBuiltinActions@dev.rotalex.lutter.schema.SchemaBuilder<0:0,0:1,dev.rotalex.lutter.schema.action.ActionSpec,0:2,0:3>(){0§<kotlin.Any>;1§<kotlin.Any>;2§<kotlin.Any>;3§<kotlin.Any>}[0]
 final fun <#A: kotlin/Any, #B: kotlin/Any, #C: kotlin/Any, #D: kotlin/Any> (dev.rotalex.lutter.schema/SchemaBuilder<dev.rotalex.lutter.schema.component/ComponentSpec, #A, #B, #C, #D>).dev.rotalex.lutter.builtins/registerBuiltinSpecs() // dev.rotalex.lutter.builtins/registerBuiltinSpecs|registerBuiltinSpecs@dev.rotalex.lutter.schema.SchemaBuilder<dev.rotalex.lutter.schema.component.ComponentSpec,0:0,0:1,0:2,0:3>(){0§<kotlin.Any>;1§<kotlin.Any>;2§<kotlin.Any>;3§<kotlin.Any>}[0]
 final fun <#A: kotlin/Any, #B: kotlin/Any, #C: kotlin/Any> (dev.rotalex.lutter.schema/SchemaBuilder<dev.rotalex.lutter.schema.component/ComponentSpec, dev.rotalex.lutter.schema.modifier/ModifierSpec, #A, #B, #C>).dev.rotalex.lutter.builtins/registerBuiltinModifiers() // dev.rotalex.lutter.builtins/registerBuiltinModifiers|registerBuiltinModifiers@dev.rotalex.lutter.schema.SchemaBuilder<dev.rotalex.lutter.schema.component.ComponentSpec,dev.rotalex.lutter.schema.modifier.ModifierSpec,0:0,0:1,0:2>(){0§<kotlin.Any>;1§<kotlin.Any>;2§<kotlin.Any>}[0]
 final fun dev.rotalex.lutter.builtins/builtinFunctionImpls(): dev.rotalex.lutter.interpreter.eval/FunctionImpls // dev.rotalex.lutter.builtins/builtinFunctionImpls|builtinFunctionImpls(){}[0]
