@@ -278,3 +278,20 @@ public final class dev/rotalex/lutter/analysis/resolved/TokenSource : java/lang/
 	public static fun values ()[Ldev/rotalex/lutter/analysis/resolved/TokenSource;
 }
 
+public final class dev/rotalex/lutter/analysis/typing/BinaryRow {
+	public fun <init> (Lkotlin/jvm/functions/Function2;)V
+	public final fun answer (Ldev/rotalex/lutter/model/expr/ExprType;Ldev/rotalex/lutter/model/expr/ExprType;)Ldev/rotalex/lutter/model/expr/ExprType;
+}
+
+public final class dev/rotalex/lutter/analysis/typing/OperatorRules {
+	public static final field INSTANCE Ldev/rotalex/lutter/analysis/typing/OperatorRules;
+	public final fun getBinary ()Ljava/util/Map;
+	public final fun getUnary ()Ljava/util/Map;
+}
+
+public final class dev/rotalex/lutter/analysis/typing/UnaryRow {
+	public fun <init> (Lkotlin/jvm/functions/Function1;Ljava/lang/String;)V
+	public final fun answer (Ldev/rotalex/lutter/model/expr/ExprType;)Ldev/rotalex/lutter/model/expr/ExprType;
+	public final fun getRefusal ()Ljava/lang/String;
+}
+

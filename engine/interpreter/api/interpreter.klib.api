@@ -54,5 +54,12 @@ final class dev.rotalex.lutter.interpreter/MapStateStore : dev.rotalex.lutter.in
     final fun set(dev.rotalex.lutter.model.ids/StateId, dev.rotalex.lutter.model.value/Value) // dev.rotalex.lutter.interpreter/MapStateStore.set|set(dev.rotalex.lutter.model.ids.StateId;dev.rotalex.lutter.model.value.Value){}[0]
 }
 
+final object dev.rotalex.lutter.interpreter.eval/OperatorRows { // dev.rotalex.lutter.interpreter.eval/OperatorRows|null[0]
+    final val binary // dev.rotalex.lutter.interpreter.eval/OperatorRows.binary|{}binary[0]
+        final fun <get-binary>(): kotlin.collections/Map<dev.rotalex.lutter.model.expr/BinaryOp, kotlin/Function2<dev.rotalex.lutter.model.value/Value, kotlin/Function0<dev.rotalex.lutter.model.value/Value>, dev.rotalex.lutter.model.value/Value?>> // dev.rotalex.lutter.interpreter.eval/OperatorRows.binary.<get-binary>|<get-binary>(){}[0]
+    final val unary // dev.rotalex.lutter.interpreter.eval/OperatorRows.unary|{}unary[0]
+        final fun <get-unary>(): kotlin.collections/Map<dev.rotalex.lutter.model.expr/UnaryOp, kotlin/Function1<dev.rotalex.lutter.model.value/Value, dev.rotalex.lutter.model.value/Value?>> // dev.rotalex.lutter.interpreter.eval/OperatorRows.unary.<get-unary>|<get-unary>(){}[0]
+}
+
 final fun (dev.rotalex.lutter.model.expr/PropertyValue).dev.rotalex.lutter.interpreter/constantOrNull(): dev.rotalex.lutter.model.value/Value? // dev.rotalex.lutter.interpreter/constantOrNull|constantOrNull@dev.rotalex.lutter.model.expr.PropertyValue(){}[0]
 final fun (dev.rotalex.lutter.model.value/Value).dev.rotalex.lutter.interpreter.eval/toDisplayString(): kotlin/String // dev.rotalex.lutter.interpreter.eval/toDisplayString|toDisplayString@dev.rotalex.lutter.model.value.Value(){}[0]

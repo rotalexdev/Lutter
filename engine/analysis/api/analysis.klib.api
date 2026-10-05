@@ -288,6 +288,21 @@ final class dev.rotalex.lutter.analysis.resolved/ResolvedToken { // dev.rotalex.
     final fun toString(): kotlin/String // dev.rotalex.lutter.analysis.resolved/ResolvedToken.toString|toString(){}[0]
 }
 
+final class dev.rotalex.lutter.analysis.typing/BinaryRow { // dev.rotalex.lutter.analysis.typing/BinaryRow|null[0]
+    constructor <init>(kotlin/Function2<dev.rotalex.lutter.model.expr/ExprType, dev.rotalex.lutter.model.expr/ExprType, dev.rotalex.lutter.model.expr/ExprType?>) // dev.rotalex.lutter.analysis.typing/BinaryRow.<init>|<init>(kotlin.Function2<dev.rotalex.lutter.model.expr.ExprType,dev.rotalex.lutter.model.expr.ExprType,dev.rotalex.lutter.model.expr.ExprType?>){}[0]
+
+    final fun answer(dev.rotalex.lutter.model.expr/ExprType, dev.rotalex.lutter.model.expr/ExprType): dev.rotalex.lutter.model.expr/ExprType? // dev.rotalex.lutter.analysis.typing/BinaryRow.answer|answer(dev.rotalex.lutter.model.expr.ExprType;dev.rotalex.lutter.model.expr.ExprType){}[0]
+}
+
+final class dev.rotalex.lutter.analysis.typing/UnaryRow { // dev.rotalex.lutter.analysis.typing/UnaryRow|null[0]
+    constructor <init>(kotlin/Function1<dev.rotalex.lutter.model.expr/ExprType, dev.rotalex.lutter.model.expr/ExprType?>, kotlin/String) // dev.rotalex.lutter.analysis.typing/UnaryRow.<init>|<init>(kotlin.Function1<dev.rotalex.lutter.model.expr.ExprType,dev.rotalex.lutter.model.expr.ExprType?>;kotlin.String){}[0]
+
+    final val refusal // dev.rotalex.lutter.analysis.typing/UnaryRow.refusal|{}refusal[0]
+        final fun <get-refusal>(): kotlin/String // dev.rotalex.lutter.analysis.typing/UnaryRow.refusal.<get-refusal>|<get-refusal>(){}[0]
+
+    final fun answer(dev.rotalex.lutter.model.expr/ExprType): dev.rotalex.lutter.model.expr/ExprType? // dev.rotalex.lutter.analysis.typing/UnaryRow.answer|answer(dev.rotalex.lutter.model.expr.ExprType){}[0]
+}
+
 final class dev.rotalex.lutter.analysis/AnalysisResult { // dev.rotalex.lutter.analysis/AnalysisResult|null[0]
     constructor <init>(kotlin.collections/List<dev.rotalex.lutter.analysis.diagnostic/Diagnostic>, dev.rotalex.lutter.analysis.resolved/ResolvedDocument?) // dev.rotalex.lutter.analysis/AnalysisResult.<init>|<init>(kotlin.collections.List<dev.rotalex.lutter.analysis.diagnostic.Diagnostic>;dev.rotalex.lutter.analysis.resolved.ResolvedDocument?){}[0]
 
@@ -377,4 +392,11 @@ final object dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes { // dev.rot
         final fun <get-TokenUnknown>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.TokenUnknown.<get-TokenUnknown>|<get-TokenUnknown>(){}[0]
     final val ValueNonFinite // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ValueNonFinite|{}ValueNonFinite[0]
         final fun <get-ValueNonFinite>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ValueNonFinite.<get-ValueNonFinite>|<get-ValueNonFinite>(){}[0]
+}
+
+final object dev.rotalex.lutter.analysis.typing/OperatorRules { // dev.rotalex.lutter.analysis.typing/OperatorRules|null[0]
+    final val binary // dev.rotalex.lutter.analysis.typing/OperatorRules.binary|{}binary[0]
+        final fun <get-binary>(): kotlin.collections/Map<dev.rotalex.lutter.model.expr/BinaryOp, dev.rotalex.lutter.analysis.typing/BinaryRow> // dev.rotalex.lutter.analysis.typing/OperatorRules.binary.<get-binary>|<get-binary>(){}[0]
+    final val unary // dev.rotalex.lutter.analysis.typing/OperatorRules.unary|{}unary[0]
+        final fun <get-unary>(): kotlin.collections/Map<dev.rotalex.lutter.model.expr/UnaryOp, dev.rotalex.lutter.analysis.typing/UnaryRow> // dev.rotalex.lutter.analysis.typing/OperatorRules.unary.<get-unary>|<get-unary>(){}[0]
 }
