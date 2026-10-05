@@ -38,8 +38,8 @@ import kotlinx.serialization.Serializable
  * A nullable id with a default, §14.2 makes the resolution a total function of it, and the
  * rule is worth knowing before reading the field: `null` with exactly one theme selects that
  * theme, because `themes = { "t": … }` is the shape any first document has and it should not
- * have to restate itself. `null` with two or more resolves to nothing, and every
- * `Value.Token` in the document becomes `token.unknown` — a document that has themes and
+ * have to restate itself. `null` with two or more resolves only against Material's base, so
+ * every custom `Value.Token` becomes `token.unknown` — a document that has themes and
  * selects none is a mistake, and it is answered loudly, once per token, rather than with a
  * new diagnostic code to keep in step.
  */
