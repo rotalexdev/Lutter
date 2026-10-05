@@ -26,14 +26,14 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * PLAN §32's corpus: the seed set's fifteen names through the interpreter and through the
- * generated code, in one document, asserted as text and as Kotlin.
+ * PLAN §32's corpus: the seed set's fifteen names and §10.4's thirteen operators through the
+ * interpreter and through the generated code, in one document, asserted as text and as Kotlin.
  *
  * ### Why the interesting rows are the ones here
  *
  * `1 + 1` cannot disagree with itself, so a corpus of arithmetic proves nothing about the seam.
- * Every row below is a place where the two backends *could* land on different text, and the
- * expected string is what catches it:
+ * Every row below is a place where the two backends *could* land on different text or a
+ * different value, and the expected string is what catches it:
  *
  *  * **`num.format`** — §10.6's rule is integer math on both sides. The template names
  *    `fixedDecimalText` rather than Kotlin's `format`, which is locale-sensitive, and
@@ -52,6 +52,36 @@ import kotlin.test.assertTrue
  *  * **a derived read** — the interpreter re-evaluates the body on every read and the generated
  *    half is a `val` with a getter, so `n_shout` is the one row that is not a function call at all.
  *
+ * The operator rows carry the same burden and the same discipline. Each one names the mistake a
+ * backend can plausibly make that the other three rows already made impossible:
+ *
+ *  * **`i64 + i64`** — §10.4 admits `i64` as a template part directly, so an `Int64` reaches text
+ *    without `num.format` and only the width decides what that text is. The seed is
+ *    `9007199254740993`, one past `2^53`, because a `Double`-widening half prints
+ *    `9.007199254740992E15` and a narrowing half prints `9007199254740994` as an `Int`.
+ *  * **`-i64`** — the same width through the one arithmetic row that is a prefix rather than a
+ *    binary, so it also pins that `-state.wide` needs no parentheses: a `0 - state.wide` spelling
+ *    renders identically and a `Double` one does not.
+ *  * **`10 - 3 - 2`** — every operand is the same `i32`, so no type rule can break the tie and
+ *    associativity is the only thing left to settle it. The generated half answers `5` or `9`
+ *    depending on which side it parenthesised, and the interpreter answers whichever order its
+ *    own rows recursed in.
+ *  * **`s_count + s_count * 3`** — `*` binds tighter than `+` in Kotlin and both halves have to
+ *    agree about it: `2 + 6` against `(2 + 2) * 3`. The generated text carries the parentheses
+ *    either way, so the golden and the rendered text fail separately.
+ *  * **`&&` and `||` over two calls** — the shape where the printer's right-operand minimum is
+ *    decided, and `&&`'s answer depends on whether the right side was read. Both rows are `bool`
+ *    over `bool`, which §10.4's own rule admits, so they are the cheapest rows that still cross
+ *    the template's type boundary back to text.
+ *  * **`str.uppercase(x) == str.uppercase(x)`** — two separately evaluated `String`s that hold
+ *    the same text. The interpreter compares `Value`s by value; a generated half that reached for
+ *    `===` compares two fresh `String` objects by reference and answers `false` here, which is the
+ *    only row in this corpus where the wrong operator type-checks.
+ *  * **`s_count < str.length(s_label)`** — `<` answers a `bool` and `bool` is one of §10.4's four
+ *    template parts, so the comparison's answer re-enters the document as text. The two operands
+ *    settle independently, one from a state read and one from a call, so a half that compared
+ *    against the declared property type rather than the settled one would refuse or widen.
+ *
  * `str.uppercase`'s hazard is the locale and this corpus cannot reach it: the seed is ASCII, so
  * a root-locale fold and a platform fold agree here. That is stated rather than claimed.
  *
@@ -62,6 +92,17 @@ import kotlin.test.assertTrue
  * errored document before it renders anything. The rule is asserted where it lives, at
  * `ExpressionPassTest` in `:engine:analysis`, and repeating it here would test analysis rather
  * than agreement.
+ *
+ * **Mixed integer widths.** `i32 + i64` is not a row because §10.4 refuses it: an arithmetic row
+ * requires the two sides to already be the same type, and `Assignability` never widens a number.
+ * So the checker does not widen, and the widening question is answered rather than tested.
+ *
+ * **`&&` short circuit over something that would throw.** Not a row because nothing in this
+ * language can be: every refusal in both backends is a type refusal, and §10.4 checks both
+ * operands of a `&&` whatever the left one answers, so a document the checker accepts has no
+ * right side the evaluator could refuse. The two logical rows therefore prove the answer and the
+ * parenthesisation, not the skip — which is what `OperatorContractTest`'s last test pins, from the
+ * side that can see the thunk.
  */
 @OptIn(ExperimentalTestApi::class)
 class ExpressionCorpusTest {
@@ -72,7 +113,7 @@ class ExpressionCorpusTest {
         val HOME: PageId = PageId("p_home")
 
         /**
-         * What every one of the fifteen nodes renders, in slot order.
+         * What every one of the twenty-three nodes renders, in slot order.
          *
          * The list is the corpus: conformance proves the two backends agree on it, and this
          * literal proves they agree on *this* rather than on anything at all.
@@ -93,6 +134,14 @@ class ExpressionCorpusTest {
             "Present: false",
             "Agree: false",
             "  TAPS  ",
+            "Wide: 9007199254740994",
+            "Neg: -9007199254740993",
+            "Left: 5",
+            "Prec: 8",
+            "And: true",
+            "Or: true",
+            "Same: true",
+            "Less: true",
         )
     }
 
@@ -126,6 +175,10 @@ class ExpressionCorpusTest {
 
                 public val shout: String
                     get() = label.uppercase()
+
+                public var flag: Boolean by mutableStateOf(true)
+
+                public var wide: Long by mutableStateOf(9007199254740993L)
             }
 
             @Composable
@@ -158,6 +211,18 @@ class ExpressionCorpusTest {
                         "Agree: ${'$'}{listOf("a").getOrNull(7) == null == (listOf("a").getOrNull(0) == null)}",
                     )
                     Text(state.shout)
+                    Text("Wide: ${'$'}{state.wide + 1L}")
+                    Text("Neg: ${'$'}{-state.wide}")
+                    Text("Left: ${'$'}{10 - 3 - 2}")
+                    Text("Prec: ${'$'}{state.count + state.count * 3}")
+                    Text(
+                        "And: ${'$'}{state.label.contains("ta") && state.blank.isBlank()}",
+                    )
+                    Text("Or: ${'$'}{listOf("a").isEmpty() || state.blank.isBlank()}")
+                    Text(
+                        "Same: ${'$'}{state.label.uppercase() == state.label.uppercase()}",
+                    )
+                    Text("Less: ${'$'}{state.count < state.label.length}")
                 }
             }
 
