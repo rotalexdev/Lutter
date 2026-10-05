@@ -35,8 +35,8 @@ public object CoreFunctions {
             ParamSig("fallback", TypeSig.Element(ELEMENT)),
         ),
         returns = TypeSig.Element(ELEMENT),
-        // `?:`, at the level it binds at: under `&&` and over `==`. Declared rather than read
-        // out of the text, or a `?:` beside a `==` reads as the comparison's right operand.
+        // `?:`, at the level it binds at: over `==` and under `+`. Declared rather than read
+        // out of the text, or a `?:` beside a `==` is parenthesised as if it bound looser.
         kotlin = FunctionEmit("{0} ?: {1}", precedence = FunctionPrecedence.Elvis),
     )
 

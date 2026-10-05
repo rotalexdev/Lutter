@@ -434,18 +434,35 @@ class KtPrinterTest {
     }
 
     @Test
-    fun `an elvis template parenthesises under equality and not under conjunction`() {
-        // The level is only right if it sits between the two, so both neighbours are asserted:
-        // `?:` binds looser than `==` and tighter than `&&`.
+    fun `an elvis template needs no parentheses under equality, comparison or conjunction`() {
+        // `?:` binds tighter than `==`, `<` and `&&`, so every one of them reads the elvis as its
+        // own left operand: `(a ?: b) == c` and `a ?: b == c` are the same tree, and only the
+        // bare text proves the ladder says so. `+` is the other side of the level, and its
+        // assertion is [an elvis template parenthesises under addition].
         val equality = KtPrinter().print(
             ktFile(drawn(KtExpr.Binary(KtOp.Eq, coalesceOf("a", "b"), KtExpr.Name("c")))),
+        )
+        val comparison = KtPrinter().print(
+            ktFile(drawn(KtExpr.Binary(KtOp.Lt, coalesceOf("a", "b"), KtExpr.Name("c")))),
         )
         val conjunction = KtPrinter().print(
             ktFile(drawn(KtExpr.Binary(KtOp.And, coalesceOf("a", "b"), KtExpr.Name("c")))),
         )
 
-        assertTrue(equality.contains("(a ?: b) == c"), equality)
+        assertTrue(equality.contains("a ?: b == c"), equality)
+        assertTrue(comparison.contains("a ?: b < c"), comparison)
         assertTrue(conjunction.contains("a ?: b && c"), conjunction)
+    }
+
+    @Test
+    fun `an elvis template parenthesises under addition`() {
+        // The other side of the level: `?:` is looser than `+`, so `a ?: b + c` is `a ?: (b + c)`
+        // and the parentheses are the only spelling of the tree the IR holds.
+        val sum = KtPrinter().print(
+            ktFile(drawn(KtExpr.Binary(KtOp.Add, coalesceOf("a", "b"), KtExpr.Name("c")))),
+        )
+
+        assertTrue(sum.contains("(a ?: b) + c"), sum)
     }
 
     @Test
@@ -660,7 +677,7 @@ class KtPrinterTest {
         precedence = FunctionPrecedence.Comparison,
     )
 
-    /** `a ?: b` as the `core.coalesce` template spells it, which binds between `==` and `&&`. */
+    /** `a ?: b` as the `core.coalesce` template spells it, which binds tighter than `==` and `<`. */
     private fun coalesceOf(left: String, right: String): KtExpr = KtExpr.PatternCall(
         pattern = "{0} ?: {1}",
         args = listOf(KtExpr.Name(left), KtExpr.Name(right)),

@@ -74,4 +74,5 @@ git checkout --quiet -b "$branch" origin/dev
 echo "created $branch from origin/dev"
 echo
 echo "next:  git push -u origin $branch"
+echo "then:  scripts/pr-title.sh \"<type>(<scope>): <description>\"   # checks it before CI does"
 echo "then:  gh pr create --base dev --head $branch --title \"<type>(<scope>): <description>\""
