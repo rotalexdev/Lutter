@@ -86,7 +86,7 @@ internal class ResolutionPass(
             for (slot in spec.slots) {
                 slots[slot.name] = (node.slots[slot.name] ?: emptyList()).map(::build)
             }
-            return ResolvedNode(node.id, node.type, props, modifiers, slots, scopes[id] ?: emptySet())
+            return ResolvedNode(node.id, node.type, props, modifiers, slots, node.events, scopes[id] ?: emptySet())
                 .also { index[id] = it }
         }
 
