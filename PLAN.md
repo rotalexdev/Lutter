@@ -1121,10 +1121,10 @@ The analyzer resolves each token to a `ResolvedToken(kind, name, source = Materi
 | `theme` | `themes` | Resolved against |
 |---|---|---|
 | an id present in `themes` | — | that `ThemeDecl` |
-| an id absent from `themes` | — | nothing; every `Value.Token` in the document is `token.unknown` |
-| `null` | empty | nothing; base defaults only (§14.2:1125) |
+| an id absent from `themes` | — | Material's base, which `md.*` names; every other `Value.Token` is `token.unknown` (D19) |
+| `null` | empty | Material's base — §14.2's *base defaults only*; every other token is `token.unknown` (D19) |
 | `null` | exactly one entry | that entry — a single-theme document does not have to restate itself |
-| `null` | two or more | nothing; every `Value.Token` in the document is `token.unknown` |
+| `null` | two or more | Material's base, which `md.*` names; every other token is `token.unknown` (D19) |
 
 The last two rows are the ones worth arguing for. Defaulting to "the only theme" is what makes `themes = { "t": … }` — the shape §30.2's excerpt implies and what any first document will look like — work without a second field, and the cost is a two-line rule rather than a nullable every author has to fill in. The fifth row is a document that has themes and selects none, which is a mistake; it is answered with `token.unknown` on every token it uses rather than with a new diagnostic, for two reasons. A diagnostic code is a published contract (§17.2:1358, a value class over a catalog), and inventing one to say "you forgot a field" would add an entry to keep in step for a failure `token.unknown` already reports — loudly, once per token. And the mistake is not silent: a document in that state produces a diagnostic per token reference, so it cannot reach a user who never notices.
 - **Runtime:** `ThemeHost` builds a Compose `MaterialTheme` from the `ThemeDecl` (light/dark chosen by `isSystemInDarkTheme()` or environment override); `md.*` tokens map to `MaterialTheme.colorScheme/typography/shapes`; custom tokens go through a `CompositionLocal<ForgeTokens>`.
