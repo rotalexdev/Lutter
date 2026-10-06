@@ -137,6 +137,15 @@ final class dev.rotalex.lutter.interpreter/RuntimeDiagnostic { // dev.rotalex.lu
     final fun toString(): kotlin/String // dev.rotalex.lutter.interpreter/RuntimeDiagnostic.toString|toString(){}[0]
 }
 
+final object dev.rotalex.lutter.interpreter.action/IntrinsicHandlers { // dev.rotalex.lutter.interpreter.action/IntrinsicHandlers|null[0]
+    final val back // dev.rotalex.lutter.interpreter.action/IntrinsicHandlers.back|{}back[0]
+        final fun <get-back>(): dev.rotalex.lutter.interpreter.action/ActionHandler // dev.rotalex.lutter.interpreter.action/IntrinsicHandlers.back.<get-back>|<get-back>(){}[0]
+    final val handlers // dev.rotalex.lutter.interpreter.action/IntrinsicHandlers.handlers|{}handlers[0]
+        final fun <get-handlers>(): kotlin.collections/Map<dev.rotalex.lutter.model.ids/ActionId, dev.rotalex.lutter.interpreter.action/ActionHandler> // dev.rotalex.lutter.interpreter.action/IntrinsicHandlers.handlers.<get-handlers>|<get-handlers>(){}[0]
+    final val navigate // dev.rotalex.lutter.interpreter.action/IntrinsicHandlers.navigate|{}navigate[0]
+        final fun <get-navigate>(): dev.rotalex.lutter.interpreter.action/ActionHandler // dev.rotalex.lutter.interpreter.action/IntrinsicHandlers.navigate.<get-navigate>|<get-navigate>(){}[0]
+}
+
 final object dev.rotalex.lutter.interpreter.eval/OperatorRows { // dev.rotalex.lutter.interpreter.eval/OperatorRows|null[0]
     final val binary // dev.rotalex.lutter.interpreter.eval/OperatorRows.binary|{}binary[0]
         final fun <get-binary>(): kotlin.collections/Map<dev.rotalex.lutter.model.expr/BinaryOp, kotlin/Function2<dev.rotalex.lutter.model.value/Value, kotlin/Function0<dev.rotalex.lutter.model.value/Value>, dev.rotalex.lutter.model.value/Value?>> // dev.rotalex.lutter.interpreter.eval/OperatorRows.binary.<get-binary>|<get-binary>(){}[0]

@@ -1,3 +1,25 @@
+public final class dev/rotalex/lutter/runtime/BackStackNavigator : dev/rotalex/lutter/interpreter/env/Navigator {
+	public static final field $stable I
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun back ()Z
+	public final fun getCurrent ()Ldev/rotalex/lutter/runtime/BackStackNavigator$Destination;
+	public fun navigate-yjKakfk (Ljava/lang/String;Ljava/util/Map;)V
+}
+
+public final class dev/rotalex/lutter/runtime/BackStackNavigator$Destination {
+	public static final field $stable I
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-rrQF154 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun copy-yjKakfk (Ljava/lang/String;Ljava/util/Map;)Ldev/rotalex/lutter/runtime/BackStackNavigator$Destination;
+	public static synthetic fun copy-yjKakfk$default (Ldev/rotalex/lutter/runtime/BackStackNavigator$Destination;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Ldev/rotalex/lutter/runtime/BackStackNavigator$Destination;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArgs ()Ljava/util/Map;
+	public final fun getPage-rrQF154 ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public abstract interface class dev/rotalex/lutter/runtime/ComponentRenderer {
 	public abstract fun Render (Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;Ldev/rotalex/lutter/runtime/RenderScope;Landroidx/compose/runtime/Composer;I)V
 }
