@@ -45,6 +45,15 @@ public class Evaluator(
      */
     public fun eval(typed: TypedExpr, scope: EvalScope): Value = evaluate(typed.expr, scope)
 
+    /**
+     * The entry a step's argument takes: the raw [Expr] an action argument carries, and a scope.
+     *
+     * Untyped on purpose — a `TypedExpr` reaches a resolved property and nothing else, so an
+     * argument has none to hand, and typing one here would be a second checker beside the first.
+     * A refusal throws as it does through [eval], which is why a handler catches it.
+     */
+    public fun evalUnchecked(expr: Expr, scope: EvalScope): Value = evaluate(expr, scope)
+
     /** The nine §10.1 variants, one case each. The table behind two of them does the rest. */
     private fun evaluate(expr: Expr, scope: EvalScope): Value = when (expr) {
         is Expr.Const -> expr.value

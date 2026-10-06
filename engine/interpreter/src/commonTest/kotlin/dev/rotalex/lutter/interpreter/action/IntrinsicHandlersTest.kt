@@ -1,13 +1,21 @@
 package dev.rotalex.lutter.interpreter.action
 
+import dev.rotalex.lutter.interpreter.EventArgScope
+import dev.rotalex.lutter.interpreter.MapEvalScope
+import dev.rotalex.lutter.interpreter.MapStateStore
 import dev.rotalex.lutter.interpreter.env.Navigator
+import dev.rotalex.lutter.interpreter.eval.Evaluator
 import dev.rotalex.lutter.model.action.ActionStep
+import dev.rotalex.lutter.model.expr.BinaryOp
 import dev.rotalex.lutter.model.expr.Expr
 import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.expr.RefTarget
+import dev.rotalex.lutter.model.ids.ActionId
 import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.ParamName
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.StateId
 import dev.rotalex.lutter.model.type.RefKind
 import dev.rotalex.lutter.model.value.Value
 import kotlin.test.Test
@@ -21,6 +29,10 @@ import kotlin.test.assertTrue
  * is the deliverable: a handler that works and was never registered would pass a direct call.
  */
 class IntrinsicHandlersTest {
+
+    private val count: StateId = StateId("s_count")
+
+    private val handlers: Map<ActionId, ActionHandler> = IntrinsicHandlers.handlers(Evaluator())
 
     @Test
     fun `a navigation reaches the navigator as the page the step named`() {
@@ -122,20 +134,118 @@ class IntrinsicHandlersTest {
     }
 
     @Test
-    fun `writing state has no handler`() {
-        assertTrue(outcomeOf(step("state.set"), Going()) is ActionOutcome.Failed)
-    }
-
-    @Test
     fun `calling a host function has no handler`() {
         assertTrue(outcomeOf(step("host.call"), Going()) is ActionOutcome.Failed)
     }
 
-    private fun outcomeOf(step: ActionStep, going: Going): ActionOutcome {
-        val executor = ActionExecutor(IntrinsicHandlers.handlers)
-        val env = FakeActionEnv(navigator = going)
-        return drive { executor.run(sequenceOfSteps(step), env) }.single()
+    @Test
+    fun `a state write puts the value the step named into the store`() {
+        val store = MapStateStore()
+
+        outcomeOf(writing(literal(Value.Int32(7))), envOver(store))
+
+        assertEquals(Value.Int32(7), store.get(count))
     }
+
+    @Test
+    fun `a state write evaluates a computed value against the environment`() {
+        val store = MapStateStore(mapOf(count to Value.Int32(3)))
+        val value = computed(
+            Expr.Binary(BinaryOp.Add, Expr.Ref(RefTarget.State(count)), Expr.Const(Value.Int32(1))),
+        )
+
+        outcomeOf(writing(value), envOver(store))
+
+        assertEquals(Value.Int32(4), store.get(count))
+    }
+
+    @Test
+    fun `a state write takes its value from an event arg`() {
+        val store = MapStateStore()
+        val env = FakeActionEnv(
+            state = store,
+            scope = EventArgScope(MapEvalScope(store), mapOf("value" to Value.Str("typed"))),
+        )
+
+        outcomeOf(writing(computed(Expr.Ref(RefTarget.EventArg("value")))), env)
+
+        assertEquals(Value.Str("typed"), store.get(count))
+    }
+
+    @Test
+    fun `a value the operator rows refuse fails the run`() {
+        val store = MapStateStore(mapOf(count to Value.Int32(3)))
+        val refused = computed(
+            Expr.Binary(BinaryOp.Add, Expr.Ref(RefTarget.State(count)), Expr.Const(Value.Str("x"))),
+        )
+
+        assertTrue(outcomeOf(writing(refused), envOver(store)) is ActionOutcome.Failed)
+    }
+
+    @Test
+    fun `a target that is not a state reference fails the run`() {
+        val target = literal(Value.Str("s_count"))
+
+        assertTrue(outcomeOf(writing(literal(Value.Int32(1)), target), Going()) is ActionOutcome.Failed)
+    }
+
+    @Test
+    fun `a target computed by a call fails the run`() {
+        val target = computed(Expr.Call(FunctionId("test.target"), emptyList()))
+
+        assertTrue(outcomeOf(writing(literal(Value.Int32(1)), target), Going()) is ActionOutcome.Failed)
+    }
+
+    @Test
+    fun `a target naming a param rather than a state fails the run`() {
+        val target = computed(Expr.Ref(RefTarget.Param(ParamName("count"))))
+
+        assertTrue(outcomeOf(writing(literal(Value.Int32(1)), target), Going()) is ActionOutcome.Failed)
+    }
+
+    @Test
+    fun `the diagnostic for an unusable target names the action`() {
+        val target = literal(Value.Str("s_count"))
+
+        val outcome = outcomeOf(writing(literal(Value.Int32(1)), target), Going()) as ActionOutcome.Failed
+
+        assertTrue(outcome.diagnostic.message.contains("state.set"))
+    }
+
+    @Test
+    fun `a step with no target fails the run`() {
+        assertTrue(outcomeOf(step("state.set"), Going()) is ActionOutcome.Failed)
+    }
+
+    @Test
+    fun `a step with no value fails the run`() {
+        val target = computed(Expr.Ref(RefTarget.State(count)))
+
+        assertTrue(outcomeOf(writing(null, target), Going()) is ActionOutcome.Failed)
+    }
+
+    private fun outcomeOf(step: ActionStep, going: Going): ActionOutcome =
+        outcomeOf(step, FakeActionEnv(navigator = going))
+
+    private fun outcomeOf(step: ActionStep, env: ActionEnv): ActionOutcome =
+        drive { ActionExecutor(handlers).run(sequenceOfSteps(step), env) }.single()
+
+    /** An environment reading and writing one store, which is what a screen hands a handler. */
+    private fun envOver(store: MapStateStore): FakeActionEnv =
+        FakeActionEnv(state = store, scope = MapEvalScope(store))
+
+    /** `state.set(target = <computed state ref>, value = …)`, as a document writes it. */
+    private fun writing(value: PropertyValue?, target: PropertyValue = reads()): ActionStep {
+        val args = mutableMapOf<PropertyKey, PropertyValue>(PropertyKey("target") to target)
+        if (value != null) args[PropertyKey("value")] = value
+        return step("state.set").copy(args = args)
+    }
+
+    private fun reads(): PropertyValue = computed(Expr.Ref(RefTarget.State(count)))
+
+    private fun literal(value: Value): PropertyValue = PropertyValue.Const(value)
+
+    private fun computed(expr: Expr): PropertyValue = PropertyValue.Computed(expr)
 
     private fun navigatingTo(id: String): ActionStep =
         navigatingTo(Value.Ref(RefKind.Page, id))

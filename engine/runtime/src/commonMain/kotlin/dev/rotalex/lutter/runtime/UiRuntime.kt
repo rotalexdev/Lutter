@@ -1,6 +1,10 @@
 package dev.rotalex.lutter.runtime
 
+import dev.rotalex.lutter.interpreter.action.ActionEnv
+import dev.rotalex.lutter.interpreter.action.ActionExecutor
+import dev.rotalex.lutter.interpreter.action.ActionOutcome
 import dev.rotalex.lutter.interpreter.eval.Evaluator
+import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
@@ -24,8 +28,28 @@ public class UiRuntime(
     /** §15.3's expression interpreter over the functions [implementations] carries. */
     public val evaluator: Evaluator = Evaluator(implementations.functions)
 
+    // Built once because the executor copies the table, so a host changing what it registered
+    // afterwards cannot change what a sequence that is already running will do.
+    private val executor: ActionExecutor = ActionExecutor(implementations.actions)
+
     init {
         RuntimeCoverage.check(schema, this)
+    }
+
+    /**
+     * Runs [sequence] against [env] and routes a failure to [environment]'s diagnostics.
+     *
+     * The routing is here because `ActionEnv` has no slot for a diagnostic and the executor's
+     * other answer is a return value a caller has to remember to read.
+     */
+    public suspend fun runActions(
+        sequence: ActionSequence,
+        env: ActionEnv,
+        environment: RuntimeEnvironment,
+    ): ActionOutcome {
+        val outcome = executor.run(sequence, env)
+        if (outcome is ActionOutcome.Failed) environment.diagnostics(outcome.diagnostic)
+        return outcome
     }
 }
 

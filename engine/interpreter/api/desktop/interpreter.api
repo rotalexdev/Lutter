@@ -2,6 +2,12 @@ public abstract interface class dev/rotalex/lutter/interpreter/EvalScope {
 	public abstract fun read (Ldev/rotalex/lutter/model/expr/RefTarget;)Ldev/rotalex/lutter/model/value/Value;
 }
 
+public final class dev/rotalex/lutter/interpreter/EventArgScope : dev/rotalex/lutter/interpreter/EvalScope {
+	public fun <init> (Ldev/rotalex/lutter/interpreter/EvalScope;Ljava/util/Map;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/interpreter/EvalScope;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun read (Ldev/rotalex/lutter/model/expr/RefTarget;)Ldev/rotalex/lutter/model/value/Value;
+}
+
 public final class dev/rotalex/lutter/interpreter/MapEvalScope : dev/rotalex/lutter/interpreter/EvalScope {
 	public fun <init> (Ldev/rotalex/lutter/interpreter/StateStore;Ljava/util/Map;)V
 	public synthetic fun <init> (Ldev/rotalex/lutter/interpreter/StateStore;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -83,8 +89,8 @@ public final class dev/rotalex/lutter/interpreter/action/ActionOutcome$Failed : 
 public final class dev/rotalex/lutter/interpreter/action/IntrinsicHandlers {
 	public static final field INSTANCE Ldev/rotalex/lutter/interpreter/action/IntrinsicHandlers;
 	public final fun getBack ()Ldev/rotalex/lutter/interpreter/action/ActionHandler;
-	public final fun getHandlers ()Ljava/util/Map;
 	public final fun getNavigate ()Ldev/rotalex/lutter/interpreter/action/ActionHandler;
+	public final fun handlers (Ldev/rotalex/lutter/interpreter/eval/Evaluator;)Ljava/util/Map;
 }
 
 public abstract interface class dev/rotalex/lutter/interpreter/env/DialogHost {
@@ -119,6 +125,7 @@ public final class dev/rotalex/lutter/interpreter/eval/Evaluator {
 	public fun <init> (Ldev/rotalex/lutter/interpreter/eval/FunctionImpls;)V
 	public synthetic fun <init> (Ldev/rotalex/lutter/interpreter/eval/FunctionImpls;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun eval (Ldev/rotalex/lutter/model/expr/TypedExpr;Ldev/rotalex/lutter/interpreter/EvalScope;)Ldev/rotalex/lutter/model/value/Value;
+	public final fun evalUnchecked (Ldev/rotalex/lutter/model/expr/Expr;Ldev/rotalex/lutter/interpreter/EvalScope;)Ldev/rotalex/lutter/model/value/Value;
 }
 
 public abstract interface class dev/rotalex/lutter/interpreter/eval/FunctionImpl {

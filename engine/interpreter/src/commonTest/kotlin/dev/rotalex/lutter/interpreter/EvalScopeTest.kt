@@ -9,7 +9,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-/** State and params resolve; everything else refuses with a reason. */
+/**
+ * State and params resolve, a handler's scope adds the event's arguments, and everything else
+ * refuses with a reason.
+ */
 class EvalScopeTest {
 
     private val stateId: StateId = StateId("s_count")
@@ -78,4 +81,42 @@ class EvalScopeTest {
         }
         assertTrue(failure.message?.contains("post-MVP") == true)
     }
+
+    @Test
+    fun `an event arg resolves where a handler's scope binds it`() {
+        val scope = handlerScope(mapOf("value" to Value.Str("typed")))
+
+        assertEquals(Value.Str("typed"), scope.read(RefTarget.EventArg("value")))
+    }
+
+    @Test
+    fun `an event arg the handler's scope does not bind refuses naming it`() {
+        val scope = handlerScope(emptyMap())
+
+        val failure = assertFailsWith<IllegalStateException> {
+            scope.read(RefTarget.EventArg("value"))
+        }
+        assertTrue(failure.message?.contains("value") == true)
+    }
+
+    @Test
+    fun `a handler's scope reads the state its inner scope holds`() {
+        val scope = handlerScope(mapOf("value" to Value.Str("typed")))
+
+        assertEquals(Value.Int32(3), scope.read(RefTarget.State(stateId)))
+    }
+
+    /** The binding the wrapper must not add: it answers an event's arguments and nothing else. */
+    @Test
+    fun `an iteration variable refuses through a handler's scope too`() {
+        val scope = handlerScope(mapOf("item" to Value.Int32(1)))
+
+        val failure = assertFailsWith<IllegalStateException> {
+            scope.read(RefTarget.Item("item"))
+        }
+        assertTrue(failure.message?.contains("post-MVP") == true)
+    }
+
+    private fun handlerScope(args: Map<String, Value>): EvalScope =
+        EventArgScope(MapEvalScope(MapStateStore(mapOf(stateId to Value.Int32(3)))), args)
 }

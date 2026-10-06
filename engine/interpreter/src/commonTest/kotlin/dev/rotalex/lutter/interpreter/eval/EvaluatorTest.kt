@@ -141,6 +141,47 @@ class EvaluatorTest {
     }
 
     // ---------------------------------------------------------------------------------
+    // The entry a step's argument takes, where no checked type exists to walk
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun `an unchecked constant answers with its own value`() {
+        assertEquals(Value.Str("Hi"), evaluator.evalUnchecked(Expr.Const(Value.Str("Hi")), scope))
+    }
+
+    @Test
+    fun `an unchecked reference resolves through the scope`() {
+        assertEquals(Value.Int32(3), evaluator.evalUnchecked(Expr.Ref(RefTarget.State(count)), scope))
+    }
+
+    @Test
+    fun `an unchecked expression answers what its checked form answers`() {
+        val expr = Expr.Binary(BinaryOp.Add, Expr.Ref(RefTarget.State(count)), Expr.Const(Value.Int32(1)))
+
+        assertEquals(evaluator.eval(typed(expr, TypeRef.Int32), scope), evaluator.evalUnchecked(expr, scope))
+    }
+
+    /**
+     * No operator is missing a row — the tables cover the whole enum — so the refusal an
+     * unchecked tree can hit is a row refusing the pair it was given.
+     */
+    @Test
+    fun `an unchecked operand pair the rows refuse throws naming the operator`() {
+        val expr = Expr.Binary(BinaryOp.Add, Expr.Const(Value.Int32(1)), Expr.Const(Value.Str("x")))
+
+        val failure = assertFailsWith<IllegalStateException> { evaluator.evalUnchecked(expr, scope) }
+
+        assertTrue(failure.message?.contains("'add'") == true, failure.message.orEmpty())
+    }
+
+    @Test
+    fun `an unchecked call with no registered implementation throws naming the id`() {
+        val failure = assertFailsWith<IllegalStateException> { evaluator.evalUnchecked(unreachable(), scope) }
+
+        assertTrue(failure.message?.contains("test.missing") == true, failure.message.orEmpty())
+    }
+
+    // ---------------------------------------------------------------------------------
     // Laziness, which is a promise about both backends rather than about this one
     // ---------------------------------------------------------------------------------
 
