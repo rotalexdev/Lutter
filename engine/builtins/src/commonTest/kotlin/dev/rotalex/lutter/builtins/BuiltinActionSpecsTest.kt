@@ -21,10 +21,10 @@ import kotlin.test.assertSame
 /**
  * §11.4's six MVP actions: the key set, the shapes §11.2 and §13.1 spell, and the registrar.
  *
- * **There is deliberately no handler-coverage test here, and its absence is the contract.** No
- * `ActionHandler` exists, so a spec is a description nothing runs; a test asserting every
- * registered action has one would have nothing to assert against, and would forbid the unit that
- * adds the handlers from stating the rule. `BuiltinFunctionCoverageTest` is that gate's shape.
+ * **There is deliberately no handler-coverage test here, and its absence is the contract.**
+ * `IntrinsicHandlers` performs the navigation pair alone, so a test asserting every registered
+ * action has a handler would be red for the four ids that name neither an argument nor a
+ * condition. `BuiltinFunctionCoverageTest` is that gate's shape.
  *
  * Every assertion below is a claim PLAN makes, read back through the registry.
  */
