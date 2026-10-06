@@ -2,15 +2,6 @@ public abstract interface class dev/rotalex/lutter/runtime/ComponentRenderer {
 	public abstract fun Render (Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;Ldev/rotalex/lutter/runtime/RenderScope;Landroidx/compose/runtime/Composer;I)V
 }
 
-public final class dev/rotalex/lutter/runtime/HostFunctions {
-	public static final field $stable I
-	public static final field Companion Ldev/rotalex/lutter/runtime/HostFunctions$Companion;
-}
-
-public final class dev/rotalex/lutter/runtime/HostFunctions$Companion {
-	public final fun getNone ()Ldev/rotalex/lutter/runtime/HostFunctions;
-}
-
 public final class dev/rotalex/lutter/runtime/Implementations {
 	public static final field $stable I
 	public static final field Companion Ldev/rotalex/lutter/runtime/Implementations$Companion;
@@ -43,11 +34,6 @@ public final class dev/rotalex/lutter/runtime/ModifierApplierRegistryBuilder {
 
 public final class dev/rotalex/lutter/runtime/ModifierAppliersKt {
 	public static final fun reader (Ljava/util/Map;)Ldev/rotalex/lutter/runtime/PropertyReader;
-}
-
-public abstract interface class dev/rotalex/lutter/runtime/Navigator {
-	public abstract fun back ()Z
-	public abstract fun navigate-yjKakfk (Ljava/lang/String;Ljava/util/Map;)V
 }
 
 public abstract interface class dev/rotalex/lutter/runtime/PropertyReader {
@@ -106,30 +92,15 @@ public final class dev/rotalex/lutter/runtime/RuntimeCoverage {
 	public final fun check (Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/runtime/UiRuntime;)V
 }
 
-public final class dev/rotalex/lutter/runtime/RuntimeDiagnostic {
-	public static final field $stable I
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2-05jdo6Y ()Ljava/lang/String;
-	public final fun copy-oRg15qQ (Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/runtime/RuntimeDiagnostic;
-	public static synthetic fun copy-oRg15qQ$default (Ldev/rotalex/lutter/runtime/RuntimeDiagnostic;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/runtime/RuntimeDiagnostic;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getMessage ()Ljava/lang/String;
-	public final fun getNodeId-05jdo6Y ()Ljava/lang/String;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
 public final class dev/rotalex/lutter/runtime/RuntimeEnvironment {
 	public static final field $stable I
-	public fun <init> (Ldev/rotalex/lutter/runtime/Navigator;Ldev/rotalex/lutter/runtime/HostFunctions;Ldev/rotalex/lutter/runtime/ResourceProvider;Ldev/rotalex/lutter/interpreter/StateStore;Lkotlin/jvm/functions/Function1;Ldev/rotalex/lutter/runtime/RenderHooks;)V
-	public synthetic fun <init> (Ldev/rotalex/lutter/runtime/Navigator;Ldev/rotalex/lutter/runtime/HostFunctions;Ldev/rotalex/lutter/runtime/ResourceProvider;Ldev/rotalex/lutter/interpreter/StateStore;Lkotlin/jvm/functions/Function1;Ldev/rotalex/lutter/runtime/RenderHooks;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ldev/rotalex/lutter/interpreter/env/Navigator;Ldev/rotalex/lutter/interpreter/env/HostFunctions;Ldev/rotalex/lutter/runtime/ResourceProvider;Ldev/rotalex/lutter/interpreter/StateStore;Lkotlin/jvm/functions/Function1;Ldev/rotalex/lutter/runtime/RenderHooks;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/interpreter/env/Navigator;Ldev/rotalex/lutter/interpreter/env/HostFunctions;Ldev/rotalex/lutter/runtime/ResourceProvider;Ldev/rotalex/lutter/interpreter/StateStore;Lkotlin/jvm/functions/Function1;Ldev/rotalex/lutter/runtime/RenderHooks;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun getAppState ()Ldev/rotalex/lutter/interpreter/StateStore;
 	public final fun getDiagnostics ()Lkotlin/jvm/functions/Function1;
 	public final fun getHooks ()Ldev/rotalex/lutter/runtime/RenderHooks;
-	public final fun getHost ()Ldev/rotalex/lutter/runtime/HostFunctions;
-	public final fun getNavigator ()Ldev/rotalex/lutter/runtime/Navigator;
+	public final fun getHost ()Ldev/rotalex/lutter/interpreter/env/HostFunctions;
+	public final fun getNavigator ()Ldev/rotalex/lutter/interpreter/env/Navigator;
 	public final fun getResources ()Ldev/rotalex/lutter/runtime/ResourceProvider;
 }
 

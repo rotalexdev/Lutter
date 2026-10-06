@@ -10,6 +10,35 @@ abstract fun interface dev.rotalex.lutter.interpreter.eval/FunctionImpl { // dev
     abstract fun invoke(kotlin.collections/List<dev.rotalex.lutter.model.value/Value>): dev.rotalex.lutter.model.value/Value // dev.rotalex.lutter.interpreter.eval/FunctionImpl.invoke|invoke(kotlin.collections.List<dev.rotalex.lutter.model.value.Value>){}[0]
 }
 
+abstract interface dev.rotalex.lutter.interpreter.action/ActionEnv { // dev.rotalex.lutter.interpreter.action/ActionEnv|null[0]
+    abstract val dialogs // dev.rotalex.lutter.interpreter.action/ActionEnv.dialogs|{}dialogs[0]
+        abstract fun <get-dialogs>(): dev.rotalex.lutter.interpreter.env/DialogHost // dev.rotalex.lutter.interpreter.action/ActionEnv.dialogs.<get-dialogs>|<get-dialogs>(){}[0]
+    abstract val host // dev.rotalex.lutter.interpreter.action/ActionEnv.host|{}host[0]
+        abstract fun <get-host>(): dev.rotalex.lutter.interpreter.env/HostFunctions // dev.rotalex.lutter.interpreter.action/ActionEnv.host.<get-host>|<get-host>(){}[0]
+    abstract val navigator // dev.rotalex.lutter.interpreter.action/ActionEnv.navigator|{}navigator[0]
+        abstract fun <get-navigator>(): dev.rotalex.lutter.interpreter.env/Navigator // dev.rotalex.lutter.interpreter.action/ActionEnv.navigator.<get-navigator>|<get-navigator>(){}[0]
+    abstract val scope // dev.rotalex.lutter.interpreter.action/ActionEnv.scope|{}scope[0]
+        abstract fun <get-scope>(): dev.rotalex.lutter.interpreter/EvalScope // dev.rotalex.lutter.interpreter.action/ActionEnv.scope.<get-scope>|<get-scope>(){}[0]
+    abstract val state // dev.rotalex.lutter.interpreter.action/ActionEnv.state|{}state[0]
+        abstract fun <get-state>(): dev.rotalex.lutter.interpreter/StateWriter // dev.rotalex.lutter.interpreter.action/ActionEnv.state.<get-state>|<get-state>(){}[0]
+}
+
+abstract interface dev.rotalex.lutter.interpreter.action/ActionHandler { // dev.rotalex.lutter.interpreter.action/ActionHandler|null[0]
+    abstract suspend fun execute(dev.rotalex.lutter.model.action/ActionStep, dev.rotalex.lutter.interpreter.action/ActionEnv): dev.rotalex.lutter.interpreter.action/ActionOutcome // dev.rotalex.lutter.interpreter.action/ActionHandler.execute|execute(dev.rotalex.lutter.model.action.ActionStep;dev.rotalex.lutter.interpreter.action.ActionEnv){}[0]
+}
+
+abstract interface dev.rotalex.lutter.interpreter.env/DialogHost { // dev.rotalex.lutter.interpreter.env/DialogHost|null[0]
+    final object Companion { // dev.rotalex.lutter.interpreter.env/DialogHost.Companion|null[0]
+        final val None // dev.rotalex.lutter.interpreter.env/DialogHost.Companion.None|{}None[0]
+            final fun <get-None>(): dev.rotalex.lutter.interpreter.env/DialogHost // dev.rotalex.lutter.interpreter.env/DialogHost.Companion.None.<get-None>|<get-None>(){}[0]
+    }
+}
+
+abstract interface dev.rotalex.lutter.interpreter.env/Navigator { // dev.rotalex.lutter.interpreter.env/Navigator|null[0]
+    abstract fun back(): kotlin/Boolean // dev.rotalex.lutter.interpreter.env/Navigator.back|back(){}[0]
+    abstract fun navigate(dev.rotalex.lutter.model.ids/PageId, kotlin.collections/Map<dev.rotalex.lutter.model.ids/ParamName, dev.rotalex.lutter.model.value/Value>) // dev.rotalex.lutter.interpreter.env/Navigator.navigate|navigate(dev.rotalex.lutter.model.ids.PageId;kotlin.collections.Map<dev.rotalex.lutter.model.ids.ParamName,dev.rotalex.lutter.model.value.Value>){}[0]
+}
+
 abstract interface dev.rotalex.lutter.interpreter/EvalScope { // dev.rotalex.lutter.interpreter/EvalScope|null[0]
     abstract fun read(dev.rotalex.lutter.model.expr/RefTarget): dev.rotalex.lutter.model.value/Value // dev.rotalex.lutter.interpreter/EvalScope.read|read(dev.rotalex.lutter.model.expr.RefTarget){}[0]
 }
@@ -20,6 +49,44 @@ abstract interface dev.rotalex.lutter.interpreter/StateStore { // dev.rotalex.lu
 
 abstract interface dev.rotalex.lutter.interpreter/StateWriter { // dev.rotalex.lutter.interpreter/StateWriter|null[0]
     abstract fun set(dev.rotalex.lutter.model.ids/StateId, dev.rotalex.lutter.model.value/Value) // dev.rotalex.lutter.interpreter/StateWriter.set|set(dev.rotalex.lutter.model.ids.StateId;dev.rotalex.lutter.model.value.Value){}[0]
+}
+
+sealed interface dev.rotalex.lutter.interpreter.action/ActionOutcome { // dev.rotalex.lutter.interpreter.action/ActionOutcome|null[0]
+    final class Failed : dev.rotalex.lutter.interpreter.action/ActionOutcome { // dev.rotalex.lutter.interpreter.action/ActionOutcome.Failed|null[0]
+        constructor <init>(dev.rotalex.lutter.interpreter/RuntimeDiagnostic) // dev.rotalex.lutter.interpreter.action/ActionOutcome.Failed.<init>|<init>(dev.rotalex.lutter.interpreter.RuntimeDiagnostic){}[0]
+
+        final val diagnostic // dev.rotalex.lutter.interpreter.action/ActionOutcome.Failed.diagnostic|{}diagnostic[0]
+            final fun <get-diagnostic>(): dev.rotalex.lutter.interpreter/RuntimeDiagnostic // dev.rotalex.lutter.interpreter.action/ActionOutcome.Failed.diagnostic.<get-diagnostic>|<get-diagnostic>(){}[0]
+
+        final fun component1(): dev.rotalex.lutter.interpreter/RuntimeDiagnostic // dev.rotalex.lutter.interpreter.action/ActionOutcome.Failed.component1|component1(){}[0]
+        final fun copy(dev.rotalex.lutter.interpreter/RuntimeDiagnostic = ...): dev.rotalex.lutter.interpreter.action/ActionOutcome.Failed // dev.rotalex.lutter.interpreter.action/ActionOutcome.Failed.copy|copy(dev.rotalex.lutter.interpreter.RuntimeDiagnostic){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.interpreter.action/ActionOutcome.Failed.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // dev.rotalex.lutter.interpreter.action/ActionOutcome.Failed.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // dev.rotalex.lutter.interpreter.action/ActionOutcome.Failed.toString|toString(){}[0]
+    }
+
+    final object Done : dev.rotalex.lutter.interpreter.action/ActionOutcome { // dev.rotalex.lutter.interpreter.action/ActionOutcome.Done|null[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.interpreter.action/ActionOutcome.Done.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // dev.rotalex.lutter.interpreter.action/ActionOutcome.Done.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // dev.rotalex.lutter.interpreter.action/ActionOutcome.Done.toString|toString(){}[0]
+    }
+}
+
+final class dev.rotalex.lutter.interpreter.action/ActionExecutor { // dev.rotalex.lutter.interpreter.action/ActionExecutor|null[0]
+    constructor <init>(kotlin.collections/Map<dev.rotalex.lutter.model.ids/ActionId, dev.rotalex.lutter.interpreter.action/ActionHandler>) // dev.rotalex.lutter.interpreter.action/ActionExecutor.<init>|<init>(kotlin.collections.Map<dev.rotalex.lutter.model.ids.ActionId,dev.rotalex.lutter.interpreter.action.ActionHandler>){}[0]
+
+    final suspend fun run(dev.rotalex.lutter.model.action/ActionSequence, dev.rotalex.lutter.interpreter.action/ActionEnv): dev.rotalex.lutter.interpreter.action/ActionOutcome // dev.rotalex.lutter.interpreter.action/ActionExecutor.run|run(dev.rotalex.lutter.model.action.ActionSequence;dev.rotalex.lutter.interpreter.action.ActionEnv){}[0]
+}
+
+final class dev.rotalex.lutter.interpreter.env/HostFunctions { // dev.rotalex.lutter.interpreter.env/HostFunctions|null[0]
+    constructor <init>(kotlin.collections/Map<kotlin/String, kotlin.coroutines/SuspendFunction1<kotlin.collections/List<dev.rotalex.lutter.model.value/Value>, dev.rotalex.lutter.model.value/Value?>>) // dev.rotalex.lutter.interpreter.env/HostFunctions.<init>|<init>(kotlin.collections.Map<kotlin.String,kotlin.coroutines.SuspendFunction1<kotlin.collections.List<dev.rotalex.lutter.model.value.Value>,dev.rotalex.lutter.model.value.Value?>>){}[0]
+
+    final fun find(kotlin/String): kotlin.coroutines/SuspendFunction1<kotlin.collections/List<dev.rotalex.lutter.model.value/Value>, dev.rotalex.lutter.model.value/Value?>? // dev.rotalex.lutter.interpreter.env/HostFunctions.find|find(kotlin.String){}[0]
+
+    final object Companion { // dev.rotalex.lutter.interpreter.env/HostFunctions.Companion|null[0]
+        final val None // dev.rotalex.lutter.interpreter.env/HostFunctions.Companion.None|{}None[0]
+            final fun <get-None>(): dev.rotalex.lutter.interpreter.env/HostFunctions // dev.rotalex.lutter.interpreter.env/HostFunctions.Companion.None.<get-None>|<get-None>(){}[0]
+    }
 }
 
 final class dev.rotalex.lutter.interpreter.eval/Evaluator { // dev.rotalex.lutter.interpreter.eval/Evaluator|null[0]
@@ -52,6 +119,22 @@ final class dev.rotalex.lutter.interpreter/MapStateStore : dev.rotalex.lutter.in
 
     final fun get(dev.rotalex.lutter.model.ids/StateId): dev.rotalex.lutter.model.value/Value? // dev.rotalex.lutter.interpreter/MapStateStore.get|get(dev.rotalex.lutter.model.ids.StateId){}[0]
     final fun set(dev.rotalex.lutter.model.ids/StateId, dev.rotalex.lutter.model.value/Value) // dev.rotalex.lutter.interpreter/MapStateStore.set|set(dev.rotalex.lutter.model.ids.StateId;dev.rotalex.lutter.model.value.Value){}[0]
+}
+
+final class dev.rotalex.lutter.interpreter/RuntimeDiagnostic { // dev.rotalex.lutter.interpreter/RuntimeDiagnostic|null[0]
+    constructor <init>(kotlin/String, dev.rotalex.lutter.model.ids/NodeId? = ...) // dev.rotalex.lutter.interpreter/RuntimeDiagnostic.<init>|<init>(kotlin.String;dev.rotalex.lutter.model.ids.NodeId?){}[0]
+
+    final val message // dev.rotalex.lutter.interpreter/RuntimeDiagnostic.message|{}message[0]
+        final fun <get-message>(): kotlin/String // dev.rotalex.lutter.interpreter/RuntimeDiagnostic.message.<get-message>|<get-message>(){}[0]
+    final val nodeId // dev.rotalex.lutter.interpreter/RuntimeDiagnostic.nodeId|{}nodeId[0]
+        final fun <get-nodeId>(): dev.rotalex.lutter.model.ids/NodeId? // dev.rotalex.lutter.interpreter/RuntimeDiagnostic.nodeId.<get-nodeId>|<get-nodeId>(){}[0]
+
+    final fun component1(): kotlin/String // dev.rotalex.lutter.interpreter/RuntimeDiagnostic.component1|component1(){}[0]
+    final fun component2(): dev.rotalex.lutter.model.ids/NodeId? // dev.rotalex.lutter.interpreter/RuntimeDiagnostic.component2|component2(){}[0]
+    final fun copy(kotlin/String = ..., dev.rotalex.lutter.model.ids/NodeId? = ...): dev.rotalex.lutter.interpreter/RuntimeDiagnostic // dev.rotalex.lutter.interpreter/RuntimeDiagnostic.copy|copy(kotlin.String;dev.rotalex.lutter.model.ids.NodeId?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.interpreter/RuntimeDiagnostic.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.interpreter/RuntimeDiagnostic.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.interpreter/RuntimeDiagnostic.toString|toString(){}[0]
 }
 
 final object dev.rotalex.lutter.interpreter.eval/OperatorRows { // dev.rotalex.lutter.interpreter.eval/OperatorRows|null[0]

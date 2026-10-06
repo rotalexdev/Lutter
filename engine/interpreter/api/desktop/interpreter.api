@@ -20,12 +20,87 @@ public final class dev/rotalex/lutter/interpreter/PropertyConstantsKt {
 	public static final fun constantOrNull (Ldev/rotalex/lutter/model/expr/PropertyValue;)Ldev/rotalex/lutter/model/value/Value;
 }
 
+public final class dev/rotalex/lutter/interpreter/RuntimeDiagnostic {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2-05jdo6Y ()Ljava/lang/String;
+	public final fun copy-oRg15qQ (Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/interpreter/RuntimeDiagnostic;
+	public static synthetic fun copy-oRg15qQ$default (Ldev/rotalex/lutter/interpreter/RuntimeDiagnostic;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/interpreter/RuntimeDiagnostic;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getNodeId-05jdo6Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public abstract interface class dev/rotalex/lutter/interpreter/StateStore {
 	public abstract fun get-P6upbFI (Ljava/lang/String;)Ldev/rotalex/lutter/model/value/Value;
 }
 
 public abstract interface class dev/rotalex/lutter/interpreter/StateWriter {
 	public abstract fun set-wfBsst0 (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value;)V
+}
+
+public abstract interface class dev/rotalex/lutter/interpreter/action/ActionEnv {
+	public abstract fun getDialogs ()Ldev/rotalex/lutter/interpreter/env/DialogHost;
+	public abstract fun getHost ()Ldev/rotalex/lutter/interpreter/env/HostFunctions;
+	public abstract fun getNavigator ()Ldev/rotalex/lutter/interpreter/env/Navigator;
+	public abstract fun getScope ()Ldev/rotalex/lutter/interpreter/EvalScope;
+	public abstract fun getState ()Ldev/rotalex/lutter/interpreter/StateWriter;
+}
+
+public final class dev/rotalex/lutter/interpreter/action/ActionExecutor {
+	public fun <init> (Ljava/util/Map;)V
+	public final fun run (Ldev/rotalex/lutter/model/action/ActionSequence;Ldev/rotalex/lutter/interpreter/action/ActionEnv;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class dev/rotalex/lutter/interpreter/action/ActionHandler {
+	public abstract fun execute (Ldev/rotalex/lutter/model/action/ActionStep;Ldev/rotalex/lutter/interpreter/action/ActionEnv;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class dev/rotalex/lutter/interpreter/action/ActionOutcome {
+}
+
+public final class dev/rotalex/lutter/interpreter/action/ActionOutcome$Done : dev/rotalex/lutter/interpreter/action/ActionOutcome {
+	public static final field INSTANCE Ldev/rotalex/lutter/interpreter/action/ActionOutcome$Done;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/interpreter/action/ActionOutcome$Failed : dev/rotalex/lutter/interpreter/action/ActionOutcome {
+	public fun <init> (Ldev/rotalex/lutter/interpreter/RuntimeDiagnostic;)V
+	public final fun component1 ()Ldev/rotalex/lutter/interpreter/RuntimeDiagnostic;
+	public final fun copy (Ldev/rotalex/lutter/interpreter/RuntimeDiagnostic;)Ldev/rotalex/lutter/interpreter/action/ActionOutcome$Failed;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/interpreter/action/ActionOutcome$Failed;Ldev/rotalex/lutter/interpreter/RuntimeDiagnostic;ILjava/lang/Object;)Ldev/rotalex/lutter/interpreter/action/ActionOutcome$Failed;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDiagnostic ()Ldev/rotalex/lutter/interpreter/RuntimeDiagnostic;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/rotalex/lutter/interpreter/env/DialogHost {
+	public static final field Companion Ldev/rotalex/lutter/interpreter/env/DialogHost$Companion;
+}
+
+public final class dev/rotalex/lutter/interpreter/env/DialogHost$Companion {
+	public final fun getNone ()Ldev/rotalex/lutter/interpreter/env/DialogHost;
+}
+
+public final class dev/rotalex/lutter/interpreter/env/HostFunctions {
+	public static final field Companion Ldev/rotalex/lutter/interpreter/env/HostFunctions$Companion;
+	public fun <init> (Ljava/util/Map;)V
+	public final fun find (Ljava/lang/String;)Lkotlin/jvm/functions/Function2;
+}
+
+public final class dev/rotalex/lutter/interpreter/env/HostFunctions$Companion {
+	public final fun getNone ()Ldev/rotalex/lutter/interpreter/env/HostFunctions;
+}
+
+public abstract interface class dev/rotalex/lutter/interpreter/env/Navigator {
+	public abstract fun back ()Z
+	public abstract fun navigate-yjKakfk (Ljava/lang/String;Ljava/util/Map;)V
 }
 
 public final class dev/rotalex/lutter/interpreter/eval/DisplayKt {
