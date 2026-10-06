@@ -1,10 +1,12 @@
 package dev.rotalex.lutter.analysis.diagnostic
 
 /**
- * The diagnostic codes passes 1, 3, 4 and 5 emit — exactly PLAN §17.3's rows for those passes.
+ * The diagnostic codes passes 1, 3, 4, 5 and 6 emit — exactly PLAN §17.3's rows for those passes.
  *
- * Passes 2, 6 and 8 own the remaining rows and do not exist yet; their codes arrive
- * with them rather than as untested constants here.
+ * Passes 2 and 8 own the rest and do not exist yet; their codes arrive with them rather than as
+ * untested constants here. §17.3's fourth action row, `action.state_not_writable`, is with them:
+ * no spec field says which argument of a step is the state it writes, so pass 6 has no question
+ * to put to §12.3's rule.
  */
 public object DiagnosticCodes {
     public val StructDuplicateId: DiagnosticCode = DiagnosticCode("struct.duplicate_id")
@@ -44,6 +46,15 @@ public object DiagnosticCodes {
     public val ExprTypeMismatch: DiagnosticCode = DiagnosticCode("expr.type_mismatch")
     public val ExprNullableAccess: DiagnosticCode = DiagnosticCode("expr.nullable_access")
     public val ExprUnresolvedRef: DiagnosticCode = DiagnosticCode("expr.unresolved_ref")
+
+    /**
+     * The action rows (§17.3), emitted by pass 6. `nav.args_mismatch` sits with them rather than
+     * in pass 4's block because §13.1's rule reads a step's arguments, and only pass 6 walks a
+     * step: pass 4 reads a node's properties and modifiers and never reaches into a handler.
+     */
+    public val ActionUnknown: DiagnosticCode = DiagnosticCode("action.unknown")
+    public val ActionArgInvalid: DiagnosticCode = DiagnosticCode("action.arg_invalid")
+    public val NavArgsMismatch: DiagnosticCode = DiagnosticCode("nav.args_mismatch")
 
     /**
      * The codegen feasibility rows (§17.3). Owned by pass 8, defined here so the

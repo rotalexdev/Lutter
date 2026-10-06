@@ -1,0 +1,447 @@
+package dev.rotalex.lutter.analysis
+
+import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
+import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCode
+import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCodes
+import dev.rotalex.lutter.analysis.diagnostic.DiagnosticLocation
+import dev.rotalex.lutter.analysis.diagnostic.DiagnosticSorter
+import dev.rotalex.lutter.analysis.diagnostic.Severity
+import dev.rotalex.lutter.model.action.ActionSequence
+import dev.rotalex.lutter.model.action.ActionStep
+import dev.rotalex.lutter.model.doc.ParamDecl
+import dev.rotalex.lutter.model.doc.UiDocument
+import dev.rotalex.lutter.model.dsl.NodeScope
+import dev.rotalex.lutter.model.dsl.buildDocument
+import dev.rotalex.lutter.model.expr.BinaryOp
+import dev.rotalex.lutter.model.expr.Expr
+import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.expr.RefTarget
+import dev.rotalex.lutter.model.ids.ActionId
+import dev.rotalex.lutter.model.ids.BranchName
+import dev.rotalex.lutter.model.ids.EventKey
+import dev.rotalex.lutter.model.ids.NodeId
+import dev.rotalex.lutter.model.ids.PageId
+import dev.rotalex.lutter.model.ids.ParamName
+import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.type.RefKind
+import dev.rotalex.lutter.model.type.TypeRef
+import dev.rotalex.lutter.model.value.Value
+import dev.rotalex.lutter.schema.action.ActionSpec
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+
+/**
+ * Pass 6: a step against its spec, and a handler against the event that raised it.
+ *
+ * Each rule carries the document that breaks it and the document that does not, because a pass
+ * that only proves what it refuses cannot be told apart from one that refuses everything. The
+ * negatives are the load-bearing half: `state.set` and `ui.showSnackbar` declare no parameter and
+ * no section names their argument keys, so a handler passing them arguments is legal and stays so.
+ */
+class ActionPassTest {
+
+    private val analyzer: Analyzer<ActionSpec, String, String> = Analyzer(actionSchema())
+    private val home: PageId = PageId("p_home")
+    private val profile: PageId = PageId("p_profile")
+    private val press: EventKey = EventKey("onPress")
+
+    // ---------------------------------------------------------------------------------
+    // action.unknown
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun `a step naming an action no schema registers reports action unknown`() {
+        val findings = analyzer.analyze(field { handler(step("vendor.track")) }).diagnostics
+
+        assertEquals(listOf(DiagnosticCodes.ActionUnknown.value), findings.map { it.code.value })
+        assertEquals(ChangeEvent, findings.single().location.event)
+    }
+
+    @Test
+    fun `a handler of registered actions reports nothing`() {
+        assertClean(
+            field {
+                handler(
+                    step(
+                        "state.set",
+                        args = mapOf(
+                            PropertyKey("key") to constOf(Value.Str("s_count")),
+                            PropertyKey("value") to constOf(Value.Int32(1)),
+                        ),
+                    ),
+                    step("ui.showSnackbar", args = mapOf(PropertyKey("message") to constOf(Value.Str("saved")))),
+                    step("nav.back"),
+                )
+            },
+        )
+    }
+
+    // ---------------------------------------------------------------------------------
+    // action.arg_invalid
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun `a step omitting an argument the spec requires reports arg invalid`() {
+        val finding = findingOf(DiagnosticCodes.ActionArgInvalid, field { handler(step("nav.navigate")) })
+
+        assertEquals("page", finding.args["property"], "the required argument is named in args")
+        assertEquals(ChangeEvent, finding.location.event)
+    }
+
+    @Test
+    fun `a flow if without its required arm reports arg invalid`() {
+        val finding = findingOf(DiagnosticCodes.ActionArgInvalid, field { handler(step("flow.if")) })
+
+        assertEquals("then", finding.args["branch"], "the required arm is named in args")
+    }
+
+    @Test
+    fun `an arm the spec does not name reports arg invalid`() {
+        val finding = findingOf(
+            DiagnosticCodes.ActionArgInvalid,
+            field {
+                handler(
+                    step(
+                        "flow.if",
+                        branches = mapOf(
+                            BranchName("then") to sequenceOf(step("nav.back")),
+                            BranchName("otherwise") to sequenceOf(step("nav.back")),
+                        ),
+                    ),
+                )
+            },
+        )
+
+        assertEquals("otherwise", finding.args["branch"])
+        assertEquals(
+            "otherwise",
+            finding.location.path.lastOrNull(),
+            "the arm is the path's last step: ${finding.location.path}",
+        )
+    }
+
+    @Test
+    fun `an argument no declaration names reports arg invalid`() {
+        // A computed target is not readable, so the arguments beside it cannot be matched against
+        // a page and the closed set is the spec's own parameter alone.
+        val finding = findingOf(
+            DiagnosticCodes.ActionArgInvalid,
+            field {
+                handler(
+                    step(
+                        "nav.navigate",
+                        args = mapOf(
+                            PropertyKey("page") to computed(Value.Ref(RefKind.Page, home.value)),
+                            PropertyKey("nope") to constOf(Value.Str("x")),
+                        ),
+                    ),
+                )
+            },
+        )
+
+        assertEquals("nope", finding.args["property"])
+    }
+
+    @Test
+    fun `a flow if carrying both arms its spec names reports nothing`() {
+        assertClean(
+            field {
+                handler(
+                    step(
+                        "flow.if",
+                        args = mapOf(PropertyKey("cond") to computed(Value.Int32(1))),
+                        branches = mapOf(
+                            BranchName("then") to sequenceOf(step("nav.back")),
+                            BranchName("else") to sequenceOf(step("ui.showSnackbar")),
+                        ),
+                    ),
+                )
+            },
+        )
+    }
+
+    // ---------------------------------------------------------------------------------
+    // nav.args_mismatch
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun `a route argument the target page does not declare reports nav args mismatch`() {
+        // `id` is carried so the required half of §13.1's rule is satisfied and the unknown name
+        // is the only thing left to be wrong.
+        val finding = findingOf(
+            DiagnosticCodes.NavArgsMismatch,
+            navigating {
+                handler(
+                    step(
+                        "nav.navigate",
+                        args = mapOf(
+                            PropertyKey("page") to toProfile(),
+                            PropertyKey("id") to constOf(Value.Str("7")),
+                            PropertyKey("nope") to constOf(Value.Str("x")),
+                        ),
+                    ),
+                )
+            },
+        )
+
+        assertEquals("nope", finding.args["property"])
+    }
+
+    @Test
+    fun `a route argument the target page requires and the step omits reports nav args mismatch`() {
+        val finding = findingOf(
+            DiagnosticCodes.NavArgsMismatch,
+            navigating {
+                handler(step("nav.navigate", args = mapOf(PropertyKey("page") to toProfile())))
+            },
+        )
+
+        assertEquals("id", finding.args["property"])
+        assertEquals(profile.value, finding.args["page"])
+    }
+
+    @Test
+    fun `a route argument the target page declares reports nothing`() {
+        assertClean(
+            navigating {
+                handler(
+                    step(
+                        "nav.navigate",
+                        args = mapOf(
+                            PropertyKey("page") to toProfile(),
+                            PropertyKey("id") to constOf(Value.Str("7")),
+                        ),
+                    ),
+                )
+            },
+        )
+    }
+
+    @Test
+    fun `a route argument of the wrong type reports the type codes`() {
+        // §13.1's rule is "(name, type, required)", and the type leg is §10.4's: a value that
+        // does not fit is the checker's finding, wherever it was found.
+        val finding = findingOf(
+            DiagnosticCodes.ExprTypeMismatch,
+            navigating {
+                handler(
+                    step(
+                        "nav.navigate",
+                        args = mapOf(
+                            PropertyKey("page") to toProfile(),
+                            PropertyKey("id") to PropertyValue.Computed(sum()),
+                        ),
+                    ),
+                )
+            },
+        )
+
+        assertEquals("id", finding.args["property"], "the argument is named, not the node")
+        assertEquals(ChangeEvent, finding.location.event)
+    }
+
+    @Test
+    fun `a target page no document declares reports ref dangling`() {
+        // §13.1 asks for the target to exist, and no pass reached into a handler, so this is the
+        // only place that question is put.
+        val finding = findingOf(
+            DiagnosticCodes.RefDangling,
+            field {
+                handler(
+                    step(
+                        "nav.navigate",
+                        args = mapOf(PropertyKey("page") to constOf(Value.Ref(RefKind.Page, "p_ghost"))),
+                    ),
+                )
+            },
+        )
+
+        assertEquals("p_ghost", finding.args["id"])
+    }
+
+    @Test
+    fun `a page reference of the wrong kind reports ref kind mismatch`() {
+        val finding = findingOf(
+            DiagnosticCodes.RefKindMismatch,
+            field {
+                handler(
+                    step(
+                        "nav.navigate",
+                        args = mapOf(PropertyKey("page") to constOf(Value.Ref(RefKind.Resource, "logo"))),
+                    ),
+                )
+            },
+        )
+
+        assertEquals("Page", finding.args["kind"])
+    }
+
+    @Test
+    fun `a constant argument that does not fit its declaration reports prop type mismatch`() {
+        val finding = findingOf(
+            DiagnosticCodes.PropTypeMismatch,
+            field {
+                handler(step("nav.navigate", args = mapOf(PropertyKey("page") to constOf(Value.Int32(3)))))
+            },
+        )
+
+        assertEquals("page", finding.args["property"])
+    }
+
+    // ---------------------------------------------------------------------------------
+    // The arguments are typechecked at all, which no earlier pass does
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun `a computed argument is typechecked, which no earlier pass is`() {
+        val finding = findingOf(
+            DiagnosticCodes.ExprTypeMismatch,
+            field { handler(step("nav.navigate", args = mapOf(PropertyKey("page") to computed(Value.Int32(3))))) },
+        )
+
+        // The event on the location is what says this came from pass 6: pass 5 never descends
+        // into a handler and would have carried no event at all.
+        assertEquals(ChangeEvent, finding.location.event)
+        assertEquals("n_1", finding.args["node"])
+    }
+
+    @Test
+    fun `a computed argument that fits its declaration reports nothing`() {
+        assertClean(
+            field {
+                handler(
+                    step(
+                        "nav.navigate",
+                        args = mapOf(PropertyKey("page") to computed(Value.Ref(RefKind.Page, home.value))),
+                    ),
+                )
+            },
+        )
+    }
+
+    // ---------------------------------------------------------------------------------
+    // §11.2's event argument
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun `an event argument inside a handler binds the declared type`() {
+        // The argument is only reached through a declaration that gives it a type, so the page's
+        // `id: str` is what proves the binding happened — an unresolved one is a refusal, which
+        // is what the next test shows.
+        assertClean(navigating { handler(step("nav.navigate", args = routeTo(RefTarget.EventArg("text")))) })
+    }
+
+    @Test
+    fun `an event argument the spec does not declare reports unresolved ref`() {
+        val finding = findingOf(
+            DiagnosticCodes.ExprUnresolvedRef,
+            navigating { handler(step("nav.navigate", args = routeTo(RefTarget.EventArg("other")))) },
+        )
+
+        assertEquals(ChangeEvent, finding.location.event)
+    }
+
+    // ---------------------------------------------------------------------------------
+    // §17.2's location sorts by the event it names
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun `two findings on one node order by the event they are in`() {
+        // Everything but the event is equal, the message included, and the sort is stable: nothing
+        // but the comparator's event key can put these two in this order.
+        val here = sameFinding(DiagnosticLocation(nodeId = NODE, event = ChangeEvent))
+        val there = sameFinding(DiagnosticLocation(nodeId = NODE, event = press))
+
+        val sorted = DiagnosticSorter.sort(listOf(there, here))
+
+        assertEquals(listOf(ChangeEvent, press), sorted.map { it.location.event })
+    }
+
+    // ---------------------------------------------------------------------------------
+    // Documents
+    // ---------------------------------------------------------------------------------
+
+    /** One page whose root is a `m3.Field`, the one component here that declares an event. */
+    private fun field(block: NodeScope.() -> Unit): UiDocument =
+        homeDocument { node(FieldType) { prop("value", Value.Str("x")); block() } }
+
+    /**
+     * Two pages: home holds the handler and profile is the destination a `nav.navigate` names,
+     * carrying the one route parameter the navigation rules need to be exercised against.
+     */
+    private fun navigating(block: NodeScope.() -> Unit): UiDocument = buildDocument("demo") {
+        page(name = "Home", route = "home", id = home) {
+            node(FieldType) {
+                prop("value", Value.Str("x"))
+                block()
+            }
+        }
+        page(name = "Profile", route = "profile", id = profile, params = listOf(PROFILE_ID)) {
+            node(TextType) { prop("text", Value.Str("hi")) }
+        }
+    }
+
+    /** One handler on [ChangeEvent] running [steps] in order. */
+    private fun NodeScope.handler(vararg steps: ActionStep) {
+        event(ChangeEvent, ActionSequence(steps.toList()))
+    }
+
+    private fun step(
+        action: String,
+        args: Map<PropertyKey, PropertyValue> = emptyMap(),
+        branches: Map<BranchName, ActionSequence> = emptyMap(),
+    ): ActionStep = ActionStep(ActionId(action), args, branches)
+
+    private fun sequenceOf(step: ActionStep): ActionSequence = ActionSequence(listOf(step))
+
+    private fun toProfile(): PropertyValue = constOf(Value.Ref(RefKind.Page, profile.value))
+
+    /** The route to profile carrying [target] as its `id`. */
+    private fun routeTo(target: RefTarget): Map<PropertyKey, PropertyValue> = mapOf(
+        PropertyKey("page") to toProfile(),
+        PropertyKey("id") to PropertyValue.Computed(Expr.Ref(target)),
+    )
+
+    // ---------------------------------------------------------------------------------
+    // Assertions
+    // ---------------------------------------------------------------------------------
+
+    /** The single finding carrying [code]; more than one means the pass cannot be read. */
+    private fun findingOf(code: DiagnosticCode, document: UiDocument): Diagnostic {
+        val findings = analyzer.analyze(document).diagnostics
+        val matching = findings.filter { it.code == code }
+        assertEquals(1, matching.size, "expected one '$code' among ${findings.map { it.code.value }}")
+        return matching.single()
+    }
+
+    /**
+     * No findings, and a resolved document behind them.
+     *
+     * The second half is the stronger claim: a finding-free document that failed to lower would
+     * mean a pass had thrown rather than reported.
+     */
+    private fun assertClean(document: UiDocument) {
+        val result = analyzer.analyze(document)
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        assertNotNull(result.resolved, "a clean document did not resolve")
+    }
+
+    private fun sameFinding(at: DiagnosticLocation): Diagnostic = Diagnostic(
+        Severity.Error,
+        DiagnosticCodes.ActionArgInvalid,
+        at,
+        "Action 'nav.navigate' requires argument 'page'",
+        mapOf("node" to NODE.value),
+    )
+
+    private fun computed(value: Value): PropertyValue = PropertyValue.Computed(Expr.Const(value))
+
+    private fun sum(): Expr = Expr.Binary(BinaryOp.Add, Expr.Const(Value.Int32(1)), Expr.Const(Value.Int32(1)))
+
+    private companion object {
+        val NODE: NodeId = NodeId("n_1")
+        val PROFILE_ID: ParamDecl = ParamDecl(ParamName("id"), TypeRef.Str)
+    }
+}

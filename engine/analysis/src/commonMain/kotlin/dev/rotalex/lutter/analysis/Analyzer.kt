@@ -3,6 +3,7 @@ package dev.rotalex.lutter.analysis
 import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
 import dev.rotalex.lutter.analysis.diagnostic.DiagnosticSorter
 import dev.rotalex.lutter.analysis.diagnostic.Severity
+import dev.rotalex.lutter.analysis.pass.ActionPass
 import dev.rotalex.lutter.analysis.pass.ExpressionPass
 import dev.rotalex.lutter.analysis.pass.ReferencePass
 import dev.rotalex.lutter.analysis.pass.ResolutionPass
@@ -17,7 +18,7 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
 /**
  * The document gate: validates a [UiDocument] and lowers it when clean.
  *
- * Runs passes 1, 3, 4, 5 and 7 in order; passes 2, 6 and 8 are later phases and are
+ * Runs passes 1, 3, 4, 5, 6 and 7 in order; passes 2 and 8 are later phases and are
  * absent here rather than stubbed. Never throws on invalid documents — findings
  * come back as diagnostics with [AnalysisResult.resolved] null.
  */
@@ -39,6 +40,9 @@ public class Analyzer<A : Any, F : Any, T : Any>(
             ExpressionPass.Result.NONE
         }
         found += checked.diagnostics
+        // Pass 6 for the reason the comment above gives, and it reads pass 5's findings: a
+        // handler is checked against a document nothing has already refused.
+        if (found.none { it.severity == Severity.Error }) found += ActionPass(schema).run(document)
         val sorted = DiagnosticSorter.sort(found)
         if (sorted.any { it.severity == Severity.Error }) return AnalysisResult(sorted, null)
         return AnalysisResult(sorted, ResolutionPass(schema, checked).run(document))

@@ -13,6 +13,7 @@ import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.value.Value
+import dev.rotalex.lutter.schema.action.ActionSpec
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -22,19 +23,22 @@ import kotlin.test.assertNotNull
  * A handler written in the document reaches [ResolvedNode] whole, and a node that writes none
  * says so rather than arriving absent.
  *
- * Everything asserted here is what pass 7 either carries or does not: no pass checks a handler,
- * so a sequence that arrives is the document's own and the record cannot be what makes it
- * correct.
+ * Everything asserted here is what pass 7 either carries or does not: pass 6 checks the actions
+ * are registered and refuses nothing else about them, so a sequence that arrives is the
+ * document's own and the record cannot be what makes it correct.
  */
 class EventResolutionTest {
 
-    private val analyzer: Analyzer<String, String, String> = Analyzer(testSchema())
+    // `actionSchema()` rather than `testSchema()`: pass 6 refuses a step whose action no schema
+    // registers, so a document carrying handlers needs the ids they name. `ui.showSnackbar` and
+    // `nav.back` stand in for what these steps are — anything registered takes an empty step.
+    private val analyzer: Analyzer<ActionSpec, String, String> = Analyzer(actionSchema())
     private val home: PageId = PageId("p_home")
     private val click: EventKey = EventKey("onClick")
 
     private val back: ActionSequence = ActionSequence(listOf(ActionStep(ActionId("nav.back"))))
-    private val dialog: ActionSequence = ActionSequence(
-        listOf(ActionStep(ActionId("ui.showDialog"), args = mapOf(PropertyKey("name") to constOf(Value.Str("a"))))),
+    private val snackbar: ActionSequence = ActionSequence(
+        listOf(ActionStep(ActionId("ui.showSnackbar"), args = mapOf(PropertyKey("name") to constOf(Value.Str("a"))))),
     )
 
     @Test
@@ -56,12 +60,12 @@ class EventResolutionTest {
 
         val resolved = resolvedOf(document {
             event(click, back)
-            event(longPress, dialog)
+            event(longPress, snackbar)
         })
 
         assertEquals(setOf(click, longPress), resolved.events.keys, "a key was lost or two shared one")
         assertEquals(listOf(ActionId("nav.back")), actionsOf(resolved.events.getValue(click)))
-        assertEquals(listOf(ActionId("ui.showDialog")), actionsOf(resolved.events.getValue(longPress)))
+        assertEquals(listOf(ActionId("ui.showSnackbar")), actionsOf(resolved.events.getValue(longPress)))
     }
 
     @Test
@@ -70,9 +74,9 @@ class EventResolutionTest {
             listOf(
                 ActionStep(
                     action = ActionId("flow.if"),
-                    branches = mapOf(BranchName("then") to back, BranchName("else") to dialog),
+                    branches = mapOf(BranchName("then") to back, BranchName("else") to snackbar),
                 ),
-                ActionStep(ActionId("ui.hideDialog")),
+                ActionStep(ActionId("nav.back")),
             ),
         )
 
@@ -86,7 +90,7 @@ class EventResolutionTest {
             "the nested branch did not arrive",
         )
         assertEquals(
-            listOf(ActionId("ui.showDialog")),
+            listOf(ActionId("ui.showSnackbar")),
             actionsOf(carried.steps[0].branches.getValue(BranchName("else"))),
             "the second nested branch did not arrive",
         )

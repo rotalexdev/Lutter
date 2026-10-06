@@ -40,6 +40,7 @@ public final class dev/rotalex/lutter/builtins/BoxSpec {
 
 public final class dev/rotalex/lutter/builtins/BuiltinsKt {
 	public static final fun builtinFunctionImpls ()Ldev/rotalex/lutter/interpreter/eval/FunctionImpls;
+	public static final fun registerBuiltinActions (Ldev/rotalex/lutter/schema/SchemaBuilder;)V
 	public static final fun registerBuiltinEnums (Ldev/rotalex/lutter/schema/SchemaBuilder;)V
 	public static final fun registerBuiltinFunctions (Ldev/rotalex/lutter/schema/SchemaBuilder;)V
 	public static final fun registerBuiltinModifiers (Ldev/rotalex/lutter/schema/SchemaBuilder;)V
@@ -184,6 +185,37 @@ public final class dev/rotalex/lutter/builtins/WidthModifier {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/WidthModifier;
 	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
 	public final fun getValue ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+}
+
+public final class dev/rotalex/lutter/builtins/actions/FlowActions {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/actions/FlowActions;
+	public final fun getAll ()Ljava/util/List;
+	public final fun getConditional ()Ldev/rotalex/lutter/schema/action/ActionSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/actions/HostActions {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/actions/HostActions;
+	public final fun getAll ()Ljava/util/List;
+	public final fun getCall ()Ldev/rotalex/lutter/schema/action/ActionSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/actions/NavActions {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/actions/NavActions;
+	public final fun getAll ()Ljava/util/List;
+	public final fun getBack ()Ldev/rotalex/lutter/schema/action/ActionSpec;
+	public final fun getNavigate ()Ldev/rotalex/lutter/schema/action/ActionSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/actions/StateActions {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/actions/StateActions;
+	public final fun getAll ()Ljava/util/List;
+	public final fun getSet ()Ldev/rotalex/lutter/schema/action/ActionSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/actions/UiActions {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/actions/UiActions;
+	public final fun getAll ()Ljava/util/List;
+	public final fun getShowSnackbar ()Ldev/rotalex/lutter/schema/action/ActionSpec;
 }
 
 public final class dev/rotalex/lutter/builtins/enums/HorizontalArrangementSpec {
