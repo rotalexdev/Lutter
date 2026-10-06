@@ -329,6 +329,10 @@ final value class dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode { // dev
 }
 
 final object dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes { // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes|null[0]
+    final val ActionArgInvalid // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ActionArgInvalid|{}ActionArgInvalid[0]
+        final fun <get-ActionArgInvalid>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ActionArgInvalid.<get-ActionArgInvalid>|<get-ActionArgInvalid>(){}[0]
+    final val ActionUnknown // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ActionUnknown|{}ActionUnknown[0]
+        final fun <get-ActionUnknown>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ActionUnknown.<get-ActionUnknown>|<get-ActionUnknown>(){}[0]
     final val CodegenNameCollision // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNameCollision|{}CodegenNameCollision[0]
         final fun <get-CodegenNameCollision>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNameCollision.<get-CodegenNameCollision>|<get-CodegenNameCollision>(){}[0]
     final val CodegenNoBinding // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNoBinding|{}CodegenNoBinding[0]
@@ -361,6 +365,8 @@ final object dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes { // dev.rot
         final fun <get-ModifierScopeMissing>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ModifierScopeMissing.<get-ModifierScopeMissing>|<get-ModifierScopeMissing>(){}[0]
     final val ModifierUnknown // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ModifierUnknown|{}ModifierUnknown[0]
         final fun <get-ModifierUnknown>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ModifierUnknown.<get-ModifierUnknown>|<get-ModifierUnknown>(){}[0]
+    final val NavArgsMismatch // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.NavArgsMismatch|{}NavArgsMismatch[0]
+        final fun <get-NavArgsMismatch>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.NavArgsMismatch.<get-NavArgsMismatch>|<get-NavArgsMismatch>(){}[0]
     final val PropEnumEntryInvalid // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.PropEnumEntryInvalid|{}PropEnumEntryInvalid[0]
         final fun <get-PropEnumEntryInvalid>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.PropEnumEntryInvalid.<get-PropEnumEntryInvalid>|<get-PropEnumEntryInvalid>(){}[0]
     final val PropNotBindable // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.PropNotBindable|{}PropNotBindable[0]
