@@ -29,6 +29,9 @@ public object StateActions {
     public val set: ActionSpec = ActionSpec(
         id = ActionId("state.set"),
         metadata = ActionMetadata("Set state"),
+        // Explicit rather than defaulted: `params` carries no default anywhere on purpose, so an
+        // action that takes its arguments as rules says so instead of inheriting a silent empty.
+        params = emptyList(),
         argRules = listOf(
             ArgRule(PropertyKey("target"), ArgShape.StateRef, required = true, doc = "The state to write"),
             ArgRule(PropertyKey("value"), ArgShape.TargetValue, required = true, doc = "What to write into it"),
