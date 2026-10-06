@@ -7,6 +7,7 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
 import dev.rotalex.lutter.interpreter.MapEvalScope
 import dev.rotalex.lutter.interpreter.MapStateStore
+import dev.rotalex.lutter.interpreter.env.Navigator
 import dev.rotalex.lutter.interpreter.eval.Evaluator
 import dev.rotalex.lutter.model.doc.TokenName
 import dev.rotalex.lutter.model.expr.Expr

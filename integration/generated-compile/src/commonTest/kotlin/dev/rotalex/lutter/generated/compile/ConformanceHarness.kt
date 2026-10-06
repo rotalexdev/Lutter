@@ -10,13 +10,13 @@ import dev.rotalex.lutter.builtins.registerBuiltinEnums
 import dev.rotalex.lutter.builtins.registerBuiltinFunctions
 import dev.rotalex.lutter.builtins.registerBuiltinModifiers
 import dev.rotalex.lutter.builtins.registerBuiltinSpecs
+import dev.rotalex.lutter.interpreter.env.Navigator
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.ParamName
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.runtime.Implementations
 import dev.rotalex.lutter.runtime.ModifierApplierRegistryBuilder
-import dev.rotalex.lutter.runtime.Navigator
 import dev.rotalex.lutter.runtime.RendererRegistryBuilder
 import dev.rotalex.lutter.runtime.RuntimeEnvironment
 import dev.rotalex.lutter.runtime.UiRuntime

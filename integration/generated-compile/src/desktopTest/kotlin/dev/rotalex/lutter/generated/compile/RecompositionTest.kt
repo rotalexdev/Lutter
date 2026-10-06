@@ -13,11 +13,11 @@ import dev.rotalex.lutter.analysis.Analyzer
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.generated.text_field_state.screens.HomeScreen
 import dev.rotalex.lutter.generated.text_field_state.screens.HomeScreenState
+import dev.rotalex.lutter.interpreter.env.Navigator
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.ParamName
 import dev.rotalex.lutter.model.ids.StateId
 import dev.rotalex.lutter.model.value.Value
-import dev.rotalex.lutter.runtime.Navigator
 import dev.rotalex.lutter.runtime.RuntimeEnvironment
 import dev.rotalex.lutter.runtime.SnapshotStateStore
 import dev.rotalex.lutter.runtime.UiScreen
