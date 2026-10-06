@@ -201,6 +201,7 @@ internal val ValueKey: PropertyKey = PropertyKey("value")
 internal val writeState: ActionSpec = ActionSpec(
     id = ActionId("state.set"),
     metadata = ActionMetadata("Set state"),
+    params = emptyList(),
     argRules = listOf(
         ArgRule(TargetKey, ArgShape.StateRef, required = true),
         ArgRule(ValueKey, ArgShape.TargetValue, required = true),
