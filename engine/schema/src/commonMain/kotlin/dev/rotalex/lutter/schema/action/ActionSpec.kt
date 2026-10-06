@@ -11,13 +11,24 @@ import dev.rotalex.lutter.schema.component.PropertySpec
 /**
  * An action step's static contract: identity, params, control-flow arms and emission.
  *
- * PLAN §11.3 field for field. A plain class, as the plan spells it: specs are filed by key
- * and never compared structurally, so data-class equality would promise what nothing uses.
+ * PLAN §11.3 field for field, plus [argRules] for the arguments §11.3 could not type. A plain
+ * class, as the plan spells it: specs are filed by key and never compared structurally, so
+ * data-class equality would promise what nothing uses.
  */
 public class ActionSpec(
     public val id: ActionId,
     public val metadata: ActionMetadata,
     public val params: List<PropertySpec<*>>,
+
+    /**
+     * Arguments [params] cannot type, as shapes rather than types.
+     *
+     * Separate from [params] because the two answer different questions: a [PropertySpec] says
+     * what a value *is*, and these say what the step does with it. `state.set`'s `target` names
+     * a state and its `value` is typed by whatever that state declares, so neither is a type
+     * this spec could carry.
+     */
+    public val argRules: List<ArgRule> = emptyList(),
     public val branches: List<BranchSpec> = emptyList(),
     public val emit: ActionEmit,
 )

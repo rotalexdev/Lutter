@@ -4,9 +4,7 @@ package dev.rotalex.lutter.analysis.diagnostic
  * The diagnostic codes passes 1, 3, 4, 5 and 6 emit — exactly PLAN §17.3's rows for those passes.
  *
  * Passes 2 and 8 own the rest and do not exist yet; their codes arrive with them rather than as
- * untested constants here. §17.3's fourth action row, `action.state_not_writable`, is with them:
- * no spec field says which argument of a step is the state it writes, so pass 6 has no question
- * to put to §12.3's rule.
+ * untested constants here.
  */
 public object DiagnosticCodes {
     public val StructDuplicateId: DiagnosticCode = DiagnosticCode("struct.duplicate_id")
@@ -54,6 +52,12 @@ public object DiagnosticCodes {
      */
     public val ActionUnknown: DiagnosticCode = DiagnosticCode("action.unknown")
     public val ActionArgInvalid: DiagnosticCode = DiagnosticCode("action.arg_invalid")
+
+    /**
+     * §12.3's write rule, on the declaration a `state.set` names. Not `arg_invalid`: the
+     * argument is present and correctly shaped, and what is refused is the state it names.
+     */
+    public val ActionStateNotWritable: DiagnosticCode = DiagnosticCode("action.state_not_writable")
     public val NavArgsMismatch: DiagnosticCode = DiagnosticCode("nav.args_mismatch")
 
     /**

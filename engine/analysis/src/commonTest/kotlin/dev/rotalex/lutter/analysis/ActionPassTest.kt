@@ -9,6 +9,7 @@ import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
 import dev.rotalex.lutter.model.doc.ParamDecl
+import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.dsl.NodeScope
 import dev.rotalex.lutter.model.dsl.buildDocument
@@ -23,6 +24,7 @@ import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.ParamName
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.StateId
 import dev.rotalex.lutter.model.type.RefKind
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
@@ -37,8 +39,9 @@ import kotlin.test.assertTrue
  *
  * Each rule carries the document that breaks it and the document that does not, because a pass
  * that only proves what it refuses cannot be told apart from one that refuses everything. The
- * negatives are the load-bearing half: `state.set` and `ui.showSnackbar` declare no parameter and
- * no section names their argument keys, so a handler passing them arguments is legal and stays so.
+ * negatives are the load-bearing half: `ui.showSnackbar` still declares nothing and no section
+ * names its argument keys, so a handler passing it arguments is legal and stays so — while
+ * `state.set`'s two keys are declared as shapes, and every key but those two is now refused.
  */
 class ActionPassTest {
 
@@ -62,20 +65,22 @@ class ActionPassTest {
     @Test
     fun `a handler of registered actions reports nothing`() {
         assertClean(
-            field {
+            fieldWith(listOf(count)) {
                 handler(
-                    step(
-                        "state.set",
-                        args = mapOf(
-                            PropertyKey("key") to constOf(Value.Str("s_count")),
-                            PropertyKey("value") to constOf(Value.Int32(1)),
-                        ),
-                    ),
+                    write(count.id, constOf(Value.Int32(1))),
                     step("ui.showSnackbar", args = mapOf(PropertyKey("message") to constOf(Value.Str("saved")))),
                     step("nav.back"),
                 )
             },
         )
+    }
+
+    @Test
+    fun `an action declaring no argument accepts a key nothing names`() {
+        // The other half of the rule above: a spec that declares nothing closes nothing, because
+        // no section names `ui.showSnackbar`'s keys and §11.4 admits the document anyway.
+        val message = mapOf(PropertyKey("message") to constOf(Value.Str("saved")))
+        assertClean(field { handler(step("ui.showSnackbar", args = message)) })
     }
 
     // ---------------------------------------------------------------------------------
@@ -160,6 +165,117 @@ class ActionPassTest {
                 )
             },
         )
+    }
+
+    // ---------------------------------------------------------------------------------
+    // `state.set`: arguments the spec declares as shapes
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun `a write naming a state and a value it accepts reports nothing`() {
+        assertClean(fieldWith(listOf(count)) { handler(write(count.id, constOf(Value.Int32(7)))) })
+    }
+
+    @Test
+    fun `a constant where a state ref is required reports arg invalid`() {
+        val target = constOf(Value.Str("s_count"))
+        val finding = findingOf(
+            DiagnosticCodes.ActionArgInvalid,
+            fieldWith(listOf(count)) {
+                handler(stateSet(mapOf(TargetKey to target, ValueKey to constOf(Value.Int32(1)))))
+            },
+        )
+
+        assertEquals("target", finding.args["property"])
+    }
+
+    @Test
+    fun `a read of something other than a state reports arg invalid`() {
+        // A computed read is not enough: only `RefTarget.State` names one, and this is the read
+        // §11.2 introduces an event argument under.
+        val finding = findingOf(
+            DiagnosticCodes.ActionArgInvalid,
+            fieldWith(listOf(count)) {
+                val target = PropertyValue.Computed(Expr.Ref(RefTarget.EventArg("text")))
+                handler(stateSet(mapOf(TargetKey to target, ValueKey to constOf(Value.Int32(1)))))
+            },
+        )
+
+        assertEquals("target", finding.args["property"])
+    }
+
+    @Test
+    fun `a write that omits the target reports arg invalid`() {
+        val finding = findingOf(
+            DiagnosticCodes.ActionArgInvalid,
+            fieldWith(listOf(count)) { handler(stateSet(mapOf(ValueKey to constOf(Value.Int32(1))))) },
+        )
+
+        assertEquals("target", finding.args["property"])
+    }
+
+    @Test
+    fun `a write that omits the value reports arg invalid`() {
+        val finding = findingOf(
+            DiagnosticCodes.ActionArgInvalid,
+            fieldWith(listOf(count)) { handler(stateSet(mapOf(TargetKey to stateRead(count.id)))) },
+        )
+
+        assertEquals("value", finding.args["property"])
+    }
+
+    @Test
+    fun `an argument no rule names reports arg invalid`() {
+        val finding = findingOf(
+            DiagnosticCodes.ActionArgInvalid,
+            fieldWith(listOf(count)) {
+                handler(stateSet(mapOf(UNKNOWN to constOf(Value.Str("x")), TargetKey to stateRead(count.id))))
+            },
+        )
+
+        assertEquals("nope", finding.args["property"])
+    }
+
+    @Test
+    fun `a value argument read from state is evaluated rather than refused`() {
+        // The whole point of the second shape: `value` carries a `PropertyValue`, so an
+        // expression over the state it writes is what the check is asked about.
+        val written = PropertyValue.Computed(incremented(count.id))
+        assertClean(fieldWith(listOf(count)) { handler(write(count.id, written)) })
+    }
+
+    // ---------------------------------------------------------------------------------
+    // action.state_not_writable
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun `a write to a derived state reports state not writable`() {
+        val finding = findingOf(
+            DiagnosticCodes.ActionStateNotWritable,
+            fieldWith(listOf(count, doubled)) { handler(write(doubled.id, constOf(Value.Int32(1)))) },
+        )
+
+        assertEquals("s_doubled", finding.args["state"])
+    }
+
+    @Test
+    fun `a write of a value the declaration does not accept reports prop type mismatch`() {
+        val finding = findingOf(
+            DiagnosticCodes.PropTypeMismatch,
+            fieldWith(listOf(count)) { handler(write(count.id, constOf(Value.Str("x")))) },
+        )
+
+        assertEquals("value", finding.args["property"])
+    }
+
+    @Test
+    fun `a write to a state no declaration holds reports ref dangling`() {
+        val finding = findingOf(
+            DiagnosticCodes.RefDangling,
+            fieldWith(listOf(count)) { handler(write(GHOST, constOf(Value.Int32(1)))) },
+        )
+
+        assertEquals("s_ghost", finding.args["id"])
     }
 
     // ---------------------------------------------------------------------------------
@@ -367,6 +483,10 @@ class ActionPassTest {
     private fun field(block: NodeScope.() -> Unit): UiDocument =
         homeDocument { node(FieldType) { prop("value", Value.Str("x")); block() } }
 
+    /** The same page, declaring [state], for a write that needs a declaration to be checked against. */
+    private fun fieldWith(state: List<StateDecl>, block: NodeScope.() -> Unit): UiDocument =
+        homeDocument(state) { node(FieldType) { prop("value", Value.Str("x")); block() } }
+
     /**
      * Two pages: home holds the handler and profile is the destination a `nav.navigate` names,
      * carrying the one route parameter the navigation rules need to be exercised against.
@@ -395,6 +515,20 @@ class ActionPassTest {
     ): ActionStep = ActionStep(ActionId(action), args, branches)
 
     private fun sequenceOf(step: ActionStep): ActionSequence = ActionSequence(listOf(step))
+
+    /** `state.set` with [args], spelled by key so a negative can leave one out. */
+    private fun stateSet(args: Map<PropertyKey, PropertyValue>): ActionStep = step("state.set", args = args)
+
+    /** A well formed write of [value] into [target]. */
+    private fun write(target: StateId, value: PropertyValue): ActionStep =
+        stateSet(mapOf(TargetKey to stateRead(target), ValueKey to value))
+
+    /** The computed read a target argument is written as, which is what names a state. */
+    private fun stateRead(id: StateId): PropertyValue = PropertyValue.Computed(Expr.Ref(RefTarget.State(id)))
+
+    /** `state.count + 1`: the expression §12.3's own example passes as the value written. */
+    private fun incremented(id: StateId): Expr =
+        Expr.Binary(BinaryOp.Add, Expr.Ref(RefTarget.State(id)), Expr.Const(Value.Int32(1)))
 
     private fun toProfile(): PropertyValue = constOf(Value.Ref(RefKind.Page, profile.value))
 
@@ -443,5 +577,24 @@ class ActionPassTest {
     private companion object {
         val NODE: NodeId = NodeId("n_1")
         val PROFILE_ID: ParamDecl = ParamDecl(ParamName("id"), TypeRef.Str)
+
+        /** Held, so a write to it is legal and only its value can be wrong. */
+        val COUNT: StateId = StateId("s_count")
+
+        /** Derived, so §12.3's "not derived" rule has something to refuse. */
+        val DOUBLED: StateId = StateId("s_doubled")
+
+        /** A name no declaration in any fixture holds. */
+        val GHOST: StateId = StateId("s_ghost")
+
+        /** A key no spec declares. */
+        val UNKNOWN: PropertyKey = PropertyKey("nope")
+
+        val count: StateDecl = StateDecl(COUNT, "count", TypeRef.Int32, Value.Int32(0))
+
+        val doubled: StateDecl = StateDecl(
+            DOUBLED, "doubled", TypeRef.Int32,
+            derived = Expr.Binary(BinaryOp.Add, Expr.Ref(RefTarget.State(COUNT)), Expr.Const(Value.Int32(1))),
+        )
     }
 }

@@ -13,6 +13,7 @@ import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.schema.Schema
 import dev.rotalex.lutter.schema.action.ActionEmit
 import dev.rotalex.lutter.schema.action.ActionSpec
+import dev.rotalex.lutter.schema.action.ArgShape
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -74,13 +75,29 @@ class BuiltinActionSpecsTest {
     }
 
     @Test
-    fun `no spec declares an argument the plan does not name`() {
+    fun `no spec declares a typed argument the plan does not name`() {
         val declared = schema.actions.all().flatMap { spec -> spec.params.map { it.key } }
 
-        // §13.1 is the only section that spells an action argument, and it spells one. The other
-        // five declare none because §11 never names their keys, which is a gap for the pass that
-        // validates them rather than a shape to guess at here.
+        // §13.1 is the only section that spells a typed action argument, and it spells one. The
+        // other five declare none in `params` because no `TypeRef` can say what they take — the
+        // two `state.set` keys are shapes instead, and are asserted as such below.
         assertEquals(listOf(PropertyKey("page")), declared)
+    }
+
+    @Test
+    fun `state set names its target and value as shapes, both required`() {
+        val rules = schema.actions.require(ActionId("state.set")).argRules
+
+        assertEquals(listOf(PropertyKey("target"), PropertyKey("value")), rules.map { it.key })
+        assertEquals(listOf(true, true), rules.map { it.required })
+        assertEquals(listOf(ArgShape.StateRef, ArgShape.TargetValue), rules.map { it.shape })
+    }
+
+    @Test
+    fun `no other spec declares a shape, so no other argument is closed`() {
+        val shaped = schema.actions.all().filter { it.argRules.isNotEmpty() }
+
+        assertEquals(listOf(ActionId("state.set")), shaped.map { it.id })
     }
 
     @Test
