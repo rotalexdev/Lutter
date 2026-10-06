@@ -20,7 +20,7 @@ class ActionExecutorTest {
             ActionId("test.c") to Recording(ran, "c"),
         )
 
-        drive(executor.run(sequenceOfSteps(step("test.a"), step("test.b"), step("test.c")), FakeActionEnv()))
+        drive { executor.run(sequenceOfSteps(step("test.a"), step("test.b"), step("test.c")), FakeActionEnv()) }
 
         assertEquals(listOf("a", "b", "c"), ran)
     }
@@ -29,7 +29,7 @@ class ActionExecutorTest {
     fun `a step after a suspended step has not started`() {
         val executor = executorWithASuspendedMiddleStep()
 
-        drive(executor.run(sequenceOfSteps(step("test.a"), step("test.b"), step("test.c")), FakeActionEnv()))
+        drive { executor.run(sequenceOfSteps(step("test.a"), step("test.b"), step("test.c")), FakeActionEnv()) }
 
         assertEquals(listOf("a", "b"), ran)
     }
@@ -38,7 +38,7 @@ class ActionExecutorTest {
     fun `the steps after a suspended step run once it resumes`() {
         val executor = executorWithASuspendedMiddleStep()
 
-        drive(executor.run(sequenceOfSteps(step("test.a"), step("test.b"), step("test.c")), FakeActionEnv()))
+        drive { executor.run(sequenceOfSteps(step("test.a"), step("test.b"), step("test.c")), FakeActionEnv()) }
         gate.open()
 
         assertEquals(listOf("a", "b", "b done", "c"), ran)
@@ -48,7 +48,7 @@ class ActionExecutorTest {
     fun `a sequence that reached its end reports that nothing stopped it`() {
         val executor = executorOf(ActionId("test.a") to Recording(ran, "a"))
 
-        val outcome = drive(executor.run(sequenceOfSteps(step("test.a")), FakeActionEnv())).single()
+        val outcome = drive { executor.run(sequenceOfSteps(step("test.a")), FakeActionEnv()) }.single()
 
         assertEquals(ActionOutcome.Done, outcome)
     }
@@ -61,7 +61,7 @@ class ActionExecutorTest {
             ActionId("test.c") to Recording(ran, "c"),
         )
 
-        drive(executor.run(sequenceOfSteps(step("test.a"), step("test.b"), step("test.c")), FakeActionEnv()))
+        drive { executor.run(sequenceOfSteps(step("test.a"), step("test.b"), step("test.c")), FakeActionEnv()) }
 
         assertEquals(listOf("a", "b"), ran)
     }
@@ -70,7 +70,7 @@ class ActionExecutorTest {
     fun `a failure carries the diagnostic the handler raised`() {
         val executor = executorOf(ActionId("test.b") to Refusing(ran, "b", "b refused"))
 
-        val outcome = drive(executor.run(sequenceOfSteps(step("test.b")), FakeActionEnv())).single()
+        val outcome = drive { executor.run(sequenceOfSteps(step("test.b")), FakeActionEnv()) }.single()
 
         assertEquals(ActionOutcome.Failed(RuntimeDiagnostic("b refused")), outcome)
     }
@@ -79,9 +79,7 @@ class ActionExecutorTest {
     fun `an action with no registered handler stops the run`() {
         val executor = executorOf(ActionId("test.a") to Recording(ran, "a"))
 
-        val outcome = drive(
-            executor.run(sequenceOfSteps(step("test.a"), step("test.z")), FakeActionEnv()),
-        ).single()
+        val outcome = drive { executor.run(sequenceOfSteps(step("test.a"), step("test.z")), FakeActionEnv()) }.single()
 
         assertTrue(outcome is ActionOutcome.Failed)
     }
@@ -90,9 +88,9 @@ class ActionExecutorTest {
     fun `the diagnostic for an unhandled action names the action`() {
         val executor = executorOf()
 
-        val outcome = drive(
-            executor.run(sequenceOfSteps(step("test.z")), FakeActionEnv()),
-        ).single() as ActionOutcome.Failed
+        val outcome =
+            drive { executor.run(sequenceOfSteps(step("test.z")), FakeActionEnv()) }
+                .single() as ActionOutcome.Failed
 
         assertTrue(outcome.diagnostic.message.contains("test.z"))
     }
@@ -108,7 +106,7 @@ class ActionExecutorTest {
             branching("test.a", arm("then", "test.then"), arm("else", "test.else")),
         )
 
-        drive(executor.run(sequence, FakeActionEnv()))
+        drive { executor.run(sequence, FakeActionEnv()) }
 
         assertEquals(listOf("a", "then", "else"), ran)
     }
@@ -125,7 +123,7 @@ class ActionExecutorTest {
             branching("test.a", arm("then", "test.one", "test.two", "test.three")),
         )
 
-        drive(executor.run(sequence, FakeActionEnv()))
+        drive { executor.run(sequence, FakeActionEnv()) }
 
         assertEquals(listOf("a", "one", "two"), ran)
     }
@@ -142,7 +140,7 @@ class ActionExecutorTest {
             step("test.b"),
         )
 
-        drive(executor.run(sequence, FakeActionEnv()))
+        drive { executor.run(sequence, FakeActionEnv()) }
 
         assertEquals(listOf("a", "one"), ran)
     }

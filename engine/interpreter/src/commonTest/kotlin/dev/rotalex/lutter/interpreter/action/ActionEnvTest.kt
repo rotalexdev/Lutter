@@ -45,7 +45,7 @@ class ActionEnvTest {
         val handler = ReadingDialogs()
         val executor = executorOf(ActionId("test.read") to handler)
 
-        drive(executor.run(sequenceOfSteps(step("test.read")), FakeActionEnv(dialogs = dialogs)))
+        drive { executor.run(sequenceOfSteps(step("test.read")), FakeActionEnv(dialogs = dialogs)) }
 
         assertEquals(dialogs, handler.seen)
     }
@@ -58,7 +58,7 @@ class ActionEnvTest {
         val executor = executorOf(ActionId("test.call") to handler)
         val env = FakeActionEnv(host = HostFunctions(mapOf("double" to doubled)))
 
-        drive(executor.run(sequenceOfSteps(step("test.call")), env))
+        drive { executor.run(sequenceOfSteps(step("test.call")), env) }
 
         assertEquals(listOf<Value?>(Value.Int32(42)), results)
     }

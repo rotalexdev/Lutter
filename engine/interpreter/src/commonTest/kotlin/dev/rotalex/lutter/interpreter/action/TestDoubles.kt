@@ -4,7 +4,6 @@
 // is reading all of them.
 package dev.rotalex.lutter.interpreter.action
 
-import dev.rotalex.lutter.interpreter.ActionEnv
 import dev.rotalex.lutter.interpreter.EvalScope
 import dev.rotalex.lutter.interpreter.MapEvalScope
 import dev.rotalex.lutter.interpreter.MapStateStore
