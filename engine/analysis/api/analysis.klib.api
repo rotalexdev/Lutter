@@ -331,6 +331,8 @@ final value class dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode { // dev
 final object dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes { // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes|null[0]
     final val ActionArgInvalid // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ActionArgInvalid|{}ActionArgInvalid[0]
         final fun <get-ActionArgInvalid>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ActionArgInvalid.<get-ActionArgInvalid>|<get-ActionArgInvalid>(){}[0]
+    final val ActionStateNotWritable // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ActionStateNotWritable|{}ActionStateNotWritable[0]
+        final fun <get-ActionStateNotWritable>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ActionStateNotWritable.<get-ActionStateNotWritable>|<get-ActionStateNotWritable>(){}[0]
     final val ActionUnknown // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ActionUnknown|{}ActionUnknown[0]
         final fun <get-ActionUnknown>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ActionUnknown.<get-ActionUnknown>|<get-ActionUnknown>(){}[0]
     final val CodegenNameCollision // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.CodegenNameCollision|{}CodegenNameCollision[0]

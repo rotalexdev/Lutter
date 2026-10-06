@@ -2,6 +2,7 @@ package dev.rotalex.lutter.analysis
 
 import dev.rotalex.lutter.model.doc.EnumEntryDecl
 import dev.rotalex.lutter.model.doc.EnumTypeDecl
+import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.dsl.PageScope
 import dev.rotalex.lutter.model.dsl.buildDocument
@@ -24,6 +25,8 @@ import dev.rotalex.lutter.schema.SchemaBuilder
 import dev.rotalex.lutter.schema.action.ActionEmit
 import dev.rotalex.lutter.schema.action.ActionMetadata
 import dev.rotalex.lutter.schema.action.ActionSpec
+import dev.rotalex.lutter.schema.action.ArgRule
+import dev.rotalex.lutter.schema.action.ArgShape
 import dev.rotalex.lutter.schema.action.BranchSpec
 import dev.rotalex.lutter.schema.action.action
 import dev.rotalex.lutter.schema.component.Cardinality
@@ -147,11 +150,12 @@ private const val ELEMENT: String = "T"
  * The walking skeleton with the actions slot bound to [ActionSpec] and §11.4's MVP ids
  * registered, so a handler has something to be right or wrong about.
  *
- * The five are the ones pass 6 has a question about between them: [navigate] is the only spec
- * with a parameter and the only one with a page reference, which is what a route argument and an
- * unknown argument both need; [branching] is the only one with arms. They are declared here
- * rather than imported from `:engine:builtins` because this module cannot depend on it — the same
- * reason [walkingSkeleton] restates the builtins' components.
+ * Three of the five have something for pass 6 to check: [navigate] is the only spec with a
+ * typed parameter and the only one with a page reference, which is what a route argument and an
+ * unknown argument both need; [branching] is the only one with arms; [writeState] is the only one
+ * whose arguments are shapes rather than types. They are declared here rather than imported from
+ * `:engine:builtins` because this module cannot depend on it — the same reason
+ * [walkingSkeleton] restates the builtins' components.
  */
 internal fun actionSchema(): Schema<ComponentSpec, ModifierSpec, ActionSpec, String, String> =
     Schema.build<ComponentSpec, ModifierSpec, ActionSpec, String, String> {
@@ -166,7 +170,7 @@ internal fun actionSchema(): Schema<ComponentSpec, ModifierSpec, ActionSpec, Str
         )
         action(navigate)
         action(ActionSpec(ActionId("nav.back"), ActionMetadata("Back"), emptyList(), emit = ActionEmit.Intrinsic))
-        action(ActionSpec(ActionId("state.set"), ActionMetadata("Set state"), emptyList(), emit = ActionEmit.Intrinsic))
+        action(writeState)
         action(ActionSpec(ActionId("ui.showSnackbar"), ActionMetadata("Snackbar"), emptyList(), emit = ActionEmit.Intrinsic))
         action(branching)
     }
@@ -176,6 +180,32 @@ internal val navigate: ActionSpec = ActionSpec(
     id = ActionId("nav.navigate"),
     metadata = ActionMetadata("Navigate"),
     params = listOf(prop<Nothing>("page", TypeRef.Ref(RefKind.Page), required = true)),
+    emit = ActionEmit.Intrinsic,
+)
+
+/**
+ * The state a write names, and the value it writes.
+ *
+ * Declared above [writeState] because a file's properties initialize in the order they are
+ * written, and a key that were null while the spec was built would be a fixture nobody can read.
+ */
+internal val TargetKey: PropertyKey = PropertyKey("target")
+internal val ValueKey: PropertyKey = PropertyKey("value")
+
+/**
+ * `state.set`: the one spec whose arguments no `TypeRef` can type, so it declares shapes.
+ *
+ * The two keys are shared with the tests that build a step, so a typo in one is a red test rather
+ * than a document nothing ever refuses.
+ */
+internal val writeState: ActionSpec = ActionSpec(
+    id = ActionId("state.set"),
+    metadata = ActionMetadata("Set state"),
+    params = emptyList(),
+    argRules = listOf(
+        ArgRule(TargetKey, ArgShape.StateRef, required = true),
+        ArgRule(ValueKey, ArgShape.TargetValue, required = true),
+    ),
     emit = ActionEmit.Intrinsic,
 )
 
@@ -261,9 +291,12 @@ internal fun <A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, ModifierSp
     )
 }
 
-/** One page named Home; the body builds its tree. */
-internal fun homeDocument(block: PageScope.() -> Unit): UiDocument = buildDocument("demo") {
-    page(name = "Home", route = "home", id = PageId("p_home"), block = block)
+/** One page named Home, declaring [state]; the body builds its tree. */
+internal fun homeDocument(
+    state: List<StateDecl> = emptyList(),
+    block: PageScope.() -> Unit,
+): UiDocument = buildDocument("demo") {
+    page(name = "Home", route = "home", id = PageId("p_home"), state = state, block = block)
 }
 
 /** A valid Column holding one Text: the baseline every violation mutates. */

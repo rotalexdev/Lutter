@@ -128,6 +128,20 @@ sealed interface dev.rotalex.lutter.schema.action/ActionEmit { // dev.rotalex.lu
     }
 }
 
+sealed interface dev.rotalex.lutter.schema.action/ArgShape { // dev.rotalex.lutter.schema.action/ArgShape|null[0]
+    final object StateRef : dev.rotalex.lutter.schema.action/ArgShape { // dev.rotalex.lutter.schema.action/ArgShape.StateRef|null[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.schema.action/ArgShape.StateRef.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // dev.rotalex.lutter.schema.action/ArgShape.StateRef.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // dev.rotalex.lutter.schema.action/ArgShape.StateRef.toString|toString(){}[0]
+    }
+
+    final object TargetValue : dev.rotalex.lutter.schema.action/ArgShape { // dev.rotalex.lutter.schema.action/ArgShape.TargetValue|null[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.schema.action/ArgShape.TargetValue.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // dev.rotalex.lutter.schema.action/ArgShape.TargetValue.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // dev.rotalex.lutter.schema.action/ArgShape.TargetValue.toString|toString(){}[0]
+    }
+}
+
 sealed interface dev.rotalex.lutter.schema.component/ChildFilter { // dev.rotalex.lutter.schema.component/ChildFilter|null[0]
     final class Except : dev.rotalex.lutter.schema.component/ChildFilter { // dev.rotalex.lutter.schema.component/ChildFilter.Except|null[0]
         constructor <init>(kotlin.collections/Set<dev.rotalex.lutter.model.ids/ComponentType>) // dev.rotalex.lutter.schema.component/ChildFilter.Except.<init>|<init>(kotlin.collections.Set<dev.rotalex.lutter.model.ids.ComponentType>){}[0]
@@ -657,8 +671,10 @@ final class dev.rotalex.lutter.schema.action/ActionMetadata { // dev.rotalex.lut
 }
 
 final class dev.rotalex.lutter.schema.action/ActionSpec { // dev.rotalex.lutter.schema.action/ActionSpec|null[0]
-    constructor <init>(dev.rotalex.lutter.model.ids/ActionId, dev.rotalex.lutter.schema.action/ActionMetadata, kotlin.collections/List<dev.rotalex.lutter.schema.component/PropertySpec<*>>, kotlin.collections/List<dev.rotalex.lutter.schema.action/BranchSpec> = ..., dev.rotalex.lutter.schema.action/ActionEmit) // dev.rotalex.lutter.schema.action/ActionSpec.<init>|<init>(dev.rotalex.lutter.model.ids.ActionId;dev.rotalex.lutter.schema.action.ActionMetadata;kotlin.collections.List<dev.rotalex.lutter.schema.component.PropertySpec<*>>;kotlin.collections.List<dev.rotalex.lutter.schema.action.BranchSpec>;dev.rotalex.lutter.schema.action.ActionEmit){}[0]
+    constructor <init>(dev.rotalex.lutter.model.ids/ActionId, dev.rotalex.lutter.schema.action/ActionMetadata, kotlin.collections/List<dev.rotalex.lutter.schema.component/PropertySpec<*>>, kotlin.collections/List<dev.rotalex.lutter.schema.action/ArgRule> = ..., kotlin.collections/List<dev.rotalex.lutter.schema.action/BranchSpec> = ..., dev.rotalex.lutter.schema.action/ActionEmit) // dev.rotalex.lutter.schema.action/ActionSpec.<init>|<init>(dev.rotalex.lutter.model.ids.ActionId;dev.rotalex.lutter.schema.action.ActionMetadata;kotlin.collections.List<dev.rotalex.lutter.schema.component.PropertySpec<*>>;kotlin.collections.List<dev.rotalex.lutter.schema.action.ArgRule>;kotlin.collections.List<dev.rotalex.lutter.schema.action.BranchSpec>;dev.rotalex.lutter.schema.action.ActionEmit){}[0]
 
+    final val argRules // dev.rotalex.lutter.schema.action/ActionSpec.argRules|{}argRules[0]
+        final fun <get-argRules>(): kotlin.collections/List<dev.rotalex.lutter.schema.action/ArgRule> // dev.rotalex.lutter.schema.action/ActionSpec.argRules.<get-argRules>|<get-argRules>(){}[0]
     final val branches // dev.rotalex.lutter.schema.action/ActionSpec.branches|{}branches[0]
         final fun <get-branches>(): kotlin.collections/List<dev.rotalex.lutter.schema.action/BranchSpec> // dev.rotalex.lutter.schema.action/ActionSpec.branches.<get-branches>|<get-branches>(){}[0]
     final val emit // dev.rotalex.lutter.schema.action/ActionSpec.emit|{}emit[0]
@@ -669,6 +685,19 @@ final class dev.rotalex.lutter.schema.action/ActionSpec { // dev.rotalex.lutter.
         final fun <get-metadata>(): dev.rotalex.lutter.schema.action/ActionMetadata // dev.rotalex.lutter.schema.action/ActionSpec.metadata.<get-metadata>|<get-metadata>(){}[0]
     final val params // dev.rotalex.lutter.schema.action/ActionSpec.params|{}params[0]
         final fun <get-params>(): kotlin.collections/List<dev.rotalex.lutter.schema.component/PropertySpec<*>> // dev.rotalex.lutter.schema.action/ActionSpec.params.<get-params>|<get-params>(){}[0]
+}
+
+final class dev.rotalex.lutter.schema.action/ArgRule { // dev.rotalex.lutter.schema.action/ArgRule|null[0]
+    constructor <init>(dev.rotalex.lutter.model.ids/PropertyKey, dev.rotalex.lutter.schema.action/ArgShape, kotlin/Boolean = ..., kotlin/String = ...) // dev.rotalex.lutter.schema.action/ArgRule.<init>|<init>(dev.rotalex.lutter.model.ids.PropertyKey;dev.rotalex.lutter.schema.action.ArgShape;kotlin.Boolean;kotlin.String){}[0]
+
+    final val doc // dev.rotalex.lutter.schema.action/ArgRule.doc|{}doc[0]
+        final fun <get-doc>(): kotlin/String // dev.rotalex.lutter.schema.action/ArgRule.doc.<get-doc>|<get-doc>(){}[0]
+    final val key // dev.rotalex.lutter.schema.action/ArgRule.key|{}key[0]
+        final fun <get-key>(): dev.rotalex.lutter.model.ids/PropertyKey // dev.rotalex.lutter.schema.action/ArgRule.key.<get-key>|<get-key>(){}[0]
+    final val required // dev.rotalex.lutter.schema.action/ArgRule.required|{}required[0]
+        final fun <get-required>(): kotlin/Boolean // dev.rotalex.lutter.schema.action/ArgRule.required.<get-required>|<get-required>(){}[0]
+    final val shape // dev.rotalex.lutter.schema.action/ArgRule.shape|{}shape[0]
+        final fun <get-shape>(): dev.rotalex.lutter.schema.action/ArgShape // dev.rotalex.lutter.schema.action/ArgRule.shape.<get-shape>|<get-shape>(){}[0]
 }
 
 final class dev.rotalex.lutter.schema.action/BranchSpec { // dev.rotalex.lutter.schema.action/BranchSpec|null[0]

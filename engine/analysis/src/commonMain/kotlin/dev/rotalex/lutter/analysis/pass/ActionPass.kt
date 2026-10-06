@@ -11,16 +11,22 @@ import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.Page
+import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.doc.UiDocument
+import dev.rotalex.lutter.model.expr.Expr
 import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.expr.RefTarget
 import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.StateId
 import dev.rotalex.lutter.model.index.DocumentIndex
 import dev.rotalex.lutter.model.type.RefKind
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.action.ActionSpec
+import dev.rotalex.lutter.schema.action.ArgRule
+import dev.rotalex.lutter.schema.action.ArgShape
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
 
@@ -32,14 +38,15 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
  * the declared type, a computed one through the §10.4 checker, which nothing in the pipeline
  * runs over a handler today.
  *
- * **A spec that declares no parameter closes nothing.** §11.3 makes `params` the whole of what
- * an action takes, and `state.set`, `host.call` and `ui.showSnackbar` declare none, so no
- * section names their argument keys and ruling on them would refuse the arguments §12.3's own
- * example passes. A navigation argument is the target page's `ParamDecl` instead (§13.1).
+ * **Two lists of arguments, and the gap between them is closed by shape.** §11.3 makes `params`
+ * the typed half; `host.call` and `ui.showSnackbar` still declare none, so a key no declaration
+ * names is a finding only where the spec declares something at all. `state.set`'s two keys are
+ * in `argRules` instead, because the target is a read of a state and the value is typed by the
+ * declaration that read names. A navigation argument is the target page's `ParamDecl` (§13.1).
  *
- * §17.3's fourth action row, `action.state_not_writable`, is not here and cannot be: no field
- * anywhere says which argument of a step is the state it writes, so §12.3's "writable, not
- * derived" has nothing to read. Reaching it needs §11.3 amended rather than a guess in this pass.
+ * §17.3's fourth action row, `action.state_not_writable`, is here: the rule it enforces is
+ * §12.3's "writable, not derived, type-compatible", and a spec's `StateRef` rule is what names
+ * the argument that write targets.
  */
 internal class ActionPass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
@@ -53,8 +60,9 @@ internal class ActionPass(
         val checker = TypeChecker(schema, document.dataModels)
         for (id in document.nodes.ids()) {
             val node = document.nodes[id] ?: continue
-            val base = scopeOf(document, index, id) ?: continue
-            val walk = Walk(document, node, schema, base, checker, found)
+            val owned = ownerDeclsOf(document, index, id) ?: continue
+            val base = scopeOf(document, owned)
+            val walk = Walk(document, node, schema, base, statesOf(document, owned.state), checker, found)
             for ((event, sequence) in node.events) walk.handler(sequence, event, emptyList())
         }
         return found
@@ -72,6 +80,7 @@ private class Walk(
     private val node: Node,
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
     private val base: ExprScope,
+    private val states: Map<StateId, StateDecl>,
     private val checker: TypeChecker,
     private val found: MutableList<Diagnostic>,
 ) {
@@ -175,9 +184,10 @@ private class Walk(
     }
 
     /**
-     * Every argument against the declaration that names it: the spec's own parameter, or the
-     * target page's when the step navigates. A key neither declares is `nav.args_mismatch` where
-     * a page is known and `arg_invalid` otherwise — §13.1 owns a route, §11.3 owns the rest.
+     * Every argument against the declaration that names it: the spec's own parameter, the spec's
+     * own rule, or the target page's when the step navigates. A key none declares is
+     * `nav.args_mismatch` where a page is known and `arg_invalid` otherwise — §13.1 owns a
+     * route, §11.3 owns the rest.
      */
     private fun checkArgs(
         step: ActionStep,
@@ -188,13 +198,23 @@ private class Walk(
         scope: ExprScope,
     ) {
         val params = spec.params.associate { it.key to it.type }
+        val rules = spec.argRules.associateBy { it.key }
         val route = page?.params?.associate { it.name.value to it.type } ?: emptyMap()
+        val target = writeTarget(step, spec, at, event)
         for (param in spec.params) {
             if (!param.required || param.key in step.args) continue
             found += refusal(
                 at.copy(property = param.key), event, DiagnosticCodes.ActionArgInvalid,
                 "Action '${step.action}' requires argument '${param.key.value}'",
                 mapOf("action" to step.action.value, "property" to param.key.value),
+            )
+        }
+        for (rule in spec.argRules) {
+            if (!rule.required || rule.key in step.args) continue
+            found += refusal(
+                at.copy(property = rule.key), event, DiagnosticCodes.ActionArgInvalid,
+                "Action '${step.action}' requires argument '${rule.key.value}'",
+                mapOf("action" to step.action.value, "property" to rule.key.value),
             )
         }
         if (page != null) {
@@ -209,25 +229,115 @@ private class Walk(
         }
         for ((key, actual) in step.args) {
             val here = at.copy(property = key)
+            val rule = rules[key]
             val typeRef = params[key] ?: route[key.value]
-            if (typeRef == null) {
-                if (page != null) {
+            when {
+                rule != null -> checkRule(step, rule, actual, target, here, event, scope)
+                typeRef != null -> checkArgument(key, actual, typeRef, here, event, scope)
+                // A spec that declares nothing closes nothing: no section names `ui.showSnackbar`'s
+                // keys, so refusing one would refuse a document §11.4 admits.
+                page != null -> found += refusal(
+                    here, event, DiagnosticCodes.NavArgsMismatch,
+                    "Argument '${key.value}' is not a parameter of page '${page.id}'",
+                    mapOf("page" to page.id.value, "property" to key.value),
+                )
+
+                spec.params.isNotEmpty() || spec.argRules.isNotEmpty() -> found += refusal(
+                    here, event, DiagnosticCodes.ActionArgInvalid,
+                    "Action '${step.action}' has no argument '${key.value}'",
+                    mapOf("action" to step.action.value, "property" to key.value),
+                )
+            }
+        }
+    }
+
+    /**
+     * The declaration a step writes, read off the spec rather than off the action's id, so a
+     * plugin action declaring the same shape is checked the same way.
+     *
+     * Null for a spec with no state-naming rule, for a step that omits it or passes something
+     * that names no state, and for one whose id no declaration holds — which is `ref.dangling`,
+     * the answer a page reference to a page that is not there gets.
+     */
+    private fun writeTarget(
+        step: ActionStep,
+        spec: ActionSpec,
+        at: DiagnosticLocation,
+        event: EventKey,
+    ): StateDecl? {
+        val key = spec.argRules.firstOrNull { it.shape == ArgShape.StateRef }?.key ?: return null
+        val id = stateNamed(step.args[key]) ?: return null
+        val decl = states[id]
+        if (decl != null) return decl
+
+        found += refusal(
+            at.copy(property = key), event, DiagnosticCodes.RefDangling,
+            "Reference to state '${id.value}' names nothing in scope",
+            mapOf("kind" to "State", "id" to id.value, "property" to key.value),
+        )
+        return null
+    }
+
+    /**
+     * The state [actual] names, or null when it names none.
+     *
+     * The only shape tried, for the reason `IntrinsicHandlers` reads the same one: a document
+     * constant is one of §9.1's four reference kinds and none of them is a state.
+     */
+    private fun stateNamed(actual: PropertyValue?): StateId? {
+        val expr = (actual as? PropertyValue.Computed)?.expr ?: return null
+        return ((expr as? Expr.Ref)?.target as? RefTarget.State)?.id
+    }
+
+    /** One argument against the rule that names it, which no `TypeRef` could have typed. */
+    private fun checkRule(
+        step: ActionStep,
+        rule: ArgRule,
+        actual: PropertyValue,
+        target: StateDecl?,
+        at: DiagnosticLocation,
+        event: EventKey,
+        scope: ExprScope,
+    ) {
+        when (rule.shape) {
+            ArgShape.StateRef -> {
+                if (stateNamed(actual) == null) {
                     found += refusal(
-                        here, event, DiagnosticCodes.NavArgsMismatch,
-                        "Argument '${key.value}' is not a parameter of page '${page.id}'",
-                        mapOf("page" to page.id.value, "property" to key.value),
-                    )
-                } else if (spec.params.isNotEmpty()) {
-                    found += refusal(
-                        here, event, DiagnosticCodes.ActionArgInvalid,
-                        "Action '${step.action}' has no argument '${key.value}'",
-                        mapOf("action" to step.action.value, "property" to key.value),
+                        at, event, DiagnosticCodes.ActionArgInvalid,
+                        "Argument '${rule.key.value}' of action '${step.action}' must name a state",
+                        mapOf("action" to step.action.value, "property" to rule.key.value),
                     )
                 }
-                continue
             }
-            checkArgument(key, actual, typeRef, here, event, scope)
+
+            ArgShape.TargetValue -> checkWrittenValue(rule.key, actual, target, at, event, scope)
         }
+    }
+
+    /**
+     * §12.3's write rule, both halves: a derived declaration is computed on read and has nowhere
+     * to land a write, and the written value is typed by the declaration rather than by the spec.
+     *
+     * With no declaration to read there is no type either, so nothing is checked — the rule that
+     * refused the target has already said which of the two faults it is.
+     */
+    private fun checkWrittenValue(
+        key: PropertyKey,
+        actual: PropertyValue,
+        target: StateDecl?,
+        at: DiagnosticLocation,
+        event: EventKey,
+        scope: ExprScope,
+    ) {
+        val decl = target ?: return
+        if (decl.derived != null) {
+            found += refusal(
+                at, event, DiagnosticCodes.ActionStateNotWritable,
+                "State '${decl.id.value}' is derived and cannot be written",
+                mapOf("property" to key.value, "state" to decl.id.value),
+            )
+        }
+        checkArgument(key, actual, decl.type, at, event, scope)
     }
 
     /**

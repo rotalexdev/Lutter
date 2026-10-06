@@ -15,7 +15,7 @@ class StructuralPassTest {
     private val analyzer: Analyzer<String, String, String> = Analyzer(testSchema())
 
     private fun codesOf(block: PageScope.() -> Unit): List<String> =
-        analyzer.analyze(homeDocument(block)).diagnostics.map { it.code.value }
+        analyzer.analyze(homeDocument(block = block)).diagnostics.map { it.code.value }
 
     @Test
     fun `missing page root reports missing root`() {

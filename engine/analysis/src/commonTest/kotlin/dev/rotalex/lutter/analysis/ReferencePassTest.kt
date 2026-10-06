@@ -30,7 +30,7 @@ class ReferencePassTest {
     private val pageId: PageId = PageId("p_home")
 
     private fun codesOf(block: PageScope.() -> Unit): List<String> =
-        analyzer.analyze(homeDocument(block)).diagnostics.map { it.code.value }
+        analyzer.analyze(homeDocument(block = block)).diagnostics.map { it.code.value }
 
     /** One `Text` styled by [name], so each token case differs from the next in the name alone. */
     private fun styledBy(name: String): UiDocument = homeDocument {
