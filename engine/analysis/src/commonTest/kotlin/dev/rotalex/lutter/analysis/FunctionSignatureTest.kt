@@ -104,7 +104,7 @@ class FunctionSignatureTest {
         )
     }
 
-    private fun analyze(block: PageScope.() -> Unit): AnalysisResult = analyzer.analyze(homeDocument(block))
+    private fun analyze(block: PageScope.() -> Unit): AnalysisResult = analyzer.analyze(homeDocument(block = block))
 
     private fun typeOf(result: AnalysisResult, key: String): ExprType? = assertNotNull(result.resolved)
         .pages.get(PageId("p_home"))?.root?.props?.get(PropertyKey(key))?.typed?.type

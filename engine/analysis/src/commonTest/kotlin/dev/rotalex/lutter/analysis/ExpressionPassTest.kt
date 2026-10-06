@@ -46,13 +46,13 @@ class ExpressionPassTest {
     private val pageId: PageId = PageId("p_home")
 
     private fun codesOf(block: PageScope.() -> Unit): List<String> =
-        analyzer.analyze(homeDocument(block)).diagnostics.map { it.code.value }
+        analyzer.analyze(homeDocument(block = block)).diagnostics.map { it.code.value }
 
     private fun nullableCodesOf(block: PageScope.() -> Unit): List<String> =
-        nullableAnalyzer.analyze(homeDocument(block)).diagnostics.map { it.code.value }
+        nullableAnalyzer.analyze(homeDocument(block = block)).diagnostics.map { it.code.value }
 
     private fun callCodesOf(block: PageScope.() -> Unit): List<String> =
-        callAnalyzer.analyze(homeDocument(block)).diagnostics.map { it.code.value }
+        callAnalyzer.analyze(homeDocument(block = block)).diagnostics.map { it.code.value }
 
     /** The findings pass 5 emitted, apart from the other passes' codes. */
     private fun expressionFindings(document: UiDocument): List<Diagnostic> =

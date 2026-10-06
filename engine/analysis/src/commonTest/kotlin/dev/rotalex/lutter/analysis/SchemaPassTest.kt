@@ -21,7 +21,7 @@ class SchemaPassTest {
     private val enumAnalyzer: Analyzer<String, String, TypeSpec> = Analyzer(enumSchema())
 
     private fun codesOf(block: PageScope.() -> Unit): List<String> =
-        analyzer.analyze(homeDocument(block)).diagnostics.map { it.code.value }
+        analyzer.analyze(homeDocument(block = block)).diagnostics.map { it.code.value }
 
     /** A Text carrying [entry] on its enum-typed property, against [declared] if given. */
     private fun enumCodesOf(entry: String, declared: List<String> = emptyList()): List<String> {
