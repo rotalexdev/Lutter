@@ -132,12 +132,14 @@ internal class TypeChecker(
             is RefTarget.Param -> ctx.scope.params[target.name]?.let { ExprType.Of(it) }
                 ?: unresolved(ctx, "parameter '${target.name}'")
 
-            // §17.1 puts event args and items in this pass's scope resolution, and neither is
-            // bound in a property position: §11.2 is where an event argument is introduced and
-            // §10.1 marks an item as wave 2. So both are unresolved rather than given a type.
-            is RefTarget.EventArg -> unresolved(ctx, "event argument '${target.name}'")
-
+            // §10.1 marks an item as wave 2, so nothing binds one and a read of it is a refusal.
             is RefTarget.Item -> unresolved(ctx, "item '${target.name}'")
+
+            // §11.2 introduces an event argument in a handler, so the scope that carries one is
+            // pass 6's: a property position binds none, which is why `ExprScope.eventArgs`
+            // defaults to empty rather than being filled from the node's component.
+            is RefTarget.EventArg -> ctx.scope.eventArgs[target.name]?.let { ExprType.Of(it) }
+                ?: unresolved(ctx, "event argument '${target.name}'")
         }
     }
 
@@ -432,10 +434,19 @@ internal class TypeChecker(
     }
 }
 
-/** The state and params an expression at one node may name, each with its declared type. */
-internal class ExprScope(
+/**
+ * The state, params and event arguments an expression at one node may name, each with its
+ * declared type.
+ *
+ * [eventArgs] is keyed by a bare string because [RefTarget.EventArg] and
+ * [dev.rotalex.lutter.schema.component.EventArgSpec.name] both are one. It defaults to empty
+ * because a property position binds none: §11.2 introduces an argument in a handler, so only
+ * pass 6 fills it and every other caller inherits the refusal.
+ */
+internal data class ExprScope(
     public val state: Map<StateId, TypeRef>,
     public val params: Map<ParamName, TypeRef>,
+    public val eventArgs: Map<String, TypeRef> = emptyMap(),
 )
 
 /** One expression's outcome: what it produced, what it names, and everything it reported. */

@@ -6,7 +6,10 @@ import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.dsl.PageScope
 import dev.rotalex.lutter.model.dsl.buildDocument
 import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.ids.ActionId
+import dev.rotalex.lutter.model.ids.BranchName
 import dev.rotalex.lutter.model.ids.ComponentType
+import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.ids.ModifierType
 import dev.rotalex.lutter.model.ids.PageId
@@ -18,10 +21,17 @@ import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.Schema
 import dev.rotalex.lutter.schema.SchemaBuilder
+import dev.rotalex.lutter.schema.action.ActionEmit
+import dev.rotalex.lutter.schema.action.ActionMetadata
+import dev.rotalex.lutter.schema.action.ActionSpec
+import dev.rotalex.lutter.schema.action.BranchSpec
+import dev.rotalex.lutter.schema.action.action
 import dev.rotalex.lutter.schema.component.Cardinality
 import dev.rotalex.lutter.schema.component.Category
 import dev.rotalex.lutter.schema.component.ChildFilter
 import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.component.EventArgSpec
+import dev.rotalex.lutter.schema.component.EventSpec
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.PropertyRule
 import dev.rotalex.lutter.schema.component.ScopeId
@@ -57,6 +67,15 @@ internal val PaddingType: ModifierType = ModifierType("layout.padding")
 internal val SizeType: ModifierType = ModifierType("layout.size")
 internal val WeightType: ModifierType = ModifierType("layout.weight")
 internal val ColumnScope: ScopeId = ScopeId("ColumnScope")
+
+/**
+ * Also not part of the walking skeleton, and for the same reason as [BadgeType]: §11.2's event
+ * argument needs a component whose spec declares the event, or the argument has nothing to bind.
+ */
+internal val FieldType: ComponentType = ComponentType("m3.Field")
+
+/** §11.2's handler argument, named the way a text field's edit names it. */
+internal val ChangeEvent: EventKey = EventKey("onChange")
 
 /** §10.3's exact-signature shape: one `Str` in, one `Str` out. */
 internal val UpperId: FunctionId = FunctionId("str.upper")
@@ -123,6 +142,51 @@ internal fun functionSchema(): Schema<ComponentSpec, ModifierSpec, String, Funct
 
 /** The element variable [FirstId]'s signature binds and returns. Named in the plan's own style. */
 private const val ELEMENT: String = "T"
+
+/**
+ * The walking skeleton with the actions slot bound to [ActionSpec] and §11.4's MVP ids
+ * registered, so a handler has something to be right or wrong about.
+ *
+ * The five are the ones pass 6 has a question about between them: [navigate] is the only spec
+ * with a parameter and the only one with a page reference, which is what a route argument and an
+ * unknown argument both need; [branching] is the only one with arms. They are declared here
+ * rather than imported from `:engine:builtins` because this module cannot depend on it — the same
+ * reason [walkingSkeleton] restates the builtins' components.
+ */
+internal fun actionSchema(): Schema<ComponentSpec, ModifierSpec, ActionSpec, String, String> =
+    Schema.build<ComponentSpec, ModifierSpec, ActionSpec, String, String> {
+        walkingSkeleton()
+        component(
+            componentSpec(FieldType, 1) {
+                metadata("Field", Category.Input)
+                property(prop<String>("value", TypeRef.Str, required = true))
+                event(EventSpec(ChangeEvent, listOf(EventArgSpec("text", TypeRef.Str))))
+                composeCall(KotlinSymbol("androidx.compose.material3", "TextField"))
+            },
+        )
+        action(navigate)
+        action(ActionSpec(ActionId("nav.back"), ActionMetadata("Back"), emptyList(), emit = ActionEmit.Intrinsic))
+        action(ActionSpec(ActionId("state.set"), ActionMetadata("Set state"), emptyList(), emit = ActionEmit.Intrinsic))
+        action(ActionSpec(ActionId("ui.showSnackbar"), ActionMetadata("Snackbar"), emptyList(), emit = ActionEmit.Intrinsic))
+        action(branching)
+    }
+
+/** `nav.navigate(page)`: `prop<Nothing>` because no handler or emitter names an access type. */
+internal val navigate: ActionSpec = ActionSpec(
+    id = ActionId("nav.navigate"),
+    metadata = ActionMetadata("Navigate"),
+    params = listOf(prop<Nothing>("page", TypeRef.Ref(RefKind.Page), required = true)),
+    emit = ActionEmit.Intrinsic,
+)
+
+/** `flow.if`: `then` required because an `if` whose consequent is missing has nothing to do. */
+internal val branching: ActionSpec = ActionSpec(
+    id = ActionId("flow.if"),
+    metadata = ActionMetadata("If"),
+    params = emptyList(),
+    branches = listOf(BranchSpec(BranchName("then"), required = true), BranchSpec(BranchName("else"))),
+    emit = ActionEmit.Intrinsic,
+)
 
 // One declaration, bound twice: the components and modifiers do not depend on what the types
 // slot holds, and duplicating them per binding is a copy that can drift.

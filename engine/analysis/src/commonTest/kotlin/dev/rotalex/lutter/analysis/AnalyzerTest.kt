@@ -121,8 +121,17 @@ class AnalyzerTest {
             DiagnosticCodes.RefKindMismatch,
             DiagnosticCodes.TokenUnknown,
             DiagnosticCodes.ResourceUnknown,
+            DiagnosticCodes.ExprUnknownFunction,
+            DiagnosticCodes.ExprTypeMismatch,
+            DiagnosticCodes.ExprNullableAccess,
+            DiagnosticCodes.ExprUnresolvedRef,
+            DiagnosticCodes.ActionUnknown,
+            DiagnosticCodes.ActionArgInvalid,
+            DiagnosticCodes.NavArgsMismatch,
         ).map { it.value }.toSet()
 
-        assertEquals(25, catalog.size, "catalog grew without a test: $catalog")
+        // Every row a live pass raises: passes 1, 3, 4, 5 and 6. The codegen rows are not here
+        // because no pass 8 exists to raise them, which is what `DiagnosticCodes`' own KDoc says.
+        assertEquals(32, catalog.size, "catalog grew without a test: $catalog")
     }
 }

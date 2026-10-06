@@ -319,15 +319,19 @@ internal class SchemaPass(
     }
 }
 
-private fun acceptsValue(declared: TypeRef, value: Value): Boolean {
+// Internal rather than private because pass 6 asks the same question of an action argument, and
+// two copies of "does this value fit that type" would be two answers the day one of them moved.
+internal fun acceptsValue(declared: TypeRef, value: Value): Boolean {
     // Dimension has no inhabitant yet: any value on it fails validation, not lookup.
     if (declared == TypeRef.Dimension) return false
     return ValueKinds.kindFor(declared).accepts(value)
 }
 
-private fun labelOf(type: TypeRef): String = type::class.simpleName ?: "unknown"
+// These two are internal for pass 6's messages, so a handler argument that does not fit its
+// declaration reads exactly as a property that does not — the same fact, one wording.
+internal fun labelOf(type: TypeRef): String = type::class.simpleName ?: "unknown"
 
-private fun labelOf(value: Value): String = value::class.simpleName ?: "unknown"
+internal fun labelOf(value: Value): String = value::class.simpleName ?: "unknown"
 
 private fun isFiniteValue(value: Value): Boolean =
     when (value) {
