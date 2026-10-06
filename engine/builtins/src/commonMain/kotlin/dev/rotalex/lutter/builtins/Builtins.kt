@@ -78,8 +78,8 @@ public fun <C : Any, M : Any, A : Any, T : Any>
 
 /**
  * Registers §11.4's six MVP action specs, all intrinsic because §11.4 calls state, navigation,
- * control flow and host calls engine-owned. None of them is executable: `ActionHandler` does not
- * exist, so this registry is descriptions only, and no test may read it as handler coverage.
+ * control flow and host calls engine-owned. Descriptions only: `IntrinsicHandlers` performs the
+ * navigation pair and nothing else, so a registered spec is not handler coverage.
  */
 public fun <C : Any, M : Any, F : Any, T : Any>
     SchemaBuilder<C, M, ActionSpec, F, T>.registerBuiltinActions(): Unit {

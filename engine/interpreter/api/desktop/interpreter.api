@@ -80,6 +80,13 @@ public final class dev/rotalex/lutter/interpreter/action/ActionOutcome$Failed : 
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/interpreter/action/IntrinsicHandlers {
+	public static final field INSTANCE Ldev/rotalex/lutter/interpreter/action/IntrinsicHandlers;
+	public final fun getBack ()Ldev/rotalex/lutter/interpreter/action/ActionHandler;
+	public final fun getHandlers ()Ljava/util/Map;
+	public final fun getNavigate ()Ldev/rotalex/lutter/interpreter/action/ActionHandler;
+}
+
 public abstract interface class dev/rotalex/lutter/interpreter/env/DialogHost {
 	public static final field Companion Ldev/rotalex/lutter/interpreter/env/DialogHost$Companion;
 }
