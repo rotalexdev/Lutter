@@ -229,7 +229,17 @@ class ActionPassTest {
         val finding = findingOf(
             DiagnosticCodes.ActionArgInvalid,
             fieldWith(listOf(count)) {
-                handler(stateSet(mapOf(UNKNOWN to constOf(Value.Str("x")), TargetKey to stateRead(count.id))))
+                // `value` is present so the unnamed key is the only finding: a required rule left
+                // out would report its own absence and the assertion could not tell them apart.
+                handler(
+                    stateSet(
+                        mapOf(
+                            UNKNOWN to constOf(Value.Str("x")),
+                            TargetKey to stateRead(count.id),
+                            ValueKey to constOf(Value.Int32(1)),
+                        ),
+                    ),
+                )
             },
         )
 
