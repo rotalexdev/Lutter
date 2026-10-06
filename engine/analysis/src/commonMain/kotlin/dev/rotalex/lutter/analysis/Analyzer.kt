@@ -40,9 +40,9 @@ public class Analyzer<A : Any, F : Any, T : Any>(
             ExpressionPass.Result.NONE
         }
         found += checked.diagnostics
-        // Pass 6 for the reason the comment above gives, and it reads pass 5's findings: a
-        // handler is checked against a document nothing has already refused.
-        if (found.none { it.severity == Severity.Error }) found += ActionPass(schema).run(document)
+        // Pass 6 is unconditional: a document can be wrong in two independent ways, and the
+        // author needs both reported rather than only whichever one an earlier pass found.
+        found += ActionPass(schema).run(document)
         val sorted = DiagnosticSorter.sort(found)
         if (sorted.any { it.severity == Severity.Error }) return AnalysisResult(sorted, null)
         return AnalysisResult(sorted, ResolutionPass(schema, checked).run(document))
