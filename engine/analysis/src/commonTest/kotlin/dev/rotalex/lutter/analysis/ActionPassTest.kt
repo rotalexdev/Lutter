@@ -384,8 +384,9 @@ class ActionPassTest {
     }
 
     /** One handler on [ChangeEvent] running [steps] in order. */
-    private fun handler(vararg steps: ActionStep): NodeScope.() -> Unit =
-        { event(ChangeEvent, ActionSequence(steps.toList())) }
+    private fun NodeScope.handler(vararg steps: ActionStep) {
+        event(ChangeEvent, ActionSequence(steps.toList()))
+    }
 
     private fun step(
         action: String,
