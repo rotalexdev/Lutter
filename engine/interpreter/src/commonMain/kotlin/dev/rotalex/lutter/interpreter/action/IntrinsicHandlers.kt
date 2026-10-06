@@ -1,22 +1,28 @@
 package dev.rotalex.lutter.interpreter.action
 
+import dev.rotalex.lutter.interpreter.EvalScope
 import dev.rotalex.lutter.interpreter.RuntimeDiagnostic
 import dev.rotalex.lutter.interpreter.constantOrNull
+import dev.rotalex.lutter.interpreter.eval.Evaluator
 import dev.rotalex.lutter.model.action.ActionStep
+import dev.rotalex.lutter.model.expr.Expr
+import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.expr.RefTarget
 import dev.rotalex.lutter.model.ids.ActionId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.StateId
 import dev.rotalex.lutter.model.type.RefKind
 import dev.rotalex.lutter.model.value.Value
 
 /**
  * The handlers for the actions whose meaning the engine owns.
  *
- * Only the navigation pair is here, and the other four are absent rather than refused: no section
- * names the argument keys `state.set` writes or `host.call` passes, a snackbar has no slot on
- * `ActionEnv` to be written to, and `flow.if` carries no condition — with its arms the executor's
- * to run, a handler returning `Done` would run both. No handler means the executor's own
- * diagnostic, which is true, where a guess would be a false claim about what a step did.
+ * The other three are absent rather than refused: no section names the argument keys `host.call`
+ * passes, a snackbar has no slot on `ActionEnv` to be written to, and `flow.if` carries no
+ * condition — with its arms the executor's to run, a handler returning `Done` would run both.
+ * No handler means the executor's own diagnostic, which is true, where a guess would be a false
+ * claim about what a step did.
  */
 public object IntrinsicHandlers {
 
@@ -26,18 +32,31 @@ public object IntrinsicHandlers {
     /** `nav.back`: steps the navigator back one entry. */
     public val back: ActionHandler = Back()
 
-    /** Every handler here, keyed by the action it performs. */
-    public val handlers: Map<ActionId, ActionHandler> = mapOf(
+    /**
+     * Every handler here, keyed by the action it performs.
+     *
+     * Built over [evaluator] rather than held as a table, because a computed argument runs
+     * through it and the functions it resolves against are the host's, not the engine's.
+     */
+    public fun handlers(evaluator: Evaluator): Map<ActionId, ActionHandler> = mapOf(
         ActionId("nav.navigate") to navigate,
         ActionId("nav.back") to back,
+        ActionId("state.set") to SetState(evaluator),
     )
 }
 
-// The action ids and the one argument key are spelled out because the specs that declare them
-// live in `:engine:builtins`, which depends on this module and not the other way round. Both are
+// The action ids and the argument keys are spelled out because the specs that declare them live
+// in `:engine:builtins`, which depends on this module and not the other way round. The ids are
 // already on the wire: a step carries its own action id, and its arguments are keyed by the very
 // key the spec names.
 private val pageArgument = PropertyKey("page")
+
+// These two are for the one action whose spec declares no parameter at all: nothing outside this
+// file says what a write step is called, so its keys are read here rather than looked up.
+private val targetArgument = PropertyKey("target")
+
+/** §12.3's `state.set(event.value)`: the value being written, which any expression may produce. */
+private val valueArgument = PropertyKey("value")
 
 /**
  * `nav.navigate`.
@@ -83,6 +102,61 @@ private class Back : ActionHandler {
         env.navigator.back()
         return ActionOutcome.Done
     }
+}
+
+/**
+ * `state.set`: writes the state its target argument names.
+ *
+ * The target is *named*, not evaluated. `Expr.Ref(RefTarget.State)` resolves to that state's own
+ * value, so evaluating it would write back what it already holds; what the step needs is the id
+ * inside the expression. No reference kind is added for a state for the same reason — a state is
+ * nameable as an expression, and `RefKind` is a document constant's kind.
+ */
+private class SetState(private val evaluator: Evaluator) : ActionHandler {
+
+    override suspend fun execute(step: ActionStep, env: ActionEnv): ActionOutcome {
+        val target = step.args[targetArgument]
+            ?: return refusal(step, "has no '$targetArgument' argument")
+
+        val id = target.stateIdOrNull()
+            ?: return refusal(step, "argument '$targetArgument' does not name a state")
+
+        val written = step.args[valueArgument]
+            ?: return refusal(step, "has no '$valueArgument' argument")
+
+        val value = written.valueOrNull(evaluator, env.scope)
+            ?: return refusal(step, "argument '$valueArgument' produces no value")
+
+        // A store that refuses the write has its own message, naming the id and the reason. It is
+        // caught rather than propagated because nothing checks a write target yet, so this is a
+        // document fault arriving where a step's one reporting path is.
+        val refused = runCatching { env.state.set(id, value) }.exceptionOrNull()
+        if (refused != null) return refusal(step, "could not be written: ${refused.message}")
+
+        return ActionOutcome.Done
+    }
+}
+
+/**
+ * The state a target argument names, or null when it names none.
+ *
+ * A constant cannot name one: a document constant is one of the four reference kinds and none of
+ * them is a state. That is why no shape outside a computed read is tried here.
+ */
+private fun PropertyValue.stateIdOrNull(): StateId? = when (this) {
+    is PropertyValue.Const -> null
+    is PropertyValue.Computed -> ((expr as? Expr.Ref)?.target as? RefTarget.State)?.id
+}
+
+/**
+ * The value an argument holds: a constant as it is, a computed one through [evaluator].
+ *
+ * A refusal answers null rather than throwing, because this package's evaluator throws for every
+ * refusal it has and the caller turns a null into the diagnostic a step reports.
+ */
+private fun PropertyValue.valueOrNull(evaluator: Evaluator, scope: EvalScope): Value? = when (this) {
+    is PropertyValue.Const -> constantOrNull()
+    is PropertyValue.Computed -> constantOrNull() ?: runCatching { evaluator.evalUnchecked(expr, scope) }.getOrNull()
 }
 
 /** The refusal every failure here is, naming the action because a step carries no node id. */
