@@ -115,7 +115,11 @@ class ActionPassTest {
         )
 
         assertEquals("otherwise", finding.args["branch"])
-        assertTrue(finding.location.path.endsWith("otherwise"), "the arm is in the path: ${finding.location.path}")
+        assertEquals(
+            "otherwise",
+            finding.location.path.lastOrNull(),
+            "the arm is the path's last step: ${finding.location.path}",
+        )
     }
 
     @Test
