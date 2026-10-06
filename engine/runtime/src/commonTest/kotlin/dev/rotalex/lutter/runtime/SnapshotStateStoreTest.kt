@@ -2,6 +2,7 @@ package dev.rotalex.lutter.runtime
 
 import dev.rotalex.lutter.analysis.resolved.ResolvedState
 import dev.rotalex.lutter.interpreter.StateWriter
+import dev.rotalex.lutter.interpreter.env.Navigator
 import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.expr.BinaryOp
 import dev.rotalex.lutter.model.expr.Expr
