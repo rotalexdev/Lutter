@@ -199,7 +199,7 @@ private class Walk(
         }
         if (page != null) {
             for (param in page.params) {
-                if (!param.required || param.name.value in step.args) continue
+                if (!param.required || PropertyKey(param.name.value) in step.args) continue
                 found += refusal(
                     at, event, DiagnosticCodes.NavArgsMismatch,
                     "Page '${page.id}' requires argument '${param.name.value}'",
