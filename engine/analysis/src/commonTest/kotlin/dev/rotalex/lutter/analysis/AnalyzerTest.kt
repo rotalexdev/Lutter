@@ -2,12 +2,16 @@ package dev.rotalex.lutter.analysis
 
 import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCodes
 import dev.rotalex.lutter.analysis.resolved.PropOrigin
+import dev.rotalex.lutter.model.action.ActionSequence
+import dev.rotalex.lutter.model.action.ActionStep
 import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.ids.ActionId
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.value.Value
+import dev.rotalex.lutter.schema.action.ActionSpec
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -18,6 +22,10 @@ import kotlin.test.assertTrue
 class AnalyzerTest {
 
     private val analyzer: Analyzer<String, String, String> = Analyzer(testSchema())
+
+    // Only the action rules need the actions slot bound: a handler on `testSchema()`'s stub is
+    // `action.unknown`, which would prove the gate without proving anything about a handler.
+    private val actionAnalyzer: Analyzer<ActionSpec, String, String> = Analyzer(actionSchema())
     private val pageId: PageId = PageId("p_home")
 
     @Test
@@ -76,6 +84,24 @@ class AnalyzerTest {
         assertTrue(result.hasErrors)
         assertNull(result.resolved)
         assertEquals("Property 'text' expects Str but found Int32", mismatch.message)
+    }
+
+    @Test
+    fun `a handler error is reported alongside an earlier one`() {
+        // One node, two independent faults: `value` is required by `m3.Field`, and the step omits
+        // the `page` its spec requires. The pass 3 finding must not hide the pass 6 one.
+        val result = actionAnalyzer.analyze(
+            homeDocument {
+                node(FieldType) {
+                    event(ChangeEvent, ActionSequence(listOf(ActionStep(ActionId("nav.navigate")))))
+                }
+            },
+        )
+
+        assertEquals(
+            setOf(DiagnosticCodes.PropRequiredMissing, DiagnosticCodes.ActionArgInvalid),
+            result.diagnostics.map { it.code }.toSet(),
+        )
     }
 
     @Test
