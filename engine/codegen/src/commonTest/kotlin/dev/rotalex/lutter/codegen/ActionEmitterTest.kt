@@ -290,7 +290,10 @@ class ActionEmitterTest {
             }
 
             """.trimIndent(),
-            source(sequenceOf(step), specs = intrinsic + analytics),
+            // Trimmed because this is the one test comparing a whole file: whether the printed
+            // text carries a trailing newline is the generator's business and CodegenTest asserts
+            // it there. Everything inside the file is compared character for character.
+            source(sequenceOf(step), specs = intrinsic + analytics).trim(),
         )
     }
 
