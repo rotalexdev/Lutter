@@ -261,7 +261,7 @@ public class ActionEmitter(
         val list: ArgShape.Positional = positionalRule(spec, at) ?: return null
         val name: String = calleeName(step, list, at) ?: return null
         val declaration: HostFunctionDecl = declarationOf(name, at) ?: return null
-        val arguments: List<KtArg> = argumentsOf(step, list.key, at) ?: return null
+        val arguments: List<KtArg> = argumentsOf(step, list.callee, at) ?: return null
         return Emitted(KtStmt.Expr(on("host", name, arguments)), declaration.suspend)
     }
 
@@ -310,7 +310,7 @@ public class ActionEmitter(
     // An absent list is the empty one a declared function may want, and the arity that decides is
     // the analysis pass's: it holds the declaration this emitter asks for it by name.
     private fun argumentsOf(step: ActionStep, key: PropertyKey, at: DiagnosticLocation): List<KtArg>? {
-        val written: PropertyValue? = step.args[key] ?: return emptyList()
+        val written: PropertyValue = step.args[key] ?: return emptyList()
         val items: List<PropertyValue> = listItems(written, key, at) ?: return null
         val arguments: MutableList<KtArg> = mutableListOf()
         for (item in items) {
