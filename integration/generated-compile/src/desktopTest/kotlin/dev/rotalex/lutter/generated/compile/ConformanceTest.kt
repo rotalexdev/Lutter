@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.boundsInRoot
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onRoot
@@ -96,7 +97,7 @@ class ConformanceTest {
             )
         }
         val runtimeTree = dumpSemantics()
-        val runtimeBounds = firstContent(onRoot().fetchSemanticsNode()).bounds
+        val runtimeBounds = firstContent(onRoot().fetchSemanticsNode()).boundsInRoot
         val runtimeImage = pixelBytes()
 
         setContent { HomeScreen(navigator = AppNavigator(), modifier = Modifier) }
@@ -105,7 +106,7 @@ class ConformanceTest {
         assertEquals(runtimeTree, dumpSemantics(), "fixture '$NAVIGATING'")
         // The dump carries no bounds, so the root's own are compared here and the pixels below
         // are what say anything about the layout below it.
-        assertEquals(runtimeBounds, firstContent(onRoot().fetchSemanticsNode()).bounds, "root bounds")
+        assertEquals(runtimeBounds, firstContent(onRoot().fetchSemanticsNode()).boundsInRoot, "root bounds")
         assertEquals(runtimeImage.first, generatedImage.first, "fixture '$NAVIGATING'")
         assertContentEquals(runtimeImage.second, generatedImage.second, "fixture '$NAVIGATING'")
     }
