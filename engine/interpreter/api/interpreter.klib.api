@@ -24,7 +24,7 @@ abstract interface dev.rotalex.lutter.interpreter.action/ActionEnv { // dev.rota
 }
 
 abstract interface dev.rotalex.lutter.interpreter.action/ActionHandler { // dev.rotalex.lutter.interpreter.action/ActionHandler|null[0]
-    abstract suspend fun execute(dev.rotalex.lutter.model.action/ActionStep, dev.rotalex.lutter.interpreter.action/ActionEnv): dev.rotalex.lutter.interpreter.action/ActionOutcome // dev.rotalex.lutter.interpreter.action/ActionHandler.execute|execute(dev.rotalex.lutter.model.action.ActionStep;dev.rotalex.lutter.interpreter.action.ActionEnv){}[0]
+    abstract suspend fun execute(dev.rotalex.lutter.model.action/ActionStep, dev.rotalex.lutter.interpreter.action/ActionEnv, kotlin.coroutines/SuspendFunction1<dev.rotalex.lutter.model.action/ActionSequence, dev.rotalex.lutter.interpreter.action/ActionOutcome>): dev.rotalex.lutter.interpreter.action/ActionOutcome // dev.rotalex.lutter.interpreter.action/ActionHandler.execute|execute(dev.rotalex.lutter.model.action.ActionStep;dev.rotalex.lutter.interpreter.action.ActionEnv;kotlin.coroutines.SuspendFunction1<dev.rotalex.lutter.model.action.ActionSequence,dev.rotalex.lutter.interpreter.action.ActionOutcome>){}[0]
 }
 
 abstract interface dev.rotalex.lutter.interpreter.env/DialogHost { // dev.rotalex.lutter.interpreter.env/DialogHost|null[0]
