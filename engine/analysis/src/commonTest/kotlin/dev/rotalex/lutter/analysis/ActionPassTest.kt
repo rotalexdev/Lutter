@@ -168,6 +168,59 @@ class ActionPassTest {
     }
 
     // ---------------------------------------------------------------------------------
+    // `host.call`: arguments a declaration types position by position
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun `a host call's arguments the declaration admits reports nothing`() {
+        assertClean(callingHost { handler(hostCall(submit = argsOf(Value.Str("a-1")))) })
+    }
+
+    @Test
+    fun `a host call passing too many arguments reports arg invalid`() {
+        val finding = findingOf(
+            DiagnosticCodes.ActionArgInvalid,
+            callingHost {
+                handler(hostCall(submit = argsOf(Value.Str("a-1"), Value.Str("a-2"))))
+            },
+        )
+
+        assertEquals("args", finding.args["property"])
+    }
+
+    @Test
+    fun `a host call passing too few arguments reports arg invalid`() {
+        val finding = findingOf(DiagnosticCodes.ActionArgInvalid, callingHost { handler(hostCall(submit = argsOf())) })
+
+        assertEquals("args", finding.args["property"])
+    }
+
+    @Test
+    fun `an argument of a type the position does not admit reports prop type mismatch`() {
+        val finding = findingOf(
+            DiagnosticCodes.PropTypeMismatch,
+            callingHost { handler(hostCall(submit = argsOf(Value.Int32(7)))) },
+        )
+
+        assertEquals("args", finding.args["property"])
+    }
+
+    @Test
+    fun `a host call naming a function no document declares reports ref dangling`() {
+        val finding = findingOf(
+            DiagnosticCodes.RefDangling,
+            callingHost { handler(hostCall(submit = argsOf(Value.Str("a-1")), callee = "absent")) },
+        )
+
+        assertEquals("absent", finding.args["id"])
+    }
+
+    @Test
+    fun `a host call carrying no argument list reports nothing`() {
+        assertClean(callingHost { handler(hostCall(submit = null)) })
+    }
+
+    // ---------------------------------------------------------------------------------
     // `state.set`: arguments the spec declares as shapes
     // ---------------------------------------------------------------------------------
 
@@ -493,6 +546,10 @@ class ActionPassTest {
     private fun field(block: NodeScope.() -> Unit): UiDocument =
         homeDocument { node(FieldType) { prop("value", Value.Str("x")); block() } }
 
+    /** The same page, declaring the host function a call step names, and nothing else. */
+    private fun callingHost(block: NodeScope.() -> Unit): UiDocument =
+        field(block).copy(hostFunctions = listOf(SubmitDecl))
+
     /** The same page, declaring [state], for a write that needs a declaration to be checked against. */
     private fun fieldWith(state: List<StateDecl>, block: NodeScope.() -> Unit): UiDocument =
         homeDocument(state) { node(FieldType) { prop("value", Value.Str("x")); block() } }
@@ -528,6 +585,21 @@ class ActionPassTest {
 
     /** `state.set` with [args], spelled by key so a negative can leave one out. */
     private fun stateSet(args: Map<PropertyKey, PropertyValue>): ActionStep = step("state.set", args = args)
+
+    /**
+     * `host.call` naming [callee], carrying [submit] as its positional argument list.
+     *
+     * Both are nullable so a negative can leave either out: the list is optional, because a
+     * declared function may take no parameters, and a step may name a function it passes nothing to.
+     */
+    private fun hostCall(submit: PropertyValue?, callee: String = "submit"): ActionStep {
+        val args = mutableMapOf<PropertyKey, PropertyValue>(HostNameKey to constOf(Value.Str(callee)))
+        if (submit != null) args[HostArgsKey] = submit
+        return step("host.call", args = args)
+    }
+
+    /** The `Value.ListOf` spelling of a positional list, which is what a literal argument is. */
+    private fun argsOf(vararg values: Value): PropertyValue = constOf(Value.ListOf(values.toList()))
 
     /** A well formed write of [value] into [target]. */
     private fun write(target: StateId, value: PropertyValue): ActionStep =

@@ -9,8 +9,10 @@ import dev.rotalex.lutter.interpreter.MapEvalScope
 import dev.rotalex.lutter.interpreter.MapStateStore
 import dev.rotalex.lutter.interpreter.RuntimeDiagnostic
 import dev.rotalex.lutter.interpreter.env.DialogHost
+import dev.rotalex.lutter.interpreter.env.HostFunction
 import dev.rotalex.lutter.interpreter.env.HostFunctions
 import dev.rotalex.lutter.interpreter.env.Navigator
+import dev.rotalex.lutter.interpreter.eval.Evaluator
 import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
 import dev.rotalex.lutter.model.ids.ActionId
@@ -46,7 +48,7 @@ internal class Recording(
     private val label: String,
     private val after: suspend () -> Unit = {},
 ) : ActionHandler {
-    override suspend fun execute(step: ActionStep, env: ActionEnv): ActionOutcome {
+    override suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome {
         ran += label
         after()
         return ActionOutcome.Done
@@ -59,7 +61,7 @@ internal class Refusing(
     private val label: String,
     private val message: String,
 ) : ActionHandler {
-    override suspend fun execute(step: ActionStep, env: ActionEnv): ActionOutcome {
+    override suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome {
         ran += label
         return ActionOutcome.Failed(RuntimeDiagnostic(message))
     }
@@ -69,7 +71,7 @@ internal class Refusing(
 internal class ReadingDialogs : ActionHandler {
     var seen: DialogHost? = null
 
-    override suspend fun execute(step: ActionStep, env: ActionEnv): ActionOutcome {
+    override suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome {
         seen = env.dialogs
         return ActionOutcome.Done
     }
@@ -77,7 +79,7 @@ internal class ReadingDialogs : ActionHandler {
 
 /** Resolves a host function by name, calls it, and keeps whatever came back. */
 internal class CallingHost(private val results: MutableList<Value?>) : ActionHandler {
-    override suspend fun execute(step: ActionStep, env: ActionEnv): ActionOutcome {
+    override suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome {
         val function = env.host.find("double")
             ?: return ActionOutcome.Failed(RuntimeDiagnostic("double is not registered"))
 
@@ -86,8 +88,38 @@ internal class CallingHost(private val results: MutableList<Value?>) : ActionHan
     }
 }
 
+/**
+ * A host function a test can watch: what it received, what it answers, and when it suspends.
+ *
+ * A class rather than a bare lambda because the three are answers about one call, and a test that
+ * asserts on one of them mid-call is reading the others too.
+ */
+internal class AnsweringHost(
+    private val called: MutableList<List<Value>>,
+    private val label: String,
+    private val answer: Value? = null,
+    private val before: suspend () -> Unit = {},
+    private val ran: MutableList<String>? = null,
+) {
+    val function: HostFunction = { arguments ->
+        called += arguments
+        before()
+        ran?.add(label)
+        answer
+    }
+}
+
 internal fun executorOf(vararg handlers: Pair<ActionId, ActionHandler>): ActionExecutor =
     ActionExecutor(mapOf(*handlers))
+
+/**
+ * The engine's own handlers plus [extra], over one executor — what a case needs when an arm holds
+ * a step the table above does not perform.
+ */
+internal fun engineExecutor(
+    vararg extra: Pair<ActionId, ActionHandler>,
+    evaluator: Evaluator = Evaluator(),
+): ActionExecutor = ActionExecutor(IntrinsicHandlers.handlers(evaluator) + extra)
 
 internal fun step(action: String): ActionStep = ActionStep(action = ActionId(action))
 

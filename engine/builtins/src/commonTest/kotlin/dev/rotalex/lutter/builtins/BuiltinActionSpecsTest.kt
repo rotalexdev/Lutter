@@ -23,9 +23,9 @@ import kotlin.test.assertSame
  * §11.4's six MVP actions: the key set, the shapes §11.2 and §13.1 spell, and the registrar.
  *
  * **There is deliberately no handler-coverage test here, and its absence is the contract.**
- * `IntrinsicHandlers` performs the navigation pair alone, so a test asserting every registered
- * action has a handler would be red for the four ids that name neither an argument nor a
- * condition. `BuiltinFunctionCoverageTest` is that gate's shape.
+ * `ui.showSnackbar` has no handler, so a test asserting every registered action has one would be
+ * red for that id, and stays red until §11.4 says what a snackbar carries.
+ * `BuiltinFunctionCoverageTest` is that gate's shape.
  *
  * Every assertion below is a claim PLAN makes, read back through the registry.
  */
@@ -75,13 +75,36 @@ class BuiltinActionSpecsTest {
     }
 
     @Test
-    fun `no spec declares a typed argument the plan does not name`() {
-        val declared = schema.actions.all().flatMap { spec -> spec.params.map { it.key } }
+    fun `the typed arguments are the page, the condition and the callee, and no others`() {
+        val declared = schema.actions.all().flatMap { spec -> spec.params.map { it.key to spec.id } }
 
-        // §13.1 is the only section that spells a typed action argument, and it spells one. The
-        // other five declare none in `params` because no `TypeRef` can say what they take — the
-        // two `state.set` keys are shapes instead, and are asserted as such below.
-        assertEquals(listOf(PropertyKey("page")), declared)
+        // §13.1 spells the page and §11.5's `if (…)` spells the condition; nothing spells what a
+        // callee is called, but §11.6's declaration is a string and nothing more constrains it. The
+        // other three declare none in `params` because no `TypeRef` can say what they take — the
+        // two `state.set` keys and a host call's `args` are shapes instead, asserted below.
+        assertEquals(
+            listOf(
+                PropertyKey("cond") to ActionId("flow.if"),
+                PropertyKey("name") to ActionId("host.call"),
+                PropertyKey("page") to ActionId("nav.navigate"),
+            ),
+            declared,
+        )
+    }
+
+    @Test
+    fun `the condition is a required boolean`() {
+        val cond = schema.actions.require(ActionId("flow.if")).params.single { it.key == PropertyKey("cond") }
+
+        assertEquals(TypeRef.Bool, cond.type)
+    }
+
+    @Test
+    fun `a host call names its function with a required string`() {
+        val name = schema.actions.require(ActionId("host.call")).params.single()
+
+        assertEquals(PropertyKey("name"), name.key)
+        assertEquals(TypeRef.Str, name.type)
     }
 
     @Test
@@ -94,10 +117,18 @@ class BuiltinActionSpecsTest {
     }
 
     @Test
+    fun `a host call's arguments are positional and named by the function they call`() {
+        val rule = schema.actions.require(ActionId("host.call")).argRules.single()
+
+        assertEquals(PropertyKey("args"), rule.key)
+        assertEquals(ArgShape.Positional(PropertyKey("name")), rule.shape)
+    }
+
+    @Test
     fun `no other spec declares a shape, so no other argument is closed`() {
         val shaped = schema.actions.all().filter { it.argRules.isNotEmpty() }
 
-        assertEquals(listOf(ActionId("state.set")), shaped.map { it.id })
+        assertEquals(listOf(ActionId("host.call"), ActionId("state.set")), shaped.map { it.id })
     }
 
     @Test

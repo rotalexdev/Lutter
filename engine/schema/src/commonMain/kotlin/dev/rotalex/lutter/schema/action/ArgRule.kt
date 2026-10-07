@@ -20,11 +20,13 @@ public class ArgRule(
 /**
  * What an argument must satisfy when no type can say it: a closed set of shapes, not a predicate.
  *
- * Two, because §11.4's `state.set` has exactly two arguments no type reaches — one naming a
- * state, one carrying the value written to it. A predicate would make the check arbitrary per
- * plugin; a `TypeRef.Any` would make `expr.type_mismatch` permissive everywhere to serve one
- * argument; a `RefKind.State` would put a state on the wire, which it is not. Both rejections,
- * and the step a third shape would take, are recorded in PLAN §4.6.
+ * Three, and each one is an argument whose type is a declaration in the document rather than in
+ * the spec: `state.set` names a state and writes what that state's declaration admits, and a host
+ * call's arguments are typed position by position by the declaration its callee names. A predicate
+ * would make the check arbitrary per plugin; a `TypeRef.Any` would make `expr.type_mismatch`
+ * permissive everywhere to serve one argument; a `RefKind.State` would put a state on the wire,
+ * which it is not. Every rejection, and the step a fourth shape would take, is recorded in
+ * PLAN §4.6.
  */
 public sealed interface ArgShape {
 
@@ -44,4 +46,14 @@ public sealed interface ArgShape {
      * `state.set` say so between them.
      */
     public data object TargetValue : ArgShape
+
+    /**
+     * A positional argument list, typed by the declaration [callee] names.
+     *
+     * [callee] is the key of the argument naming the declaration, because the two are separate
+     * arguments: a step may declare several rules, and nothing else says which one a host call is.
+     * The list is not a `params` entry because the declaration types each position separately —
+     * `submit(id: str, total: i32)` is not one type, and no `TypeRef` spells that.
+     */
+    public data class Positional(public val callee: PropertyKey) : ArgShape
 }

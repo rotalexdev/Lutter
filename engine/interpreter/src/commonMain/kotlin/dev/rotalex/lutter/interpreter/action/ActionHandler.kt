@@ -9,22 +9,38 @@ import dev.rotalex.lutter.interpreter.StateWriter
 import dev.rotalex.lutter.interpreter.env.DialogHost
 import dev.rotalex.lutter.interpreter.env.HostFunctions
 import dev.rotalex.lutter.interpreter.env.Navigator
+import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
 
 /**
  * What one action does when it is reached.
  *
- * The step is the document's own, with its arguments unevaluated and its branches still
- * unrun: a handler reads what it needs through the environment and performs its one effect.
- * Running the branches is the executor's job rather than the handler's, because nothing on
- * the environment reaches back into it — a handler that ran its own arms would need the
- * executor handed to it as well.
+ * The step is the document's own, with its arguments unevaluated and its arms still unrun. What
+ * happens to an arm is the action's own business: an `ActionSpec.branches` entry belongs to the
+ * action that declares it, and only that action can say which of its arms a condition selects.
+ * A runner that took every arm of every step would run a conditional's two halves in sequence,
+ * which makes the condition decide nothing and makes a handler that refuses meaningless.
  */
 public interface ActionHandler {
 
-    /** Performs [step]'s own effect against [env]. */
-    public suspend fun execute(step: ActionStep, env: ActionEnv): ActionOutcome
+    /**
+     * Performs [step]'s own effect against [env].
+     *
+     * [run] is how the one action with arms asks for the one it chose. It is handed in rather than
+     * held, because a handler cannot hold the executor that is built out of the table it sits in:
+     * the table is copied into that executor, so the only reference between the two is the one
+     * passed here. A handler with no arms has nothing to do with it.
+     */
+    public suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome
 }
+
+/**
+ * Runs a nested sequence against the same environment, as the executor that handed it out does.
+ *
+ * A function rather than the executor itself so that a handler is not wired to a particular
+ * runner: a test can pass one that runs nothing, and the engine passes one that recurses.
+ */
+public typealias SequenceRunner = suspend (ActionSequence) -> ActionOutcome
 
 /**
  * Everything a handler is allowed to reach.

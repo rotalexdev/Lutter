@@ -9,6 +9,7 @@ import dev.rotalex.lutter.analysis.typing.ExprScope
 import dev.rotalex.lutter.analysis.typing.TypeChecker
 import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
+import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.Page
 import dev.rotalex.lutter.model.doc.StateDecl
@@ -39,10 +40,11 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
  * runs over a handler today.
  *
  * **Two lists of arguments, and the gap between them is closed by shape.** §11.3 makes `params`
- * the typed half; `host.call` and `ui.showSnackbar` still declare none, so a key no declaration
- * names is a finding only where the spec declares something at all. `state.set`'s two keys are
- * in `argRules` instead, because the target is a read of a state and the value is typed by the
- * declaration that read names. A navigation argument is the target page's `ParamDecl` (§13.1).
+ * the typed half; only `ui.showSnackbar` declares none, so a key no declaration names is a finding
+ * only where the spec declares something at all. `state.set`'s two keys are in `argRules` because
+ * the target is a read of a state and the value is typed by the declaration that read names; a
+ * host call's `args` is in there for the same reason, typed position by position by the
+ * declaration its `name` names. A navigation argument is the target page's `ParamDecl` (§13.1).
  *
  * §17.3's fourth action row, `action.state_not_writable`, is here: the rule it enforces is
  * §12.3's "writable, not derived, type-compatible", and a spec's `StateRef` rule is what names
@@ -201,6 +203,7 @@ private class Walk(
         val rules = spec.argRules.associateBy { it.key }
         val route = page?.params?.associate { it.name.value to it.type } ?: emptyMap()
         val target = writeTarget(step, spec, at, event)
+        val host = hostFunction(step, spec, at, event)
         for (param in spec.params) {
             if (!param.required || param.key in step.args) continue
             found += refusal(
@@ -232,7 +235,7 @@ private class Walk(
             val rule = rules[key]
             val typeRef = params[key] ?: route[key.value]
             when {
-                rule != null -> checkRule(step, rule, actual, target, here, event, scope)
+                rule != null -> checkRule(step, rule, actual, target, host, here, event, scope)
                 typeRef != null -> checkArgument(key, actual, typeRef, here, event, scope)
                 // A spec that declares nothing closes nothing: no section names `ui.showSnackbar`'s
                 // keys, so refusing one would refuse a document §11.4 admits.
@@ -295,11 +298,12 @@ private class Walk(
         rule: ArgRule,
         actual: PropertyValue,
         target: StateDecl?,
+        host: HostFunctionDecl?,
         at: DiagnosticLocation,
         event: EventKey,
         scope: ExprScope,
     ) {
-        when (rule.shape) {
+        when (val shape = rule.shape) {
             ArgShape.StateRef -> {
                 if (stateNamed(actual) == null) {
                     found += refusal(
@@ -311,7 +315,104 @@ private class Walk(
             }
 
             ArgShape.TargetValue -> checkWrittenValue(rule.key, actual, target, at, event, scope)
+
+            is ArgShape.Positional -> checkPositional(step, rule.key, actual, host, at, event, scope)
         }
+    }
+
+    /**
+     * §11.6's declared parameter list, against the arguments the step carries.
+     *
+     * The declaration is a document field, so this is the only place one is read: the interpreter
+     * reaches `HostFunctions`, a name-to-lambda map, and no `HostFunctionDecl` ever reaches a
+     * running step.
+     *
+     * A list written any other way is not checked. A computed read of a list-valued state is a
+     * legal document, and pass 6 reports only what it can prove — the same answer
+     * [checkWrittenValue] gives when no declaration is in reach.
+     */
+    private fun checkPositional(
+        step: ActionStep,
+        key: PropertyKey,
+        actual: PropertyValue,
+        host: HostFunctionDecl?,
+        at: DiagnosticLocation,
+        event: EventKey,
+        scope: ExprScope,
+    ) {
+        val decl = host ?: return
+        val items = listItems(actual) ?: return
+
+        if (items.size != decl.params.size) {
+            found += refusal(
+                at.copy(property = key), event, DiagnosticCodes.ActionArgInvalid,
+                "Host function '${decl.name}' takes ${decl.params.size} arguments, not ${items.size}",
+                mapOf(
+                    "action" to step.action.value,
+                    "property" to key.value,
+                    "function" to decl.name,
+                    "expected" to decl.params.size.toString(),
+                    "found" to items.size.toString(),
+                ),
+            )
+            return
+        }
+
+        for ((position, item) in items.withIndex()) {
+            checkArgument(key, item, decl.params[position].type, at, event, scope)
+        }
+    }
+
+    /**
+     * The declaration a positional rule is checked against, resolved once per step.
+     *
+     * The callee is a second argument, so it is read off the shape rather than off the action's
+     * id: a plugin action declaring the same two arguments is checked the same way, which is the
+     * rule [writeTarget] follows for the write target.
+     *
+     * A name no document declares is `ref.dangling`, the answer a page reference to a page that is
+     * not there gets: nothing implements the name, so a step calling it can only fail at run time.
+     * A name this pass cannot read statically — a computed one that is not a literal — leaves
+     * nothing to check, exactly as an unreadable navigation target does.
+     */
+    private fun hostFunction(
+        step: ActionStep,
+        spec: ActionSpec,
+        at: DiagnosticLocation,
+        event: EventKey,
+    ): HostFunctionDecl? {
+        val callee = when (val shape = spec.argRules.firstOrNull { it.shape is ArgShape.Positional }?.shape) {
+            is ArgShape.Positional -> shape.callee
+            else -> return null
+        }
+
+        val name = when (val written = step.args[callee]) {
+            is PropertyValue.Const -> written.value
+            is PropertyValue.Computed -> (written.expr as? Expr.Const)?.value
+            null -> null
+        } as? Value.Str ?: return null
+
+        val decl = document.hostFunctions.firstOrNull { it.name == name.v }
+        if (decl != null) return decl
+
+        found += refusal(
+            at.copy(property = callee), event, DiagnosticCodes.RefDangling,
+            "Host function '${name.v}' is not declared by the document",
+            mapOf("kind" to "HostFunction", "id" to name.v, "property" to callee.value),
+        )
+        return null
+    }
+
+    /**
+     * The elements a positional argument spells out, as the value each position would hold.
+     *
+     * Null for anything this pass cannot read whole, which is a silent gap rather than a finding:
+     * see [checkPositional].
+     */
+    private fun listItems(actual: PropertyValue): List<PropertyValue>? = when (actual) {
+        is PropertyValue.Const -> (actual.value as? Value.ListOf)?.items?.map { PropertyValue.Const(it) }
+        is PropertyValue.Computed ->
+            (actual.expr as? Expr.ListLiteral)?.items?.map { PropertyValue.Computed(it) }
     }
 
     /**
