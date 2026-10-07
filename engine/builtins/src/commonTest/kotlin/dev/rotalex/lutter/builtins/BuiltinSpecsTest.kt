@@ -13,6 +13,7 @@ import dev.rotalex.lutter.schema.component.Category
 import dev.rotalex.lutter.schema.component.CodegenBinding
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.EventArgSpec
+import dev.rotalex.lutter.schema.component.EventBinding
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.LambdaTarget
 import dev.rotalex.lutter.schema.component.Positional
@@ -158,7 +159,7 @@ class BuiltinSpecsTest {
     }
 
     @Test
-    fun `button is one label slot and a press no binding reads`() {
+    fun `button is one label slot and one press a binding receives`() {
         assertEquals(ComponentType("m3.Button"), ButtonSpec.spec.type)
         assertEquals(Category.Basic, ButtonSpec.spec.metadata.category)
         assertEquals(emptyList(), ButtonSpec.spec.properties.map { it.key })
@@ -169,7 +170,7 @@ class BuiltinSpecsTest {
         val call = assertIs<CodegenBinding.ComposeCall>(ButtonSpec.spec.codegen)
         assertEquals(KotlinSymbol("androidx.compose.material3", "Button"), call.function)
         assertEquals(emptyList(), call.params)
-        assertEquals(emptyList(), call.events, "a bound event fails CodegenCoverage")
+        assertEquals(listOf(EventBinding(EventKey("onClick"), "onClick")), call.events)
         assertEquals(LambdaTarget.Trailing, call.slots.single().target)
     }
 
@@ -187,7 +188,7 @@ class BuiltinSpecsTest {
         val call = assertIs<CodegenBinding.ComposeCall>(TextFieldSpec.spec.codegen)
         assertEquals(KotlinSymbol("androidx.compose.material3", "TextField"), call.function)
         assertEquals("value", call.params.single().param)
-        assertEquals(emptyList(), call.events, "a bound event fails CodegenCoverage")
+        assertEquals(emptyList(), call.events, "the edit is out of the codegen scope")
         assertEquals(emptyList(), call.slots)
     }
 

@@ -57,16 +57,34 @@ public class ActionEmitter(
 ) {
 
     /**
-     * What the sequences emitted since the last drain need imported.
+     * What a `Template` action's pattern needs imported, for a caller that wants it.
      *
-     * Drained by the generator, which owns the file: a `Template`'s imports belong to its pattern
-     * and cannot be recovered from the statement it produced.
+     * Dead: the pattern's symbols ride out on the statement as a `Snippet`, and `KtPrinter` finds
+     * a symbol anywhere in the tree including a lambda body, so nothing needs this list. Kept
+     * because dropping a public member means regenerating the module's ABI dumps, which this unit
+     * does not do.
      */
     public val imports: MutableList<KotlinSymbol> = mutableListOf()
+
+    // The receivers this emitter's own statements ran against, and nothing else: a `Template`
+    // action's pattern is text and cannot name one the engine does not read.
+    private val reads: MutableSet<ActionReceiver> = mutableSetOf()
 
     private val route: KotlinSymbol = KotlinSymbol(options.basePackage, "Route")
 
     private val launch: KotlinSymbol = KotlinSymbol("kotlinx.coroutines", "launch")
+
+    /**
+     * Every receiver the sequences emitted since the last drain ran against, emptied by reading.
+     *
+     * Drained rather than accumulated because one screen's handlers say nothing about the next
+     * screen's signature, and both files come out of the same document.
+     */
+    internal fun drainReads(): Set<ActionReceiver> {
+        val drained: Set<ActionReceiver> = reads.toSet()
+        reads.clear()
+        return drained
+    }
 
     /**
      * [sequence] as the statements a handler body is made of, or null once a finding is recorded.
@@ -113,7 +131,7 @@ public class ActionEmitter(
         )
         return when (kind) {
             ActionKind.Navigate -> navigate(step, spec, at)
-            ActionKind.Back -> Emitted(KtStmt.Expr(on("navigator", "back")))
+            ActionKind.Back -> Emitted(KtStmt.Expr(on(ActionReceiver.Navigator, "back")))
             ActionKind.WriteState -> writeState(step, spec, at)
             ActionKind.Conditional -> conditional(step, spec, at)
             ActionKind.CallHost -> callHost(step, spec, at)
@@ -141,7 +159,7 @@ public class ActionEmitter(
             return null
         }
         val destination: KtExpr = KtExpr.Ref(KtSymbolRef(route, page.name))
-        return Emitted(KtStmt.Expr(on("navigator", "navigate", listOf(KtArg(null, destination)))))
+        return Emitted(KtStmt.Expr(on(ActionReceiver.Navigator, "navigate", listOf(KtArg(null, destination)))))
     }
 
     /** The key of the parameter whose declared type is a page reference, which is what says so. */
@@ -274,7 +292,7 @@ public class ActionEmitter(
         // The rule's own key, not the shape's `callee`: the callee names the function, this names
         // the list of arguments handed to it.
         val arguments: List<KtArg> = argumentsOf(step, rule.key, at) ?: return null
-        return Emitted(KtStmt.Expr(on("host", name, arguments)), declaration.suspend)
+        return Emitted(KtStmt.Expr(on(ActionReceiver.Host, name, arguments)), declaration.suspend)
     }
 
     private fun positionalRule(spec: ActionSpec, at: DiagnosticLocation): ArgRule? {
@@ -358,7 +376,7 @@ public class ActionEmitter(
     private fun snackbar(step: ActionStep, spec: ActionSpec, at: DiagnosticLocation): Emitted? {
         val key: PropertyKey = messageArgument(spec, at) ?: return null
         val message: KtExpr = argument(step, key, at) ?: return null
-        return Emitted(KtStmt.Expr(on("snackbars", "show", listOf(KtArg(null, message)))))
+        return Emitted(KtStmt.Expr(on(ActionReceiver.Snackbars, "show", listOf(KtArg(null, message)))))
     }
 
     // One argument, so its count says which one is the message: the string type names a value
@@ -482,8 +500,12 @@ public class ActionEmitter(
         is PropertyValue.Computed -> (expr as? Expr.Const)?.value
     }
 
-    private fun on(receiver: String, member: String, args: List<KtArg> = emptyList()): KtExpr.Call =
-        KtExpr.Call(KtExpr.Member(KtExpr.Name(receiver), member), args)
+    // Every intrinsic call goes through here, so this is where the environment the sequence
+    // closed over is recorded: the receiver name is a free identifier the screen must supply.
+    private fun on(receiver: ActionReceiver, member: String, args: List<KtArg> = emptyList()): KtExpr.Call {
+        reads += receiver
+        return KtExpr.Call(KtExpr.Member(KtExpr.Name(receiver.name), member), args)
+    }
 
     /**
      * `scope.launch { … }`, the wrapper a suspending sequence needs.
@@ -492,13 +514,16 @@ public class ActionEmitter(
      * reached through a receiver the file declares — the same spelling a modifier's own emitted
      * case takes.
      */
-    private fun launched(body: List<KtStmt>): KtStmt = KtStmt.Expr(
-        KtExpr.Call(
-            KtExpr.Snippet("scope.launch", listOf(launch)),
-            emptyList(),
-            KtExpr.Lambda(emptyList(), body),
-        ),
-    )
+    private fun launched(body: List<KtStmt>): KtStmt {
+        reads += ActionReceiver.Scope
+        return KtStmt.Expr(
+            KtExpr.Call(
+                KtExpr.Snippet("scope.launch", listOf(launch)),
+                emptyList(),
+                KtExpr.Lambda(emptyList(), body),
+            ),
+        )
+    }
 
     /** The refusal every absent required argument is, naming the action and the key. */
     private fun refuseMissing(step: ActionStep, key: PropertyKey, at: DiagnosticLocation): Unit {
@@ -557,6 +582,20 @@ internal enum class ActionKind {
     Conditional,
     CallHost,
     ShowSnackbar,
+}
+
+/**
+ * The receivers a handler's statements name, and what a screen gets them from.
+ *
+ * [type] is the generated declaration each receiver needs in the base package, and null for the
+ * one that comes from the composition rather than from a parameter — so the vocabulary is one
+ * list and no caller has to remember which of the four is the odd one out.
+ */
+internal enum class ActionReceiver(val name: String, val type: String?) {
+    Navigator("navigator", "AppNavigator"),
+    Snackbars("snackbars", "SnackbarHost"),
+    Host("host", "AppHost"),
+    Scope("scope", null),
 }
 
 /** One step's statement, and whether reaching that statement suspends. */

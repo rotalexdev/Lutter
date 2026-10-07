@@ -12,9 +12,11 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.analysis.resolved.ResolvedPage
 import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.analysis.resolved.ResolvedState
+import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.expr.TypedExpr
 import dev.rotalex.lutter.model.ids.ComponentDeclId
+import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TypeRef
@@ -23,6 +25,7 @@ import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.CodegenBinding
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.EmitterId
+import dev.rotalex.lutter.schema.component.EventBinding
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.LambdaTarget
 import dev.rotalex.lutter.schema.component.ParamBinding
@@ -74,6 +77,12 @@ public class KotlinGenerator<A : Any, T : Any>(
     // The screen-site [StateRead], built per run beside [state]. A state class member builds its
     // own reader over its siblings, because `state.count` inside one compiles and reads nothing.
     private var expressions: ExprEmitter? = null
+    // Per-run beside the two above. Reads the generator's own diagnostics list, so a refused step
+    // is the finding and not a second one beside it.
+    private var actions: ActionEmitter? = null
+
+    private val rememberCoroutineScope: KotlinSymbol =
+        KotlinSymbol("androidx.compose.runtime", "rememberCoroutineScope")
 
     // Fail fast on missing bindings, like UiRuntime does on missing renderers.
     init {
@@ -87,7 +96,12 @@ public class KotlinGenerator<A : Any, T : Any>(
         }
         diagnostics.clear()
         state = StateEmitter(document, options, schema.functions)
-        expressions = ExprEmitter(schema.functions, StateRead { id -> state?.readInScreen(id) })
+        val reader: ExprEmitter = ExprEmitter(schema.functions, StateRead { id -> state?.readInScreen(id) })
+        expressions = reader
+        // Host declarations are a document field the resolved form does not carry, and §4.5's one
+        // pipeline leaves no second route to them: an empty lookup makes `host.call` refuse, which
+        // is where it was left until the unit that generates `AppHost` owns the wiring.
+        actions = ActionEmitter(schema.actions, reader, document.pages, HostDecl { null }, options, diagnostics)
         val plan: GenPlan = planDocument(document, options.basePackage)
         refuseCollisions(plan)
         val files: MutableList<GeneratedFile> = mutableListOf()
@@ -176,8 +190,11 @@ public class KotlinGenerator<A : Any, T : Any>(
         if (refuseState(page.state, at)) return null
         val emitter: StateEmitter = stateEmitter() ?: return null
         val root: KtExpr = emitNode(page.root, true, emptyList()) ?: return null
+        val reads: Set<ActionReceiver> = drainReads()
         val declarations: MutableList<KtDeclaration> = mutableListOf()
-        val params: MutableList<KtParam> = mutableListOf(modifierParam())
+        val params: MutableList<KtParam> = mutableListOf()
+        params += environmentParams(reads)
+        params += modifierParam()
         val held: List<KtDeclaration>? = emitter.pageState(page)
         if (held != null) {
             declarations += held
@@ -188,7 +205,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             listOf(composable),
             null,
             params,
-            listOf(KtStmt.Expr(root)),
+            actionLocals(reads) + listOf(KtStmt.Expr(root)),
         )
         return KtFile(planned.packageName, headerText(), declarations)
     }
@@ -205,15 +222,55 @@ public class KotlinGenerator<A : Any, T : Any>(
         val held: List<ResolvedState> = document.componentState[componentId].orEmpty()
         if (refuseState(held, at)) return null
         val body: KtExpr = emitNode(root, true, emptyList()) ?: return null
-        val statements: List<KtStmt> = emitter.componentLocals(held).orEmpty() + listOf(KtStmt.Expr(body))
+        val reads: Set<ActionReceiver> = drainReads()
+        val statements: List<KtStmt> =
+            emitter.componentLocals(held).orEmpty() + actionLocals(reads) + listOf(KtStmt.Expr(body))
         val function: KtDeclaration.Function = KtDeclaration.Function(
             componentId.value,
             listOf(composable),
             null,
-            listOf(modifierParam()),
+            environmentParams(reads) + modifierParam(),
             statements,
         )
         return KtFile(planned.packageName, headerText(), listOf(function))
+    }
+
+    /** The receivers the handlers in the file just written closed over, emptied by reading. */
+    private fun drainReads(): Set<ActionReceiver> = actionEmitter()?.drainReads() ?: emptySet()
+
+    private fun actionEmitter(): ActionEmitter? = actions
+
+    /**
+     * One parameter per environment receiver the file's handlers used, sorted by name.
+     *
+     * Demand-driven because these parameters have no default: a document with no event would
+     * otherwise be handed three it never passes, and a required parameter nothing supplies is a
+     * screen its own `AppRoot` cannot call. Sorted so two runs over one document agree.
+     */
+    private fun environmentParams(reads: Set<ActionReceiver>): List<KtParam> =
+        reads.filter { it.type != null }
+            .sortedBy { it.name }
+            .map { receiver ->
+                KtParam(receiver.name, KotlinSymbol(options.basePackage, checkNotNull(receiver.type)), null)
+            }
+
+    /**
+     * `val scope = rememberCoroutineScope()` when a handler launched a coroutine.
+     *
+     * The one receiver that is a local rather than a parameter: §11.5's scope is owned by the
+     * composition, so a screen reads it out of itself the way it reads its own state.
+     */
+    private fun actionLocals(reads: Set<ActionReceiver>): List<KtStmt> {
+        if (ActionReceiver.Scope !in reads) return emptyList()
+        return listOf(
+            KtStmt.LocalProperty(
+                name = ActionReceiver.Scope.name,
+                type = null,
+                mutable = false,
+                initializer = KtExpr.Call(KtExpr.Ref(KtSymbolRef(rememberCoroutineScope)), emptyList()),
+                delegate = null,
+            ),
+        )
     }
 
     /**
@@ -263,8 +320,8 @@ public class KotlinGenerator<A : Any, T : Any>(
             refuse(DiagnosticCodes.CodegenNoBinding, node, "No compose call for '${node.type}'")
             return null
         }
-        if (binding.events.isNotEmpty()) {
-            refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Events emit nothing yet")
+        unboundEvent(binding, node)?.let { unbound ->
+            refuse(DiagnosticCodes.CodegenNoBinding, node, "Event '$unbound' has no parameter to receive it")
             return null
         }
         val args: MutableList<KtArg> = mutableListOf()
@@ -274,6 +331,12 @@ public class KotlinGenerator<A : Any, T : Any>(
             val positional: Boolean = keptParam.binding.positional == Positional.WhenSole &&
                 kept.size == 1 && keptParam.present.size == 1
             args += KtArg(if (positional) null else keptParam.binding.param, value)
+        }
+        // A handler argument is always named and a positional value argument has to precede every
+        // named one, so the handlers land between the values and `modifier`: the component's own
+        // argument comes first, and `modifier` stays where the rest of the file expects it.
+        for (event in binding.events) {
+            args += KtArg(event.param, eventLambda(event, node) ?: return null)
         }
         // `modifier` is always named and Compose declares it after the value arguments, so a
         // positional one has to precede it: `Text("Left", modifier = …)`, never the reverse.
@@ -500,6 +563,44 @@ public class KotlinGenerator<A : Any, T : Any>(
     @Suppress("UNCHECKED_CAST")
     private fun enumEntries(id: TypeId): List<EnumEntrySpec> =
         (schema.types[id] as? EnumTypeSpec)?.entries ?: emptyList()
+
+    /**
+     * An event the node carries that no [EventBinding] receives, or null when every one is bound.
+     *
+     * The mirror of the refusal inside [eventLambda]: a sequence with nowhere to go would be
+     * dropped here while the interpreter runs it, so the document is not refused for carrying a
+     * handler but for the schema having no parameter to carry it in. The smallest by name, so
+     * two runs over one document name the same event.
+     */
+    private fun unboundEvent(binding: CodegenBinding.ComposeCall, node: ResolvedNode): EventKey? =
+        node.events.keys
+            .filter { event -> binding.events.none { it.event == event } }
+            .minByOrNull { it.value }
+
+    /**
+     * One `EventBinding` as the lambda its Compose parameter receives.
+     *
+     * The three fields are three different facts and the sequence is the join: `event` selects it
+     * out of [ResolvedNode.events], `lambdaParams` names the lambda's own parameters, and `param`
+     * names the parameter it is written as. A binding whose event the node carries no sequence for
+     * refuses rather than emitting an empty lambda, because a handler parameter has no default to
+     * omit it with and `{}` is a handler that runs and does nothing.
+     */
+    private fun eventLambda(binding: EventBinding, node: ResolvedNode): KtExpr.Lambda? {
+        val emitter: ActionEmitter = actionEmitter() ?: return null
+        val sequence: ActionSequence = node.events[binding.event] ?: run {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                node,
+                "Event '" + binding.event + "' has no handler, and '" + binding.param + "' has no default",
+            )
+            return null
+        }
+        val at: DiagnosticLocation = DiagnosticLocation(nodeId = node.id, event = binding.event)
+        // A refused step recorded the finding itself, so the null here adds nothing of its own.
+        val body: List<KtStmt> = emitter.emit(sequence, at) ?: return null
+        return KtExpr.Lambda(binding.lambdaParams, body)
+    }
 
     private fun slotLambda(
         binding: SlotBinding,

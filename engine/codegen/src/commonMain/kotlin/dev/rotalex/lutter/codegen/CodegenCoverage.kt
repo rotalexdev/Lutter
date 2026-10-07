@@ -77,7 +77,6 @@ public object CodegenCoverage {
 
     // One reason per spec: the first gap is the fix, the rest is the same fix repeated.
     private fun callProblem(spec: ComponentSpec, binding: CodegenBinding.ComposeCall): String? {
-        if (binding.events.isNotEmpty()) return "events emit nothing yet"
         for (param in binding.params) {
             paramProblem(spec, param.param, param.from)?.let { return it }
             val cases = param.emit as? ValueEmit.Cases ?: continue
@@ -96,6 +95,13 @@ public object CodegenCoverage {
                 return "slot '${slot.slot}' is not declared"
             }
             if (slot.receiver != null) return "scoped slots emit nothing yet"
+        }
+        // The same rule as a slot: a parameter fed by an event the spec does not raise is written
+        // into a call whose signature nothing in this repository declares.
+        for (event in binding.events) {
+            if (spec.events.none { it.key == event.event }) {
+                return "event '${event.event}' is not declared"
+            }
         }
         return null
     }
