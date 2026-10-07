@@ -1,6 +1,7 @@
 package dev.rotalex.lutter.generated.compile
 
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsConfiguration
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -8,7 +9,6 @@ import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteraction
-import androidx.compose.ui.test.boundsInRoot
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onRoot
@@ -159,7 +159,7 @@ class ConformanceTest {
 
     /** §28.4's "click actions" row: both sides expose the press, whatever runs behind it. */
     private fun SemanticsNodeInteraction.exposesClick(): Boolean =
-        fetchSemanticsNode().config.valueOrNull(SemanticsProperties.OnClick) != null
+        fetchSemanticsNode().config.valueOrNull(SemanticsActions.OnClick) != null
 
     /** The navigating fixture resolved. Its screen declares a navigator, so no registry holds it. */
     private fun navigating(): ResolvedDocument {
