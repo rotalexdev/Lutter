@@ -197,24 +197,6 @@ class ActionPassTest {
     }
 
     @Test
-    fun `a host call omitting its arguments reports arg invalid when the callee takes any`() {
-        // `args` is optional so a zero-parameter callee need not spell an empty list, which means
-        // absence has to be checked as the empty list it is. Without this the mismatch would first
-        // be seen inside the host, where nothing can name the step that asked for the wrong call.
-        val finding = findingOf(DiagnosticCodes.ActionArgInvalid, callingHost { handler(hostCall(submit = null)) })
-
-        assertEquals("args", finding.args["property"])
-    }
-
-    @Test
-    fun `a host call omitting its arguments reports nothing when the callee takes none`() {
-        val document = field { handler(hostCall(submit = null, callee = "ping")) }
-            .copy(hostFunctions = listOf(HostFunctionDecl("ping", emptyList(), returns = TypeRef.Bool)))
-
-        assertClean(document)
-    }
-
-    @Test
     fun `an argument of a type the position does not admit reports prop type mismatch`() {
         val finding = findingOf(
             DiagnosticCodes.PropTypeMismatch,
@@ -235,8 +217,24 @@ class ActionPassTest {
     }
 
     @Test
-    fun `a host call carrying no argument list reports nothing`() {
-        assertClean(callingHost { handler(hostCall(submit = null)) })
+    fun `a host call carrying no argument list to a callee taking one reports arg invalid`() {
+        // Was asserted clean, and that was the hole: `args` is optional so a zero-parameter
+        // callee need not spell an empty list, which means absence has to be judged as the empty
+        // list it is. `submit` takes one argument, so omitting them is wrong here.
+        val finding = findingOf(
+            DiagnosticCodes.ActionArgInvalid,
+            callingHost { handler(hostCall(submit = null)) },
+        )
+
+        assertEquals("args", finding.args["property"])
+    }
+
+    @Test
+    fun `a host call carrying no argument list to a callee taking none reports nothing`() {
+        val document = field { handler(hostCall(submit = null, callee = "ping")) }
+            .copy(hostFunctions = listOf(HostFunctionDecl("ping", emptyList(), returns = TypeRef.Bool)))
+
+        assertClean(document)
     }
 
     // ---------------------------------------------------------------------------------
