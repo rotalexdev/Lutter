@@ -213,12 +213,25 @@ private class Walk(
             )
         }
         for (rule in spec.argRules) {
-            if (!rule.required || rule.key in step.args) continue
-            found += refusal(
-                at.copy(property = rule.key), event, DiagnosticCodes.ActionArgInvalid,
-                "Action '${step.action}' requires argument '${rule.key.value}'",
-                mapOf("action" to step.action.value, "property" to rule.key.value),
-            )
+            if (rule.key !in step.args) {
+                if (rule.required) {
+                    found += refusal(
+                        at.copy(property = rule.key), event, DiagnosticCodes.ActionArgInvalid,
+                        "Action '${step.action}' requires argument '${rule.key.value}'",
+                        mapOf("action" to step.action.value, "property" to rule.key.value),
+                    )
+                } else if (rule.shape is ArgShape.Positional) {
+                    // An omitted positional list is an empty one, and only the callee's arity
+                    // says whether that is right. A zero-parameter function wants it absent; one
+                    // that takes arguments is a finding here rather than a failure surfacing from
+                    // inside the host, which is the only place a missing argument is otherwise seen.
+                    checkPositional(
+                        step, rule.key, PropertyValue.Const(Value.ListOf(emptyList())),
+                        host, at, event, scope,
+                    )
+                }
+                continue
+            }
         }
         if (page != null) {
             for (param in page.params) {

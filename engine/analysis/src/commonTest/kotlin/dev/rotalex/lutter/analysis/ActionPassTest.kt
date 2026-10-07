@@ -8,6 +8,7 @@ import dev.rotalex.lutter.analysis.diagnostic.DiagnosticSorter
 import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
+import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.ParamDecl
 import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.doc.UiDocument
@@ -193,6 +194,24 @@ class ActionPassTest {
         val finding = findingOf(DiagnosticCodes.ActionArgInvalid, callingHost { handler(hostCall(submit = argsOf())) })
 
         assertEquals("args", finding.args["property"])
+    }
+
+    @Test
+    fun `a host call omitting its arguments reports arg invalid when the callee takes any`() {
+        // `args` is optional so a zero-parameter callee need not spell an empty list, which means
+        // absence has to be checked as the empty list it is. Without this the mismatch would first
+        // be seen inside the host, where nothing can name the step that asked for the wrong call.
+        val finding = findingOf(DiagnosticCodes.ActionArgInvalid, callingHost { handler(hostCall(submit = null)) })
+
+        assertEquals("args", finding.args["property"])
+    }
+
+    @Test
+    fun `a host call omitting its arguments reports nothing when the callee takes none`() {
+        val document = field { handler(hostCall(submit = null, callee = "ping")) }
+            .copy(hostFunctions = listOf(HostFunctionDecl("ping", emptyList(), returns = TypeRef.Bool)))
+
+        assertClean(document)
     }
 
     @Test
