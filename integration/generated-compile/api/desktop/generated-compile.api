@@ -38,6 +38,64 @@ public final class dev/rotalex/lutter/generated/box_align/screens/HomeScreenKt {
 	public static final fun HomeScreen (Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/button_navigate/AppHost {
+}
+
+public final class dev/rotalex/lutter/generated/button_navigate/AppKt {
+	public static final fun AppRoot (Ldev/rotalex/lutter/generated/button_navigate/AppNavigator;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class dev/rotalex/lutter/generated/button_navigate/AppNavigator {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun <init> (Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun back ()Z
+	public final fun getCurrent ()Ldev/rotalex/lutter/generated/button_navigate/Route;
+	public final fun navigate (Ldev/rotalex/lutter/generated/button_navigate/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/button_navigate/Route {
+}
+
+public final class dev/rotalex/lutter/generated/button_navigate/Route$Home : dev/rotalex/lutter/generated/button_navigate/Route {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/generated/button_navigate/Route$Home;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/generated/button_navigate/Route$Profile : dev/rotalex/lutter/generated/button_navigate/Route {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/generated/button_navigate/Route$Profile;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/rotalex/lutter/generated/button_navigate/SnackbarHost {
+	public fun show (Ljava/lang/String;)V
+}
+
+public final class dev/rotalex/lutter/generated/button_navigate/SnackbarHost$DefaultImpls {
+	public static fun show (Ldev/rotalex/lutter/generated/button_navigate/SnackbarHost;Ljava/lang/String;)V
+}
+
+public final class dev/rotalex/lutter/generated/button_navigate/screens/ComposableSingletons$HomeScreenKt {
+	public static final field INSTANCE Ldev/rotalex/lutter/generated/button_navigate/screens/ComposableSingletons$HomeScreenKt;
+	public fun <init> ()V
+	public final fun getLambda$1622484349$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
+}
+
+public final class dev/rotalex/lutter/generated/button_navigate/screens/HomeScreenKt {
+	public static final fun HomeScreen (Ldev/rotalex/lutter/generated/button_navigate/AppNavigator;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class dev/rotalex/lutter/generated/button_navigate/screens/ProfileScreenKt {
+	public static final fun ProfileScreen (Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/column_color/AppHost {
 }
 
@@ -148,6 +206,13 @@ public final class dev/rotalex/lutter/generated/compile/GeneratedFixtures {
 	public static final field $stable I
 	public static final field INSTANCE Ldev/rotalex/lutter/generated/compile/GeneratedFixtures;
 	public final fun getAll ()Ljava/util/Map;
+}
+
+public final class dev/rotalex/lutter/generated/compile/NavigatingFixtureDocuments {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/generated/compile/NavigatingFixtureDocuments;
+	public final fun getIds ()Ljava/util/List;
+	public final fun json (Ljava/lang/String;)Ljava/lang/String;
 }
 
 public abstract interface class dev/rotalex/lutter/generated/expression_corpus/AppHost {
