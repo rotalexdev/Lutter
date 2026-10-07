@@ -9,6 +9,7 @@ import dev.rotalex.lutter.model.expr.Expr
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.expr.RefTarget
 import dev.rotalex.lutter.model.ids.ActionId
+import dev.rotalex.lutter.model.ids.BranchName
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.StateId
@@ -18,11 +19,10 @@ import dev.rotalex.lutter.model.value.Value
 /**
  * The handlers for the actions whose meaning the engine owns.
  *
- * The other three are absent rather than refused: no section names the argument keys `host.call`
- * passes, a snackbar has no slot on `ActionEnv` to be written to, and `flow.if` carries no
- * condition — with its arms the executor's to run, a handler returning `Done` would run both.
- * No handler means the executor's own diagnostic, which is true, where a guess would be a false
- * claim about what a step did.
+ * `ui.showSnackbar` is the one MVP action still absent rather than refused: §11.4 names the id and
+ * nothing about what it carries, and `ActionEnv` has no snackbar slot to be written to. No handler
+ * means the executor's own diagnostic, which is true, where a guess would be a false claim about
+ * what a step did.
  */
 public object IntrinsicHandlers {
 
@@ -42,6 +42,8 @@ public object IntrinsicHandlers {
         ActionId("nav.navigate") to navigate,
         ActionId("nav.back") to back,
         ActionId("state.set") to SetState(evaluator),
+        ActionId("flow.if") to Conditional(evaluator),
+        ActionId("host.call") to CallHost(evaluator),
     )
 }
 
@@ -58,6 +60,18 @@ private val targetArgument = PropertyKey("target")
 /** §12.3's `state.set(event.value)`: the value being written, which any expression may produce. */
 private val valueArgument = PropertyKey("value")
 
+/** The condition `flow.if` chooses an arm by, and the two arms §11.2 names for it. */
+private val conditionArgument = PropertyKey("cond")
+
+private val thenArm = BranchName("then")
+
+private val elseArm = BranchName("else")
+
+/** `host.call`'s callee key, and the positional list that §11.6's declaration types. */
+private val nameArgument = PropertyKey("name")
+
+private val argsArgument = PropertyKey("args")
+
 /**
  * `nav.navigate`.
  *
@@ -67,7 +81,7 @@ private val valueArgument = PropertyKey("value")
  */
 private class Navigate : ActionHandler {
 
-    override suspend fun execute(step: ActionStep, env: ActionEnv): ActionOutcome {
+    override suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome {
         val argument = step.args[pageArgument]
             ?: return refusal(step, "has no '$pageArgument' argument")
 
@@ -95,10 +109,10 @@ private class Back : ActionHandler {
 
     /*
      * The Boolean is discarded. At the root there is nowhere to go, which is the navigator's
-     * answer to the question rather than a failure of the step, and the only thing that could
-     * read it — a `flow.if` — carries no condition to test it with.
+     * answer to the question rather than a failure of the step, and nothing records it where a
+     * `flow.if` could test it: it is this handler's own return value, and no step reads another's.
      */
-    override suspend fun execute(step: ActionStep, env: ActionEnv): ActionOutcome {
+    override suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome {
         env.navigator.back()
         return ActionOutcome.Done
     }
@@ -114,7 +128,7 @@ private class Back : ActionHandler {
  */
 private class SetState(private val evaluator: Evaluator) : ActionHandler {
 
-    override suspend fun execute(step: ActionStep, env: ActionEnv): ActionOutcome {
+    override suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome {
         val target = step.args[targetArgument]
             ?: return refusal(step, "has no '$targetArgument' argument")
 
@@ -133,6 +147,78 @@ private class SetState(private val evaluator: Evaluator) : ActionHandler {
         val refused = runCatching { env.state.set(id, value) }.exceptionOrNull()
         if (refused != null) return refusal(step, "could not be written: ${refused.message}")
 
+        return ActionOutcome.Done
+    }
+}
+
+/**
+ * `flow.if`: evaluates its condition and runs the one arm the condition selects.
+ *
+ * §11.2 keeps the arm bodies in the document and §11.3 names them in the spec, so choosing one is
+ * this action's own job and the executor's is only to be asked. A condition that is not a boolean,
+ * and an expression that refuses, are both a document fault and are reported as one.
+ */
+private class Conditional(private val evaluator: Evaluator) : ActionHandler {
+
+    override suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome {
+        val condition = step.args[conditionArgument]
+            ?: return refusal(step, "has no '$conditionArgument' argument")
+
+        val value = condition.valueOrNull(evaluator, env.scope)
+            ?: return refusal(step, "argument '$conditionArgument' produces no value")
+
+        val taken = value as? Value.Bool
+            ?: return refusal(step, "argument '$conditionArgument' is ${value::class.simpleName}, not a Boolean")
+
+        if (!taken.v) {
+            // §11.3 requires `then` alone: an `if` with no consequent has nothing to do, and one
+            // with no alternative has nothing to fall back to, which is the same as doing nothing.
+            val alternative = step.branches[elseArm] ?: return ActionOutcome.Done
+            return run(alternative)
+        }
+
+        val consequent = step.branches[thenArm]
+            ?: return refusal(step, "carries no '$thenArm' arm")
+
+        return run(consequent)
+    }
+}
+
+/**
+ * `host.call`: the function its name argument spells, called with the step's own arguments.
+ *
+ * Absence is a refusal rather than a throw because `HostFunctions.find` answers null for a name it
+ * does not hold — that is what its type says — and a throw here would leave the one path a step has
+ * for reporting and unwind the composition's coroutine instead.
+ *
+ * The arguments are positional and unchecked, because `HostFunctions` is a map from name to a
+ * lambda and carries no declaration: arity belongs to the pass that can read `HostFunctionDecl`,
+ * which is the one holding the document.
+ */
+private class CallHost(private val evaluator: Evaluator) : ActionHandler {
+
+    override suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome {
+        val named = step.args[nameArgument]
+            ?: return refusal(step, "has no '$nameArgument' argument")
+
+        val name = (named.valueOrNull(evaluator, env.scope) as? Value.Str)?.v
+            ?: return refusal(step, "argument '$nameArgument' is not a string")
+
+        val function = env.host.find(name)
+            ?: return refusal(step, "names no host function '$name'")
+
+        val written = step.args[argsArgument]
+        val arguments = if (written == null) {
+            emptyList()
+        } else {
+            val list = written.valueOrNull(evaluator, env.scope) as? Value.ListOf
+                ?: return refusal(step, "argument '$argsArgument' is not a list of arguments")
+            list.items
+        }
+
+        // Whatever it answers stays with the host: a null is a function returning nothing, and
+        // `ActionEnv` has nowhere for a value to land.
+        function(arguments)
         return ActionOutcome.Done
     }
 }

@@ -6,7 +6,12 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/** Steps run in the order the document lists them, and the first failure ends the sequence. */
+/**
+ * Steps run in the order the document lists them, and the first failure ends the sequence.
+ *
+ * A step's arms are absent from every case here: they belong to the action whose spec declares
+ * them, and `flow.if` is where they are run.
+ */
 class ActionExecutorTest {
 
     private val ran: MutableList<String> = mutableListOf()
@@ -96,7 +101,10 @@ class ActionExecutorTest {
     }
 
     @Test
-    fun `a step's branches run after the step that carries them`() {
+    fun `a step's arms are the action's to run, not the runner's`() {
+        // The executor does not know what an arm is: only the action whose spec declares branches
+        // can say which one a condition selects, so a generic runner taking both would make
+        // `flow.if` run its two halves in sequence. `ConditionalHandlerTest` covers the arms.
         val executor = executorOf(
             ActionId("test.a") to Recording(ran, "a"),
             ActionId("test.then") to Recording(ran, "then"),
@@ -108,41 +116,7 @@ class ActionExecutorTest {
 
         drive { executor.run(sequence, FakeActionEnv()) }
 
-        assertEquals(listOf("a", "then", "else"), ran)
-    }
-
-    @Test
-    fun `a failure inside a branch stops the rest of that branch`() {
-        val executor = executorOf(
-            ActionId("test.a") to Recording(ran, "a"),
-            ActionId("test.one") to Recording(ran, "one"),
-            ActionId("test.two") to Refusing(ran, "two", "two refused"),
-            ActionId("test.three") to Recording(ran, "three"),
-        )
-        val sequence = sequenceOfSteps(
-            branching("test.a", arm("then", "test.one", "test.two", "test.three")),
-        )
-
-        drive { executor.run(sequence, FakeActionEnv()) }
-
-        assertEquals(listOf("a", "one", "two"), ran)
-    }
-
-    @Test
-    fun `a failure inside a branch stops the steps after its parent`() {
-        val executor = executorOf(
-            ActionId("test.a") to Recording(ran, "a"),
-            ActionId("test.one") to Refusing(ran, "one", "one refused"),
-            ActionId("test.b") to Recording(ran, "b"),
-        )
-        val sequence = sequenceOfSteps(
-            branching("test.a", arm("then", "test.one")),
-            step("test.b"),
-        )
-
-        drive { executor.run(sequence, FakeActionEnv()) }
-
-        assertEquals(listOf("a", "one"), ran)
+        assertEquals(listOf("a"), ran)
     }
 
     private fun executorWithASuspendedMiddleStep(): ActionExecutor = executorOf(

@@ -2,6 +2,8 @@ package dev.rotalex.lutter.analysis
 
 import dev.rotalex.lutter.model.doc.EnumEntryDecl
 import dev.rotalex.lutter.model.doc.EnumTypeDecl
+import dev.rotalex.lutter.model.doc.HostFunctionDecl
+import dev.rotalex.lutter.model.doc.ParamDecl
 import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.dsl.PageScope
@@ -14,6 +16,7 @@ import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.ids.ModifierType
 import dev.rotalex.lutter.model.ids.PageId
+import dev.rotalex.lutter.model.ids.ParamName
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.RefKind
@@ -150,11 +153,10 @@ private const val ELEMENT: String = "T"
  * The walking skeleton with the actions slot bound to [ActionSpec] and §11.4's MVP ids
  * registered, so a handler has something to be right or wrong about.
  *
- * Three of the five have something for pass 6 to check: [navigate] is the only spec with a
- * typed parameter and the only one with a page reference, which is what a route argument and an
- * unknown argument both need; [branching] is the only one with arms; [writeState] is the only one
- * whose arguments are shapes rather than types. They are declared here rather than imported from
- * `:engine:builtins` because this module cannot depend on it — the same reason
+ * [navigate] is the only spec with a page reference, which is what a route argument and an unknown
+ * argument both need; [branching] is the only one with arms; [writeState] and [callHost] are the
+ * ones whose arguments are shapes rather than types. They are declared here rather than imported
+ * from `:engine:builtins` because this module cannot depend on it — the same reason
  * [walkingSkeleton] restates the builtins' components.
  */
 internal fun actionSchema(): Schema<ComponentSpec, ModifierSpec, ActionSpec, String, String> =
@@ -173,6 +175,7 @@ internal fun actionSchema(): Schema<ComponentSpec, ModifierSpec, ActionSpec, Str
         action(writeState)
         action(ActionSpec(ActionId("ui.showSnackbar"), ActionMetadata("Snackbar"), emptyList(), emit = ActionEmit.Intrinsic))
         action(branching)
+        action(callHost)
     }
 
 /** `nav.navigate(page)`: `prop<Nothing>` because no handler or emitter names an access type. */
@@ -216,6 +219,36 @@ internal val branching: ActionSpec = ActionSpec(
     params = emptyList(),
     branches = listOf(BranchSpec(BranchName("then"), required = true), BranchSpec(BranchName("else"))),
     emit = ActionEmit.Intrinsic,
+)
+
+/**
+ * The two keys a host call step carries, shared with the tests that build one.
+ *
+ * Named because the pass reads them off this spec rather than off the step's id: a plugin action
+ * declaring the same shape is checked the same way.
+ */
+internal val HostNameKey: PropertyKey = PropertyKey("name")
+internal val HostArgsKey: PropertyKey = PropertyKey("args")
+
+/**
+ * `host.call(name, args)`: a typed name, and the one argument list a declaration types.
+ *
+ * `args` is optional because a declared function may take no parameters, which is the same reason
+ * the builtins' spec does not require it.
+ */
+internal val callHost: ActionSpec = ActionSpec(
+    id = ActionId("host.call"),
+    metadata = ActionMetadata("Call host"),
+    params = listOf(prop<Nothing>(HostNameKey.value, TypeRef.Str, required = true)),
+    argRules = listOf(ArgRule(HostArgsKey, ArgShape.Positional(HostNameKey))),
+    emit = ActionEmit.Intrinsic,
+)
+
+/** §11.6's declared function: one string in, a boolean out. Arity and typing both come from here. */
+internal val SubmitDecl: HostFunctionDecl = HostFunctionDecl(
+    name = "submit",
+    params = listOf(ParamDecl(ParamName("id"), TypeRef.Str)),
+    returns = TypeRef.Bool,
 )
 
 // One declaration, bound twice: the components and modifiers do not depend on what the types

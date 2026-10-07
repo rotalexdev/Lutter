@@ -129,6 +129,19 @@ sealed interface dev.rotalex.lutter.schema.action/ActionEmit { // dev.rotalex.lu
 }
 
 sealed interface dev.rotalex.lutter.schema.action/ArgShape { // dev.rotalex.lutter.schema.action/ArgShape|null[0]
+    final class Positional : dev.rotalex.lutter.schema.action/ArgShape { // dev.rotalex.lutter.schema.action/ArgShape.Positional|null[0]
+        constructor <init>(dev.rotalex.lutter.model.ids/PropertyKey) // dev.rotalex.lutter.schema.action/ArgShape.Positional.<init>|<init>(dev.rotalex.lutter.model.ids.PropertyKey){}[0]
+
+        final val callee // dev.rotalex.lutter.schema.action/ArgShape.Positional.callee|{}callee[0]
+            final fun <get-callee>(): dev.rotalex.lutter.model.ids/PropertyKey // dev.rotalex.lutter.schema.action/ArgShape.Positional.callee.<get-callee>|<get-callee>(){}[0]
+
+        final fun component1(): dev.rotalex.lutter.model.ids/PropertyKey // dev.rotalex.lutter.schema.action/ArgShape.Positional.component1|component1(){}[0]
+        final fun copy(dev.rotalex.lutter.model.ids/PropertyKey = ...): dev.rotalex.lutter.schema.action/ArgShape.Positional // dev.rotalex.lutter.schema.action/ArgShape.Positional.copy|copy(dev.rotalex.lutter.model.ids.PropertyKey){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.schema.action/ArgShape.Positional.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // dev.rotalex.lutter.schema.action/ArgShape.Positional.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // dev.rotalex.lutter.schema.action/ArgShape.Positional.toString|toString(){}[0]
+    }
+
     final object StateRef : dev.rotalex.lutter.schema.action/ArgShape { // dev.rotalex.lutter.schema.action/ArgShape.StateRef|null[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.schema.action/ArgShape.StateRef.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // dev.rotalex.lutter.schema.action/ArgShape.StateRef.hashCode|hashCode(){}[0]

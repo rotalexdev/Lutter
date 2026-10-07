@@ -11,10 +11,9 @@ import dev.rotalex.lutter.model.ids.ActionId
  * an order their author wrote. Running them at once would make what a document means depend
  * on the host's scheduler.
  *
- * A step's handler runs before the branches on that step, and the branches after it, which is
- * what lets a handler that chooses an arm do so by returning rather than by calling back into
- * the executor. Branches run in the order the document lists them, and a failure inside one
- * stops that arm, the steps after the step carrying it, and nothing on the far side.
+ * Steps, and nothing else. A step's arms belong to the action whose spec declares them, so this
+ * runner has no arm to run and no action to recognise: `flow.if` chooses one and asks for it back
+ * through [SequenceRunner], and a handler for an action with no arms never sees one.
  */
 public class ActionExecutor(
     handlers: Map<ActionId, ActionHandler>,
@@ -29,8 +28,9 @@ public class ActionExecutor(
      * The outcome is returned rather than routed from here because the diagnostic's
      * destination belongs to the host, and the host is not visible from this module.
      *
-     * Recursion is over the branches, which nothing bounds, so a document nested deeper than
-     * the stack exhausts it rather than reporting a diagnostic.
+     * The runner passed down recurses through this method, so a failure inside an arm stops that
+     * arm and the steps after the step carrying it — and the depth it reaches is bounded by
+     * nothing but the stack, which is the same answer the model gives for a document's own nesting.
      */
     public suspend fun run(sequence: ActionSequence, env: ActionEnv): ActionOutcome {
         for (step in sequence.steps) {
@@ -41,13 +41,8 @@ public class ActionExecutor(
                 )
             }
 
-            val outcome = handler.execute(step, env)
+            val outcome = handler.execute(step, env) { nested -> run(nested, env) }
             if (outcome is ActionOutcome.Failed) return outcome
-
-            for (arm in step.branches.values) {
-                val stopped = run(arm, env)
-                if (stopped is ActionOutcome.Failed) return stopped
-            }
         }
 
         return ActionOutcome.Done

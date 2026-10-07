@@ -62,7 +62,7 @@ public final class dev/rotalex/lutter/interpreter/action/ActionExecutor {
 }
 
 public abstract interface class dev/rotalex/lutter/interpreter/action/ActionHandler {
-	public abstract fun execute (Ldev/rotalex/lutter/model/action/ActionStep;Ldev/rotalex/lutter/interpreter/action/ActionEnv;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun execute (Ldev/rotalex/lutter/model/action/ActionStep;Ldev/rotalex/lutter/interpreter/action/ActionEnv;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public abstract interface class dev/rotalex/lutter/interpreter/action/ActionOutcome {
