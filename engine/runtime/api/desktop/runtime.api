@@ -163,6 +163,7 @@ public final class dev/rotalex/lutter/runtime/ScreenActionEnv : dev/rotalex/lutt
 	public fun getHost ()Ldev/rotalex/lutter/interpreter/env/HostFunctions;
 	public fun getNavigator ()Ldev/rotalex/lutter/interpreter/env/Navigator;
 	public fun getScope ()Ldev/rotalex/lutter/interpreter/EvalScope;
+	public fun getSnackbars ()Ldev/rotalex/lutter/interpreter/env/SnackbarHost;
 	public fun getState ()Ldev/rotalex/lutter/interpreter/StateWriter;
 }
 

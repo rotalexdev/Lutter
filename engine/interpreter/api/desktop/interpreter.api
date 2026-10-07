@@ -53,6 +53,7 @@ public abstract interface class dev/rotalex/lutter/interpreter/action/ActionEnv 
 	public abstract fun getHost ()Ldev/rotalex/lutter/interpreter/env/HostFunctions;
 	public abstract fun getNavigator ()Ldev/rotalex/lutter/interpreter/env/Navigator;
 	public abstract fun getScope ()Ldev/rotalex/lutter/interpreter/EvalScope;
+	public abstract fun getSnackbars ()Ldev/rotalex/lutter/interpreter/env/SnackbarHost;
 	public abstract fun getState ()Ldev/rotalex/lutter/interpreter/StateWriter;
 }
 
@@ -114,6 +115,15 @@ public final class dev/rotalex/lutter/interpreter/env/HostFunctions$Companion {
 public abstract interface class dev/rotalex/lutter/interpreter/env/Navigator {
 	public abstract fun back ()Z
 	public abstract fun navigate-yjKakfk (Ljava/lang/String;Ljava/util/Map;)V
+}
+
+public abstract interface class dev/rotalex/lutter/interpreter/env/SnackbarHost {
+	public static final field Companion Ldev/rotalex/lutter/interpreter/env/SnackbarHost$Companion;
+	public abstract fun show (Ljava/lang/String;)V
+}
+
+public final class dev/rotalex/lutter/interpreter/env/SnackbarHost$Companion {
+	public final fun getNone ()Ldev/rotalex/lutter/interpreter/env/SnackbarHost;
 }
 
 public final class dev/rotalex/lutter/interpreter/eval/DisplayKt {
