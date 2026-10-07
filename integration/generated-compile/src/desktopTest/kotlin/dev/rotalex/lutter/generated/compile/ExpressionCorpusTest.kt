@@ -260,7 +260,10 @@ class ExpressionCorpusTest {
     fun `the corpus is one screen over page state, with no app state to provide`() {
         val files = generate(FIXTURE)
 
-        assertEquals(listOf("App.kt", "screens/HomeScreen.kt"), files.files.files.map { it.path })
+        assertEquals(
+            listOf("App.kt", "AppHost.kt", "Navigation.kt", "screens/HomeScreen.kt"),
+            files.files.files.map { it.path },
+        )
         assertTrue(!files.content("App.kt").contains("CompositionLocalProvider"), "no app state")
     }
 

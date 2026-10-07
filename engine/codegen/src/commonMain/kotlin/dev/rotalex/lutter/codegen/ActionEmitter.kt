@@ -70,8 +70,6 @@ public class ActionEmitter(
     // action's pattern is text and cannot name one the engine does not read.
     private val reads: MutableSet<ActionReceiver> = mutableSetOf()
 
-    private val route: KotlinSymbol = KotlinSymbol(options.basePackage, "Route")
-
     private val launch: KotlinSymbol = KotlinSymbol("kotlinx.coroutines", "launch")
 
     /**
@@ -143,7 +141,8 @@ public class ActionEmitter(
      * `navigator.navigate(Route.Profile)`: the page's own name on the generated route entry.
      *
      * Route arguments have nowhere to go, because the generated navigator takes a route alone,
-     * so a step carrying them is refused rather than emitted into a call that cannot exist.
+     * so a step carrying them is refused rather than emitted into a call that cannot exist —
+     * which is also why the strategy is handed an empty argument list.
      */
     private fun navigate(step: ActionStep, spec: ActionSpec, at: DiagnosticLocation): Emitted? {
         val key: PropertyKey = pageArgument(spec, at) ?: return null
@@ -158,8 +157,10 @@ public class ActionEmitter(
             )
             return null
         }
-        val destination: KtExpr = KtExpr.Ref(KtSymbolRef(route, page.name))
-        return Emitted(KtStmt.Expr(on(ActionReceiver.Navigator, "navigate", listOf(KtArg(null, destination)))))
+        // The strategy names the receiver inside the statement it returns, so the file's demand
+        // for that receiver is recorded here rather than where [on] records it.
+        reads += ActionReceiver.Navigator
+        return Emitted(options.navigation.emitNavigateCall(page, emptyList()))
     }
 
     /** The key of the parameter whose declared type is a page reference, which is what says so. */
@@ -589,9 +590,10 @@ internal enum class ActionKind {
  *
  * [type] is the generated declaration each receiver needs in the base package, and null for the
  * one that comes from the composition rather than from a parameter — so the vocabulary is one
- * list and no caller has to remember which of the four is the odd one out.
+ * list and no caller has to remember which of the four is the odd one out. Public because a
+ * navigation strategy is handed what the screens demanded as a list of these.
  */
-internal enum class ActionReceiver(val member: String, val type: String?) {
+public enum class ActionReceiver(public val member: String, public val type: String?) {
     Navigator("navigator", "AppNavigator"),
     Snackbars("snackbars", "SnackbarHost"),
     Host("host", "AppHost"),

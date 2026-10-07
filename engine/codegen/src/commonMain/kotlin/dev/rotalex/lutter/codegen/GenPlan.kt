@@ -10,11 +10,6 @@ public enum class GeneratedLayout {
     Standard,
 }
 
-/** Which navigation the host runs; only the trivial one exists, strategies defer. */
-public sealed interface NavigationStrategy {
-    public data object SimpleBackStack : NavigationStrategy
-}
-
 /** Which header the files carry; minimal keeps output stable across runs. */
 public enum class HeaderPolicy {
     Minimal,
@@ -31,7 +26,9 @@ public data class FormattingOptions(
 public data class CodegenOptions(
     public val basePackage: String,
     public val layout: GeneratedLayout = GeneratedLayout.Standard,
-    public val navigation: NavigationStrategy = NavigationStrategy.SimpleBackStack,
+    // The default names the package above because `emitNavigateCall` is handed no file to read
+    // it from, and a navigator that cannot say where `Route` lives cannot name it in a screen.
+    public val navigation: NavigationStrategy = SimpleBackStack(basePackage),
     public val state: StateStrategy = ComposeSnapshotState,
     public val header: HeaderPolicy = HeaderPolicy.Minimal,
     public val formatting: FormattingOptions = FormattingOptions(),
@@ -60,12 +57,14 @@ public data class ImportPolicy(
 /**
  * Which emitter owns a planned file.
  *
- * The kind is stated rather than inferred from which id is null: `App.kt` and
- * `state/AppState.kt` both carry no id, so an id-only plan cannot tell them apart and the
- * second one emitted a second copy of the first.
+ * The kind is stated rather than inferred from which id is null: `App.kt`, `Navigation.kt`,
+ * `AppHost.kt` and `state/AppState.kt` all carry no id, so an id-only plan cannot tell them
+ * apart and the second one emitted a second copy of the first.
  */
 public enum class PlannedFileKind {
     App,
+    Navigation,
+    AppHost,
     AppState,
     Screen,
     Component,
@@ -86,10 +85,19 @@ public data class GenPlan(
     public val files: List<PlannedFile>,
 )
 
-/** §16.5's paths: `App.kt`, one screen per page, one component file each, the app state holder. */
+/**
+ * §16.5's paths: `App.kt`, `Navigation.kt`, `AppHost.kt`, one screen per page, one component file
+ * each, and the app state holder.
+ *
+ * `Navigation.kt` and `AppHost.kt` are planned whatever the document declares, because both are
+ * what a handler's call needs to exist: a `nav.navigate` names `Route`, a `ui.showSnackbar` names
+ * `SnackbarHost`, and an empty interface is the cheapest of the three that compiles.
+ */
 public fun planDocument(document: ResolvedDocument, basePackage: String): GenPlan {
     val files: MutableList<PlannedFile> = mutableListOf()
     files += PlannedFile("App.kt", basePackage, PlannedFileKind.App, null, null)
+    files += PlannedFile("Navigation.kt", basePackage, PlannedFileKind.Navigation, null, null)
+    files += PlannedFile("AppHost.kt", basePackage, PlannedFileKind.AppHost, null, null)
     // The app-state holder is a file of its own only when something declares app state: an
     // empty class and a local nobody reads would compile and prove nothing.
     if (document.appState.isNotEmpty()) {

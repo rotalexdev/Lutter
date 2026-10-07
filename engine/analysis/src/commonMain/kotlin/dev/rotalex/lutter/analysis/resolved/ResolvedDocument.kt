@@ -1,5 +1,6 @@
 package dev.rotalex.lutter.analysis.resolved
 
+import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
@@ -25,6 +26,11 @@ public data class ResolvedPage(
  * [nodes] indexes every tree node by id for callers that address nodes rather than walk.
  * [appState] and [componentState] are §12.1's other two scopes, attached beside the page one
  * rather than gathered into one map because each is reached through a different owner.
+ *
+ * [hostFunctions] is §11.6's declarations, carried rather than re-read from the document: §4.5's
+ * single lowering pipeline leaves codegen no route to `UiDocument`, and a generated `AppHost` is
+ * a member per declaration while `host.call` must know whether each one suspends. A default keeps
+ * every existing construction of this type compiling.
  */
 public data class ResolvedDocument(
     public val pages: Map<PageId, ResolvedPage>,
@@ -33,4 +39,5 @@ public data class ResolvedDocument(
     public val theme: ResolvedTheme,
     public val appState: List<ResolvedState> = emptyList(),
     public val componentState: Map<ComponentDeclId, List<ResolvedState>> = emptyMap(),
+    public val hostFunctions: List<HostFunctionDecl> = emptyList(),
 )
