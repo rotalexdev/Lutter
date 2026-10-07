@@ -75,19 +75,21 @@ class BuiltinActionSpecsTest {
     }
 
     @Test
-    fun `the typed arguments are the condition, the message, the callee and the page`() {
+    fun `the typed arguments are the condition, the callee, the page and the message`() {
         val declared = schema.actions.all().flatMap { spec -> spec.params.map { it.key to spec.id } }
 
         // The page and the condition are the plan's own examples; a callee is a string because the
         // declaration behind it is one and nothing more constrains it, and a message is a string
         // because that is all a type can say about text. The other two declare none: `nav.back`
         // takes nothing, and `state.set`'s two keys are shapes rather than types, asserted below.
+        // Registry order is the keys' string form, so this is sorted by action id rather than by
+        // argument: `flow.if`, `host.call`, `nav.navigate`, then `ui.showSnackbar`.
         assertEquals(
             listOf(
                 PropertyKey("cond") to ActionId("flow.if"),
-                PropertyKey("message") to ActionId("ui.showSnackbar"),
                 PropertyKey("name") to ActionId("host.call"),
                 PropertyKey("page") to ActionId("nav.navigate"),
+                PropertyKey("message") to ActionId("ui.showSnackbar"),
             ),
             declared,
         )
