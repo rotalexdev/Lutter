@@ -40,9 +40,9 @@ import kotlin.test.assertTrue
  *
  * Each rule carries the document that breaks it and the document that does not, because a pass
  * that only proves what it refuses cannot be told apart from one that refuses everything. The
- * negatives are the load-bearing half: `ui.showSnackbar` still declares nothing and no section
- * names its argument keys, so a handler passing it arguments is legal and stays so — while
- * `state.set`'s two keys are declared as shapes, and every key but those two is now refused.
+ * negatives are the load-bearing half: only `nav.back` declares nothing, so a handler passing it a
+ * key is legal and stays so — while `state.set`'s two keys are declared as shapes, and every key
+ * but those two is now refused.
  */
 class ActionPassTest {
 
@@ -79,9 +79,9 @@ class ActionPassTest {
     @Test
     fun `an action declaring no argument accepts a key nothing names`() {
         // The other half of the rule above: a spec that declares nothing closes nothing, because
-        // no section names `ui.showSnackbar`'s keys and §11.4 admits the document anyway.
-        val message = mapOf(PropertyKey("message") to constOf(Value.Str("saved")))
-        assertClean(field { handler(step("ui.showSnackbar", args = message)) })
+        // `nav.back` takes no argument and §11.4 admits a document that passes it one anyway.
+        val spurious = mapOf(PropertyKey("spurious") to constOf(Value.Str("x")))
+        assertClean(field { handler(step("nav.back", args = spurious)) })
     }
 
     // ---------------------------------------------------------------------------------

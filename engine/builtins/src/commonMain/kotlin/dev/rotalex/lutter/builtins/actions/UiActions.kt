@@ -1,25 +1,34 @@
 package dev.rotalex.lutter.builtins.actions
 
 import dev.rotalex.lutter.model.ids.ActionId
+import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.schema.action.ActionEmit
 import dev.rotalex.lutter.schema.action.ActionMetadata
 import dev.rotalex.lutter.schema.action.ActionSpec
+import dev.rotalex.lutter.schema.component.prop
 
 /**
- * §11.4's `ui.showSnackbar`, the MVP's only presentation action.
+ * `ui.showSnackbar`, the MVP's only presentation action.
  *
- * It declares no parameter, and §11.4 is the whole of what the plan says about it: the id appears
- * in §11.4's MVP list and in §31.2's, and in neither §11.5's list of what codegen emits nor
- * §33.4's `IntrinsicHandlers.kt` row. §11.3's `ActionEnv` offers `scope`, `state`, `navigator`,
- * `dialogs` and `host`, and a snackbar is not a dialog, so where it is raised from is still open.
+ * The plan names the id and says nothing about what it carries, so `message` is this module's
+ * decision rather than a reading of a section: a snackbar with no text is not one, and a string
+ * is all a type can say about text — the same reason `flow.if`'s condition is a parameter, which
+ * is also what gives the analysis pass its typecheck for free.
  */
 public object UiActions {
 
-    /** `ui.showSnackbar`: §11.4 names the id and nothing about its arguments. */
+    /**
+     * `ui.showSnackbar`: one required message.
+     *
+     * A parameter rather than a shape because `TypeRef.Str` says what a message is. Nothing else
+     * belongs to the document: the length, the action behind the message and its dismissal are
+     * not a document's to write, because a snackbar answers nothing and there is no reply a step
+     * could read.
+     */
     public val showSnackbar: ActionSpec = ActionSpec(
         id = ActionId("ui.showSnackbar"),
         metadata = ActionMetadata("Show snackbar"),
-        params = emptyList(),
+        params = listOf(prop<Nothing>("message", TypeRef.Str, required = true)),
         emit = ActionEmit.Intrinsic,
     )
 

@@ -40,7 +40,7 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
  * runs over a handler today.
  *
  * **Two lists of arguments, and the gap between them is closed by shape.** §11.3 makes `params`
- * the typed half; only `ui.showSnackbar` declares none, so a key no declaration names is a finding
+ * the typed half; only `nav.back` declares none, so a key no declaration names is a finding
  * only where the spec declares something at all. `state.set`'s two keys are in `argRules` because
  * the target is a read of a state and the value is typed by the declaration that read names; a
  * host call's `args` is in there for the same reason, typed position by position by the
@@ -250,8 +250,8 @@ private class Walk(
             when {
                 rule != null -> checkRule(step, rule, actual, target, host, here, event, scope)
                 typeRef != null -> checkArgument(key, actual, typeRef, here, event, scope)
-                // A spec that declares nothing closes nothing: no section names `ui.showSnackbar`'s
-                // keys, so refusing one would refuse a document §11.4 admits.
+                // A spec that declares nothing closes nothing: only `nav.back` takes no argument,
+                // so refusing a key there would refuse a document §11.4 admits.
                 page != null -> found += refusal(
                     here, event, DiagnosticCodes.NavArgsMismatch,
                     "Argument '${key.value}' is not a parameter of page '${page.id}'",

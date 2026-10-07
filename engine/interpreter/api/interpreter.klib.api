@@ -19,6 +19,8 @@ abstract interface dev.rotalex.lutter.interpreter.action/ActionEnv { // dev.rota
         abstract fun <get-navigator>(): dev.rotalex.lutter.interpreter.env/Navigator // dev.rotalex.lutter.interpreter.action/ActionEnv.navigator.<get-navigator>|<get-navigator>(){}[0]
     abstract val scope // dev.rotalex.lutter.interpreter.action/ActionEnv.scope|{}scope[0]
         abstract fun <get-scope>(): dev.rotalex.lutter.interpreter/EvalScope // dev.rotalex.lutter.interpreter.action/ActionEnv.scope.<get-scope>|<get-scope>(){}[0]
+    abstract val snackbars // dev.rotalex.lutter.interpreter.action/ActionEnv.snackbars|{}snackbars[0]
+        abstract fun <get-snackbars>(): dev.rotalex.lutter.interpreter.env/SnackbarHost // dev.rotalex.lutter.interpreter.action/ActionEnv.snackbars.<get-snackbars>|<get-snackbars>(){}[0]
     abstract val state // dev.rotalex.lutter.interpreter.action/ActionEnv.state|{}state[0]
         abstract fun <get-state>(): dev.rotalex.lutter.interpreter/StateWriter // dev.rotalex.lutter.interpreter.action/ActionEnv.state.<get-state>|<get-state>(){}[0]
 }
@@ -37,6 +39,15 @@ abstract interface dev.rotalex.lutter.interpreter.env/DialogHost { // dev.rotale
 abstract interface dev.rotalex.lutter.interpreter.env/Navigator { // dev.rotalex.lutter.interpreter.env/Navigator|null[0]
     abstract fun back(): kotlin/Boolean // dev.rotalex.lutter.interpreter.env/Navigator.back|back(){}[0]
     abstract fun navigate(dev.rotalex.lutter.model.ids/PageId, kotlin.collections/Map<dev.rotalex.lutter.model.ids/ParamName, dev.rotalex.lutter.model.value/Value>) // dev.rotalex.lutter.interpreter.env/Navigator.navigate|navigate(dev.rotalex.lutter.model.ids.PageId;kotlin.collections.Map<dev.rotalex.lutter.model.ids.ParamName,dev.rotalex.lutter.model.value.Value>){}[0]
+}
+
+abstract interface dev.rotalex.lutter.interpreter.env/SnackbarHost { // dev.rotalex.lutter.interpreter.env/SnackbarHost|null[0]
+    abstract fun show(kotlin/String) // dev.rotalex.lutter.interpreter.env/SnackbarHost.show|show(kotlin.String){}[0]
+
+    final object Companion { // dev.rotalex.lutter.interpreter.env/SnackbarHost.Companion|null[0]
+        final val None // dev.rotalex.lutter.interpreter.env/SnackbarHost.Companion.None|{}None[0]
+            final fun <get-None>(): dev.rotalex.lutter.interpreter.env/SnackbarHost // dev.rotalex.lutter.interpreter.env/SnackbarHost.Companion.None.<get-None>|<get-None>(){}[0]
+    }
 }
 
 abstract interface dev.rotalex.lutter.interpreter/EvalScope { // dev.rotalex.lutter.interpreter/EvalScope|null[0]

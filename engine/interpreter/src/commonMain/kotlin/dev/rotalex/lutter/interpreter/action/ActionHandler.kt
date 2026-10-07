@@ -9,6 +9,7 @@ import dev.rotalex.lutter.interpreter.StateWriter
 import dev.rotalex.lutter.interpreter.env.DialogHost
 import dev.rotalex.lutter.interpreter.env.HostFunctions
 import dev.rotalex.lutter.interpreter.env.Navigator
+import dev.rotalex.lutter.interpreter.env.SnackbarHost
 import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
 
@@ -50,12 +51,14 @@ public typealias SequenceRunner = suspend (ActionSequence) -> ActionOutcome
  *
  * [dialogs] carries a slot no MVP action writes to: dialog actions arrive after the MVP, and
  * declaring the slot now is what keeps a later dialog action from changing this signature.
+ * [snackbars] is the other presentation slot, and unlike [dialogs] the MVP does write to it.
  */
 public interface ActionEnv {
     public val scope: EvalScope
     public val state: StateWriter
     public val navigator: Navigator
     public val dialogs: DialogHost
+    public val snackbars: SnackbarHost
     public val host: HostFunctions
 }
 
