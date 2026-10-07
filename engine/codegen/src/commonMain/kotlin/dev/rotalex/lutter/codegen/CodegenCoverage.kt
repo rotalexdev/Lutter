@@ -2,6 +2,8 @@ package dev.rotalex.lutter.codegen
 
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.schema.SchemaView
+import dev.rotalex.lutter.schema.action.ActionEmit
+import dev.rotalex.lutter.schema.action.ActionSpec
 import dev.rotalex.lutter.schema.component.CodegenBinding
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.ValueEmit
@@ -19,12 +21,33 @@ public object CodegenCoverage {
         schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
         extensions: CodegenExtensions = CodegenExtensions.None,
     ): Unit {
-        val missing = schema.components.all().mapNotNull { spec -> problem(spec, extensions) }
+        val missing = schema.components.all().mapNotNull { spec -> problem(spec, extensions) } +
+            actionProblems(schema)
         if (missing.isNotEmpty()) {
             throw IllegalStateException(
                 "Codegen has no binding for " + missing.joinToString { "'${it.first}': ${it.second}" },
             )
         }
+    }
+
+    /**
+     * An action that claims engine-owned emission must find an emitter for its id.
+     *
+     * The same lift to build time the component rules make, over the one gap they cannot: the
+     * generator throws for an intrinsic action nothing emits, so a schema carrying one would fail
+     * on its first document instead of on its construction.
+     */
+    private fun actionProblems(schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>): List<Pair<String, String>> {
+        val missing = mutableListOf<Pair<String, String>>()
+        for (registered in schema.actions.all()) {
+            // An assembly binding a stub in the actions slot has no spec to read, and the action
+            // pass already reports a step such a schema cannot describe as an unknown action.
+            val spec = registered as? ActionSpec ?: continue
+            if (spec.emit !is ActionEmit.Intrinsic) continue
+            if (IntrinsicActions.kindOf(spec.id) != null) continue
+            missing += spec.id.value to "emits nothing yet"
+        }
+        return missing
     }
 
     private fun problem(

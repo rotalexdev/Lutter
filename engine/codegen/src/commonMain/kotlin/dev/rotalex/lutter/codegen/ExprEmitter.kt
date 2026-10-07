@@ -45,6 +45,16 @@ public class ExprEmitter(
     /** [typed] as a Kotlin expression, or a [CodegenBug] naming what has no spelling. */
     public fun emit(typed: TypedExpr): KtExpr = emitExpr(typed.expr)
 
+    /**
+     * [expr] as a Kotlin expression without a checked wrapper around it.
+     *
+     * An action argument arrives as the document wrote it: the resolved node carries the sequence
+     * untouched, so no [TypedExpr] was ever attached to one. The check happened anyway — the
+     * action pass typechecks every argument against its spec before generation runs — and what is
+     * missing here is the record of it, not the verdict.
+     */
+    public fun emitRaw(expr: Expr): KtExpr = emitExpr(expr)
+
     private fun emitExpr(expr: Expr): KtExpr = when (expr) {
         is Expr.Const -> literal(expr.value)
         is Expr.Ref -> reference(expr.target)
