@@ -19,6 +19,7 @@ import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.action.ActionEmit
 import dev.rotalex.lutter.schema.action.ActionSpec
+import dev.rotalex.lutter.schema.action.ArgRule
 import dev.rotalex.lutter.schema.action.ArgShape
 import dev.rotalex.lutter.schema.action.BranchSpec
 import dev.rotalex.lutter.schema.component.KotlinSymbol
@@ -54,6 +55,14 @@ public class ActionEmitter(
     private val options: CodegenOptions,
     private val found: MutableList<Diagnostic>,
 ) {
+
+    /**
+     * What the sequences emitted since the last drain need imported.
+     *
+     * Drained by the generator, which owns the file: a `Template`'s imports belong to its pattern
+     * and cannot be recovered from the statement it produced.
+     */
+    public val imports: MutableList<KotlinSymbol> = mutableListOf()
 
     private val route: KotlinSymbol = KotlinSymbol(options.basePackage, "Route")
 
@@ -258,16 +267,18 @@ public class ActionEmitter(
      * document, and no declaration in reach means nothing says whether the call may suspend.
      */
     private fun callHost(step: ActionStep, spec: ActionSpec, at: DiagnosticLocation): Emitted? {
-        val list: ArgShape.Positional = positionalRule(spec, at) ?: return null
+        val rule: ArgRule = positionalRule(spec, at) ?: return null
+        val list: ArgShape.Positional = rule.shape as ArgShape.Positional
         val name: String = calleeName(step, list, at) ?: return null
         val declaration: HostFunctionDecl = declarationOf(name, at) ?: return null
-        val arguments: List<KtArg> = argumentsOf(step, list.callee, at) ?: return null
+        // The rule's own key, not the shape's `callee`: the callee names the function, this names
+        // the list of arguments handed to it.
+        val arguments: List<KtArg> = argumentsOf(step, rule.key, at) ?: return null
         return Emitted(KtStmt.Expr(on("host", name, arguments)), declaration.suspend)
     }
 
-    private fun positionalRule(spec: ActionSpec, at: DiagnosticLocation): ArgShape.Positional? {
-        val shapes: List<ArgShape.Positional> = spec.argRules.mapNotNull { it.shape as? ArgShape.Positional }
-        val rule: ArgShape.Positional? = shapes.firstOrNull()
+    private fun positionalRule(spec: ActionSpec, at: DiagnosticLocation): ArgRule? {
+        val rule: ArgRule? = spec.argRules.firstOrNull { it.shape is ArgShape.Positional }
         if (rule == null) {
             refuse(
                 DiagnosticCodes.CodegenStrategyUnsupported,
@@ -549,4 +560,15 @@ internal enum class ActionKind {
 }
 
 /** One step's statement, and whether reaching that statement suspends. */
-private class Emitted(val statement: KtStmt, val suspends: Boolean = false)
+/**
+ * One step's emission.
+ *
+ * [symbols] travels with the statement because a `Template` action's imports are part of its
+ * emission: the pattern is text, so nothing in the emitted expression names the symbols it needs
+ * and the printer has no way to find them by walking the tree.
+ */
+private class Emitted(
+    val statement: KtStmt,
+    val suspends: Boolean = false,
+    val symbols: List<KotlinSymbol> = emptyList(),
+)
