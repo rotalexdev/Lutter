@@ -65,7 +65,14 @@ public data class BranchSpec(
 public sealed interface ActionEmit {
     public data object Intrinsic : ActionEmit
 
-    /** Plugin-owned emission: fill [pattern]'s `{key}` placeholders, adding [imports]. */
+    /**
+     * Plugin-owned emission: fill [pattern]'s `{key}` placeholders, adding [imports].
+     *
+     * A placeholder is replaced by the argument's **rendered literal**, so it belongs outside any
+     * punctuation the pattern supplies: `Arrangement.spacedBy({spacing})`, and
+     * `Analytics.track({event})` rather than `Analytics.track("{event}")` — the latter doubles the
+     * quotes and emits code that does not compile, with nothing to report it.
+     */
     public data class Template(
         public val pattern: String,
         public val imports: List<KotlinSymbol> = emptyList(),
