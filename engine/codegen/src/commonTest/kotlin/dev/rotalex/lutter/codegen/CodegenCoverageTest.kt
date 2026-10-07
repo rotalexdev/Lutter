@@ -133,7 +133,7 @@ class CodegenCoverageTest {
     }
 
     @Test
-    fun `events fail until they emit`() {
+    fun `an event binding the spec does not declare fails`() {
         val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
             Schema.build {
                 component(

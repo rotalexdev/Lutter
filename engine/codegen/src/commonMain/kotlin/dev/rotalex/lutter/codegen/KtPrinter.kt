@@ -388,15 +388,22 @@ public class KtPrinter(
         if (trailing != null) append(renderLambda(trailing, indent, aliases))
     }
 
+    // The parameters between the brace and the arrow: a handler lambda declares the ones its
+    // component's parameter passes it, and an empty body with a parameter is `{ p -> }`.
     private fun renderLambda(
         lambda: KtExpr.Lambda,
         indent: Int,
         aliases: Map<String, String>,
     ): String = buildString {
+        val head: String =
+            if (lambda.params.isEmpty()) "" else " " + lambda.params.joinToString(", ") + " ->"
         if (lambda.body.isEmpty()) {
-            append(" {}")
+            // No parameters means no head, and `{ }` inside `} else { }` reads as two tokens where
+            // one was written. A lambda that declares parameters and does nothing keeps its head:
+            // `{ pressed -> }` is the only way to name them at all.
+            append(if (head.isEmpty()) " {}" else " {" + head + " }")
         } else {
-            append(" {\n")
+            append(" {" + head + "\n")
             for (stmt in lambda.body) append(renderStmt(stmt, indent + 1, aliases) + "\n")
             append(indentOf(indent) + "}")
         }

@@ -15,8 +15,9 @@ import dev.rotalex.lutter.schema.component.componentSpec
 /**
  * The `m3.Button` spec: one label slot and one declared press, no properties of its own.
  *
- * `onClick` is declared but not bound: PLAN §30 carries the handler in the document's
- * `events`, and `CodegenCoverage` refuses a binding carrying events until Phase 7 emits them.
+ * `onClick` is bound because Compose declares `onClick` with no default, so a button whose
+ * handler the document wrote has nowhere to put it and one whose document did not has a call
+ * that does not compile.
  */
 public object ButtonSpec {
     /** The label. Exactly one, per PLAN §30.4; the row scope is what `Button` puts there. */
@@ -26,7 +27,7 @@ public object ButtonSpec {
         provides = setOf(LayoutScopes.Row),
     )
 
-    /** The press. Declared so the name is a spec fact; no binding or renderer reads it. */
+    /** The press, which a document names in the node's events and the binding receives. */
     public val onClick: EventSpec = EventSpec(EventKey("onClick"))
 
     /** The spec renderers, validation and codegen share. */
@@ -35,6 +36,7 @@ public object ButtonSpec {
         event(onClick)
         slot(content)
         composeCall(KotlinSymbol("androidx.compose.material3", "Button")) {
+            event(onClick, "onClick")
             slot("content", LambdaTarget.Trailing)
         }
     }
