@@ -177,32 +177,38 @@ public class KotlinGenerator<A : Any, T : Any>(
 
     // AppRoot hosts the first page by id; routing waits for a navigation strategy.
     private fun emitApp(document: ResolvedDocument): KtFile? {
-        if (screenReceivers.isNotEmpty()) {
-            refuse(
-                DiagnosticCodes.CodegenStrategyUnsupported,
-                DiagnosticLocation(),
-                "A screen needs " + screenReceivers.map { it.member }.sorted().joinToString(", ") +
-                    " from its caller, and AppRoot has no value to pass yet",
-            )
-            return null
-        }
         val first: ResolvedPage? = document.pages.entries.sortedBy { it.key.value }
             .map { it.value }.firstOrNull()
         val body: List<KtStmt> = if (first == null) {
             emptyList()
         } else {
             val screen: KotlinSymbol = KotlinSymbol(options.basePackage + ".screens", first.name + "Screen")
+            // What the screens need is passed on rather than refused: §11.6 already routes the
+            // generated `AppHost` through `AppRoot(host = …)`, so the composition supplies these
+            // and `AppRoot` hands each one down by the name the screen declares.
+            val forwarded: MutableList<KtArg> = screenReceivers
+                .filter { it.type != null }
+                .sortedBy { it.member }
+                .mapTo(mutableListOf()) { receiver ->
+                    KtArg(receiver.member, KtExpr.Name(receiver.member))
+                }
             val call: KtStmt = KtStmt.Expr(
                 KtExpr.Call(
                     KtExpr.Ref(KtSymbolRef(screen)),
-                    listOf(KtArg("modifier", KtExpr.Name("modifier"))),
+                    forwarded + KtArg("modifier", KtExpr.Name("modifier")),
                 ),
             )
             // §12.1's app row wraps the whole tree; with no app state the screen composes bare.
             stateEmitter()?.appProvider(call) ?: listOf(call)
         }
         val function: KtDeclaration.Function =
-            KtDeclaration.Function("AppRoot", listOf(composable), null, listOf(modifierParam()), body)
+            KtDeclaration.Function(
+                "AppRoot",
+                listOf(composable),
+                null,
+                environmentParams(screenReceivers) + listOf(modifierParam()),
+                body,
+            )
         return KtFile(options.basePackage, headerText(), listOf(function))
     }
 
@@ -285,7 +291,7 @@ public class KotlinGenerator<A : Any, T : Any>(
      */
     private fun environmentParams(reads: Set<ActionReceiver>): List<KtParam> =
         reads.filter { it.type != null }
-            .sortedBy { it.name }
+            .sortedBy { it.member }
             .map { receiver ->
                 KtParam(receiver.member, KotlinSymbol(options.basePackage, checkNotNull(receiver.type)), null)
             }

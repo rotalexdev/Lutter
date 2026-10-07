@@ -244,14 +244,16 @@ class CodegenTest {
     }
 
     @Test
-    fun `a screen needing an environment refuses rather than emitting an AppRoot that cannot call it`() {
-        // `AppRoot` is printed first but written last, so it can see what the screens demand. It
-        // has no value to supply yet, and a call missing a required argument is worse than a
-        // finding: the finding names the receiver, the broken call only fails to compile.
+    fun `AppRoot forwards what the screens need and receives it itself`() {
+        // `AppRoot` is printed first but written last, so it learns the screens' demand from them.
+        // §11.6 already routes the generated `AppHost` through `AppRoot(host = …)`, so the
+        // composition supplies these and each one is handed down under the name the screen declares.
         val result = eventResult(iconButtonNode(navigateStep()), iconButtonStub())
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val app = result.files.files.single { it.path == "App.kt" }.content
 
-        assertTrue(result.files.files.isEmpty())
-        assertEquals(listOf("codegen.strategy_unsupported"), result.diagnostics.map { it.code.value })
+        assertTrue(app.contains("navigator: AppNavigator"), app)
+        assertTrue(app.contains("HomeScreen(navigator = navigator"), app)
     }
 
     @Test

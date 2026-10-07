@@ -398,7 +398,10 @@ public class KtPrinter(
         val head: String =
             if (lambda.params.isEmpty()) "" else " " + lambda.params.joinToString(", ") + " ->"
         if (lambda.body.isEmpty()) {
-            append(" {" + head + " }")
+            // No parameters means no head, and `{ }` inside `} else { }` reads as two tokens where
+            // one was written. A lambda that declares parameters and does nothing keeps its head:
+            // `{ pressed -> }` is the only way to name them at all.
+            append(if (head.isEmpty()) " {}" else " {" + head + " }")
         } else {
             append(" {" + head + "\n")
             for (stmt in lambda.body) append(renderStmt(stmt, indent + 1, aliases) + "\n")
