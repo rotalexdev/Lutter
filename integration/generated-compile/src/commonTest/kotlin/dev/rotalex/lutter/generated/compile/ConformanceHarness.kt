@@ -65,13 +65,20 @@ internal object ConformanceHarness {
     fun environment(): RuntimeEnvironment =
         RuntimeEnvironment(navigator = TestNavigator, diagnostics = {})
 
-    /** The fixture decoded and analyzed, diagnostics included for the tests to assert on. */
+    /**
+     * The fixture decoded and analyzed, diagnostics included for the tests to assert on.
+     *
+     * [documents] names the generated constants to read from. It is a parameter because the
+     * fixtures are generated into two objects: a screen whose handlers read a receiver takes it
+     * as a parameter no registry entry can supply, so those fixtures get no registry entry.
+     */
     fun analyze(
         schema: Schema<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec>,
         id: String,
+        documents: (String) -> String = FixtureDocuments::json,
     ): AnalysisResult {
         val document: UiDocument =
-            JsonDocumentCodec.decode(FixtureDocuments.json(id).encodeToByteArray()).document
+            JsonDocumentCodec.decode(documents(id).encodeToByteArray()).document
         return Analyzer(schema).analyze(document)
     }
 
