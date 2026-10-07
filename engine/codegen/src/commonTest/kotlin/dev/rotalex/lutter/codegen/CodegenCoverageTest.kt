@@ -1,10 +1,15 @@
 package dev.rotalex.lutter.codegen
 
+import dev.rotalex.lutter.model.ids.ActionId
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.schema.Schema
+import dev.rotalex.lutter.schema.action.ActionEmit
+import dev.rotalex.lutter.schema.action.ActionMetadata
+import dev.rotalex.lutter.schema.action.ActionSpec
+import dev.rotalex.lutter.schema.action.action
 import dev.rotalex.lutter.schema.component.Cardinality
 import dev.rotalex.lutter.schema.component.Category
 import dev.rotalex.lutter.schema.component.ComponentSpec
@@ -147,6 +152,25 @@ class CodegenCoverageTest {
         assertTrue(failure.message?.contains("test.Column") == true, "got: ${failure.message}")
     }
 
+    @Test
+    fun `the six MVP actions pass because every one of them has an emitter`() {
+        CodegenCoverage.check(actionSchema(mvpActions))
+    }
+
+    @Test
+    fun `an intrinsic action with no emitter fails naming it`() {
+        val failure = assertFailsWith<IllegalStateException> {
+            CodegenCoverage.check(actionSchema(mvpActions + "nav.goto"))
+        }
+
+        assertTrue(failure.message?.contains("nav.goto") == true, "got: ${failure.message}")
+    }
+
+    @Test
+    fun `a plugin action carrying its own pattern needs no emitter`() {
+        CodegenCoverage.check(actionSchema(mvpActions + "analytics.log"))
+    }
+
     private fun boundSchema(ghost: Boolean = false): Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
         Schema.build {
             component(
@@ -183,4 +207,33 @@ class CodegenCoverageTest {
 
     private fun componentMetadata(): ComponentMetadata =
         ComponentMetadata("Custom", Category.Basic)
+
+    private val mvpActions: List<String> =
+        listOf("flow.if", "host.call", "nav.back", "nav.navigate", "state.set", "ui.showSnackbar")
+
+    /**
+     * A schema whose actions are named by id, and intrinsic unless the id is the plugin one.
+     *
+     * Coverage reads the emission kind off the spec and the emitter off the id, so an id is all a
+     * test has to give it; `analytics.log` stands for the shape that ships a pattern instead.
+     */
+    private fun actionSchema(
+        ids: List<String>,
+    ): Schema<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, String> = Schema.build {
+        for (id in ids) {
+            val emit: ActionEmit = if (id == "analytics.log") {
+                ActionEmit.Template("Analytics.track(\"{event}\")")
+            } else {
+                ActionEmit.Intrinsic
+            }
+            action(
+                ActionSpec(
+                    id = ActionId(id),
+                    metadata = ActionMetadata(id),
+                    params = emptyList(),
+                    emit = emit,
+                ),
+            )
+        }
+    }
 }
