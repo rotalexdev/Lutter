@@ -504,7 +504,7 @@ public class ActionEmitter(
     // closed over is recorded: the receiver name is a free identifier the screen must supply.
     private fun on(receiver: ActionReceiver, member: String, args: List<KtArg> = emptyList()): KtExpr.Call {
         reads += receiver
-        return KtExpr.Call(KtExpr.Member(KtExpr.Name(receiver.name), member), args)
+        return KtExpr.Call(KtExpr.Member(KtExpr.Name(receiver.member), member), args)
     }
 
     /**
