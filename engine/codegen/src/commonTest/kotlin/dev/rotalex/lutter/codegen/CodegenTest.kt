@@ -244,6 +244,17 @@ class CodegenTest {
     }
 
     @Test
+    fun `a screen needing an environment refuses rather than emitting an AppRoot that cannot call it`() {
+        // `AppRoot` is printed first but written last, so it can see what the screens demand. It
+        // has no value to supply yet, and a call missing a required argument is worse than a
+        // finding: the finding names the receiver, the broken call only fails to compile.
+        val result = eventResult(iconButtonNode(navigateStep()), iconButtonStub())
+
+        assertTrue(result.files.files.isEmpty())
+        assertEquals(listOf("codegen.strategy_unsupported"), result.diagnostics.map { it.code.value })
+    }
+
+    @Test
     fun `a refused step leaves exactly one finding`() {
         val dangling: PageId = PageId("p_nowhere")
         val result = eventResult(iconButtonNode(navigateStep(dangling)), iconButtonStub())

@@ -106,7 +106,20 @@ public class KotlinGenerator<A : Any, T : Any>(
         refuseCollisions(plan)
         val files: MutableList<GeneratedFile> = mutableListOf()
         if (diagnostics.none { it.severity == Severity.Error }) {
-            for (planned in plan.files) emitPlanned(planned, document)?.let { files += it }
+            // `App.kt` is planned first and printed first, but it calls every screen, so it has to
+            // be written last: what those screens need from their caller is only known once they
+            // have been emitted. The output order stays the plan's, so nothing downstream of this
+            // sees a different file list.
+            val written: MutableMap<String, GeneratedFile> = LinkedHashMap()
+            for (planned in plan.files) {
+                if (planned.kind == PlannedFileKind.App) continue
+                emitPlanned(planned, document)?.let { written[it.path] = it }
+            }
+            for (planned in plan.files) {
+                if (planned.kind != PlannedFileKind.App) continue
+                emitPlanned(planned, document)?.let { written[it.path] = it }
+            }
+            for (planned in plan.files) written[planned.path]?.let { files += it }
         }
         if (diagnostics.any { it.severity == Severity.Error }) {
             return CodegenResult(GeneratedFiles(emptyList()), incoming + diagnostics)
@@ -164,6 +177,15 @@ public class KotlinGenerator<A : Any, T : Any>(
 
     // AppRoot hosts the first page by id; routing waits for a navigation strategy.
     private fun emitApp(document: ResolvedDocument): KtFile? {
+        if (screenReceivers.isNotEmpty()) {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                DiagnosticLocation(),
+                "A screen needs " + screenReceivers.map { it.name }.sorted().joinToString(", ") +
+                    " from its caller, and AppRoot has no value to pass yet",
+            )
+            return null
+        }
         val first: ResolvedPage? = document.pages.entries.sortedBy { it.key.value }
             .map { it.value }.firstOrNull()
         val body: List<KtStmt> = if (first == null) {
@@ -236,7 +258,21 @@ public class KotlinGenerator<A : Any, T : Any>(
     }
 
     /** The receivers the handlers in the file just written closed over, emptied by reading. */
-    private fun drainReads(): Set<ActionReceiver> = actionEmitter()?.drainReads() ?: emptySet()
+    private fun drainReads(): Set<ActionReceiver> {
+        val drained: Set<ActionReceiver> = actionEmitter()?.drainReads() ?: emptySet()
+        screenReceivers.addAll(drained)
+        return drained
+    }
+
+    /**
+     * What every screen written so far needs its caller to supply.
+     *
+     * `AppRoot` is emitted before the screens, so it learns their demand from them and cannot
+     * supply it: a receiver whose declaration is generated (PLAN §16.5's `AppNavigator`,
+     * `AppHost`, `SnackbarHost`) has no value here yet. Rather than emit a call that does not
+     * compile, a document needing one is refused.
+     */
+    private val screenReceivers: MutableSet<ActionReceiver> = mutableSetOf()
 
     private fun actionEmitter(): ActionEmitter? = actions
 
