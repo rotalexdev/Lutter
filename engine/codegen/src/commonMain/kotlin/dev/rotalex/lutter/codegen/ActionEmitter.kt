@@ -33,7 +33,7 @@ import dev.rotalex.lutter.schema.registry.Registry
  */
 public fun interface HostDecl {
 
-    /** What [name] declares, or null when no declaration is in reach. */
+    /** What [member] declares, or null when no declaration is in reach. */
     public fun declaration(name: String): HostFunctionDecl?
 }
 
@@ -591,7 +591,7 @@ internal enum class ActionKind {
  * one that comes from the composition rather than from a parameter — so the vocabulary is one
  * list and no caller has to remember which of the four is the odd one out.
  */
-internal enum class ActionReceiver(val name: String, val type: String?) {
+internal enum class ActionReceiver(val member: String, val type: String?) {
     Navigator("navigator", "AppNavigator"),
     Snackbars("snackbars", "SnackbarHost"),
     Host("host", "AppHost"),

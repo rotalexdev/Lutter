@@ -181,7 +181,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             refuse(
                 DiagnosticCodes.CodegenStrategyUnsupported,
                 DiagnosticLocation(),
-                "A screen needs " + screenReceivers.map { it.name }.sorted().joinToString(", ") +
+                "A screen needs " + screenReceivers.map { it.member }.sorted().joinToString(", ") +
                     " from its caller, and AppRoot has no value to pass yet",
             )
             return null
@@ -287,7 +287,7 @@ public class KotlinGenerator<A : Any, T : Any>(
         reads.filter { it.type != null }
             .sortedBy { it.name }
             .map { receiver ->
-                KtParam(receiver.name, KotlinSymbol(options.basePackage, checkNotNull(receiver.type)), null)
+                KtParam(receiver.member, KotlinSymbol(options.basePackage, checkNotNull(receiver.type)), null)
             }
 
     /**
@@ -300,7 +300,7 @@ public class KotlinGenerator<A : Any, T : Any>(
         if (ActionReceiver.Scope !in reads) return emptyList()
         return listOf(
             KtStmt.LocalProperty(
-                name = ActionReceiver.Scope.name,
+                member = ActionReceiver.Scope.member,
                 type = null,
                 mutable = false,
                 initializer = KtExpr.Call(KtExpr.Ref(KtSymbolRef(rememberCoroutineScope)), emptyList()),
@@ -733,6 +733,16 @@ public class KotlinGenerator<A : Any, T : Any>(
             DiagnosticLocation(nodeId = node.id),
             message + " at '" + node.id + "'",
         )
+    }
+
+    /**
+     * The same refusal for a fault about the document rather than about one node.
+     *
+     * A file with no node of its own — `App.kt`, `Navigation.kt` — has nowhere to point, so the
+     * location is the caller's and the message stands on its own without a node to name.
+     */
+    private fun refuse(code: DiagnosticCode, at: DiagnosticLocation, message: String): Unit {
+        diagnostics += Diagnostic(Severity.Error, code, at, message)
     }
 
     private class KeptParam(val binding: ParamBinding, val present: List<PropertyKey>)
