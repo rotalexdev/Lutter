@@ -109,7 +109,7 @@ class StateFixtureTest {
         val files = generate(FIXTURE)
 
         assertEquals(
-            listOf("App.kt", "screens/HomeScreen.kt", "state/AppState.kt"),
+            listOf("App.kt", "AppHost.kt", "Navigation.kt", "screens/HomeScreen.kt", "state/AppState.kt"),
             files.files.files.map { it.path },
         )
         val holder = files.content("state/AppState.kt")
@@ -130,7 +130,10 @@ class StateFixtureTest {
     fun `a document with no app state keeps AppRoot unwrapped and its screen unparameterised`() {
         val files = generate("column_text")
 
-        assertEquals(listOf("App.kt", "screens/HomeScreen.kt"), files.files.files.map { it.path })
+        assertEquals(
+            listOf("App.kt", "AppHost.kt", "Navigation.kt", "screens/HomeScreen.kt"),
+            files.files.files.map { it.path },
+        )
         val root = files.content("App.kt")
         val screen = files.content("screens/HomeScreen.kt")
         assertTrue(!root.contains("CompositionLocalProvider"), root)

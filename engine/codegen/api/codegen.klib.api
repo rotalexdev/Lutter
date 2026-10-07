@@ -6,6 +6,23 @@
 // - Show declarations: true
 
 // Library unique name: <dev.rotalex.lutter:codegen>
+final enum class dev.rotalex.lutter.codegen/ActionReceiver : kotlin/Enum<dev.rotalex.lutter.codegen/ActionReceiver> { // dev.rotalex.lutter.codegen/ActionReceiver|null[0]
+    enum entry Host // dev.rotalex.lutter.codegen/ActionReceiver.Host|null[0]
+    enum entry Navigator // dev.rotalex.lutter.codegen/ActionReceiver.Navigator|null[0]
+    enum entry Scope // dev.rotalex.lutter.codegen/ActionReceiver.Scope|null[0]
+    enum entry Snackbars // dev.rotalex.lutter.codegen/ActionReceiver.Snackbars|null[0]
+
+    final val entries // dev.rotalex.lutter.codegen/ActionReceiver.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<dev.rotalex.lutter.codegen/ActionReceiver> // dev.rotalex.lutter.codegen/ActionReceiver.entries.<get-entries>|<get-entries>#static(){}[0]
+    final val member // dev.rotalex.lutter.codegen/ActionReceiver.member|{}member[0]
+        final fun <get-member>(): kotlin/String // dev.rotalex.lutter.codegen/ActionReceiver.member.<get-member>|<get-member>(){}[0]
+    final val type // dev.rotalex.lutter.codegen/ActionReceiver.type|{}type[0]
+        final fun <get-type>(): kotlin/String? // dev.rotalex.lutter.codegen/ActionReceiver.type.<get-type>|<get-type>(){}[0]
+
+    final fun valueOf(kotlin/String): dev.rotalex.lutter.codegen/ActionReceiver // dev.rotalex.lutter.codegen/ActionReceiver.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<dev.rotalex.lutter.codegen/ActionReceiver> // dev.rotalex.lutter.codegen/ActionReceiver.values|values#static(){}[0]
+}
+
 final enum class dev.rotalex.lutter.codegen/GeneratedLayout : kotlin/Enum<dev.rotalex.lutter.codegen/GeneratedLayout> { // dev.rotalex.lutter.codegen/GeneratedLayout|null[0]
     enum entry Standard // dev.rotalex.lutter.codegen/GeneratedLayout.Standard|null[0]
 
@@ -52,8 +69,10 @@ final enum class dev.rotalex.lutter.codegen/KtOp : kotlin/Enum<dev.rotalex.lutte
 
 final enum class dev.rotalex.lutter.codegen/PlannedFileKind : kotlin/Enum<dev.rotalex.lutter.codegen/PlannedFileKind> { // dev.rotalex.lutter.codegen/PlannedFileKind|null[0]
     enum entry App // dev.rotalex.lutter.codegen/PlannedFileKind.App|null[0]
+    enum entry AppHost // dev.rotalex.lutter.codegen/PlannedFileKind.AppHost|null[0]
     enum entry AppState // dev.rotalex.lutter.codegen/PlannedFileKind.AppState|null[0]
     enum entry Component // dev.rotalex.lutter.codegen/PlannedFileKind.Component|null[0]
+    enum entry Navigation // dev.rotalex.lutter.codegen/PlannedFileKind.Navigation|null[0]
     enum entry Screen // dev.rotalex.lutter.codegen/PlannedFileKind.Screen|null[0]
 
     final val entries // dev.rotalex.lutter.codegen/PlannedFileKind.entries|#static{}entries[0]
@@ -87,6 +106,12 @@ abstract fun interface dev.rotalex.lutter.codegen/StateRead { // dev.rotalex.lut
     abstract fun read(dev.rotalex.lutter.model.ids/StateId): dev.rotalex.lutter.codegen/KtExpr? // dev.rotalex.lutter.codegen/StateRead.read|read(dev.rotalex.lutter.model.ids.StateId){}[0]
 }
 
+abstract interface dev.rotalex.lutter.codegen/NavigationStrategy { // dev.rotalex.lutter.codegen/NavigationStrategy|null[0]
+    abstract fun emitAppRoot(dev.rotalex.lutter.analysis.resolved/ResolvedDocument, dev.rotalex.lutter.codegen/FileContext): dev.rotalex.lutter.codegen/KtFile // dev.rotalex.lutter.codegen/NavigationStrategy.emitAppRoot|emitAppRoot(dev.rotalex.lutter.analysis.resolved.ResolvedDocument;dev.rotalex.lutter.codegen.FileContext){}[0]
+    abstract fun emitNavigateCall(dev.rotalex.lutter.analysis.resolved/ResolvedPage, kotlin.collections/List<dev.rotalex.lutter.codegen/KtExpr>): dev.rotalex.lutter.codegen/KtStmt // dev.rotalex.lutter.codegen/NavigationStrategy.emitNavigateCall|emitNavigateCall(dev.rotalex.lutter.analysis.resolved.ResolvedPage;kotlin.collections.List<dev.rotalex.lutter.codegen.KtExpr>){}[0]
+    abstract fun emitRoutes(kotlin.collections/List<dev.rotalex.lutter.analysis.resolved/ResolvedPage>, dev.rotalex.lutter.codegen/FileContext): kotlin.collections/List<dev.rotalex.lutter.codegen/KtDeclaration> // dev.rotalex.lutter.codegen/NavigationStrategy.emitRoutes|emitRoutes(kotlin.collections.List<dev.rotalex.lutter.analysis.resolved.ResolvedPage>;dev.rotalex.lutter.codegen.FileContext){}[0]
+}
+
 abstract interface dev.rotalex.lutter.codegen/StateStrategy { // dev.rotalex.lutter.codegen/StateStrategy|null[0]
     abstract fun holder(dev.rotalex.lutter.codegen/StateScope, dev.rotalex.lutter.codegen/KtExpr): dev.rotalex.lutter.codegen/KtExpr // dev.rotalex.lutter.codegen/StateStrategy.holder|holder(dev.rotalex.lutter.codegen.StateScope;dev.rotalex.lutter.codegen.KtExpr){}[0]
     abstract fun receiver(dev.rotalex.lutter.codegen/StateScope, dev.rotalex.lutter.schema.component/KotlinSymbol): dev.rotalex.lutter.codegen/KtExpr? // dev.rotalex.lutter.codegen/StateStrategy.receiver|receiver(dev.rotalex.lutter.codegen.StateScope;dev.rotalex.lutter.schema.component.KotlinSymbol){}[0]
@@ -95,10 +120,12 @@ abstract interface dev.rotalex.lutter.codegen/StateStrategy { // dev.rotalex.lut
 
 sealed interface dev.rotalex.lutter.codegen/KtDeclaration { // dev.rotalex.lutter.codegen/KtDeclaration|null[0]
     final class Class : dev.rotalex.lutter.codegen/KtDeclaration { // dev.rotalex.lutter.codegen/KtDeclaration.Class|null[0]
-        constructor <init>(kotlin/String, kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol>, kotlin.collections/List<dev.rotalex.lutter.codegen/KtDeclaration>) // dev.rotalex.lutter.codegen/KtDeclaration.Class.<init>|<init>(kotlin.String;kotlin.collections.List<dev.rotalex.lutter.schema.component.KotlinSymbol>;kotlin.collections.List<dev.rotalex.lutter.codegen.KtDeclaration>){}[0]
+        constructor <init>(kotlin/String, kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol>, kotlin.collections/List<dev.rotalex.lutter.codegen/KtDeclaration>, kotlin.collections/List<dev.rotalex.lutter.codegen/KtDeclaration.Property> = ...) // dev.rotalex.lutter.codegen/KtDeclaration.Class.<init>|<init>(kotlin.String;kotlin.collections.List<dev.rotalex.lutter.schema.component.KotlinSymbol>;kotlin.collections.List<dev.rotalex.lutter.codegen.KtDeclaration>;kotlin.collections.List<dev.rotalex.lutter.codegen.KtDeclaration.Property>){}[0]
 
         final val annotations // dev.rotalex.lutter.codegen/KtDeclaration.Class.annotations|{}annotations[0]
             final fun <get-annotations>(): kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> // dev.rotalex.lutter.codegen/KtDeclaration.Class.annotations.<get-annotations>|<get-annotations>(){}[0]
+        final val constructorProperties // dev.rotalex.lutter.codegen/KtDeclaration.Class.constructorProperties|{}constructorProperties[0]
+            final fun <get-constructorProperties>(): kotlin.collections/List<dev.rotalex.lutter.codegen/KtDeclaration.Property> // dev.rotalex.lutter.codegen/KtDeclaration.Class.constructorProperties.<get-constructorProperties>|<get-constructorProperties>(){}[0]
         final val members // dev.rotalex.lutter.codegen/KtDeclaration.Class.members|{}members[0]
             final fun <get-members>(): kotlin.collections/List<dev.rotalex.lutter.codegen/KtDeclaration> // dev.rotalex.lutter.codegen/KtDeclaration.Class.members.<get-members>|<get-members>(){}[0]
         final val name // dev.rotalex.lutter.codegen/KtDeclaration.Class.name|{}name[0]
@@ -107,14 +134,15 @@ sealed interface dev.rotalex.lutter.codegen/KtDeclaration { // dev.rotalex.lutte
         final fun component1(): kotlin/String // dev.rotalex.lutter.codegen/KtDeclaration.Class.component1|component1(){}[0]
         final fun component2(): kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> // dev.rotalex.lutter.codegen/KtDeclaration.Class.component2|component2(){}[0]
         final fun component3(): kotlin.collections/List<dev.rotalex.lutter.codegen/KtDeclaration> // dev.rotalex.lutter.codegen/KtDeclaration.Class.component3|component3(){}[0]
-        final fun copy(kotlin/String = ..., kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> = ..., kotlin.collections/List<dev.rotalex.lutter.codegen/KtDeclaration> = ...): dev.rotalex.lutter.codegen/KtDeclaration.Class // dev.rotalex.lutter.codegen/KtDeclaration.Class.copy|copy(kotlin.String;kotlin.collections.List<dev.rotalex.lutter.schema.component.KotlinSymbol>;kotlin.collections.List<dev.rotalex.lutter.codegen.KtDeclaration>){}[0]
+        final fun component4(): kotlin.collections/List<dev.rotalex.lutter.codegen/KtDeclaration.Property> // dev.rotalex.lutter.codegen/KtDeclaration.Class.component4|component4(){}[0]
+        final fun copy(kotlin/String = ..., kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> = ..., kotlin.collections/List<dev.rotalex.lutter.codegen/KtDeclaration> = ..., kotlin.collections/List<dev.rotalex.lutter.codegen/KtDeclaration.Property> = ...): dev.rotalex.lutter.codegen/KtDeclaration.Class // dev.rotalex.lutter.codegen/KtDeclaration.Class.copy|copy(kotlin.String;kotlin.collections.List<dev.rotalex.lutter.schema.component.KotlinSymbol>;kotlin.collections.List<dev.rotalex.lutter.codegen.KtDeclaration>;kotlin.collections.List<dev.rotalex.lutter.codegen.KtDeclaration.Property>){}[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.codegen/KtDeclaration.Class.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // dev.rotalex.lutter.codegen/KtDeclaration.Class.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // dev.rotalex.lutter.codegen/KtDeclaration.Class.toString|toString(){}[0]
     }
 
     final class Function : dev.rotalex.lutter.codegen/KtDeclaration { // dev.rotalex.lutter.codegen/KtDeclaration.Function|null[0]
-        constructor <init>(kotlin/String, kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol>, dev.rotalex.lutter.codegen/KtExpr?, kotlin.collections/List<dev.rotalex.lutter.codegen/KtParam>, kotlin.collections/List<dev.rotalex.lutter.codegen/KtStmt>) // dev.rotalex.lutter.codegen/KtDeclaration.Function.<init>|<init>(kotlin.String;kotlin.collections.List<dev.rotalex.lutter.schema.component.KotlinSymbol>;dev.rotalex.lutter.codegen.KtExpr?;kotlin.collections.List<dev.rotalex.lutter.codegen.KtParam>;kotlin.collections.List<dev.rotalex.lutter.codegen.KtStmt>){}[0]
+        constructor <init>(kotlin/String, kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol>, dev.rotalex.lutter.codegen/KtExpr?, kotlin.collections/List<dev.rotalex.lutter.codegen/KtParam>, kotlin.collections/List<dev.rotalex.lutter.codegen/KtStmt>, kotlin/Boolean = ...) // dev.rotalex.lutter.codegen/KtDeclaration.Function.<init>|<init>(kotlin.String;kotlin.collections.List<dev.rotalex.lutter.schema.component.KotlinSymbol>;dev.rotalex.lutter.codegen.KtExpr?;kotlin.collections.List<dev.rotalex.lutter.codegen.KtParam>;kotlin.collections.List<dev.rotalex.lutter.codegen.KtStmt>;kotlin.Boolean){}[0]
 
         final val annotations // dev.rotalex.lutter.codegen/KtDeclaration.Function.annotations|{}annotations[0]
             final fun <get-annotations>(): kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> // dev.rotalex.lutter.codegen/KtDeclaration.Function.annotations.<get-annotations>|<get-annotations>(){}[0]
@@ -124,6 +152,8 @@ sealed interface dev.rotalex.lutter.codegen/KtDeclaration { // dev.rotalex.lutte
             final fun <get-name>(): kotlin/String // dev.rotalex.lutter.codegen/KtDeclaration.Function.name.<get-name>|<get-name>(){}[0]
         final val params // dev.rotalex.lutter.codegen/KtDeclaration.Function.params|{}params[0]
             final fun <get-params>(): kotlin.collections/List<dev.rotalex.lutter.codegen/KtParam> // dev.rotalex.lutter.codegen/KtDeclaration.Function.params.<get-params>|<get-params>(){}[0]
+        final val suspending // dev.rotalex.lutter.codegen/KtDeclaration.Function.suspending|{}suspending[0]
+            final fun <get-suspending>(): kotlin/Boolean // dev.rotalex.lutter.codegen/KtDeclaration.Function.suspending.<get-suspending>|<get-suspending>(){}[0]
         final val type // dev.rotalex.lutter.codegen/KtDeclaration.Function.type|{}type[0]
             final fun <get-type>(): dev.rotalex.lutter.codegen/KtExpr? // dev.rotalex.lutter.codegen/KtDeclaration.Function.type.<get-type>|<get-type>(){}[0]
 
@@ -132,14 +162,59 @@ sealed interface dev.rotalex.lutter.codegen/KtDeclaration { // dev.rotalex.lutte
         final fun component3(): dev.rotalex.lutter.codegen/KtExpr? // dev.rotalex.lutter.codegen/KtDeclaration.Function.component3|component3(){}[0]
         final fun component4(): kotlin.collections/List<dev.rotalex.lutter.codegen/KtParam> // dev.rotalex.lutter.codegen/KtDeclaration.Function.component4|component4(){}[0]
         final fun component5(): kotlin.collections/List<dev.rotalex.lutter.codegen/KtStmt> // dev.rotalex.lutter.codegen/KtDeclaration.Function.component5|component5(){}[0]
-        final fun copy(kotlin/String = ..., kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> = ..., dev.rotalex.lutter.codegen/KtExpr? = ..., kotlin.collections/List<dev.rotalex.lutter.codegen/KtParam> = ..., kotlin.collections/List<dev.rotalex.lutter.codegen/KtStmt> = ...): dev.rotalex.lutter.codegen/KtDeclaration.Function // dev.rotalex.lutter.codegen/KtDeclaration.Function.copy|copy(kotlin.String;kotlin.collections.List<dev.rotalex.lutter.schema.component.KotlinSymbol>;dev.rotalex.lutter.codegen.KtExpr?;kotlin.collections.List<dev.rotalex.lutter.codegen.KtParam>;kotlin.collections.List<dev.rotalex.lutter.codegen.KtStmt>){}[0]
+        final fun component6(): kotlin/Boolean // dev.rotalex.lutter.codegen/KtDeclaration.Function.component6|component6(){}[0]
+        final fun copy(kotlin/String = ..., kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> = ..., dev.rotalex.lutter.codegen/KtExpr? = ..., kotlin.collections/List<dev.rotalex.lutter.codegen/KtParam> = ..., kotlin.collections/List<dev.rotalex.lutter.codegen/KtStmt> = ..., kotlin/Boolean = ...): dev.rotalex.lutter.codegen/KtDeclaration.Function // dev.rotalex.lutter.codegen/KtDeclaration.Function.copy|copy(kotlin.String;kotlin.collections.List<dev.rotalex.lutter.schema.component.KotlinSymbol>;dev.rotalex.lutter.codegen.KtExpr?;kotlin.collections.List<dev.rotalex.lutter.codegen.KtParam>;kotlin.collections.List<dev.rotalex.lutter.codegen.KtStmt>;kotlin.Boolean){}[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.codegen/KtDeclaration.Function.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // dev.rotalex.lutter.codegen/KtDeclaration.Function.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // dev.rotalex.lutter.codegen/KtDeclaration.Function.toString|toString(){}[0]
     }
 
+    final class Interface : dev.rotalex.lutter.codegen/KtDeclaration { // dev.rotalex.lutter.codegen/KtDeclaration.Interface|null[0]
+        constructor <init>(kotlin/String, kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol>, kotlin/Boolean, kotlin.collections/List<dev.rotalex.lutter.codegen/KtDeclaration>) // dev.rotalex.lutter.codegen/KtDeclaration.Interface.<init>|<init>(kotlin.String;kotlin.collections.List<dev.rotalex.lutter.schema.component.KotlinSymbol>;kotlin.Boolean;kotlin.collections.List<dev.rotalex.lutter.codegen.KtDeclaration>){}[0]
+
+        final val annotations // dev.rotalex.lutter.codegen/KtDeclaration.Interface.annotations|{}annotations[0]
+            final fun <get-annotations>(): kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> // dev.rotalex.lutter.codegen/KtDeclaration.Interface.annotations.<get-annotations>|<get-annotations>(){}[0]
+        final val members // dev.rotalex.lutter.codegen/KtDeclaration.Interface.members|{}members[0]
+            final fun <get-members>(): kotlin.collections/List<dev.rotalex.lutter.codegen/KtDeclaration> // dev.rotalex.lutter.codegen/KtDeclaration.Interface.members.<get-members>|<get-members>(){}[0]
+        final val name // dev.rotalex.lutter.codegen/KtDeclaration.Interface.name|{}name[0]
+            final fun <get-name>(): kotlin/String // dev.rotalex.lutter.codegen/KtDeclaration.Interface.name.<get-name>|<get-name>(){}[0]
+        final val sealed // dev.rotalex.lutter.codegen/KtDeclaration.Interface.sealed|{}sealed[0]
+            final fun <get-sealed>(): kotlin/Boolean // dev.rotalex.lutter.codegen/KtDeclaration.Interface.sealed.<get-sealed>|<get-sealed>(){}[0]
+
+        final fun component1(): kotlin/String // dev.rotalex.lutter.codegen/KtDeclaration.Interface.component1|component1(){}[0]
+        final fun component2(): kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> // dev.rotalex.lutter.codegen/KtDeclaration.Interface.component2|component2(){}[0]
+        final fun component3(): kotlin/Boolean // dev.rotalex.lutter.codegen/KtDeclaration.Interface.component3|component3(){}[0]
+        final fun component4(): kotlin.collections/List<dev.rotalex.lutter.codegen/KtDeclaration> // dev.rotalex.lutter.codegen/KtDeclaration.Interface.component4|component4(){}[0]
+        final fun copy(kotlin/String = ..., kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> = ..., kotlin/Boolean = ..., kotlin.collections/List<dev.rotalex.lutter.codegen/KtDeclaration> = ...): dev.rotalex.lutter.codegen/KtDeclaration.Interface // dev.rotalex.lutter.codegen/KtDeclaration.Interface.copy|copy(kotlin.String;kotlin.collections.List<dev.rotalex.lutter.schema.component.KotlinSymbol>;kotlin.Boolean;kotlin.collections.List<dev.rotalex.lutter.codegen.KtDeclaration>){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.codegen/KtDeclaration.Interface.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // dev.rotalex.lutter.codegen/KtDeclaration.Interface.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // dev.rotalex.lutter.codegen/KtDeclaration.Interface.toString|toString(){}[0]
+    }
+
+    final class Object : dev.rotalex.lutter.codegen/KtDeclaration { // dev.rotalex.lutter.codegen/KtDeclaration.Object|null[0]
+        constructor <init>(kotlin/String, kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol>, kotlin/Boolean, kotlin.collections/List<dev.rotalex.lutter.codegen/KtExpr>) // dev.rotalex.lutter.codegen/KtDeclaration.Object.<init>|<init>(kotlin.String;kotlin.collections.List<dev.rotalex.lutter.schema.component.KotlinSymbol>;kotlin.Boolean;kotlin.collections.List<dev.rotalex.lutter.codegen.KtExpr>){}[0]
+
+        final val annotations // dev.rotalex.lutter.codegen/KtDeclaration.Object.annotations|{}annotations[0]
+            final fun <get-annotations>(): kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> // dev.rotalex.lutter.codegen/KtDeclaration.Object.annotations.<get-annotations>|<get-annotations>(){}[0]
+        final val data // dev.rotalex.lutter.codegen/KtDeclaration.Object.data|{}data[0]
+            final fun <get-data>(): kotlin/Boolean // dev.rotalex.lutter.codegen/KtDeclaration.Object.data.<get-data>|<get-data>(){}[0]
+        final val name // dev.rotalex.lutter.codegen/KtDeclaration.Object.name|{}name[0]
+            final fun <get-name>(): kotlin/String // dev.rotalex.lutter.codegen/KtDeclaration.Object.name.<get-name>|<get-name>(){}[0]
+        final val supertypes // dev.rotalex.lutter.codegen/KtDeclaration.Object.supertypes|{}supertypes[0]
+            final fun <get-supertypes>(): kotlin.collections/List<dev.rotalex.lutter.codegen/KtExpr> // dev.rotalex.lutter.codegen/KtDeclaration.Object.supertypes.<get-supertypes>|<get-supertypes>(){}[0]
+
+        final fun component1(): kotlin/String // dev.rotalex.lutter.codegen/KtDeclaration.Object.component1|component1(){}[0]
+        final fun component2(): kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> // dev.rotalex.lutter.codegen/KtDeclaration.Object.component2|component2(){}[0]
+        final fun component3(): kotlin/Boolean // dev.rotalex.lutter.codegen/KtDeclaration.Object.component3|component3(){}[0]
+        final fun component4(): kotlin.collections/List<dev.rotalex.lutter.codegen/KtExpr> // dev.rotalex.lutter.codegen/KtDeclaration.Object.component4|component4(){}[0]
+        final fun copy(kotlin/String = ..., kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> = ..., kotlin/Boolean = ..., kotlin.collections/List<dev.rotalex.lutter.codegen/KtExpr> = ...): dev.rotalex.lutter.codegen/KtDeclaration.Object // dev.rotalex.lutter.codegen/KtDeclaration.Object.copy|copy(kotlin.String;kotlin.collections.List<dev.rotalex.lutter.schema.component.KotlinSymbol>;kotlin.Boolean;kotlin.collections.List<dev.rotalex.lutter.codegen.KtExpr>){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.codegen/KtDeclaration.Object.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // dev.rotalex.lutter.codegen/KtDeclaration.Object.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // dev.rotalex.lutter.codegen/KtDeclaration.Object.toString|toString(){}[0]
+    }
+
     final class Property : dev.rotalex.lutter.codegen/KtDeclaration { // dev.rotalex.lutter.codegen/KtDeclaration.Property|null[0]
-        constructor <init>(kotlin/String, kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol>, dev.rotalex.lutter.codegen/KtExpr?, kotlin/Boolean, dev.rotalex.lutter.codegen/KtExpr?, dev.rotalex.lutter.codegen/KtExpr?, dev.rotalex.lutter.codegen/KtExpr?) // dev.rotalex.lutter.codegen/KtDeclaration.Property.<init>|<init>(kotlin.String;kotlin.collections.List<dev.rotalex.lutter.schema.component.KotlinSymbol>;dev.rotalex.lutter.codegen.KtExpr?;kotlin.Boolean;dev.rotalex.lutter.codegen.KtExpr?;dev.rotalex.lutter.codegen.KtExpr?;dev.rotalex.lutter.codegen.KtExpr?){}[0]
+        constructor <init>(kotlin/String, kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol>, dev.rotalex.lutter.codegen/KtExpr?, kotlin/Boolean, dev.rotalex.lutter.codegen/KtExpr?, dev.rotalex.lutter.codegen/KtExpr?, dev.rotalex.lutter.codegen/KtExpr?, kotlin/String? = ...) // dev.rotalex.lutter.codegen/KtDeclaration.Property.<init>|<init>(kotlin.String;kotlin.collections.List<dev.rotalex.lutter.schema.component.KotlinSymbol>;dev.rotalex.lutter.codegen.KtExpr?;kotlin.Boolean;dev.rotalex.lutter.codegen.KtExpr?;dev.rotalex.lutter.codegen.KtExpr?;dev.rotalex.lutter.codegen.KtExpr?;kotlin.String?){}[0]
 
         final val annotations // dev.rotalex.lutter.codegen/KtDeclaration.Property.annotations|{}annotations[0]
             final fun <get-annotations>(): kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> // dev.rotalex.lutter.codegen/KtDeclaration.Property.annotations.<get-annotations>|<get-annotations>(){}[0]
@@ -155,6 +230,8 @@ sealed interface dev.rotalex.lutter.codegen/KtDeclaration { // dev.rotalex.lutte
             final fun <get-name>(): kotlin/String // dev.rotalex.lutter.codegen/KtDeclaration.Property.name.<get-name>|<get-name>(){}[0]
         final val type // dev.rotalex.lutter.codegen/KtDeclaration.Property.type|{}type[0]
             final fun <get-type>(): dev.rotalex.lutter.codegen/KtExpr? // dev.rotalex.lutter.codegen/KtDeclaration.Property.type.<get-type>|<get-type>(){}[0]
+        final val visibility // dev.rotalex.lutter.codegen/KtDeclaration.Property.visibility|{}visibility[0]
+            final fun <get-visibility>(): kotlin/String? // dev.rotalex.lutter.codegen/KtDeclaration.Property.visibility.<get-visibility>|<get-visibility>(){}[0]
 
         final fun component1(): kotlin/String // dev.rotalex.lutter.codegen/KtDeclaration.Property.component1|component1(){}[0]
         final fun component2(): kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> // dev.rotalex.lutter.codegen/KtDeclaration.Property.component2|component2(){}[0]
@@ -163,7 +240,8 @@ sealed interface dev.rotalex.lutter.codegen/KtDeclaration { // dev.rotalex.lutte
         final fun component5(): dev.rotalex.lutter.codegen/KtExpr? // dev.rotalex.lutter.codegen/KtDeclaration.Property.component5|component5(){}[0]
         final fun component6(): dev.rotalex.lutter.codegen/KtExpr? // dev.rotalex.lutter.codegen/KtDeclaration.Property.component6|component6(){}[0]
         final fun component7(): dev.rotalex.lutter.codegen/KtExpr? // dev.rotalex.lutter.codegen/KtDeclaration.Property.component7|component7(){}[0]
-        final fun copy(kotlin/String = ..., kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> = ..., dev.rotalex.lutter.codegen/KtExpr? = ..., kotlin/Boolean = ..., dev.rotalex.lutter.codegen/KtExpr? = ..., dev.rotalex.lutter.codegen/KtExpr? = ..., dev.rotalex.lutter.codegen/KtExpr? = ...): dev.rotalex.lutter.codegen/KtDeclaration.Property // dev.rotalex.lutter.codegen/KtDeclaration.Property.copy|copy(kotlin.String;kotlin.collections.List<dev.rotalex.lutter.schema.component.KotlinSymbol>;dev.rotalex.lutter.codegen.KtExpr?;kotlin.Boolean;dev.rotalex.lutter.codegen.KtExpr?;dev.rotalex.lutter.codegen.KtExpr?;dev.rotalex.lutter.codegen.KtExpr?){}[0]
+        final fun component8(): kotlin/String? // dev.rotalex.lutter.codegen/KtDeclaration.Property.component8|component8(){}[0]
+        final fun copy(kotlin/String = ..., kotlin.collections/List<dev.rotalex.lutter.schema.component/KotlinSymbol> = ..., dev.rotalex.lutter.codegen/KtExpr? = ..., kotlin/Boolean = ..., dev.rotalex.lutter.codegen/KtExpr? = ..., dev.rotalex.lutter.codegen/KtExpr? = ..., dev.rotalex.lutter.codegen/KtExpr? = ..., kotlin/String? = ...): dev.rotalex.lutter.codegen/KtDeclaration.Property // dev.rotalex.lutter.codegen/KtDeclaration.Property.copy|copy(kotlin.String;kotlin.collections.List<dev.rotalex.lutter.schema.component.KotlinSymbol>;dev.rotalex.lutter.codegen.KtExpr?;kotlin.Boolean;dev.rotalex.lutter.codegen.KtExpr?;dev.rotalex.lutter.codegen.KtExpr?;dev.rotalex.lutter.codegen.KtExpr?;kotlin.String?){}[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.codegen/KtDeclaration.Property.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // dev.rotalex.lutter.codegen/KtDeclaration.Property.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // dev.rotalex.lutter.codegen/KtDeclaration.Property.toString|toString(){}[0]
@@ -518,14 +596,6 @@ sealed interface dev.rotalex.lutter.codegen/KtTemplatePart { // dev.rotalex.lutt
     }
 }
 
-sealed interface dev.rotalex.lutter.codegen/NavigationStrategy { // dev.rotalex.lutter.codegen/NavigationStrategy|null[0]
-    final object SimpleBackStack : dev.rotalex.lutter.codegen/NavigationStrategy { // dev.rotalex.lutter.codegen/NavigationStrategy.SimpleBackStack|null[0]
-        final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.codegen/NavigationStrategy.SimpleBackStack.equals|equals(kotlin.Any?){}[0]
-        final fun hashCode(): kotlin/Int // dev.rotalex.lutter.codegen/NavigationStrategy.SimpleBackStack.hashCode|hashCode(){}[0]
-        final fun toString(): kotlin/String // dev.rotalex.lutter.codegen/NavigationStrategy.SimpleBackStack.toString|toString(){}[0]
-    }
-}
-
 sealed interface dev.rotalex.lutter.codegen/TypeSpelling { // dev.rotalex.lutter.codegen/TypeSpelling|null[0]
     final class Spelled : dev.rotalex.lutter.codegen/TypeSpelling { // dev.rotalex.lutter.codegen/TypeSpelling.Spelled|null[0]
         constructor <init>(dev.rotalex.lutter.codegen/KtExpr) // dev.rotalex.lutter.codegen/TypeSpelling.Spelled.<init>|<init>(dev.rotalex.lutter.codegen.KtExpr){}[0]
@@ -637,6 +707,19 @@ final class dev.rotalex.lutter.codegen/ExprEmitter { // dev.rotalex.lutter.codeg
 
     final fun emit(dev.rotalex.lutter.model.expr/TypedExpr): dev.rotalex.lutter.codegen/KtExpr // dev.rotalex.lutter.codegen/ExprEmitter.emit|emit(dev.rotalex.lutter.model.expr.TypedExpr){}[0]
     final fun emitRaw(dev.rotalex.lutter.model.expr/Expr): dev.rotalex.lutter.codegen/KtExpr // dev.rotalex.lutter.codegen/ExprEmitter.emitRaw|emitRaw(dev.rotalex.lutter.model.expr.Expr){}[0]
+}
+
+final class dev.rotalex.lutter.codegen/FileContext { // dev.rotalex.lutter.codegen/FileContext|null[0]
+    constructor <init>(kotlin/String, kotlin/String?, kotlin.collections/List<dev.rotalex.lutter.codegen/ActionReceiver>, kotlin/Function1<dev.rotalex.lutter.codegen/KtStmt, kotlin.collections/List<dev.rotalex.lutter.codegen/KtStmt>>) // dev.rotalex.lutter.codegen/FileContext.<init>|<init>(kotlin.String;kotlin.String?;kotlin.collections.List<dev.rotalex.lutter.codegen.ActionReceiver>;kotlin.Function1<dev.rotalex.lutter.codegen.KtStmt,kotlin.collections.List<dev.rotalex.lutter.codegen.KtStmt>>){}[0]
+
+    final val appState // dev.rotalex.lutter.codegen/FileContext.appState|{}appState[0]
+        final fun <get-appState>(): kotlin/Function1<dev.rotalex.lutter.codegen/KtStmt, kotlin.collections/List<dev.rotalex.lutter.codegen/KtStmt>> // dev.rotalex.lutter.codegen/FileContext.appState.<get-appState>|<get-appState>(){}[0]
+    final val header // dev.rotalex.lutter.codegen/FileContext.header|{}header[0]
+        final fun <get-header>(): kotlin/String? // dev.rotalex.lutter.codegen/FileContext.header.<get-header>|<get-header>(){}[0]
+    final val pkg // dev.rotalex.lutter.codegen/FileContext.pkg|{}pkg[0]
+        final fun <get-pkg>(): kotlin/String // dev.rotalex.lutter.codegen/FileContext.pkg.<get-pkg>|<get-pkg>(){}[0]
+    final val receivers // dev.rotalex.lutter.codegen/FileContext.receivers|{}receivers[0]
+        final fun <get-receivers>(): kotlin.collections/List<dev.rotalex.lutter.codegen/ActionReceiver> // dev.rotalex.lutter.codegen/FileContext.receivers.<get-receivers>|<get-receivers>(){}[0]
 }
 
 final class dev.rotalex.lutter.codegen/FormattingOptions { // dev.rotalex.lutter.codegen/FormattingOptions|null[0]
@@ -774,19 +857,19 @@ final class dev.rotalex.lutter.codegen/KtFile { // dev.rotalex.lutter.codegen/Kt
 }
 
 final class dev.rotalex.lutter.codegen/KtParam { // dev.rotalex.lutter.codegen/KtParam|null[0]
-    constructor <init>(kotlin/String, dev.rotalex.lutter.schema.component/KotlinSymbol, dev.rotalex.lutter.codegen/KtExpr?) // dev.rotalex.lutter.codegen/KtParam.<init>|<init>(kotlin.String;dev.rotalex.lutter.schema.component.KotlinSymbol;dev.rotalex.lutter.codegen.KtExpr?){}[0]
+    constructor <init>(kotlin/String, dev.rotalex.lutter.codegen/KtExpr, dev.rotalex.lutter.codegen/KtExpr?) // dev.rotalex.lutter.codegen/KtParam.<init>|<init>(kotlin.String;dev.rotalex.lutter.codegen.KtExpr;dev.rotalex.lutter.codegen.KtExpr?){}[0]
 
     final val default // dev.rotalex.lutter.codegen/KtParam.default|{}default[0]
         final fun <get-default>(): dev.rotalex.lutter.codegen/KtExpr? // dev.rotalex.lutter.codegen/KtParam.default.<get-default>|<get-default>(){}[0]
     final val name // dev.rotalex.lutter.codegen/KtParam.name|{}name[0]
         final fun <get-name>(): kotlin/String // dev.rotalex.lutter.codegen/KtParam.name.<get-name>|<get-name>(){}[0]
     final val type // dev.rotalex.lutter.codegen/KtParam.type|{}type[0]
-        final fun <get-type>(): dev.rotalex.lutter.schema.component/KotlinSymbol // dev.rotalex.lutter.codegen/KtParam.type.<get-type>|<get-type>(){}[0]
+        final fun <get-type>(): dev.rotalex.lutter.codegen/KtExpr // dev.rotalex.lutter.codegen/KtParam.type.<get-type>|<get-type>(){}[0]
 
     final fun component1(): kotlin/String // dev.rotalex.lutter.codegen/KtParam.component1|component1(){}[0]
-    final fun component2(): dev.rotalex.lutter.schema.component/KotlinSymbol // dev.rotalex.lutter.codegen/KtParam.component2|component2(){}[0]
+    final fun component2(): dev.rotalex.lutter.codegen/KtExpr // dev.rotalex.lutter.codegen/KtParam.component2|component2(){}[0]
     final fun component3(): dev.rotalex.lutter.codegen/KtExpr? // dev.rotalex.lutter.codegen/KtParam.component3|component3(){}[0]
-    final fun copy(kotlin/String = ..., dev.rotalex.lutter.schema.component/KotlinSymbol = ..., dev.rotalex.lutter.codegen/KtExpr? = ...): dev.rotalex.lutter.codegen/KtParam // dev.rotalex.lutter.codegen/KtParam.copy|copy(kotlin.String;dev.rotalex.lutter.schema.component.KotlinSymbol;dev.rotalex.lutter.codegen.KtExpr?){}[0]
+    final fun copy(kotlin/String = ..., dev.rotalex.lutter.codegen/KtExpr = ..., dev.rotalex.lutter.codegen/KtExpr? = ...): dev.rotalex.lutter.codegen/KtParam // dev.rotalex.lutter.codegen/KtParam.copy|copy(kotlin.String;dev.rotalex.lutter.codegen.KtExpr;dev.rotalex.lutter.codegen.KtExpr?){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.codegen/KtParam.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // dev.rotalex.lutter.codegen/KtParam.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // dev.rotalex.lutter.codegen/KtParam.toString|toString(){}[0]
@@ -837,6 +920,22 @@ final class dev.rotalex.lutter.codegen/PlannedFile { // dev.rotalex.lutter.codeg
     final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.codegen/PlannedFile.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // dev.rotalex.lutter.codegen/PlannedFile.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // dev.rotalex.lutter.codegen/PlannedFile.toString|toString(){}[0]
+}
+
+final class dev.rotalex.lutter.codegen/SimpleBackStack : dev.rotalex.lutter.codegen/NavigationStrategy { // dev.rotalex.lutter.codegen/SimpleBackStack|null[0]
+    constructor <init>(kotlin/String) // dev.rotalex.lutter.codegen/SimpleBackStack.<init>|<init>(kotlin.String){}[0]
+
+    final val basePackage // dev.rotalex.lutter.codegen/SimpleBackStack.basePackage|{}basePackage[0]
+        final fun <get-basePackage>(): kotlin/String // dev.rotalex.lutter.codegen/SimpleBackStack.basePackage.<get-basePackage>|<get-basePackage>(){}[0]
+
+    final fun component1(): kotlin/String // dev.rotalex.lutter.codegen/SimpleBackStack.component1|component1(){}[0]
+    final fun copy(kotlin/String = ...): dev.rotalex.lutter.codegen/SimpleBackStack // dev.rotalex.lutter.codegen/SimpleBackStack.copy|copy(kotlin.String){}[0]
+    final fun emitAppRoot(dev.rotalex.lutter.analysis.resolved/ResolvedDocument, dev.rotalex.lutter.codegen/FileContext): dev.rotalex.lutter.codegen/KtFile // dev.rotalex.lutter.codegen/SimpleBackStack.emitAppRoot|emitAppRoot(dev.rotalex.lutter.analysis.resolved.ResolvedDocument;dev.rotalex.lutter.codegen.FileContext){}[0]
+    final fun emitNavigateCall(dev.rotalex.lutter.analysis.resolved/ResolvedPage, kotlin.collections/List<dev.rotalex.lutter.codegen/KtExpr>): dev.rotalex.lutter.codegen/KtStmt // dev.rotalex.lutter.codegen/SimpleBackStack.emitNavigateCall|emitNavigateCall(dev.rotalex.lutter.analysis.resolved.ResolvedPage;kotlin.collections.List<dev.rotalex.lutter.codegen.KtExpr>){}[0]
+    final fun emitRoutes(kotlin.collections/List<dev.rotalex.lutter.analysis.resolved/ResolvedPage>, dev.rotalex.lutter.codegen/FileContext): kotlin.collections/List<dev.rotalex.lutter.codegen/KtDeclaration> // dev.rotalex.lutter.codegen/SimpleBackStack.emitRoutes|emitRoutes(kotlin.collections.List<dev.rotalex.lutter.analysis.resolved.ResolvedPage>;dev.rotalex.lutter.codegen.FileContext){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.codegen/SimpleBackStack.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.codegen/SimpleBackStack.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.codegen/SimpleBackStack.toString|toString(){}[0]
 }
 
 final class dev.rotalex.lutter.codegen/StateEmitter { // dev.rotalex.lutter.codegen/StateEmitter|null[0]

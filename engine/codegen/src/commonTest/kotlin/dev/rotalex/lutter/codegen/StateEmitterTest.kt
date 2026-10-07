@@ -222,7 +222,10 @@ class StateEmitterTest {
         val files = generate(pageDocument(emptyList()))
 
         assertTrue(files.diagnostics.isEmpty(), "got ${files.diagnostics}")
-        assertEquals(listOf("App.kt", "screens/HomeScreen.kt"), files.files.files.map { it.path })
+        assertEquals(
+            listOf("App.kt", "AppHost.kt", "Navigation.kt", "screens/HomeScreen.kt"),
+            files.files.files.map { it.path },
+        )
         assertTrue(!content(files, "App.kt").contains("CompositionLocalProvider"), content(files, "App.kt"))
     }
 

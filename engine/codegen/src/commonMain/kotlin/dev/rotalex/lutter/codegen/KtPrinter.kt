@@ -75,6 +75,8 @@ public class KtPrinter(
         is KtDeclaration.Function -> declaration.name
         is KtDeclaration.Property -> declaration.name
         is KtDeclaration.Class -> declaration.name
+        is KtDeclaration.Interface -> declaration.name
+        is KtDeclaration.Object -> declaration.name
     }
 
     // Alias from the owning package's last segment: `material.Text` becomes `MaterialText`.
@@ -99,6 +101,8 @@ public class KtPrinter(
         is KtDeclaration.Function -> renderFunction(declaration, indent, aliases)
         is KtDeclaration.Property -> renderProperty(declaration, indent, aliases)
         is KtDeclaration.Class -> renderClass(declaration, indent, aliases)
+        is KtDeclaration.Interface -> renderInterface(declaration, indent, aliases)
+        is KtDeclaration.Object -> renderObject(declaration, indent, aliases)
     }
 
     /** One `@` line per annotation, sorted by name so two runs over one tree agree. */
@@ -118,7 +122,9 @@ public class KtPrinter(
         aliases: Map<String, String>,
     ): String = buildString {
         append(renderAnnotations(function.annotations, indent, aliases))
-        append(indentOf(indent) + "public fun " + function.name + "(")
+        append(indentOf(indent) + "public ")
+        if (function.suspending) append("suspend ")
+        append("fun " + function.name + "(")
         append(function.params.joinToString(", ") { renderParam(it, aliases) })
         append(")")
         val returned: String = function.type?.let { ": " + renderExpr(it, indent, aliases) } ?: ""
@@ -148,7 +154,8 @@ public class KtPrinter(
                 "Property '" + property.name + "' has an initializer and a delegate; Kotlin allows one",
             )
         }
-        val keyword: String = if (property.mutable) "public var " else "public val "
+        val keyword: String =
+            (property.visibility ?: "public") + " " + if (property.mutable) "var " else "val "
         val declared: String = property.type?.let { ": " + renderExpr(it, indent, aliases) } ?: ""
         val assigned: String = property.initializer?.let { " = " + renderExpr(it, indent, aliases) }
             ?: property.delegate?.let { " by " + renderExpr(it, indent, aliases) }
@@ -168,23 +175,84 @@ public class KtPrinter(
     ): String = buildString {
         append(renderAnnotations(clazz.annotations, indent, aliases))
         append(indentOf(indent) + "public class " + clazz.name)
-        if (clazz.members.isEmpty()) {
-            append(" {}")
-        } else {
-            append(" {\n")
-            for ((index, member) in clazz.members.withIndex()) {
-                if (index > 0) append("\n")
-                append(renderDeclaration(member, indent + 1, aliases) + "\n")
-            }
-            append(indentOf(indent) + "}")
+        append(renderConstructor(clazz, indent, aliases))
+        appendMembers(clazz.members, indent, aliases, this)
+    }
+
+    /** `sealed interface Route`, spelled the same way a class is apart from the keyword. */
+    private fun renderInterface(
+        declaration: KtDeclaration.Interface,
+        indent: Int,
+        aliases: Map<String, String>,
+    ): String = buildString {
+        append(renderAnnotations(declaration.annotations, indent, aliases))
+        append(indentOf(indent) + "public ")
+        if (declaration.sealed) append("sealed ")
+        append("interface " + declaration.name)
+        appendMembers(declaration.members, indent, aliases, this)
+    }
+
+    /** `data object Home : Route`: the keyword, the name, and the supertypes it closes over. */
+    private fun renderObject(
+        declaration: KtDeclaration.Object,
+        indent: Int,
+        aliases: Map<String, String>,
+    ): String = buildString {
+        append(renderAnnotations(declaration.annotations, indent, aliases))
+        append(indentOf(indent) + "public ")
+        if (declaration.data) append("data ")
+        append("object " + declaration.name)
+        if (declaration.supertypes.isNotEmpty()) {
+            append(" : " + declaration.supertypes.joinToString(", ") { renderExpr(it, indent, aliases) })
         }
     }
 
+    private fun appendMembers(
+        members: List<KtDeclaration>,
+        indent: Int,
+        aliases: Map<String, String>,
+        into: StringBuilder,
+    ): Unit {
+        if (members.isEmpty()) {
+            into.append(" {}")
+            return
+        }
+        into.append(" {\n")
+        for ((index, member) in members.withIndex()) {
+            if (index > 0) into.append("\n")
+            into.append(renderDeclaration(member, indent + 1, aliases) + "\n")
+        }
+        into.append(indentOf(indent) + "}")
+    }
+
+    /**
+     * `(private val backStack: MutableList<Route> = …)` in the head, not the body.
+     *
+     * Refuses what a head has nowhere to put: an annotation line and a getter both need a line
+     * of their own, and a constructor has no line of its own to give them.
+     */
+    private fun renderConstructor(
+        clazz: KtDeclaration.Class,
+        indent: Int,
+        aliases: Map<String, String>,
+    ): String {
+        if (clazz.constructorProperties.isEmpty()) return ""
+        for (property in clazz.constructorProperties) {
+            if (property.annotations.isNotEmpty() || property.getter != null) {
+                throw CodegenBug(
+                    "Constructor property '" + property.name +
+                        "' carries an annotation or a getter, and a constructor head has neither",
+                )
+            }
+        }
+        return "(" + clazz.constructorProperties.joinToString(", ") { renderProperty(it, indent, aliases) } + ")"
+    }
+
     private fun renderParam(param: KtParam, aliases: Map<String, String>): String {
-        val type: String = aliases[param.type.fqn()] ?: param.type.name
+        val declared: String = param.name + ": " + renderExpr(param.type, 0, aliases)
         val default: KtExpr? = param.default
-        if (default == null) return param.name + ": " + type
-        return param.name + ": " + type + " = " + renderExpr(default, 0, aliases)
+        if (default == null) return declared
+        return declared + " = " + renderExpr(default, 0, aliases)
     }
 
     private fun renderStmt(stmt: KtStmt, indent: Int, aliases: Map<String, String>): String =
@@ -555,7 +623,7 @@ public class KtPrinter(
             is KtDeclaration.Function -> {
                 declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
                 for (param in declaration.params) {
-                    recordSymbol(param.type, filePkg, seen)
+                    collectExprSymbols(param.type, filePkg, seen)
                     param.default?.let { collectExprSymbols(it, filePkg, seen) }
                 }
                 declaration.body.forEach { collectStmtSymbols(it, filePkg, seen) }
@@ -569,7 +637,18 @@ public class KtPrinter(
             }
             is KtDeclaration.Class -> {
                 declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                declaration.constructorProperties.forEach {
+                    collectDeclarationSymbols(it, filePkg, seen)
+                }
                 declaration.members.forEach { collectDeclarationSymbols(it, filePkg, seen) }
+            }
+            is KtDeclaration.Interface -> {
+                declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                declaration.members.forEach { collectDeclarationSymbols(it, filePkg, seen) }
+            }
+            is KtDeclaration.Object -> {
+                declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                for (supertype in declaration.supertypes) collectExprSymbols(supertype, filePkg, seen)
             }
         }
     }

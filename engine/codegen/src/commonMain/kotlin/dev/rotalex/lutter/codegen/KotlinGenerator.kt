@@ -13,6 +13,7 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedPage
 import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.analysis.resolved.ResolvedState
 import dev.rotalex.lutter.model.action.ActionSequence
+import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.expr.TypedExpr
 import dev.rotalex.lutter.model.ids.ComponentDeclId
@@ -95,21 +96,25 @@ public class KotlinGenerator<A : Any, T : Any>(
             return CodegenResult(GeneratedFiles(emptyList()), incoming)
         }
         diagnostics.clear()
+        screenReceivers.clear()
         state = StateEmitter(document, options, schema.functions)
         val reader: ExprEmitter = ExprEmitter(schema.functions, StateRead { id -> state?.readInScreen(id) })
         expressions = reader
-        // Host declarations are a document field the resolved form does not carry, and §4.5's one
-        // pipeline leaves no second route to them: an empty lookup makes `host.call` refuse, which
-        // is where it was left until the unit that generates `AppHost` owns the wiring.
-        actions = ActionEmitter(schema.actions, reader, document.pages, HostDecl { null }, options, diagnostics)
+        actions = ActionEmitter(
+            schema.actions,
+            reader,
+            document.pages,
+            HostDecl { name -> document.hostFunctions.firstOrNull { it.name == name } },
+            options,
+            diagnostics,
+        )
         val plan: GenPlan = planDocument(document, options.basePackage)
         refuseCollisions(plan)
         val files: MutableList<GeneratedFile> = mutableListOf()
         if (diagnostics.none { it.severity == Severity.Error }) {
-            // `App.kt` is planned first and printed first, but it calls every screen, so it has to
-            // be written last: what those screens need from their caller is only known once they
-            // have been emitted. The output order stays the plan's, so nothing downstream of this
-            // sees a different file list.
+            // `App.kt` is planned first, but it calls every screen, so it is emitted last: what
+            // those screens need from their caller is only known once they have been emitted. The
+            // output order stays the plan's, so nothing downstream sees a different file list.
             val written: MutableMap<String, GeneratedFile> = LinkedHashMap()
             for (planned in plan.files) {
                 if (planned.kind == PlannedFileKind.App) continue
@@ -141,10 +146,12 @@ public class KotlinGenerator<A : Any, T : Any>(
     }
 
     // The kind decides which emitter owns the file, because the id fields alone cannot:
-    // `App.kt` and `state/AppState.kt` both carry no id.
+    // `App.kt`, `Navigation.kt`, `AppHost.kt` and `state/AppState.kt` all carry no id.
     private fun emitPlanned(planned: PlannedFile, document: ResolvedDocument): GeneratedFile? {
         val file: KtFile? = when (planned.kind) {
-            PlannedFileKind.App -> emitApp(document)
+            PlannedFileKind.App -> options.navigation.emitAppRoot(document, fileContext())
+            PlannedFileKind.Navigation -> emitNavigation(planned, document)
+            PlannedFileKind.AppHost -> emitAppHost(planned, document)
             PlannedFileKind.AppState -> emitAppState(planned, document)
             PlannedFileKind.Screen -> {
                 val pageId = checkNotNull(planned.pageId) { "Plan marked '${planned.path}' with no page" }
@@ -167,49 +174,129 @@ public class KotlinGenerator<A : Any, T : Any>(
         return file?.let { GeneratedFile(planned.path, printer.print(it)) }
     }
 
+    /**
+     * The context one emitted file is written into.
+     *
+     * Every file that has one sits in the base package, which is what `pkg` can be a constant;
+     * `receivers` is read by `AppRoot` alone and is empty for the rest. The app-state wrapper is
+     * offered to all of them because §12.1's provider belongs to whichever file declares it, and a
+     * document with no app state makes the wrapper the identity.
+     */
+    private fun fileContext(): FileContext = FileContext(
+        pkg = options.basePackage,
+        header = headerText(),
+        receivers = screenReceivers.toList(),
+        appState = { content -> stateEmitter()?.appProvider(content) ?: listOf(content) },
+    )
+
+    /**
+     * §16.5's `Navigation.kt`, the strategy's own declarations.
+     *
+     * Refused for a document with no page: the navigator's stack is seeded with a route, and a
+     * document that declares none has nothing to seed it with.
+     */
+    private fun emitNavigation(planned: PlannedFile, document: ResolvedDocument): KtFile? {
+        val pages: List<ResolvedPage> = document.pages.entries.sortedBy { it.key.value }.map { it.value }
+        if (pages.isEmpty()) {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                DiagnosticLocation(),
+                "A document with no page has no route for its navigator to start on",
+            )
+            return null
+        }
+        return KtFile(planned.packageName, headerText(), options.navigation.emitRoutes(pages, fileContext()))
+    }
+
+    /**
+     * §16.5's `AppHost.kt`: the interfaces the embedding app implements.
+     *
+     * `SnackbarHost` sits here rather than in `Navigation.kt` because it is not strategy-owned: a
+     * different navigation strategy would have to re-declare a presentation host it has no stake
+     * in. §16.5 lists no file for it, which is a gap in the plan rather than a decision.
+     */
+    private fun emitAppHost(planned: PlannedFile, document: ResolvedDocument): KtFile? {
+        val declarations: List<HostFunctionDecl> = document.hostFunctions
+        val repeated: String? = declarations.groupBy { it.name }
+            .filterValues { it.size > 1 }.keys.firstOrNull()
+        if (repeated != null) {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                DiagnosticLocation(),
+                "Host function '" + repeated + "' is declared twice, and one member cannot hold both",
+            )
+            return null
+        }
+        val members: MutableList<KtDeclaration.Function> = mutableListOf()
+        for (declaration in declarations) {
+            members += hostMember(declaration) ?: return null
+        }
+        return KtFile(
+            planned.packageName,
+            headerText(),
+            listOf(
+                KtDeclaration.Interface(AppHostName, emptyList(), false, members),
+                KtDeclaration.Interface(SnackbarHostName, emptyList(), false, listOf(snackbarShow())),
+            ),
+        )
+    }
+
+    /**
+     * One `HostFunctionDecl` as the member `host.call` calls.
+     *
+     * The return type is written only when the declaration names one, and a type nothing can
+     * spell is a finding rather than a guess: a member declared `Unit` that the hand-written
+     * implementation returns something from does not compile, which is loud but late.
+     */
+    private fun hostMember(declaration: HostFunctionDecl): KtDeclaration.Function? {
+        val parameters: MutableList<KtParam> = mutableListOf()
+        for (param in declaration.params) {
+            val label: String = "Host function '" + declaration.name + "' parameter '" + param.name.value + "'"
+            val spelled: KtExpr = spelledHostType(label, param.type) ?: return null
+            parameters += KtParam(param.name.value, spelled, null)
+        }
+        val returned: KtExpr? = declaration.returns?.let {
+            spelledHostType("Host function '" + declaration.name + "' return", it) ?: return null
+        }
+        return KtDeclaration.Function(
+            name = declaration.name,
+            annotations = emptyList(),
+            type = returned,
+            params = parameters,
+            body = emptyList(),
+            suspending = declaration.suspend,
+        )
+    }
+
+    /** The interpreter's own one operation, so the two sides of a snackbar are the same call. */
+    private fun snackbarShow(): KtDeclaration.Function = KtDeclaration.Function(
+        name = "show",
+        annotations = emptyList(),
+        type = null,
+        params = listOf(KtParam("message", KtExpr.Name("String"), null)),
+        body = emptyList(),
+    )
+
+    private fun spelledHostType(label: String, typeRef: TypeRef): KtExpr? =
+        when (val spelling = KotlinTypes.spellingFor(typeRef)) {
+            is TypeSpelling.Spelled -> spelling.expr
+            is TypeSpelling.Unspelled -> {
+                refuse(
+                    DiagnosticCodes.CodegenNoTypeSpelling,
+                    DiagnosticLocation(),
+                    label + " is typed '" + typeRef.serialTag +
+                        "', which has no Kotlin spelling: " + spelling.reason,
+                )
+                null
+            }
+        }
+
     /** §16.5's `state/AppState.kt`: the holder and the composition local, in their own package. */
     private fun emitAppState(planned: PlannedFile, document: ResolvedDocument): KtFile? {
         val emitter: StateEmitter = stateEmitter() ?: return null
         if (refuseState(document.appState, DiagnosticLocation())) return null
         val declarations: List<KtDeclaration> = emitter.appState() ?: return null
         return KtFile(planned.packageName, headerText(), declarations)
-    }
-
-    // AppRoot hosts the first page by id; routing waits for a navigation strategy.
-    private fun emitApp(document: ResolvedDocument): KtFile? {
-        val first: ResolvedPage? = document.pages.entries.sortedBy { it.key.value }
-            .map { it.value }.firstOrNull()
-        val body: List<KtStmt> = if (first == null) {
-            emptyList()
-        } else {
-            val screen: KotlinSymbol = KotlinSymbol(options.basePackage + ".screens", first.name + "Screen")
-            // What the screens need is passed on rather than refused: §11.6 already routes the
-            // generated `AppHost` through `AppRoot(host = …)`, so the composition supplies these
-            // and `AppRoot` hands each one down by the name the screen declares.
-            val forwarded: MutableList<KtArg> = screenReceivers
-                .filter { it.type != null }
-                .sortedBy { it.member }
-                .mapTo(mutableListOf()) { receiver ->
-                    KtArg(receiver.member, KtExpr.Name(receiver.member))
-                }
-            val call: KtStmt = KtStmt.Expr(
-                KtExpr.Call(
-                    KtExpr.Ref(KtSymbolRef(screen)),
-                    forwarded + KtArg("modifier", KtExpr.Name("modifier")),
-                ),
-            )
-            // §12.1's app row wraps the whole tree; with no app state the screen composes bare.
-            stateEmitter()?.appProvider(call) ?: listOf(call)
-        }
-        val function: KtDeclaration.Function =
-            KtDeclaration.Function(
-                "AppRoot",
-                listOf(composable),
-                null,
-                environmentParams(screenReceivers) + listOf(modifierParam()),
-                body,
-            )
-        return KtFile(options.basePackage, headerText(), listOf(function))
     }
 
     // §12.1's page row: the state class, the remember function and the screen's parameter.
@@ -273,10 +360,10 @@ public class KotlinGenerator<A : Any, T : Any>(
     /**
      * What every screen written so far needs its caller to supply.
      *
-     * `AppRoot` is emitted before the screens, so it learns their demand from them and cannot
-     * supply it: a receiver whose declaration is generated (PLAN §16.5's `AppNavigator`,
-     * `AppHost`, `SnackbarHost`) has no value here yet. Rather than emit a call that does not
-     * compile, a document needing one is refused.
+     * Emitted last and handed to `AppRoot`, which declares each receiver as a parameter and passes
+     * it down under the same name — §11.6 already routes the generated `AppHost` that way. Cleared
+     * per run beside [diagnostics], because one generator serves many documents and a receiver the
+     * previous document's handlers used is not one this one's screens declare.
      */
     private val screenReceivers: MutableSet<ActionReceiver> = mutableSetOf()
 
@@ -293,7 +380,9 @@ public class KotlinGenerator<A : Any, T : Any>(
         reads.filter { it.type != null }
             .sortedBy { it.member }
             .map { receiver ->
-                KtParam(receiver.member, KotlinSymbol(options.basePackage, checkNotNull(receiver.type)), null)
+                val type: KtExpr =
+                    KtExpr.Ref(KtSymbolRef(KotlinSymbol(options.basePackage, checkNotNull(receiver.type))))
+                KtParam(receiver.member, type, null)
             }
 
     /**
@@ -334,7 +423,11 @@ public class KotlinGenerator<A : Any, T : Any>(
     private fun stateEmitter(): StateEmitter? = state
 
     private fun modifierParam(): KtParam =
-        KtParam("modifier", modifierType, KtExpr.Ref(KtSymbolRef(modifierType)))
+        KtParam(
+            "modifier",
+            KtExpr.Ref(KtSymbolRef(modifierType)),
+            KtExpr.Ref(KtSymbolRef(modifierType)),
+        )
 
     private fun headerText(): String? =
         if (options.header == HeaderPolicy.Minimal) "// Generated by Forge. Do not edit." else null
@@ -752,4 +845,11 @@ public class KotlinGenerator<A : Any, T : Any>(
     }
 
     private class KeptParam(val binding: ParamBinding, val present: List<PropertyKey>)
+
+    private companion object {
+        // §11.6 and §16.5 name both; they are spelled here rather than read off `ActionReceiver`
+        // because that vocabulary is strategy-independent and these two names are not.
+        private const val AppHostName: String = "AppHost"
+        private const val SnackbarHostName: String = "SnackbarHost"
+    }
 }

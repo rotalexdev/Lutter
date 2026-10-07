@@ -222,13 +222,14 @@ public sealed interface KtStmt {
 
 /**
  * A declaration: a screen or component, state and models as properties, generated models as
- * classes. The same three are legal at file scope and inside a class body, so one node each.
+ * classes, the routes a navigator walks. Kotlin's own grammar, one node per production, because
+ * a node reused in two positions Kotlin keeps distinct buys a flag and loses the spelling.
  */
 public sealed interface KtDeclaration {
     /**
      * A function. [type] is null for the `Unit`-returning shape, which is why it is null rather
      * than absent: §12.1's `rememberHomeScreenState()` hands a screen its state and cannot be
-     * written without one.
+     * written without one. [suspending] is §11.5's flag and nothing else decides it.
      */
     public data class Function(
         public val name: String,
@@ -236,13 +237,17 @@ public sealed interface KtDeclaration {
         public val type: KtExpr?,
         public val params: List<KtParam>,
         public val body: List<KtStmt>,
+        public val suspending: Boolean = false,
     ) : KtDeclaration
 
     /**
-     * A property, at file scope or as a class member.
+     * A property, at file scope, as a class member or in a primary constructor.
      *
      * [initializer] and [delegate] are mutually exclusive in Kotlin, and a node carrying both
-     * is an invariant breach the printer refuses rather than one it silently drops.
+     * is an invariant breach the printer refuses rather than one it silently drops. [visibility]
+     * is the modifier written in front of the keyword, null for the explicit `public` every
+     * generated declaration carries but one: a constructor property the navigator keeps to
+     * itself.
      */
     public data class Property(
         public val name: String,
@@ -252,20 +257,60 @@ public sealed interface KtDeclaration {
         public val initializer: KtExpr?,
         public val delegate: KtExpr?,
         public val getter: KtExpr?,
+        public val visibility: String? = null,
     ) : KtDeclaration
 
-    /** A class and its members; a nested class arrives as a member that is itself a class. */
+    /**
+     * A class and its members; a nested class arrives as a member that is itself a class.
+     *
+     * [constructorProperties] is written in the head rather than the body, which is the only
+     * position a `private val x: T = default` is legal in. They are properties and not
+     * parameters because the class body reads them as members.
+     */
     public data class Class(
         public val name: String,
         public val annotations: List<KotlinSymbol>,
         public val members: List<KtDeclaration>,
+        public val constructorProperties: List<Property> = emptyList(),
+    ) : KtDeclaration
+
+    /**
+     * `sealed interface Route`.
+     *
+     * [sealed] rather than a modifier list because it is the only modifier an interface this
+     * module emits can carry, and a list of strings would let a caller write one the printer
+     * has to trust instead of spelling itself.
+     */
+    public data class Interface(
+        public val name: String,
+        public val annotations: List<KotlinSymbol>,
+        public val sealed: Boolean,
+        public val members: List<KtDeclaration>,
+    ) : KtDeclaration
+
+    /**
+     * `data object Home : Route`: a route entry, which is a name and nothing else.
+     *
+     * No members, because the only object generated is a marker a back stack holds and reads
+     * back; [data] is what makes that comparison a value comparison.
+     */
+    public data class Object(
+        public val name: String,
+        public val annotations: List<KotlinSymbol>,
+        public val data: Boolean,
+        public val supertypes: List<KtExpr>,
     ) : KtDeclaration
 }
 
-/** One parameter: its type is a symbol so the import computes from the signature too. */
+/**
+ * One parameter, in a function or in a primary constructor.
+ *
+ * [type] is a [KtExpr] rather than a symbol because a declared type is a type expression and
+ * `MutableList<Route>` is not a symbol any more than `List<String>` is.
+ */
 public data class KtParam(
     public val name: String,
-    public val type: KotlinSymbol,
+    public val type: KtExpr,
     public val default: KtExpr?,
 )
 

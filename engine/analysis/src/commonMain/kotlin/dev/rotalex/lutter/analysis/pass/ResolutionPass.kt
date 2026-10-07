@@ -107,6 +107,7 @@ internal class ResolutionPass(
             ResolvedTheme(theme),
             statesOf(document.appState),
             componentState,
+            document.hostFunctions,
         )
     }
 

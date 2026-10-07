@@ -110,7 +110,7 @@ public class StateEmitter(
         val name: String = classNameOf(page)
         return KtParam(
             name = "state",
-            type = KotlinSymbol(options.basePackage + ".screens", name),
+            type = KtExpr.Ref(KtSymbolRef(KotlinSymbol(options.basePackage + ".screens", name))),
             default = KtExpr.Call(KtExpr.Name("remember" + name), emptyList()),
         )
     }
