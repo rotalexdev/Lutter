@@ -79,6 +79,10 @@ abstract fun interface dev.rotalex.lutter.codegen/CustomEmitter { // dev.rotalex
     abstract fun emit(dev.rotalex.lutter.analysis.resolved/ResolvedNode): dev.rotalex.lutter.codegen/KtExpr // dev.rotalex.lutter.codegen/CustomEmitter.emit|emit(dev.rotalex.lutter.analysis.resolved.ResolvedNode){}[0]
 }
 
+abstract fun interface dev.rotalex.lutter.codegen/HostDecl { // dev.rotalex.lutter.codegen/HostDecl|null[0]
+    abstract fun declaration(kotlin/String): dev.rotalex.lutter.model.doc/HostFunctionDecl? // dev.rotalex.lutter.codegen/HostDecl.declaration|declaration(kotlin.String){}[0]
+}
+
 abstract fun interface dev.rotalex.lutter.codegen/StateRead { // dev.rotalex.lutter.codegen/StateRead|null[0]
     abstract fun read(dev.rotalex.lutter.model.ids/StateId): dev.rotalex.lutter.codegen/KtExpr? // dev.rotalex.lutter.codegen/StateRead.read|read(dev.rotalex.lutter.model.ids.StateId){}[0]
 }
@@ -556,6 +560,12 @@ final class <#A: kotlin/Any, #B: kotlin/Any> dev.rotalex.lutter.codegen/KotlinGe
     final fun generate(dev.rotalex.lutter.analysis.resolved/ResolvedDocument, kotlin.collections/List<dev.rotalex.lutter.analysis.diagnostic/Diagnostic> = ...): dev.rotalex.lutter.codegen/CodegenResult // dev.rotalex.lutter.codegen/KotlinGenerator.generate|generate(dev.rotalex.lutter.analysis.resolved.ResolvedDocument;kotlin.collections.List<dev.rotalex.lutter.analysis.diagnostic.Diagnostic>){}[0]
 }
 
+final class dev.rotalex.lutter.codegen/ActionEmitter { // dev.rotalex.lutter.codegen/ActionEmitter|null[0]
+    constructor <init>(dev.rotalex.lutter.schema.registry/Registry<dev.rotalex.lutter.model.ids/ActionId, *>, dev.rotalex.lutter.codegen/ExprEmitter, kotlin.collections/Map<dev.rotalex.lutter.model.ids/PageId, dev.rotalex.lutter.analysis.resolved/ResolvedPage>, dev.rotalex.lutter.codegen/HostDecl, dev.rotalex.lutter.codegen/CodegenOptions, kotlin.collections/MutableList<dev.rotalex.lutter.analysis.diagnostic/Diagnostic>) // dev.rotalex.lutter.codegen/ActionEmitter.<init>|<init>(dev.rotalex.lutter.schema.registry.Registry<dev.rotalex.lutter.model.ids.ActionId,*>;dev.rotalex.lutter.codegen.ExprEmitter;kotlin.collections.Map<dev.rotalex.lutter.model.ids.PageId,dev.rotalex.lutter.analysis.resolved.ResolvedPage>;dev.rotalex.lutter.codegen.HostDecl;dev.rotalex.lutter.codegen.CodegenOptions;kotlin.collections.MutableList<dev.rotalex.lutter.analysis.diagnostic.Diagnostic>){}[0]
+
+    final fun emit(dev.rotalex.lutter.model.action/ActionSequence, dev.rotalex.lutter.analysis.diagnostic/DiagnosticLocation): kotlin.collections/List<dev.rotalex.lutter.codegen/KtStmt>? // dev.rotalex.lutter.codegen/ActionEmitter.emit|emit(dev.rotalex.lutter.model.action.ActionSequence;dev.rotalex.lutter.analysis.diagnostic.DiagnosticLocation){}[0]
+}
+
 final class dev.rotalex.lutter.codegen/CodegenBug : kotlin/IllegalStateException { // dev.rotalex.lutter.codegen/CodegenBug|null[0]
     constructor <init>(kotlin/String) // dev.rotalex.lutter.codegen/CodegenBug.<init>|<init>(kotlin.String){}[0]
 }
@@ -623,6 +633,7 @@ final class dev.rotalex.lutter.codegen/ExprEmitter { // dev.rotalex.lutter.codeg
     constructor <init>(dev.rotalex.lutter.schema.registry/Registry<dev.rotalex.lutter.model.ids/FunctionId, dev.rotalex.lutter.schema.function/FunctionSpec>, dev.rotalex.lutter.codegen/StateRead) // dev.rotalex.lutter.codegen/ExprEmitter.<init>|<init>(dev.rotalex.lutter.schema.registry.Registry<dev.rotalex.lutter.model.ids.FunctionId,dev.rotalex.lutter.schema.function.FunctionSpec>;dev.rotalex.lutter.codegen.StateRead){}[0]
 
     final fun emit(dev.rotalex.lutter.model.expr/TypedExpr): dev.rotalex.lutter.codegen/KtExpr // dev.rotalex.lutter.codegen/ExprEmitter.emit|emit(dev.rotalex.lutter.model.expr.TypedExpr){}[0]
+    final fun emitRaw(dev.rotalex.lutter.model.expr/Expr): dev.rotalex.lutter.codegen/KtExpr // dev.rotalex.lutter.codegen/ExprEmitter.emitRaw|emitRaw(dev.rotalex.lutter.model.expr.Expr){}[0]
 }
 
 final class dev.rotalex.lutter.codegen/FormattingOptions { // dev.rotalex.lutter.codegen/FormattingOptions|null[0]

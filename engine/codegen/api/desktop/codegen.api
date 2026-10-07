@@ -1,3 +1,8 @@
+public final class dev/rotalex/lutter/codegen/ActionEmitter {
+	public fun <init> (Ldev/rotalex/lutter/schema/registry/Registry;Ldev/rotalex/lutter/codegen/ExprEmitter;Ljava/util/Map;Ldev/rotalex/lutter/codegen/HostDecl;Ldev/rotalex/lutter/codegen/CodegenOptions;Ljava/util/List;)V
+	public final fun emit (Ldev/rotalex/lutter/model/action/ActionSequence;Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;)Ljava/util/List;
+}
+
 public final class dev/rotalex/lutter/codegen/CodegenBug : java/lang/IllegalStateException {
 	public fun <init> (Ljava/lang/String;)V
 }
@@ -72,6 +77,7 @@ public abstract interface class dev/rotalex/lutter/codegen/CustomEmitter {
 public final class dev/rotalex/lutter/codegen/ExprEmitter {
 	public fun <init> (Ldev/rotalex/lutter/schema/registry/Registry;Ldev/rotalex/lutter/codegen/StateRead;)V
 	public final fun emit (Ldev/rotalex/lutter/model/expr/TypedExpr;)Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun emitRaw (Ldev/rotalex/lutter/model/expr/Expr;)Ldev/rotalex/lutter/codegen/KtExpr;
 }
 
 public final class dev/rotalex/lutter/codegen/FormattingOptions {
@@ -141,6 +147,10 @@ public final class dev/rotalex/lutter/codegen/HeaderPolicy : java/lang/Enum {
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/HeaderPolicy;
 	public static fun values ()[Ldev/rotalex/lutter/codegen/HeaderPolicy;
+}
+
+public abstract interface class dev/rotalex/lutter/codegen/HostDecl {
+	public abstract fun declaration (Ljava/lang/String;)Ldev/rotalex/lutter/model/doc/HostFunctionDecl;
 }
 
 public final class dev/rotalex/lutter/codegen/ImportPolicy {
