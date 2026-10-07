@@ -22,10 +22,10 @@ import kotlin.test.assertSame
 /**
  * §11.4's six MVP actions: the key set, the shapes §11.2 and §13.1 spell, and the registrar.
  *
- * **There is deliberately no handler-coverage test here, and its absence is the contract.**
- * `ui.showSnackbar` has no handler, so a test asserting every registered action has one would be
- * red for that id, and stays red until §11.4 says what a snackbar carries.
- * `BuiltinFunctionCoverageTest` is that gate's shape.
+ * **There is deliberately no handler-coverage test here, and its absence is the one gap left.**
+ * `ui.showSnackbar` was registered with no handler and nothing failed while it was: the executor
+ * answers an unhandled action with its own diagnostic. `BuiltinFunctionCoverageTest` is the shape
+ * a gate over every registered action would take.
  *
  * Every assertion below is a claim PLAN makes, read back through the registry.
  */
@@ -75,16 +75,17 @@ class BuiltinActionSpecsTest {
     }
 
     @Test
-    fun `the typed arguments are the page, the condition and the callee, and no others`() {
+    fun `the typed arguments are the condition, the message, the callee and the page`() {
         val declared = schema.actions.all().flatMap { spec -> spec.params.map { it.key to spec.id } }
 
-        // §13.1 spells the page and §11.5's `if (…)` spells the condition; nothing spells what a
-        // callee is called, but §11.6's declaration is a string and nothing more constrains it. The
-        // other three declare none in `params` because no `TypeRef` can say what they take — the
-        // two `state.set` keys and a host call's `args` are shapes instead, asserted below.
+        // The page and the condition are the plan's own examples; a callee is a string because the
+        // declaration behind it is one and nothing more constrains it, and a message is a string
+        // because that is all a type can say about text. The other two declare none: `nav.back`
+        // takes nothing, and `state.set`'s two keys are shapes rather than types, asserted below.
         assertEquals(
             listOf(
                 PropertyKey("cond") to ActionId("flow.if"),
+                PropertyKey("message") to ActionId("ui.showSnackbar"),
                 PropertyKey("name") to ActionId("host.call"),
                 PropertyKey("page") to ActionId("nav.navigate"),
             ),
@@ -105,6 +106,20 @@ class BuiltinActionSpecsTest {
 
         assertEquals(PropertyKey("name"), name.key)
         assertEquals(TypeRef.Str, name.type)
+    }
+
+    @Test
+    fun `a snackbar declares the message and nothing else`() {
+        val declared = schema.actions.require(ActionId("ui.showSnackbar")).params
+
+        assertEquals(listOf(PropertyKey("message")), declared.map { it.key })
+    }
+
+    @Test
+    fun `a snackbar's message is a required string`() {
+        val message = schema.actions.require(ActionId("ui.showSnackbar")).params.single()
+
+        assertEquals(listOf(TypeRef.Str to true), listOf(message.type to message.required))
     }
 
     @Test

@@ -7,6 +7,7 @@ import dev.rotalex.lutter.interpreter.action.ActionEnv
 import dev.rotalex.lutter.interpreter.env.DialogHost
 import dev.rotalex.lutter.interpreter.env.HostFunctions
 import dev.rotalex.lutter.interpreter.env.Navigator
+import dev.rotalex.lutter.interpreter.env.SnackbarHost
 import dev.rotalex.lutter.model.value.Value
 
 /**
@@ -29,5 +30,10 @@ public class ScreenActionEnv(
     override val scope: EvalScope = EventArgScope(screen, eventArgs)
     override val navigator: Navigator get() = environment.navigator
     override val dialogs: DialogHost get() = DialogHost.None
+
+    // Nothing renders a snackbar yet, so a host that really shows one arrives with the rendering
+    // path rather than as a slot on `RuntimeEnvironment` that only one value can ever fill.
+    override val snackbars: SnackbarHost get() = SnackbarHost.None
+
     override val host: HostFunctions get() = environment.host
 }

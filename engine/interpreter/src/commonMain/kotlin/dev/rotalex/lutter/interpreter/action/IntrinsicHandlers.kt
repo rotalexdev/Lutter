@@ -19,10 +19,8 @@ import dev.rotalex.lutter.model.value.Value
 /**
  * The handlers for the actions whose meaning the engine owns.
  *
- * `ui.showSnackbar` is the one MVP action still absent rather than refused: §11.4 names the id and
- * nothing about what it carries, and `ActionEnv` has no snackbar slot to be written to. No handler
- * means the executor's own diagnostic, which is true, where a guess would be a false claim about
- * what a step did.
+ * An action missing from [handlers] keeps the executor's own diagnostic rather than getting a
+ * handler that refuses, because nothing here can say what an undeclared action means.
  */
 public object IntrinsicHandlers {
 
@@ -44,6 +42,7 @@ public object IntrinsicHandlers {
         ActionId("state.set") to SetState(evaluator),
         ActionId("flow.if") to Conditional(evaluator),
         ActionId("host.call") to CallHost(evaluator),
+        ActionId("ui.showSnackbar") to ShowSnackbar(evaluator),
     )
 }
 
@@ -71,6 +70,9 @@ private val elseArm = BranchName("else")
 private val nameArgument = PropertyKey("name")
 
 private val argsArgument = PropertyKey("args")
+
+/** The text a snackbar shows: a type spells it, so the spec declares the key and it is read here. */
+private val messageArgument = PropertyKey("message")
 
 /**
  * `nav.navigate`.
@@ -219,6 +221,30 @@ private class CallHost(private val evaluator: Evaluator) : ActionHandler {
         // Whatever it answers stays with the host: a null is a function returning nothing, and
         // `ActionEnv` has nowhere for a value to land.
         function(arguments)
+        return ActionOutcome.Done
+    }
+}
+
+/**
+ * `ui.showSnackbar`: hands the step's message to the host and is done.
+ *
+ * The call does not suspend and nothing waits on it, because a message has no reply — which is
+ * why the host that shows nothing is `Done` rather than a failure, the same answer a navigator
+ * that cannot go back gives `nav.back`.
+ */
+private class ShowSnackbar(private val evaluator: Evaluator) : ActionHandler {
+
+    override suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome {
+        val written = step.args[messageArgument]
+            ?: return refusal(step, "has no '$messageArgument' argument")
+
+        val message = (written.valueOrNull(evaluator, env.scope) as? Value.Str)?.v
+            ?: return refusal(step, "argument '$messageArgument' is not a string")
+
+        // Two messages in one sequence are two calls, not one merged: whether the second
+        // replaces the first or waits behind it is the rendering host's answer, and a handler
+        // that picked would make every host honour a policy no document asked for.
+        env.snackbars.show(message)
         return ActionOutcome.Done
     }
 }

@@ -4,6 +4,7 @@ import dev.rotalex.lutter.interpreter.EventArgScope
 import dev.rotalex.lutter.interpreter.MapEvalScope
 import dev.rotalex.lutter.interpreter.MapStateStore
 import dev.rotalex.lutter.interpreter.env.Navigator
+import dev.rotalex.lutter.interpreter.env.SnackbarHost
 import dev.rotalex.lutter.interpreter.eval.Evaluator
 import dev.rotalex.lutter.model.action.ActionStep
 import dev.rotalex.lutter.model.expr.BinaryOp
@@ -129,12 +130,67 @@ class IntrinsicHandlersTest {
     }
 
     @Test
-    fun `showing a snackbar has no handler`() {
-        assertTrue(outcomeOf(step("ui.showSnackbar"), Going()) is ActionOutcome.Failed)
+    fun `a snackbar reaches the host with the message the step named`() {
+        val host = RecordingSnackbars()
+
+        outcomeOf(snackbaring(), envShowing(host))
+
+        assertEquals(listOf("saved"), host.shown)
     }
 
     @Test
-    fun `calling a host function has no handler`() {
+    fun `a snackbar message read from an event arg reaches the host`() {
+        val host = RecordingSnackbars()
+        val store = MapStateStore()
+        val env = FakeActionEnv(
+            state = store,
+            scope = EventArgScope(MapEvalScope(store), mapOf("value" to Value.Str("typed"))),
+            snackbars = host,
+        )
+
+        outcomeOf(snackbaring(computed(Expr.Ref(RefTarget.EventArg("value")))), env)
+
+        assertEquals(listOf("typed"), host.shown)
+    }
+
+    @Test
+    fun `a snackbar shown against the host that shows nothing is still done`() {
+        assertEquals(ActionOutcome.Done, outcomeOf(snackbaring(), FakeActionEnv()))
+    }
+
+    @Test
+    fun `two snackbars in one sequence both reach the host`() {
+        val host = RecordingSnackbars()
+
+        drive {
+            ActionExecutor(handlers).run(
+                sequenceOfSteps(snackbaring(), snackbaring(literal(Value.Str("again")))),
+                envShowing(host),
+            )
+        }
+
+        assertEquals(listOf("saved", "again"), host.shown)
+    }
+
+    @Test
+    fun `a step with no message fails the run`() {
+        assertTrue(outcomeOf(step("ui.showSnackbar"), FakeActionEnv()) is ActionOutcome.Failed)
+    }
+
+    @Test
+    fun `the diagnostic for a snackbar with no message names the action`() {
+        val outcome = outcomeOf(step("ui.showSnackbar"), FakeActionEnv()) as ActionOutcome.Failed
+
+        assertTrue(outcome.diagnostic.message.contains("ui.showSnackbar"))
+    }
+
+    @Test
+    fun `a message that is not a string fails the run`() {
+        assertTrue(outcomeOf(snackbaring(literal(Value.Int32(7))), FakeActionEnv()) is ActionOutcome.Failed)
+    }
+
+    @Test
+    fun `a host call with no name argument fails the run`() {
         assertTrue(outcomeOf(step("host.call"), Going()) is ActionOutcome.Failed)
     }
 
@@ -242,6 +298,12 @@ class IntrinsicHandlersTest {
     }
 
     private fun reads(): PropertyValue = computed(Expr.Ref(RefTarget.State(count)))
+
+    private fun envShowing(snackbars: SnackbarHost): FakeActionEnv = FakeActionEnv(snackbars = snackbars)
+
+    /** `ui.showSnackbar(message = …)`, as a document writes it. */
+    private fun snackbaring(message: PropertyValue = literal(Value.Str("saved"))): ActionStep =
+        step("ui.showSnackbar").copy(args = mapOf(PropertyKey("message") to message))
 
     private fun literal(value: Value): PropertyValue = PropertyValue.Const(value)
 

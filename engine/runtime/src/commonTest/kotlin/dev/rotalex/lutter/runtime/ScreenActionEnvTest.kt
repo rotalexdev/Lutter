@@ -7,6 +7,7 @@ import dev.rotalex.lutter.interpreter.env.DialogHost
 import dev.rotalex.lutter.interpreter.env.HostFunction
 import dev.rotalex.lutter.interpreter.env.HostFunctions
 import dev.rotalex.lutter.interpreter.env.Navigator
+import dev.rotalex.lutter.interpreter.env.SnackbarHost
 import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
 import dev.rotalex.lutter.model.expr.Expr
@@ -60,6 +61,11 @@ class ScreenActionEnvTest {
     @Test
     fun `an environment shows no dialog, because nothing can raise one yet`() {
         assertEquals(DialogHost.None, env().dialogs)
+    }
+
+    @Test
+    fun `an environment shows no snackbar, because nothing renders one yet`() {
+        assertEquals(SnackbarHost.None, env().snackbars)
     }
 
     @Test

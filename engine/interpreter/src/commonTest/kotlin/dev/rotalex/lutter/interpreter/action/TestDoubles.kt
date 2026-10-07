@@ -12,6 +12,7 @@ import dev.rotalex.lutter.interpreter.env.DialogHost
 import dev.rotalex.lutter.interpreter.env.HostFunction
 import dev.rotalex.lutter.interpreter.env.HostFunctions
 import dev.rotalex.lutter.interpreter.env.Navigator
+import dev.rotalex.lutter.interpreter.env.SnackbarHost
 import dev.rotalex.lutter.interpreter.eval.Evaluator
 import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
@@ -33,6 +34,7 @@ internal class FakeActionEnv(
     override val scope: EvalScope = MapEvalScope(state),
     override val navigator: Navigator = GoingNowhere,
     override val dialogs: DialogHost = DialogHost.None,
+    override val snackbars: SnackbarHost = SnackbarHost.None,
     override val host: HostFunctions = HostFunctions.None,
 ) : ActionEnv
 
@@ -74,6 +76,15 @@ internal class ReadingDialogs : ActionHandler {
     override suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome {
         seen = env.dialogs
         return ActionOutcome.Done
+    }
+}
+
+/** Keeps every message it was handed, in the order they arrived. */
+internal class RecordingSnackbars : SnackbarHost {
+    val shown: MutableList<String> = mutableListOf()
+
+    override fun show(message: String) {
+        shown += message
     }
 }
 
