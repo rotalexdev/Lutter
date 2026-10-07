@@ -563,6 +563,9 @@ final class <#A: kotlin/Any, #B: kotlin/Any> dev.rotalex.lutter.codegen/KotlinGe
 final class dev.rotalex.lutter.codegen/ActionEmitter { // dev.rotalex.lutter.codegen/ActionEmitter|null[0]
     constructor <init>(dev.rotalex.lutter.schema.registry/Registry<dev.rotalex.lutter.model.ids/ActionId, *>, dev.rotalex.lutter.codegen/ExprEmitter, kotlin.collections/Map<dev.rotalex.lutter.model.ids/PageId, dev.rotalex.lutter.analysis.resolved/ResolvedPage>, dev.rotalex.lutter.codegen/HostDecl, dev.rotalex.lutter.codegen/CodegenOptions, kotlin.collections/MutableList<dev.rotalex.lutter.analysis.diagnostic/Diagnostic>) // dev.rotalex.lutter.codegen/ActionEmitter.<init>|<init>(dev.rotalex.lutter.schema.registry.Registry<dev.rotalex.lutter.model.ids.ActionId,*>;dev.rotalex.lutter.codegen.ExprEmitter;kotlin.collections.Map<dev.rotalex.lutter.model.ids.PageId,dev.rotalex.lutter.analysis.resolved.ResolvedPage>;dev.rotalex.lutter.codegen.HostDecl;dev.rotalex.lutter.codegen.CodegenOptions;kotlin.collections.MutableList<dev.rotalex.lutter.analysis.diagnostic.Diagnostic>){}[0]
 
+    final val imports // dev.rotalex.lutter.codegen/ActionEmitter.imports|{}imports[0]
+        final fun <get-imports>(): kotlin.collections/MutableList<dev.rotalex.lutter.schema.component/KotlinSymbol> // dev.rotalex.lutter.codegen/ActionEmitter.imports.<get-imports>|<get-imports>(){}[0]
+
     final fun emit(dev.rotalex.lutter.model.action/ActionSequence, dev.rotalex.lutter.analysis.diagnostic/DiagnosticLocation): kotlin.collections/List<dev.rotalex.lutter.codegen/KtStmt>? // dev.rotalex.lutter.codegen/ActionEmitter.emit|emit(dev.rotalex.lutter.model.action.ActionSequence;dev.rotalex.lutter.analysis.diagnostic.DiagnosticLocation){}[0]
 }
 
