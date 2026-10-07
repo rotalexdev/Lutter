@@ -300,7 +300,7 @@ public class KotlinGenerator<A : Any, T : Any>(
         if (ActionReceiver.Scope !in reads) return emptyList()
         return listOf(
             KtStmt.LocalProperty(
-                member = ActionReceiver.Scope.member,
+                name = ActionReceiver.Scope.member,
                 type = null,
                 mutable = false,
                 initializer = KtExpr.Call(KtExpr.Ref(KtSymbolRef(rememberCoroutineScope)), emptyList()),
