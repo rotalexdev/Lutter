@@ -253,7 +253,9 @@ class CodegenTest {
         val app = result.files.files.single { it.path == "App.kt" }.content
 
         assertTrue(app.contains("navigator: AppNavigator"), app)
-        assertTrue(app.contains("HomeScreen(navigator = navigator"), app)
+        // The call is multi-line: every forwarded receiver is a named argument, and Compose's
+        // convention is one per line. `AppNavigator` needs no import — it is this file's own package.
+        assertTrue(app.contains("navigator = navigator,"), app)
     }
 
     @Test
