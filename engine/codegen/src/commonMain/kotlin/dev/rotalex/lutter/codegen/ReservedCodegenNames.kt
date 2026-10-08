@@ -77,7 +77,7 @@ public object ReservedCodegenNames {
         val reserved: Set<String> = literals(options)
         val owners: MutableMap<String, String> = LinkedHashMap<String, String>()
         for (page in pages) {
-            for (name in derivedFor(page.name)) owners.putIfAbsent(name, page.name)
+            for (name in derivedFor(page.name)) owners.getOrPut(name) { page.name }
         }
 
         val found: MutableList<Diagnostic> = mutableListOf()
