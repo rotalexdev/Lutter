@@ -30,12 +30,15 @@ import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.PropertySpec
 import dev.rotalex.lutter.schema.component.prop
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CoroutineScope
 
 /** Reads decode through the kind table; absent is null; constants resolve before evaluation. */
 class RenderScopeTest {
@@ -162,11 +165,20 @@ class RenderScopeTest {
             empty,
             null,
             expressions(),
-        )
+            TestScope(),
+        ) { args ->
+            val store = MapStateStore()
+            ScreenActionEnv(MapEvalScope(store), store, RuntimeEnvironment(StubNavigator), args)
+        }
     }
 
     private fun expressions(): ExpressionSource =
         ExpressionSource(Evaluator(), MapEvalScope(MapStateStore()))
+
+    /** Nothing to join: the dispatch test only reads the lookup, not a launched coroutine. */
+    private class TestScope : CoroutineScope {
+        override val coroutineContext: CoroutineContext = EmptyCoroutineContext
+    }
 
     private object StubNavigator : Navigator {
         override fun navigate(page: PageId, args: Map<ParamName, Value>): Unit = Unit
