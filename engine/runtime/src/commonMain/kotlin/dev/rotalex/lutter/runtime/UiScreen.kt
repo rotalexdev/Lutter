@@ -3,6 +3,7 @@ package dev.rotalex.lutter.runtime
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -16,6 +17,7 @@ import dev.rotalex.lutter.interpreter.constantOrNull
 import dev.rotalex.lutter.interpreter.eval.Evaluator
 import dev.rotalex.lutter.model.doc.TokenName
 import dev.rotalex.lutter.model.expr.TypedExpr
+import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.ParamName
 import dev.rotalex.lutter.model.ids.PropertyKey
@@ -25,6 +27,7 @@ import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.component.PropertySpec
 import dev.rotalex.lutter.schema.kind.ValueKinds
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.launch
 
 /**
  * The screen: resolves [page], then renders its root through the registry.
@@ -67,7 +70,7 @@ public fun UiScreen(
             runtime,
             null,
             expressions,
-        )
+        ) { eventArgs -> ScreenActionEnv(screen, pageState, environment, eventArgs) }
         key(resolved.root.id) {
             environment.hooks.Decorate(resolved.root) {
                 RenderNode(runtime, resolved.root, scope)
@@ -155,7 +158,22 @@ internal class DefaultRenderScope(
     private val runtime: UiRuntime,
     private val handle: ScopeHandle?,
     private val expressions: ExpressionSource,
+    private val actionEnv: (Map<String, Value>) -> ActionEnv,
 ) : RenderScope {
+
+    /**
+     * The handler behind [node]'s [event], run against the page's own scope and store.
+     *
+     * A node declaring no such event runs nothing. That is the honest answer for a renderer
+     * binding a component whose spec declares the event: whether *this* document wrote a handler
+     * is the document's business, not a lookup failure.
+     */
+    @Composable
+    override fun Dispatch(node: ResolvedNode, event: EventKey, args: Map<String, Value>) {
+        val sequence = node.events[event] ?: return
+        val scope = rememberCoroutineScope()
+        scope.launch { runtime.runActions(sequence, actionEnv(args), environment) }
+    }
     override fun props(node: ResolvedNode): PropertyReader = MapPropertyReader(node.props, expressions)
 
     override fun modifierFor(node: ResolvedNode): Modifier {
@@ -184,7 +202,7 @@ internal class DefaultRenderScope(
         content(copy(handle = handle))
 
     private fun copy(handle: ScopeHandle?): DefaultRenderScope =
-        DefaultRenderScope(environment, theme, runtime, handle, expressions)
+        DefaultRenderScope(environment, theme, runtime, handle, expressions, actionEnv)
 }
 
 /**

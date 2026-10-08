@@ -8,7 +8,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.model.doc.TokenName
+import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.SlotName
+import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.component.PropertySpec
 
 /**
@@ -79,4 +81,19 @@ public interface RenderScope {
     /** Opens [handle] for [content], so scoped modifiers below it resolve. */
     @Composable
     public fun withScope(handle: ScopeHandle, content: @Composable RenderScope.() -> Unit)
+
+    /**
+     * Runs the handler [node] declares for [event], with [args] bound as its event arguments.
+     *
+     * The engine's side of a press. A renderer that binds an event calls this and nothing else,
+     * which is what keeps the executor off [RuntimeEnvironment]: that record is the host's to
+     * fill — it names the host's navigator, state and diagnostics — and a handler runner is the
+     * engine's, so it would invert the dependency to put it there.
+     *
+     * The key is looked up in [node]'s own events rather than taken from the renderer, so a
+     * sequence this node does not declare is a handler that runs nothing rather than a lookup
+     * that has to be right at every call site.
+     */
+    @Composable
+    public fun Dispatch(node: ResolvedNode, event: EventKey, args: Map<String, Value> = emptyMap())
 }
