@@ -166,7 +166,7 @@ class RenderScopeTest {
             null,
             expressions(),
             TestScope(),
-        ) { _ -> MapEvalScope(MapStateStore()) }
+        ) { args -> ScreenActionEnv(MapEvalScope(MapStateStore()), MapStateStore(), RuntimeEnvironment(StubNavigator), args) }
     }
 
     private fun expressions(): ExpressionSource =
