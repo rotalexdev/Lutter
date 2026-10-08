@@ -78,12 +78,18 @@ public final class dev/rotalex/lutter/runtime/RenderHooks$DefaultImpls {
 }
 
 public abstract interface class dev/rotalex/lutter/runtime/RenderScope {
+	public abstract fun Dispatch-14j0mu4 (Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun Dispatch-14j0mu4$default (Ldev/rotalex/lutter/runtime/RenderScope;Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
 	public abstract fun RenderSlot-F9ChFYk (Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;Ljava/lang/String;Landroidx/compose/runtime/Composer;I)V
 	public abstract fun getEnvironment ()Ldev/rotalex/lutter/runtime/RuntimeEnvironment;
 	public abstract fun getTheme ()Ldev/rotalex/lutter/runtime/ThemeHandle;
 	public abstract fun modifierFor (Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;)Landroidx/compose/ui/Modifier;
 	public abstract fun props (Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;)Ldev/rotalex/lutter/runtime/PropertyReader;
 	public abstract fun withScope (Ldev/rotalex/lutter/runtime/ScopeHandle;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;I)V
+}
+
+public final class dev/rotalex/lutter/runtime/RenderScope$DefaultImpls {
+	public static synthetic fun Dispatch-14j0mu4$default (Ldev/rotalex/lutter/runtime/RenderScope;Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
 }
 
 public final class dev/rotalex/lutter/runtime/RendererRegistry {
