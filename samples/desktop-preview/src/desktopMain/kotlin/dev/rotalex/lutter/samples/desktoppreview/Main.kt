@@ -39,11 +39,14 @@ public fun readDocument(path: String): UiDocument {
  */
 public fun main(args: Array<String>): Unit {
     val schema = BuiltinEngine.schema()
-    val document = BuiltinEngine.resolve(schema, readDocument(args.firstOrNull() ?: DEFAULT_DOCUMENT))
+    // Read twice over, once each: the start page is a document fact that lowering drops, so it is
+    // taken from what was decoded rather than from the resolved form that no longer carries it.
+    val decoded = readDocument(args.firstOrNull() ?: DEFAULT_DOCUMENT)
+    val document = BuiltinEngine.resolve(schema, decoded)
     // Built here rather than in the window's content: construction is what runs §4.5's coverage
     // check, and that content recomposes on every navigation.
     val runtime = BuiltinEngine.runtime(schema)
-    val navigator = BackStackNavigator(document.app.startPage)
+    val navigator = BackStackNavigator(decoded.app.startPage)
 
     application {
         Window(onCloseRequest = ::exitApplication, title = "Lutter desktop preview") {
