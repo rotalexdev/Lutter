@@ -1,3 +1,12 @@
+public final class dev/rotalex/lutter/builtins/compose/BuiltinEngine {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/compose/BuiltinEngine;
+	public final fun analyze (Ldev/rotalex/lutter/schema/Schema;Ldev/rotalex/lutter/model/doc/UiDocument;)Ldev/rotalex/lutter/analysis/AnalysisResult;
+	public final fun resolve (Ldev/rotalex/lutter/schema/Schema;Ldev/rotalex/lutter/model/doc/UiDocument;)Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;
+	public final fun runtime (Ldev/rotalex/lutter/schema/Schema;)Ldev/rotalex/lutter/runtime/UiRuntime;
+	public final fun schema ()Ldev/rotalex/lutter/schema/Schema;
+}
+
 public final class dev/rotalex/lutter/builtins/compose/BuiltinModifierAppliersKt {
 	public static final fun registerBuiltinModifierAppliers (Ldev/rotalex/lutter/runtime/ModifierApplierRegistryBuilder;)V
 }
