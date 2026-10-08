@@ -39,6 +39,8 @@ class NavigatorTest {
         var opened: PageId? = null
         var args: Map<ParamName, Value> = emptyMap()
 
+        override val current: Destination = Destination(PageId("p_nowhere"), emptyMap())
+
         override fun navigate(page: PageId, args: Map<ParamName, Value>) {
             opened = page
             this.args = args

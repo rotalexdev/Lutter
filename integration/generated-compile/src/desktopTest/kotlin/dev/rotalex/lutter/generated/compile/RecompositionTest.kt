@@ -13,6 +13,7 @@ import dev.rotalex.lutter.analysis.Analyzer
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.generated.text_field_state.screens.HomeScreen
 import dev.rotalex.lutter.generated.text_field_state.screens.HomeScreenState
+import dev.rotalex.lutter.interpreter.env.Destination
 import dev.rotalex.lutter.interpreter.env.Navigator
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.ParamName
@@ -162,6 +163,7 @@ class RecompositionTest {
     }
 
     private object StubNavigator : Navigator {
+        override val current: Destination = Destination(PageId("p_nowhere"), emptyMap())
         override fun navigate(page: PageId, args: Map<ParamName, Value>): Unit = Unit
         override fun back(): Boolean = false
     }

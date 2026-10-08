@@ -591,7 +591,7 @@ internal enum class ActionKind {
  * [type] is the generated declaration each receiver needs in the base package, and null for the
  * one that comes from the composition rather than from a parameter — so the vocabulary is one
  * list and no caller has to remember which of the four is the odd one out. Public because a
- * navigation strategy is handed what the screens demanded as a list of these.
+ * navigation strategy is handed what each screen demanded of its caller.
  */
 public enum class ActionReceiver(public val member: String, public val type: String?) {
     Navigator("navigator", "AppNavigator"),

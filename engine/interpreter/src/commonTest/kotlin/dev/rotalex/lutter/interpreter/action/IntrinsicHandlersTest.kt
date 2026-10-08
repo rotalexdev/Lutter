@@ -3,6 +3,7 @@ package dev.rotalex.lutter.interpreter.action
 import dev.rotalex.lutter.interpreter.EventArgScope
 import dev.rotalex.lutter.interpreter.MapEvalScope
 import dev.rotalex.lutter.interpreter.MapStateStore
+import dev.rotalex.lutter.interpreter.env.Destination
 import dev.rotalex.lutter.interpreter.env.Navigator
 import dev.rotalex.lutter.interpreter.env.SnackbarHost
 import dev.rotalex.lutter.interpreter.eval.Evaluator
@@ -322,6 +323,8 @@ class IntrinsicHandlersTest {
         var opened: PageId? = null
         var args: Map<ParamName, Value> = emptyMap()
         var backs: Int = 0
+
+        override val current: Destination = Destination(PageId("p_nowhere"), emptyMap())
 
         override fun navigate(page: PageId, args: Map<ParamName, Value>) {
             opened = page

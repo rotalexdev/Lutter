@@ -199,16 +199,20 @@ class StateEmitterTest {
             ${"import"} com.example.app.state.LocalAppState
 
             @Composable
-            public fun AppRoot(modifier: Modifier = Modifier) {
+            public fun AppRoot(navigator: AppNavigator, modifier: Modifier = Modifier) {
                 val state: AppState = remember {
                     AppState()
                 }
                 CompositionLocalProvider(
                     LocalAppState.provides(state),
                 ) {
-                    HomeScreen(
-                        modifier = modifier,
-                    )
+                    when (navigator.current) {
+                        Route.Home -> {
+                            HomeScreen(
+                                modifier = modifier,
+                            )
+                        }
+                    }
                 }
             }
 

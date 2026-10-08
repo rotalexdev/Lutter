@@ -10,6 +10,7 @@ import dev.rotalex.lutter.builtins.registerBuiltinEnums
 import dev.rotalex.lutter.builtins.registerBuiltinFunctions
 import dev.rotalex.lutter.builtins.registerBuiltinModifiers
 import dev.rotalex.lutter.builtins.registerBuiltinSpecs
+import dev.rotalex.lutter.interpreter.env.Destination
 import dev.rotalex.lutter.interpreter.env.Navigator
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.PageId
@@ -83,6 +84,7 @@ internal object ConformanceHarness {
     }
 
     private object TestNavigator : Navigator {
+        override val current: Destination = Destination(PageId("p_nowhere"), emptyMap())
         override fun navigate(page: PageId, args: Map<ParamName, Value>): Unit = Unit
         override fun back(): Boolean = false
     }

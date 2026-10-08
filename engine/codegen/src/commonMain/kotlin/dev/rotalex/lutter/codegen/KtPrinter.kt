@@ -261,7 +261,27 @@ public class KtPrinter(
             is KtStmt.LocalProperty -> indentOf(indent) + renderLocalProperty(stmt, indent, aliases)
             is KtStmt.Assign -> indentOf(indent) + renderExpr(stmt.target, indent, aliases) +
                 " = " + renderExpr(stmt.value, indent, aliases)
+            is KtStmt.When -> indentOf(indent) + renderWhen(stmt, indent, aliases)
         }
+
+    // `when (subject) {` on the head, one arm per line, every arm braced: an arm holds a screen
+    // call that expands over lines, and a bare `Route.Home -> HomeScreen(` reads as one
+    // continued statement rather than an arm.
+    private fun renderWhen(stmt: KtStmt.When, indent: Int, aliases: Map<String, String>): String = buildString {
+        append("when (" + renderExpr(stmt.subject, indent, aliases) + ") {\n")
+        for (branch in stmt.branches) {
+            append(indentOf(indent + 1) + renderExpr(branch.value, indent + 1, aliases) + " -> {\n")
+            for (inner in branch.body) append(renderStmt(inner, indent + 2, aliases) + "\n")
+            append(indentOf(indent + 1) + "}\n")
+        }
+        val otherwise: List<KtStmt>? = stmt.otherwise
+        if (otherwise != null) {
+            append(indentOf(indent + 1) + "else -> {\n")
+            for (inner in otherwise) append(renderStmt(inner, indent + 2, aliases) + "\n")
+            append(indentOf(indent + 1) + "}\n")
+        }
+        append(indentOf(indent) + "}")
+    }
 
     // No `public` here: a local is not a declaration, and explicitApi governs declarations.
     private fun renderLocalProperty(
@@ -599,6 +619,16 @@ public class KtPrinter(
         is KtStmt.Assign -> {
             collectExprSymbols(stmt.target, filePkg, seen)
             collectExprSymbols(stmt.value, filePkg, seen)
+        }
+        // The subject and every arm value are expressions, and the arm bodies are statements
+        // rather than expressions: an arm holds screen calls.
+        is KtStmt.When -> {
+            collectExprSymbols(stmt.subject, filePkg, seen)
+            for (branch in stmt.branches) {
+                collectExprSymbols(branch.value, filePkg, seen)
+                for (inner in branch.body) collectStmtSymbols(inner, filePkg, seen)
+            }
+            for (inner in stmt.otherwise.orEmpty()) collectStmtSymbols(inner, filePkg, seen)
         }
     }
 

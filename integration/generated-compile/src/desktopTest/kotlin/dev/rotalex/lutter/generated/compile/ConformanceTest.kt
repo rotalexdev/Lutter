@@ -19,11 +19,13 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.codegen.CodegenOptions
 import dev.rotalex.lutter.codegen.KotlinGenerator
 import dev.rotalex.lutter.generated.button_navigate.AppNavigator
+import dev.rotalex.lutter.generated.button_navigate.AppRoot
 import dev.rotalex.lutter.generated.button_navigate.Route
 import dev.rotalex.lutter.generated.button_navigate.screens.HomeScreen
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.runtime.BackStackNavigator
 import dev.rotalex.lutter.runtime.RuntimeEnvironment
+import dev.rotalex.lutter.runtime.UiApp
 import dev.rotalex.lutter.runtime.UiScreen
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -118,10 +120,9 @@ class ConformanceTest {
             val resolved = navigating()
             val runtimeStack = BackStackNavigator(HOME)
             setContent {
-                UiScreen(
+                UiApp(
                     ConformanceHarness.runtime(ConformanceHarness.schema()),
                     resolved,
-                    HOME,
                     RuntimeEnvironment(navigator = runtimeStack),
                 )
             }
@@ -134,10 +135,18 @@ class ConformanceTest {
             val runtimeAfterImage = pixelBytes()
 
             val generatedStack = AppNavigator()
-            setContent { HomeScreen(navigator = generatedStack, modifier = Modifier) }
+            setContent { AppRoot(navigator = generatedStack, modifier = Modifier) }
             assertTrue(continueButton().exposesClick(), "the generated button exposes no click action")
             continueButton().performClick()
             waitForIdle()
+
+            // Both sides are captured while their own stack is still on Profile, which is the only
+            // state in which the two are meant to agree. A pop before the capture would not be
+            // visible in the frame — the read that would show it is what idles the composition —
+            // so the generated side would be photographed back on Home and compared against the
+            // runtime's Profile.
+            val generatedAfter = dumpSemantics()
+            val generatedAfterImage = pixelBytes()
 
             assertEquals(Route.Profile, generatedStack.current, "the press did not navigate")
             assertTrue(generatedStack.back(), "the press did not push onto the stack")
@@ -151,9 +160,6 @@ class ConformanceTest {
             assertEquals(PROFILE, runtimeStack.current.page, "the runtime press did not navigate")
             assertTrue(runtimeStack.back(), "the runtime press did not push onto the stack")
             assertEquals(HOME, runtimeStack.current.page, "one pop did not return to the start")
-
-            val generatedAfter = dumpSemantics()
-            val generatedAfterImage = pixelBytes()
 
             assertEquals(runtimeAfter, generatedAfter, "after the press")
             assertEquals(runtimeAfterImage.first, generatedAfterImage.first, "after the press")

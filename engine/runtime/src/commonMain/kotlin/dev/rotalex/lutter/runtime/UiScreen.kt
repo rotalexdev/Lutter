@@ -15,6 +15,7 @@ import dev.rotalex.lutter.interpreter.EvalScope
 import dev.rotalex.lutter.interpreter.RuntimeDiagnostic
 import dev.rotalex.lutter.interpreter.action.ActionEnv
 import dev.rotalex.lutter.interpreter.constantOrNull
+import dev.rotalex.lutter.interpreter.env.Destination
 import dev.rotalex.lutter.interpreter.eval.Evaluator
 import dev.rotalex.lutter.model.doc.TokenName
 import dev.rotalex.lutter.model.expr.TypedExpr
@@ -30,6 +31,27 @@ import dev.rotalex.lutter.schema.kind.ValueKinds
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+
+/**
+ * The application root: the page [environment]'s navigator is on, with the arguments it was
+ * opened with.
+ *
+ * [UiScreen] renders the page the caller names, which is what a preview or a single page wants
+ * and what an application cannot use: a caller that names one page never reads the navigator,
+ * so nothing subscribes it and the composition stays on a page the document already left.
+ * Reading [Destination.page] here is what re-renders the destination instead, and it is the
+ * whole of what this adds — a host that renders one fixed page still calls [UiScreen].
+ */
+@Composable
+public fun UiApp(
+    runtime: UiRuntime,
+    document: ResolvedDocument,
+    environment: RuntimeEnvironment,
+    modifier: Modifier = Modifier,
+): Unit {
+    val destination: Destination = environment.navigator.current
+    UiScreen(runtime, document, destination.page, environment, destination.args, modifier)
+}
 
 /**
  * The screen: resolves [page], then renders its root through the registry.

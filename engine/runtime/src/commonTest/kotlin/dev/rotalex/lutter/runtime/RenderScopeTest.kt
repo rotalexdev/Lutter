@@ -7,6 +7,7 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
 import dev.rotalex.lutter.interpreter.MapEvalScope
 import dev.rotalex.lutter.interpreter.MapStateStore
+import dev.rotalex.lutter.interpreter.env.Destination
 import dev.rotalex.lutter.interpreter.env.Navigator
 import dev.rotalex.lutter.interpreter.eval.Evaluator
 import dev.rotalex.lutter.model.doc.TokenName
@@ -181,6 +182,7 @@ class RenderScopeTest {
     }
 
     private object StubNavigator : Navigator {
+        override val current: Destination = Destination(PageId("p_nowhere"), emptyMap())
         override fun navigate(page: PageId, args: Map<ParamName, Value>): Unit = Unit
         override fun back(): Boolean = false
     }

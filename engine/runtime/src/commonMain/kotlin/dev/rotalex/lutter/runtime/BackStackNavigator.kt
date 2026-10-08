@@ -2,6 +2,7 @@ package dev.rotalex.lutter.runtime
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import dev.rotalex.lutter.interpreter.env.Destination
 import dev.rotalex.lutter.interpreter.env.Navigator
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.ParamName
@@ -24,7 +25,7 @@ public class BackStackNavigator(start: PageId) : Navigator {
         mutableStateOf(listOf(Destination(start, emptyMap())))
 
     /** The page on top of the stack, with the arguments it was opened with. */
-    public val current: Destination get() = stack.value.last()
+    override val current: Destination get() = stack.value.last()
 
     /** Opens [page] on top of the stack, so a later [back] returns to where this came from. */
     override fun navigate(page: PageId, args: Map<ParamName, Value>) {
@@ -40,10 +41,4 @@ public class BackStackNavigator(start: PageId) : Navigator {
         stack.value = entries.dropLast(1)
         return true
     }
-
-    /** One entry on the stack: a page and the arguments it was opened with. */
-    public data class Destination(
-        public val page: PageId,
-        public val args: Map<ParamName, Value>,
-    )
 }
