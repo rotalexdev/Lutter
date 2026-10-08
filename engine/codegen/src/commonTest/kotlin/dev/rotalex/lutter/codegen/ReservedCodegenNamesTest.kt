@@ -181,7 +181,7 @@ class ReservedCodegenNamesTest {
         for ((id, name) in pages) {
             val root: NodeId = NodeId("n_" + id.value)
             nodes[root] = column(root)
-            resolved[id] = ResolvedPage(id, name, name.lowercase(), root, pageState)
+            resolved[id] = ResolvedPage(id, name, name.lowercase(), nodes.getValue(root), pageState)
         }
         val declared: MutableMap<ComponentDeclId, ResolvedNode> = LinkedHashMap()
         for (id in components) {
