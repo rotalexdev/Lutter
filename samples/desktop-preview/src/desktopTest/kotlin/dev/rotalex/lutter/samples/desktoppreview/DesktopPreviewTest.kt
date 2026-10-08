@@ -2,7 +2,6 @@ package dev.rotalex.lutter.samples.desktoppreview
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
