@@ -93,7 +93,10 @@ public interface RenderScope {
      * The key is looked up in [node]'s own events rather than taken from the renderer, so a
      * sequence this node does not declare is a handler that runs nothing rather than a lookup
      * that has to be right at every call site.
+     *
+     * Not `@Composable`, and that is load-bearing: Material hands `Button`'s press a plain
+     * lambda, so a composable dispatch could not be called from the one place a button needs it.
+     * The coroutine scope is the screen's, held by the implementation, for the same reason.
      */
-    @Composable
     public fun Dispatch(node: ResolvedNode, event: EventKey, args: Map<String, Value> = emptyMap())
 }
