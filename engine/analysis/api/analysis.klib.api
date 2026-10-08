@@ -370,6 +370,8 @@ final object dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes { // dev.rot
         final fun <get-ModifierScopeMissing>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ModifierScopeMissing.<get-ModifierScopeMissing>|<get-ModifierScopeMissing>(){}[0]
     final val ModifierUnknown // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ModifierUnknown|{}ModifierUnknown[0]
         final fun <get-ModifierUnknown>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.ModifierUnknown.<get-ModifierUnknown>|<get-ModifierUnknown>(){}[0]
+    final val NameReserved // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.NameReserved|{}NameReserved[0]
+        final fun <get-NameReserved>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.NameReserved.<get-NameReserved>|<get-NameReserved>(){}[0]
     final val NavArgsMismatch // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.NavArgsMismatch|{}NavArgsMismatch[0]
         final fun <get-NavArgsMismatch>(): dev.rotalex.lutter.analysis.diagnostic/DiagnosticCode // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.NavArgsMismatch.<get-NavArgsMismatch>|<get-NavArgsMismatch>(){}[0]
     final val PropEnumEntryInvalid // dev.rotalex.lutter.analysis.diagnostic/DiagnosticCodes.PropEnumEntryInvalid|{}PropEnumEntryInvalid[0]
