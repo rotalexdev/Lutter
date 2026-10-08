@@ -328,7 +328,7 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
      * Public because they are also the reserved set a document is refused against, and a
      * `public const` inside a private companion is unreachable however public it is declared.
      */
-    companion object {
+    public companion object {
         public const val RouteName: String = "Route"
         public const val NavigatorName: String = "AppNavigator"
         public const val RootName: String = "AppRoot"
