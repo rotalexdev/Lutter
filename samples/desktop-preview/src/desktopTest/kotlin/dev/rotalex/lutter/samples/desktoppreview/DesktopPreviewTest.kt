@@ -26,9 +26,10 @@ class DesktopPreviewTest {
     @Test
     fun `the window opens on Welcome and Continue reaches Profile`() = runComposeUiTest {
         val schema = BuiltinEngine.schema()
-        val document = BuiltinEngine.resolve(schema, readDocument(DEFAULT_DOCUMENT))
+        val decoded = readDocument(DEFAULT_DOCUMENT)
+        val document = BuiltinEngine.resolve(schema, decoded)
         val runtime = BuiltinEngine.runtime(schema)
-        val navigator = BackStackNavigator(document.app.startPage)
+        val navigator = BackStackNavigator(decoded.app.startPage)
 
         setContent {
             UiApp(runtime, document, RuntimeEnvironment(navigator = navigator))
