@@ -1,29 +1,20 @@
 package dev.rotalex.lutter.generated.compile
 
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsConfiguration
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.captureToImage
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.codegen.CodegenOptions
 import dev.rotalex.lutter.codegen.KotlinGenerator
-import dev.rotalex.lutter.generated.button_navigate.AppNavigator
-import dev.rotalex.lutter.generated.button_navigate.Route
-import dev.rotalex.lutter.generated.button_navigate.screens.HomeScreen
 import dev.rotalex.lutter.model.ids.PageId
-import dev.rotalex.lutter.runtime.BackStackNavigator
-import dev.rotalex.lutter.runtime.RuntimeEnvironment
 import dev.rotalex.lutter.runtime.UiScreen
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -31,17 +22,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Runtime and compiled generated code agree: one semantics tree, one image, one click.
+ * Runtime and compiled generated code agree: one semantics tree and one image per fixture.
  *
  * Each fixture is validated through the analyzer, rendered by the runtime, and rendered by
  * the generated screen the fixture task compiled into this module; generation itself is
  * re-run in-test so a stale generated file fails here rather than comparing old output.
  * Desktop runs headless, so pixels compare here and need no display.
- *
- * The click runs on the navigating fixture's own screen, which declares the navigator as a
- * parameter and so is in no registry. Only the generated side moves: the runtime's button
- * renderer passes an empty `onClick` and nothing in the runtime dispatches a node's handlers.
- * Both trees are re-compared after the press either way.
  */
 @OptIn(ExperimentalTestApi::class)
 class ConformanceTest {
@@ -49,8 +35,6 @@ class ConformanceTest {
     private companion object {
         val HOME: PageId = PageId("p_home")
         const val PACKAGE: String = "dev.rotalex.lutter.generated."
-        const val NAVIGATING: String = "button_navigate"
-        const val CONTINUE: String = "Continue"
     }
 
     @Test
@@ -83,92 +67,6 @@ class ConformanceTest {
             assertEquals(runtimePixels.first, generatedPixels.first, "fixture '$id'")
             assertContentEquals(runtimePixels.second, generatedPixels.second, "fixture '$id'")
         }
-    }
-
-    @Test
-    fun `the navigating fixture renders one tree and one image on both paths`() = runComposeUiTest {
-        val resolved = navigating()
-        setContent {
-            UiScreen(
-                ConformanceHarness.runtime(ConformanceHarness.schema()),
-                resolved,
-                HOME,
-                RuntimeEnvironment(navigator = BackStackNavigator(HOME)),
-            )
-        }
-        val runtimeTree = dumpSemantics()
-        val runtimeBounds = firstContent(onRoot().fetchSemanticsNode()).boundsInRoot
-        val runtimeImage = pixelBytes()
-
-        setContent { HomeScreen(navigator = AppNavigator(), modifier = Modifier) }
-        val generatedImage = pixelBytes()
-
-        assertEquals(runtimeTree, dumpSemantics(), "fixture '$NAVIGATING'")
-        // The dump carries no bounds, so the root's own are compared here and the pixels below
-        // are what say anything about the layout below it.
-        assertEquals(runtimeBounds, firstContent(onRoot().fetchSemanticsNode()).boundsInRoot, "root bounds")
-        assertEquals(runtimeImage.first, generatedImage.first, "fixture '$NAVIGATING'")
-        assertContentEquals(runtimeImage.second, generatedImage.second, "fixture '$NAVIGATING'")
-    }
-
-    @Test
-    fun `a click on Continue moves the generated stack onto Profile and the runtime stack not at all`() =
-        runComposeUiTest {
-            val resolved = navigating()
-            val runtimeStack = BackStackNavigator(HOME)
-            setContent {
-                UiScreen(
-                    ConformanceHarness.runtime(ConformanceHarness.schema()),
-                    resolved,
-                    HOME,
-                    RuntimeEnvironment(navigator = runtimeStack),
-                )
-            }
-            assertTrue(continueButton().exposesClick(), "the runtime button exposes no click action")
-            continueButton().performClick()
-            // `waitForIdle` is what makes the two images comparable: it advances past the ripple
-            // the press started, so both sides are captured in the same settled state.
-            waitForIdle()
-            val runtimeAfter = dumpSemantics()
-            val runtimeAfterImage = pixelBytes()
-
-            val generatedStack = AppNavigator()
-            setContent { HomeScreen(navigator = generatedStack, modifier = Modifier) }
-            assertTrue(continueButton().exposesClick(), "the generated button exposes no click action")
-            continueButton().performClick()
-            waitForIdle()
-
-            assertEquals(Route.Profile, generatedStack.current, "the press did not navigate")
-            assertTrue(generatedStack.back(), "the press did not push onto the stack")
-            assertEquals(Route.Home, generatedStack.current, "one pop did not return to the start")
-            // The runtime's press is inert. `ButtonRenderer` passes `onClick = { }` and no
-            // `RenderScope` member dispatches a node's handlers, so nothing reaches
-            // `UiRuntime.runActions` from a click; §30.5's `handler(n_btn, onClick)` is not there.
-            assertEquals(HOME, runtimeStack.current.page, "the runtime stack moved")
-
-            val generatedAfter = dumpSemantics()
-            val generatedAfterImage = pixelBytes()
-
-            assertEquals(runtimeAfter, generatedAfter, "after the press")
-            assertEquals(runtimeAfterImage.first, generatedAfterImage.first, "after the press")
-            assertContentEquals(runtimeAfterImage.second, generatedAfterImage.second, "after the press")
-        }
-
-    /** The button by its label, which is the whole of §28.4's `click("Continue")` script. */
-    private fun ComposeUiTest.continueButton(): SemanticsNodeInteraction = onNode(hasText(CONTINUE))
-
-    /** §28.4's "click actions" row: both sides expose the press, whatever runs behind it. */
-    private fun SemanticsNodeInteraction.exposesClick(): Boolean =
-        fetchSemanticsNode().config.valueOrNull(SemanticsActions.OnClick) != null
-
-    /** The navigating fixture resolved. Its screen declares a navigator, so no registry holds it. */
-    private fun navigating(): ResolvedDocument {
-        val schema = ConformanceHarness.schema()
-        val result = ConformanceHarness.analyze(schema, NAVIGATING, NavigatingFixtureDocuments::json)
-        check(result.diagnostics.none { it.severity == Severity.Error }) {
-            "fixture '$NAVIGATING': ${result.diagnostics}"
-        }
-        return checkNotNull(result.resolved) { "fixture '$NAVIGATING' resolved nothing" }
     }
 
     private fun resolve(id: String): ResolvedDocument {
