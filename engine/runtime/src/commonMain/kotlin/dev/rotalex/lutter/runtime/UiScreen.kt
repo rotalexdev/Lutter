@@ -163,8 +163,8 @@ internal class DefaultRenderScope(
     private val runtime: UiRuntime,
     private val handle: ScopeHandle?,
     private val expressions: ExpressionSource,
-    private val actionEnv: (Map<String, Value>) -> ActionEnv,
     private val coroutines: CoroutineScope,
+    private val actionEnv: (Map<String, Value>) -> ActionEnv,
 ) : RenderScope {
 
     /**
@@ -206,7 +206,7 @@ internal class DefaultRenderScope(
         content(copy(handle = handle))
 
     private fun copy(handle: ScopeHandle?): DefaultRenderScope =
-        DefaultRenderScope(environment, theme, runtime, handle, expressions, actionEnv, coroutines)
+        DefaultRenderScope(environment, theme, runtime, handle, expressions, coroutines, actionEnv)
 }
 
 /**

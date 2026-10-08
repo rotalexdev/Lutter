@@ -164,7 +164,7 @@ class RenderScopeTest {
             null,
             expressions(),
             TestScope(),
-        ) { MapEvalScope(MapStateStore()) }
+        ) { _ -> MapEvalScope(MapStateStore()) }
     }
 
     private fun expressions(): ExpressionSource =
