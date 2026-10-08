@@ -14,6 +14,16 @@ import dev.rotalex.lutter.schema.component.KotlinSymbol
  */
 public interface NavigationStrategy {
 
+    /**
+     * The top-level names this strategy emits whole, which a document may therefore not declare.
+     *
+     * A property rather than something a caller reads off emitted files, because the answer has
+     * to exist before the first file is written: `ReservedCodegenNames` checks a document's names
+     * against this set, and a strategy that declared fewer names than it emits would hand back a
+     * document that only fails later.
+     */
+    public val reservedTopLevelNames: Set<String>
+
     /** The sealed `Route` and the navigator over it, as the declarations of `Navigation.kt`. */
     public fun emitRoutes(pages: List<ResolvedPage>, ctx: FileContext): List<KtDeclaration>
 
@@ -74,6 +84,8 @@ public class FileContext(
  * screen's file and gets no context, so the package `Route` is generated into is this field.
  */
 public data class SimpleBackStack(public val basePackage: String) : NavigationStrategy {
+
+    override val reservedTopLevelNames: Set<String> = setOf(RouteName, NavigatorName, RootName)
 
     /**
      * `sealed interface Route` then `class AppNavigator`.
@@ -147,7 +159,10 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
      * parameter and this call cannot drift apart.
      */
     private fun screenArm(page: ResolvedPage, ctx: FileContext): KtStmt.When.Branch {
-        val screen: KotlinSymbol = KotlinSymbol(basePackage + ".screens", page.name + "Screen")
+        val screen: KotlinSymbol = KotlinSymbol(
+            basePackage + ".screens",
+            page.name + ReservedCodegenNames.ScreenSuffix,
+        )
         val forwarded: List<KtArg> = declaredBy(page, ctx).map { KtArg(it.member, KtExpr.Name(it.member)) }
         return KtStmt.When.Branch(
             KtExpr.Ref(KtSymbolRef(KotlinSymbol(basePackage, RouteName), page.name)),
@@ -314,8 +329,8 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
             KotlinSymbol("androidx.compose.runtime", "mutableStateListOf")
 
         /** §30.6's three names, which the plan, this strategy and a handler's call all agree on. */
-        private const val RouteName: String = "Route"
-        private const val NavigatorName: String = "AppNavigator"
-        private const val RootName: String = "AppRoot"
+        public const val RouteName: String = "Route"
+        public const val NavigatorName: String = "AppNavigator"
+        public const val RootName: String = "AppRoot"
     }
 }

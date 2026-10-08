@@ -594,9 +594,9 @@ internal enum class ActionKind {
  * navigation strategy is handed what each screen demanded of its caller.
  */
 public enum class ActionReceiver(public val member: String, public val type: String?) {
-    Navigator("navigator", "AppNavigator"),
-    Snackbars("snackbars", "SnackbarHost"),
-    Host("host", "AppHost"),
+    Navigator("navigator", SimpleBackStack.NavigatorName),
+    Snackbars("snackbars", ReservedCodegenNames.SnackbarHostName),
+    Host("host", ReservedCodegenNames.AppHostName),
     Scope("scope", null),
 }
 
