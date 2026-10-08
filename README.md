@@ -302,7 +302,7 @@ machine-enforced by `verifyModuleGraph` from a hard-coded allow-list (PLAN §23.
 :tools:cli               ── model, serialization, analysis, codegen, builtins   `forge` CLI
 :tools:architecture-tests ── (none)          architecture rules
 :integration:generated-compile               compiles generated fixtures
-:samples:desktop-preview                     renders a JSON document
+:samples:desktop-preview                     renders a JSON document — `gradle :samples:desktop-preview:run`
 ```
 
 Read the absences; they carry the architecture. `:engine:model` reaches nothing at all.
