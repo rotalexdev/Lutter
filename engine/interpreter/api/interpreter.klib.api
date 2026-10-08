@@ -37,6 +37,9 @@ abstract interface dev.rotalex.lutter.interpreter.env/DialogHost { // dev.rotale
 }
 
 abstract interface dev.rotalex.lutter.interpreter.env/Navigator { // dev.rotalex.lutter.interpreter.env/Navigator|null[0]
+    abstract val current // dev.rotalex.lutter.interpreter.env/Navigator.current|{}current[0]
+        abstract fun <get-current>(): dev.rotalex.lutter.interpreter.env/Destination // dev.rotalex.lutter.interpreter.env/Navigator.current.<get-current>|<get-current>(){}[0]
+
     abstract fun back(): kotlin/Boolean // dev.rotalex.lutter.interpreter.env/Navigator.back|back(){}[0]
     abstract fun navigate(dev.rotalex.lutter.model.ids/PageId, kotlin.collections/Map<dev.rotalex.lutter.model.ids/ParamName, dev.rotalex.lutter.model.value/Value>) // dev.rotalex.lutter.interpreter.env/Navigator.navigate|navigate(dev.rotalex.lutter.model.ids.PageId;kotlin.collections.Map<dev.rotalex.lutter.model.ids.ParamName,dev.rotalex.lutter.model.value.Value>){}[0]
 }
@@ -87,6 +90,22 @@ final class dev.rotalex.lutter.interpreter.action/ActionExecutor { // dev.rotale
     constructor <init>(kotlin.collections/Map<dev.rotalex.lutter.model.ids/ActionId, dev.rotalex.lutter.interpreter.action/ActionHandler>) // dev.rotalex.lutter.interpreter.action/ActionExecutor.<init>|<init>(kotlin.collections.Map<dev.rotalex.lutter.model.ids.ActionId,dev.rotalex.lutter.interpreter.action.ActionHandler>){}[0]
 
     final suspend fun run(dev.rotalex.lutter.model.action/ActionSequence, dev.rotalex.lutter.interpreter.action/ActionEnv): dev.rotalex.lutter.interpreter.action/ActionOutcome // dev.rotalex.lutter.interpreter.action/ActionExecutor.run|run(dev.rotalex.lutter.model.action.ActionSequence;dev.rotalex.lutter.interpreter.action.ActionEnv){}[0]
+}
+
+final class dev.rotalex.lutter.interpreter.env/Destination { // dev.rotalex.lutter.interpreter.env/Destination|null[0]
+    constructor <init>(dev.rotalex.lutter.model.ids/PageId, kotlin.collections/Map<dev.rotalex.lutter.model.ids/ParamName, dev.rotalex.lutter.model.value/Value>) // dev.rotalex.lutter.interpreter.env/Destination.<init>|<init>(dev.rotalex.lutter.model.ids.PageId;kotlin.collections.Map<dev.rotalex.lutter.model.ids.ParamName,dev.rotalex.lutter.model.value.Value>){}[0]
+
+    final val args // dev.rotalex.lutter.interpreter.env/Destination.args|{}args[0]
+        final fun <get-args>(): kotlin.collections/Map<dev.rotalex.lutter.model.ids/ParamName, dev.rotalex.lutter.model.value/Value> // dev.rotalex.lutter.interpreter.env/Destination.args.<get-args>|<get-args>(){}[0]
+    final val page // dev.rotalex.lutter.interpreter.env/Destination.page|{}page[0]
+        final fun <get-page>(): dev.rotalex.lutter.model.ids/PageId // dev.rotalex.lutter.interpreter.env/Destination.page.<get-page>|<get-page>(){}[0]
+
+    final fun component1(): dev.rotalex.lutter.model.ids/PageId // dev.rotalex.lutter.interpreter.env/Destination.component1|component1(){}[0]
+    final fun component2(): kotlin.collections/Map<dev.rotalex.lutter.model.ids/ParamName, dev.rotalex.lutter.model.value/Value> // dev.rotalex.lutter.interpreter.env/Destination.component2|component2(){}[0]
+    final fun copy(dev.rotalex.lutter.model.ids/PageId = ..., kotlin.collections/Map<dev.rotalex.lutter.model.ids/ParamName, dev.rotalex.lutter.model.value/Value> = ...): dev.rotalex.lutter.interpreter.env/Destination // dev.rotalex.lutter.interpreter.env/Destination.copy|copy(dev.rotalex.lutter.model.ids.PageId;kotlin.collections.Map<dev.rotalex.lutter.model.ids.ParamName,dev.rotalex.lutter.model.value.Value>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.interpreter.env/Destination.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // dev.rotalex.lutter.interpreter.env/Destination.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // dev.rotalex.lutter.interpreter.env/Destination.toString|toString(){}[0]
 }
 
 final class dev.rotalex.lutter.interpreter.env/HostFunctions { // dev.rotalex.lutter.interpreter.env/HostFunctions|null[0]
