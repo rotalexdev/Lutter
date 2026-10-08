@@ -48,6 +48,7 @@ class ConformanceTest {
 
     private companion object {
         val HOME: PageId = PageId("p_home")
+        val PROFILE: PageId = PageId("p_profile")
         const val PACKAGE: String = "dev.rotalex.lutter.generated."
         const val NAVIGATING: String = "button_navigate"
         const val CONTINUE: String = "Continue"
@@ -112,7 +113,7 @@ class ConformanceTest {
     }
 
     @Test
-    fun `a click on Continue moves the generated stack onto Profile and the runtime stack not at all`() =
+    fun `a click on Continue moves both stacks onto Profile`() =
         runComposeUiTest {
             val resolved = navigating()
             val runtimeStack = BackStackNavigator(HOME)
@@ -141,10 +142,15 @@ class ConformanceTest {
             assertEquals(Route.Profile, generatedStack.current, "the press did not navigate")
             assertTrue(generatedStack.back(), "the press did not push onto the stack")
             assertEquals(Route.Home, generatedStack.current, "one pop did not return to the start")
-            // The runtime's press is inert. `ButtonRenderer` passes `onClick = { }` and no
-            // `RenderScope` member dispatches a node's handlers, so nothing reaches
-            // `UiRuntime.runActions` from a click; §30.5's `handler(n_btn, onClick)` is not there.
-            assertEquals(HOME, runtimeStack.current.page, "the runtime stack moved")
+            // The runtime reaches the same place the generated path does, through the seam
+            // `RenderScope.Dispatch` opened: `ButtonRenderer` hands its press to the node's own
+            // `onClick` sequence and `UiRuntime.runActions` runs it against the screen's scope.
+            // Both sides are asserted on their own current destination rather than through one
+            // shared shape, because they are two implementations of the same contract and only
+            // each of them can say what its own state is called.
+            assertEquals(PROFILE, runtimeStack.current.page, "the runtime press did not navigate")
+            assertTrue(runtimeStack.back(), "the runtime press did not push onto the stack")
+            assertEquals(HOME, runtimeStack.current.page, "one pop did not return to the start")
 
             val generatedAfter = dumpSemantics()
             val generatedAfterImage = pixelBytes()
