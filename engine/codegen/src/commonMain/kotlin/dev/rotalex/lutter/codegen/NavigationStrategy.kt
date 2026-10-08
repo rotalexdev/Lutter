@@ -322,15 +322,20 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
     private fun modifierParam(): KtParam =
         KtParam("modifier", KtExpr.Ref(KtSymbolRef(modifierType)), KtExpr.Ref(KtSymbolRef(modifierType)))
 
-    private companion object {
+    /**
+     * §30.6's three names, which the plan, this strategy and a handler's call all agree on.
+     *
+     * Public because they are also the reserved set a document is refused against, and a
+     * `public const` inside a private companion is unreachable however public it is declared.
+     */
+    companion object {
+        public const val RouteName: String = "Route"
+        public const val NavigatorName: String = "AppNavigator"
+        public const val RootName: String = "AppRoot"
+
         private val composable: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "Composable")
         private val modifierType: KotlinSymbol = KotlinSymbol("androidx.compose.ui", "Modifier")
         private val stateList: KotlinSymbol =
             KotlinSymbol("androidx.compose.runtime", "mutableStateListOf")
-
-        /** §30.6's three names, which the plan, this strategy and a handler's call all agree on. */
-        public const val RouteName: String = "Route"
-        public const val NavigatorName: String = "AppNavigator"
-        public const val RootName: String = "AppRoot"
     }
 }
