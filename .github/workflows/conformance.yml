@@ -40,3 +40,16 @@ jobs:
 
       - name: Compile generated fixtures and compare them against the runtime
         run: gradle :integration:generated-compile:desktopTest
+
+      # `check` already explains why: the step log carries only
+      # "java.lang.AssertionError at Assert.java:89" with no message, so a failure here was
+      # undiagnosable without this. Uploaded unconditionally rather than only on failure, so
+      # the evidence survives a flake that passed on the rerun.
+      - name: Upload the test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/build/test-results/**/*.xml'
+          if-no-files-found: ignore
+          retention-days: 14

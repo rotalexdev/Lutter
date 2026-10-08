@@ -2,6 +2,7 @@ package dev.rotalex.lutter.runtime
 
 import dev.rotalex.lutter.analysis.resolved.ResolvedState
 import dev.rotalex.lutter.interpreter.StateWriter
+import dev.rotalex.lutter.interpreter.env.Destination
 import dev.rotalex.lutter.interpreter.env.Navigator
 import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.expr.BinaryOp
@@ -117,6 +118,7 @@ class SnapshotStateStoreTest {
     }
 
     private object StubNavigator : Navigator {
+        override val current: Destination = Destination(PageId("p_nowhere"), emptyMap())
         override fun navigate(page: PageId, args: Map<ParamName, Value>): Unit = Unit
         override fun back(): Boolean = false
     }

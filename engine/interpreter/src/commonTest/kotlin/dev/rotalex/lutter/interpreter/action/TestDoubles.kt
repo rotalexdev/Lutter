@@ -8,6 +8,7 @@ import dev.rotalex.lutter.interpreter.EvalScope
 import dev.rotalex.lutter.interpreter.MapEvalScope
 import dev.rotalex.lutter.interpreter.MapStateStore
 import dev.rotalex.lutter.interpreter.RuntimeDiagnostic
+import dev.rotalex.lutter.interpreter.env.Destination
 import dev.rotalex.lutter.interpreter.env.DialogHost
 import dev.rotalex.lutter.interpreter.env.HostFunction
 import dev.rotalex.lutter.interpreter.env.HostFunctions
@@ -40,6 +41,7 @@ internal class FakeActionEnv(
 
 /** For the tests that are not about navigation. */
 internal object GoingNowhere : Navigator {
+    override val current: Destination = Destination(PageId("p_nowhere"), emptyMap())
     override fun navigate(page: PageId, args: Map<ParamName, Value>): Unit = Unit
     override fun back(): Boolean = false
 }

@@ -94,6 +94,19 @@ public final class dev/rotalex/lutter/interpreter/action/IntrinsicHandlers {
 	public final fun handlers (Ldev/rotalex/lutter/interpreter/eval/Evaluator;)Ljava/util/Map;
 }
 
+public final class dev/rotalex/lutter/interpreter/env/Destination {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-rrQF154 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun copy-yjKakfk (Ljava/lang/String;Ljava/util/Map;)Ldev/rotalex/lutter/interpreter/env/Destination;
+	public static synthetic fun copy-yjKakfk$default (Ldev/rotalex/lutter/interpreter/env/Destination;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Ldev/rotalex/lutter/interpreter/env/Destination;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArgs ()Ljava/util/Map;
+	public final fun getPage-rrQF154 ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public abstract interface class dev/rotalex/lutter/interpreter/env/DialogHost {
 	public static final field Companion Ldev/rotalex/lutter/interpreter/env/DialogHost$Companion;
 }
@@ -114,6 +127,7 @@ public final class dev/rotalex/lutter/interpreter/env/HostFunctions$Companion {
 
 public abstract interface class dev/rotalex/lutter/interpreter/env/Navigator {
 	public abstract fun back ()Z
+	public abstract fun getCurrent ()Ldev/rotalex/lutter/interpreter/env/Destination;
 	public abstract fun navigate-yjKakfk (Ljava/lang/String;Ljava/util/Map;)V
 }
 

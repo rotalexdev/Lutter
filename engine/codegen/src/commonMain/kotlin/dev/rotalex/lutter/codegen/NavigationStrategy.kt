@@ -2,6 +2,7 @@ package dev.rotalex.lutter.codegen
 
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.analysis.resolved.ResolvedPage
+import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 
 /**
@@ -24,7 +25,7 @@ public interface NavigationStrategy {
      */
     public fun emitNavigateCall(target: ResolvedPage, args: List<KtExpr>): KtStmt
 
-    /** `App.kt` whole: the root composable, the receivers it is given and the screen it starts on. */
+    /** `App.kt` whole: the root composable, the receivers it is given and the screen each route reaches. */
     public fun emitAppRoot(document: ResolvedDocument, ctx: FileContext): KtFile
 }
 
@@ -44,8 +45,14 @@ public class FileContext(
     /** The header comment above the package, or null under a policy that writes none. */
     public val header: String?,
 
-    /** What the screens emitted so far demand of their caller, drained one screen at a time. */
-    public val receivers: List<ActionReceiver>,
+    /**
+     * What each screen emitted so far demands of its caller, keyed by the page it renders.
+     *
+     * Keyed rather than one list because a strategy's root may call every screen: a receiver
+     * only one page's handlers used is not a parameter of another page's screen, and handing it
+     * there would name an argument the call has no home for.
+     */
+    public val receivers: Map<PageId, List<ActionReceiver>>,
 
     /**
      * Wraps the file's content in §12.1's app-state provider.
@@ -72,9 +79,9 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
      * `sealed interface Route` then `class AppNavigator`.
      *
      * Pages arrive in the plan's order, by id, and the first of them is the route the stack is
-     * seeded with — the same page `AppRoot` starts on, so the two files cannot disagree about
-     * which that is. A document with no page is refused by the generator, which is why the first
-     * page is read without a fallback here.
+     * seeded with — the same list `AppRoot` builds its arms from, so the two files cannot
+     * disagree about which routes exist. A document with no page is refused by the generator,
+     * which is why the first page is read without a fallback here.
      */
     override fun emitRoutes(pages: List<ResolvedPage>, ctx: FileContext): List<KtDeclaration> =
         listOf(route(pages), navigator(pages.first(), ctx))
@@ -90,27 +97,28 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
         ),
     )
 
+    /**
+     * `when (navigator.current) { Route.Home -> HomeScreen(…) … }`, one arm per page.
+     *
+     * The arms are [document]'s pages in the plan's order and the routes are built from the same
+     * list, so an arm cannot go missing: a route no arm matches is unreachable rather than a gap
+     * to catch, and an `else` arm could only have shown the start page for it, which would hide
+     * that gap rather than close it.
+     */
     override fun emitAppRoot(document: ResolvedDocument, ctx: FileContext): KtFile {
-        val start: ResolvedPage? = document.pages.entries.sortedBy { it.key.value }
-            .map { it.value }.firstOrNull()
-        val body: List<KtStmt> = if (start == null) {
+        val pages: List<ResolvedPage> = document.pages.entries.sortedBy { it.key.value }.map { it.value }
+        val body: List<KtStmt> = if (pages.isEmpty()) {
             emptyList()
         } else {
-            // Each receiver is handed down under the name the screen declared it as, so the
-            // screen's parameter and this call cannot drift apart.
-            val handed: List<ActionReceiver> = handed(ctx)
-            val forwarded: List<KtArg> = handed.map { KtArg(it.member, KtExpr.Name(it.member)) }
-            val screen: KotlinSymbol = KotlinSymbol(basePackage + ".screens", start.name + "Screen")
             ctx.appState(
-                KtStmt.Expr(
-                    KtExpr.Call(
-                        KtExpr.Ref(KtSymbolRef(screen)),
-                        forwarded + KtArg("modifier", KtExpr.Name("modifier")),
-                    ),
+                KtStmt.When(
+                    subject = KtExpr.Member(KtExpr.Name(ActionReceiver.Navigator.member), "current"),
+                    branches = pages.map { page -> screenArm(page, ctx) },
+                    otherwise = null,
                 ),
             )
         }
-        val parameters: List<KtParam> = handed(ctx).map { receiver ->
+        val parameters: List<KtParam> = signature(ctx).map { receiver ->
             KtParam(
                 receiver.member,
                 KtExpr.Ref(KtSymbolRef(KotlinSymbol(ctx.pkg, checkNotNull(receiver.type)))),
@@ -133,13 +141,46 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
     }
 
     /**
-     * The receivers that arrive as parameters.
+     * One arm: the route of [page], and the call to the screen that page generated.
      *
-     * §11.5's `scope` is the odd one out: the composition owns it, so a screen reads it out of
-     * itself and `AppRoot` never declares it. Sorted so two runs over one document agree.
+     * Each receiver is handed down under the name the screen declared it as, so the screen's
+     * parameter and this call cannot drift apart.
      */
-    private fun handed(ctx: FileContext): List<ActionReceiver> =
-        ctx.receivers.filter { it.type != null }.sortedBy { it.member }
+    private fun screenArm(page: ResolvedPage, ctx: FileContext): KtStmt.When.Branch {
+        val screen: KotlinSymbol = KotlinSymbol(basePackage + ".screens", page.name + "Screen")
+        val forwarded: List<KtArg> = declaredBy(page, ctx).map { KtArg(it.member, KtExpr.Name(it.member)) }
+        return KtStmt.When.Branch(
+            KtExpr.Ref(KtSymbolRef(KotlinSymbol(basePackage, RouteName), page.name)),
+            listOf(
+                KtStmt.Expr(
+                    KtExpr.Call(
+                        KtExpr.Ref(KtSymbolRef(screen)),
+                        forwarded + KtArg("modifier", KtExpr.Name("modifier")),
+                    ),
+                ),
+            ),
+        )
+    }
+
+    /**
+     * The receivers `AppRoot` declares as parameters.
+     *
+     * The navigator is one of them whether or not any handler reached for it: the root dispatches
+     * on `navigator.current`, so a root declaring none names a subject it holds nothing for. What
+     * the screens asked for beside it, sorted so two runs over one document agree.
+     *
+     * §11.5's `scope` is the odd one out and is filtered out with the rest: the composition owns
+     * it, so a screen reads it out of itself and `AppRoot` never declares it.
+     */
+    private fun signature(ctx: FileContext): List<ActionReceiver> =
+        (listOf(ActionReceiver.Navigator) + ctx.receivers.values.flatten())
+            .distinct()
+            .filter { it.type != null }
+            .sortedBy { it.member }
+
+    /** The receivers [page]'s own screen declares, which are the only ones its call may hand down. */
+    private fun declaredBy(page: ResolvedPage, ctx: FileContext): List<ActionReceiver> =
+        ctx.receivers[page.id].orEmpty().filter { it.type != null }.sortedBy { it.member }
 
     /**
      * One `data object` per page, named by the page's own name so a handler can spell it.

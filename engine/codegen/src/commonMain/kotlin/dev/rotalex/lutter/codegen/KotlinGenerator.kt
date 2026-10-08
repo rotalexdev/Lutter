@@ -18,6 +18,7 @@ import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.expr.TypedExpr
 import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.EventKey
+import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TypeRef
@@ -185,7 +186,7 @@ public class KotlinGenerator<A : Any, T : Any>(
     private fun fileContext(): FileContext = FileContext(
         pkg = options.basePackage,
         header = headerText(),
-        receivers = screenReceivers.toList(),
+        receivers = screenReceivers.mapValues { (_, held) -> held.sortedBy(ActionReceiver::member) },
         appState = { content -> stateEmitter()?.appProvider(content) ?: listOf(content) },
     )
 
@@ -306,6 +307,7 @@ public class KotlinGenerator<A : Any, T : Any>(
         val emitter: StateEmitter = stateEmitter() ?: return null
         val root: KtExpr = emitNode(page.root, true, emptyList()) ?: return null
         val reads: Set<ActionReceiver> = drainReads()
+        recordDemand(page.id, reads)
         val declarations: MutableList<KtDeclaration> = mutableListOf()
         val params: MutableList<KtParam> = mutableListOf()
         params += environmentParams(reads)
@@ -337,6 +339,9 @@ public class KotlinGenerator<A : Any, T : Any>(
         val held: List<ResolvedState> = document.componentState[componentId].orEmpty()
         if (refuseState(held, at)) return null
         val body: KtExpr = emitNode(root, true, emptyList()) ?: return null
+        // Drained and not recorded: nothing the generator emits calls a component function — its
+        // body is inlined into the slot lambda that holds it — so there is no caller whose
+        // signature a component's receivers could belong to.
         val reads: Set<ActionReceiver> = drainReads()
         val statements: List<KtStmt> =
             emitter.componentLocals(held).orEmpty() + actionLocals(reads) + listOf(KtStmt.Expr(body))
@@ -351,21 +356,24 @@ public class KotlinGenerator<A : Any, T : Any>(
     }
 
     /** The receivers the handlers in the file just written closed over, emptied by reading. */
-    private fun drainReads(): Set<ActionReceiver> {
-        val drained: Set<ActionReceiver> = actionEmitter()?.drainReads() ?: emptySet()
-        screenReceivers.addAll(drained)
-        return drained
-    }
+    private fun drainReads(): Set<ActionReceiver> = actionEmitter()?.drainReads() ?: emptySet()
 
     /**
-     * What every screen written so far needs its caller to supply.
+     * What every screen written so far needs its caller to supply, per page.
      *
-     * Emitted last and handed to `AppRoot`, which declares each receiver as a parameter and passes
-     * it down under the same name — §11.6 already routes the generated `AppHost` that way. Cleared
-     * per run beside [diagnostics], because one generator serves many documents and a receiver the
-     * previous document's handlers used is not one this one's screens declare.
+     * Recorded per page rather than as one set because `AppRoot` calls every screen: a receiver
+     * only one page's handlers reached for is not a parameter of another page's screen, so it
+     * cannot be handed to one. Emitted last and handed to the strategy, which declares each
+     * receiver as a parameter and passes it down under the same name — §11.6 already routes the
+     * generated `AppHost` that way. Cleared per run beside [diagnostics], because one generator
+     * serves many documents and a receiver the previous document's handlers used is not one this
+     * one's screens declare.
      */
-    private val screenReceivers: MutableSet<ActionReceiver> = mutableSetOf()
+    private fun recordDemand(page: PageId, reads: Set<ActionReceiver>): Unit {
+        screenReceivers.getOrPut(page) { mutableSetOf() } += reads
+    }
+
+    private val screenReceivers: MutableMap<PageId, MutableSet<ActionReceiver>> = mutableMapOf()
 
     private fun actionEmitter(): ActionEmitter? = actions
 

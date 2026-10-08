@@ -218,6 +218,25 @@ public sealed interface KtStmt {
     ) : KtStmt
 
     public data class Assign(public val target: KtExpr, public val value: KtExpr) : KtStmt
+
+    /**
+     * `when (subject) { value -> … }`, the statement shape.
+     *
+     * A statement rather than an expression because an arm this generator writes holds screen
+     * calls, and a `when` whose arms are `Unit` is not a value. The printer does not add an
+     * `else` of its own: a non-exhaustive `when` over a sealed subject is legal in statement
+     * position, so a missing arm would render nothing rather than fail to compile, and the
+     * generator builds both lists from one page list so an arm cannot go missing.
+     */
+    public data class When(
+        public val subject: KtExpr,
+        public val branches: List<Branch>,
+        public val otherwise: List<KtStmt>?,
+    ) : KtStmt {
+
+        /** One `value ->` arm. The subject is compared by equality, so the value is an operand. */
+        public data class Branch(public val value: KtExpr, public val body: List<KtStmt>)
+    }
 }
 
 /**
