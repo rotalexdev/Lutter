@@ -166,7 +166,10 @@ class RenderScopeTest {
             null,
             expressions(),
             TestScope(),
-        ) { args -> ScreenActionEnv(MapEvalScope(MapStateStore()), MapStateStore(), RuntimeEnvironment(StubNavigator), args) }
+        ) { args ->
+            val store = MapStateStore()
+            ScreenActionEnv(MapEvalScope(store), store, RuntimeEnvironment(StubNavigator), args)
+        }
     }
 
     private fun expressions(): ExpressionSource =
