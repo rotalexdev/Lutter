@@ -32,6 +32,15 @@ public enum class StateScope {
 public interface StateStrategy {
 
     /**
+     * The top-level names this strategy's emission puts in the generated app, which a document
+     * may therefore not declare.
+     *
+     * The same contract as `NavigationStrategy.reservedTopLevelNames`, for the same reason: the
+     * answer has to exist before anything is emitted, so it is stated by the strategy that emits.
+     */
+    public val reservedTopLevelNames: Set<String>
+
+    /**
      * The receiver a read of [scope]'s declaration carries, or null when the name is read bare.
      *
      * [appState] is the generated `LocalAppState` symbol, because the app scope's receiver
@@ -59,6 +68,13 @@ public interface StateStrategy {
 
 /** The one strategy that exists: snapshot state, which is §12.2's default and §15.3's runtime. */
 public data object ComposeSnapshotState : StateStrategy {
+
+    /**
+     * §16.5's `state/AppState.kt`. Read off [StateEmitter]'s constants rather than spelled again,
+     * so a rename of the holder cannot leave this set claiming a name nothing emits.
+     */
+    override val reservedTopLevelNames: Set<String> =
+        setOf(StateEmitter.AppStateName, StateEmitter.LocalAppStateName)
 
     private val mutableStateOf: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "mutableStateOf")
     private val remember: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "remember")

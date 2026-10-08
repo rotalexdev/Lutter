@@ -111,7 +111,10 @@ public class StateEmitter(
         return KtParam(
             name = "state",
             type = KtExpr.Ref(KtSymbolRef(KotlinSymbol(options.basePackage + ".screens", name))),
-            default = KtExpr.Call(KtExpr.Name("remember" + name), emptyList()),
+            default = KtExpr.Call(
+                KtExpr.Name(ReservedCodegenNames.RememberPrefix + name),
+                emptyList(),
+            ),
         )
     }
 
@@ -228,7 +231,7 @@ public class StateEmitter(
 
     private fun scopeOf(id: StateId): StateScope? = scopes[id]
 
-    private fun classNameOf(page: ResolvedPage): String = page.name + "ScreenState"
+    private fun classNameOf(page: ResolvedPage): String = page.name + ReservedCodegenNames.PageStateSuffix
 
     /**
      * One state class, its members in declaration order.
@@ -316,7 +319,7 @@ public class StateEmitter(
      * and `return` resolves to the nearest function lexically — no symbol, so no import.
      */
     private fun rememberFunction(name: String): KtDeclaration.Function = KtDeclaration.Function(
-        name = "remember" + name,
+        name = ReservedCodegenNames.RememberPrefix + name,
         annotations = listOf(composable),
         type = KtExpr.Name(name),
         params = emptyList(),

@@ -76,6 +76,7 @@ public final class dev/rotalex/lutter/codegen/CodegenResult {
 public final class dev/rotalex/lutter/codegen/ComposeSnapshotState : dev/rotalex/lutter/codegen/StateStrategy {
 	public static final field INSTANCE Ldev/rotalex/lutter/codegen/ComposeSnapshotState;
 	public fun equals (Ljava/lang/Object;)Z
+	public fun getReservedTopLevelNames ()Ljava/util/Set;
 	public fun hashCode ()I
 	public fun holder (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr;
 	public fun receiver (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)Ldev/rotalex/lutter/codegen/KtExpr;
@@ -729,6 +730,7 @@ public abstract interface class dev/rotalex/lutter/codegen/NavigationStrategy {
 	public abstract fun emitAppRoot (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ldev/rotalex/lutter/codegen/FileContext;)Ldev/rotalex/lutter/codegen/KtFile;
 	public abstract fun emitNavigateCall (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtStmt;
 	public abstract fun emitRoutes (Ljava/util/List;Ldev/rotalex/lutter/codegen/FileContext;)Ljava/util/List;
+	public abstract fun getReservedTopLevelNames ()Ljava/util/Set;
 }
 
 public final class dev/rotalex/lutter/codegen/PlannedFile {
@@ -762,7 +764,23 @@ public final class dev/rotalex/lutter/codegen/PlannedFileKind : java/lang/Enum {
 	public static fun values ()[Ldev/rotalex/lutter/codegen/PlannedFileKind;
 }
 
+public final class dev/rotalex/lutter/codegen/ReservedCodegenNames {
+	public static final field AppHostName Ljava/lang/String;
+	public static final field INSTANCE Ldev/rotalex/lutter/codegen/ReservedCodegenNames;
+	public static final field PageStateSuffix Ljava/lang/String;
+	public static final field RememberPrefix Ljava/lang/String;
+	public static final field ScreenSuffix Ljava/lang/String;
+	public static final field SnackbarHostName Ljava/lang/String;
+	public final fun derivedFor (Ljava/lang/String;)Ljava/util/Set;
+	public final fun findings (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ldev/rotalex/lutter/codegen/CodegenOptions;)Ljava/util/List;
+	public final fun literals (Ldev/rotalex/lutter/codegen/CodegenOptions;)Ljava/util/Set;
+}
+
 public final class dev/rotalex/lutter/codegen/SimpleBackStack : dev/rotalex/lutter/codegen/NavigationStrategy {
+	public static final field Companion Ldev/rotalex/lutter/codegen/SimpleBackStack$Companion;
+	public static final field NavigatorName Ljava/lang/String;
+	public static final field RootName Ljava/lang/String;
+	public static final field RouteName Ljava/lang/String;
 	public fun <init> (Ljava/lang/String;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun copy (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/SimpleBackStack;
@@ -772,8 +790,12 @@ public final class dev/rotalex/lutter/codegen/SimpleBackStack : dev/rotalex/lutt
 	public fun emitRoutes (Ljava/util/List;Ldev/rotalex/lutter/codegen/FileContext;)Ljava/util/List;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getBasePackage ()Ljava/lang/String;
+	public fun getReservedTopLevelNames ()Ljava/util/Set;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/SimpleBackStack$Companion {
 }
 
 public final class dev/rotalex/lutter/codegen/StateEmitter {
@@ -807,6 +829,7 @@ public final class dev/rotalex/lutter/codegen/StateScope : java/lang/Enum {
 }
 
 public abstract interface class dev/rotalex/lutter/codegen/StateStrategy {
+	public abstract fun getReservedTopLevelNames ()Ljava/util/Set;
 	public abstract fun holder (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr;
 	public abstract fun receiver (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)Ldev/rotalex/lutter/codegen/KtExpr;
 	public abstract fun supports (Ldev/rotalex/lutter/model/doc/Persistence;)Z

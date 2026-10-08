@@ -107,12 +107,18 @@ abstract fun interface dev.rotalex.lutter.codegen/StateRead { // dev.rotalex.lut
 }
 
 abstract interface dev.rotalex.lutter.codegen/NavigationStrategy { // dev.rotalex.lutter.codegen/NavigationStrategy|null[0]
+    abstract val reservedTopLevelNames // dev.rotalex.lutter.codegen/NavigationStrategy.reservedTopLevelNames|{}reservedTopLevelNames[0]
+        abstract fun <get-reservedTopLevelNames>(): kotlin.collections/Set<kotlin/String> // dev.rotalex.lutter.codegen/NavigationStrategy.reservedTopLevelNames.<get-reservedTopLevelNames>|<get-reservedTopLevelNames>(){}[0]
+
     abstract fun emitAppRoot(dev.rotalex.lutter.analysis.resolved/ResolvedDocument, dev.rotalex.lutter.codegen/FileContext): dev.rotalex.lutter.codegen/KtFile // dev.rotalex.lutter.codegen/NavigationStrategy.emitAppRoot|emitAppRoot(dev.rotalex.lutter.analysis.resolved.ResolvedDocument;dev.rotalex.lutter.codegen.FileContext){}[0]
     abstract fun emitNavigateCall(dev.rotalex.lutter.analysis.resolved/ResolvedPage, kotlin.collections/List<dev.rotalex.lutter.codegen/KtExpr>): dev.rotalex.lutter.codegen/KtStmt // dev.rotalex.lutter.codegen/NavigationStrategy.emitNavigateCall|emitNavigateCall(dev.rotalex.lutter.analysis.resolved.ResolvedPage;kotlin.collections.List<dev.rotalex.lutter.codegen.KtExpr>){}[0]
     abstract fun emitRoutes(kotlin.collections/List<dev.rotalex.lutter.analysis.resolved/ResolvedPage>, dev.rotalex.lutter.codegen/FileContext): kotlin.collections/List<dev.rotalex.lutter.codegen/KtDeclaration> // dev.rotalex.lutter.codegen/NavigationStrategy.emitRoutes|emitRoutes(kotlin.collections.List<dev.rotalex.lutter.analysis.resolved.ResolvedPage>;dev.rotalex.lutter.codegen.FileContext){}[0]
 }
 
 abstract interface dev.rotalex.lutter.codegen/StateStrategy { // dev.rotalex.lutter.codegen/StateStrategy|null[0]
+    abstract val reservedTopLevelNames // dev.rotalex.lutter.codegen/StateStrategy.reservedTopLevelNames|{}reservedTopLevelNames[0]
+        abstract fun <get-reservedTopLevelNames>(): kotlin.collections/Set<kotlin/String> // dev.rotalex.lutter.codegen/StateStrategy.reservedTopLevelNames.<get-reservedTopLevelNames>|<get-reservedTopLevelNames>(){}[0]
+
     abstract fun holder(dev.rotalex.lutter.codegen/StateScope, dev.rotalex.lutter.codegen/KtExpr): dev.rotalex.lutter.codegen/KtExpr // dev.rotalex.lutter.codegen/StateStrategy.holder|holder(dev.rotalex.lutter.codegen.StateScope;dev.rotalex.lutter.codegen.KtExpr){}[0]
     abstract fun receiver(dev.rotalex.lutter.codegen/StateScope, dev.rotalex.lutter.schema.component/KotlinSymbol): dev.rotalex.lutter.codegen/KtExpr? // dev.rotalex.lutter.codegen/StateStrategy.receiver|receiver(dev.rotalex.lutter.codegen.StateScope;dev.rotalex.lutter.schema.component.KotlinSymbol){}[0]
     abstract fun supports(dev.rotalex.lutter.model.doc/Persistence): kotlin/Boolean // dev.rotalex.lutter.codegen/StateStrategy.supports|supports(dev.rotalex.lutter.model.doc.Persistence){}[0]
@@ -962,6 +968,8 @@ final class dev.rotalex.lutter.codegen/SimpleBackStack : dev.rotalex.lutter.code
 
     final val basePackage // dev.rotalex.lutter.codegen/SimpleBackStack.basePackage|{}basePackage[0]
         final fun <get-basePackage>(): kotlin/String // dev.rotalex.lutter.codegen/SimpleBackStack.basePackage.<get-basePackage>|<get-basePackage>(){}[0]
+    final val reservedTopLevelNames // dev.rotalex.lutter.codegen/SimpleBackStack.reservedTopLevelNames|{}reservedTopLevelNames[0]
+        final fun <get-reservedTopLevelNames>(): kotlin.collections/Set<kotlin/String> // dev.rotalex.lutter.codegen/SimpleBackStack.reservedTopLevelNames.<get-reservedTopLevelNames>|<get-reservedTopLevelNames>(){}[0]
 
     final fun component1(): kotlin/String // dev.rotalex.lutter.codegen/SimpleBackStack.component1|component1(){}[0]
     final fun copy(kotlin/String = ...): dev.rotalex.lutter.codegen/SimpleBackStack // dev.rotalex.lutter.codegen/SimpleBackStack.copy|copy(kotlin.String){}[0]
@@ -971,6 +979,15 @@ final class dev.rotalex.lutter.codegen/SimpleBackStack : dev.rotalex.lutter.code
     final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.codegen/SimpleBackStack.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // dev.rotalex.lutter.codegen/SimpleBackStack.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // dev.rotalex.lutter.codegen/SimpleBackStack.toString|toString(){}[0]
+
+    final object Companion { // dev.rotalex.lutter.codegen/SimpleBackStack.Companion|null[0]
+        final const val NavigatorName // dev.rotalex.lutter.codegen/SimpleBackStack.Companion.NavigatorName|{}NavigatorName[0]
+            final fun <get-NavigatorName>(): kotlin/String // dev.rotalex.lutter.codegen/SimpleBackStack.Companion.NavigatorName.<get-NavigatorName>|<get-NavigatorName>(){}[0]
+        final const val RootName // dev.rotalex.lutter.codegen/SimpleBackStack.Companion.RootName|{}RootName[0]
+            final fun <get-RootName>(): kotlin/String // dev.rotalex.lutter.codegen/SimpleBackStack.Companion.RootName.<get-RootName>|<get-RootName>(){}[0]
+        final const val RouteName // dev.rotalex.lutter.codegen/SimpleBackStack.Companion.RouteName|{}RouteName[0]
+            final fun <get-RouteName>(): kotlin/String // dev.rotalex.lutter.codegen/SimpleBackStack.Companion.RouteName.<get-RouteName>|<get-RouteName>(){}[0]
+    }
 }
 
 final class dev.rotalex.lutter.codegen/StateEmitter { // dev.rotalex.lutter.codegen/StateEmitter|null[0]
@@ -997,6 +1014,9 @@ final object dev.rotalex.lutter.codegen/CodegenCoverage { // dev.rotalex.lutter.
 }
 
 final object dev.rotalex.lutter.codegen/ComposeSnapshotState : dev.rotalex.lutter.codegen/StateStrategy { // dev.rotalex.lutter.codegen/ComposeSnapshotState|null[0]
+    final val reservedTopLevelNames // dev.rotalex.lutter.codegen/ComposeSnapshotState.reservedTopLevelNames|{}reservedTopLevelNames[0]
+        final fun <get-reservedTopLevelNames>(): kotlin.collections/Set<kotlin/String> // dev.rotalex.lutter.codegen/ComposeSnapshotState.reservedTopLevelNames.<get-reservedTopLevelNames>|<get-reservedTopLevelNames>(){}[0]
+
     final fun equals(kotlin/Any?): kotlin/Boolean // dev.rotalex.lutter.codegen/ComposeSnapshotState.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // dev.rotalex.lutter.codegen/ComposeSnapshotState.hashCode|hashCode(){}[0]
     final fun holder(dev.rotalex.lutter.codegen/StateScope, dev.rotalex.lutter.codegen/KtExpr): dev.rotalex.lutter.codegen/KtExpr // dev.rotalex.lutter.codegen/ComposeSnapshotState.holder|holder(dev.rotalex.lutter.codegen.StateScope;dev.rotalex.lutter.codegen.KtExpr){}[0]
@@ -1007,6 +1027,23 @@ final object dev.rotalex.lutter.codegen/ComposeSnapshotState : dev.rotalex.lutte
 
 final object dev.rotalex.lutter.codegen/KotlinTypes { // dev.rotalex.lutter.codegen/KotlinTypes|null[0]
     final fun spellingFor(dev.rotalex.lutter.model.type/TypeRef): dev.rotalex.lutter.codegen/TypeSpelling // dev.rotalex.lutter.codegen/KotlinTypes.spellingFor|spellingFor(dev.rotalex.lutter.model.type.TypeRef){}[0]
+}
+
+final object dev.rotalex.lutter.codegen/ReservedCodegenNames { // dev.rotalex.lutter.codegen/ReservedCodegenNames|null[0]
+    final const val AppHostName // dev.rotalex.lutter.codegen/ReservedCodegenNames.AppHostName|{}AppHostName[0]
+        final fun <get-AppHostName>(): kotlin/String // dev.rotalex.lutter.codegen/ReservedCodegenNames.AppHostName.<get-AppHostName>|<get-AppHostName>(){}[0]
+    final const val PageStateSuffix // dev.rotalex.lutter.codegen/ReservedCodegenNames.PageStateSuffix|{}PageStateSuffix[0]
+        final fun <get-PageStateSuffix>(): kotlin/String // dev.rotalex.lutter.codegen/ReservedCodegenNames.PageStateSuffix.<get-PageStateSuffix>|<get-PageStateSuffix>(){}[0]
+    final const val RememberPrefix // dev.rotalex.lutter.codegen/ReservedCodegenNames.RememberPrefix|{}RememberPrefix[0]
+        final fun <get-RememberPrefix>(): kotlin/String // dev.rotalex.lutter.codegen/ReservedCodegenNames.RememberPrefix.<get-RememberPrefix>|<get-RememberPrefix>(){}[0]
+    final const val ScreenSuffix // dev.rotalex.lutter.codegen/ReservedCodegenNames.ScreenSuffix|{}ScreenSuffix[0]
+        final fun <get-ScreenSuffix>(): kotlin/String // dev.rotalex.lutter.codegen/ReservedCodegenNames.ScreenSuffix.<get-ScreenSuffix>|<get-ScreenSuffix>(){}[0]
+    final const val SnackbarHostName // dev.rotalex.lutter.codegen/ReservedCodegenNames.SnackbarHostName|{}SnackbarHostName[0]
+        final fun <get-SnackbarHostName>(): kotlin/String // dev.rotalex.lutter.codegen/ReservedCodegenNames.SnackbarHostName.<get-SnackbarHostName>|<get-SnackbarHostName>(){}[0]
+
+    final fun derivedFor(kotlin/String): kotlin.collections/Set<kotlin/String> // dev.rotalex.lutter.codegen/ReservedCodegenNames.derivedFor|derivedFor(kotlin.String){}[0]
+    final fun findings(dev.rotalex.lutter.analysis.resolved/ResolvedDocument, dev.rotalex.lutter.codegen/CodegenOptions): kotlin.collections/List<dev.rotalex.lutter.analysis.diagnostic/Diagnostic> // dev.rotalex.lutter.codegen/ReservedCodegenNames.findings|findings(dev.rotalex.lutter.analysis.resolved.ResolvedDocument;dev.rotalex.lutter.codegen.CodegenOptions){}[0]
+    final fun literals(dev.rotalex.lutter.codegen/CodegenOptions): kotlin.collections/Set<kotlin/String> // dev.rotalex.lutter.codegen/ReservedCodegenNames.literals|literals(dev.rotalex.lutter.codegen.CodegenOptions){}[0]
 }
 
 final fun dev.rotalex.lutter.codegen/planDocument(dev.rotalex.lutter.analysis.resolved/ResolvedDocument, kotlin/String): dev.rotalex.lutter.codegen/GenPlan // dev.rotalex.lutter.codegen/planDocument|planDocument(dev.rotalex.lutter.analysis.resolved.ResolvedDocument;kotlin.String){}[0]

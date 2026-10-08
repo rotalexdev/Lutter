@@ -61,6 +61,14 @@ public object DiagnosticCodes {
     public val NavArgsMismatch: DiagnosticCode = DiagnosticCode("nav.args_mismatch")
 
     /**
+     * A document name the generator emits itself. §17.3's naming family, but not pass 2's:
+     * pass 2 cannot exist yet, because which names are reserved is a property of the strategies
+     * and `:engine:analysis` may not reach `:engine:codegen`. `KotlinGenerator` emits this
+     * before the first file, which is §16.7's rule with the pass that would have held it absent.
+     */
+    public val NameReserved: DiagnosticCode = DiagnosticCode("name.reserved")
+
+    /**
      * The codegen feasibility rows (§17.3). Owned by pass 8, defined here so the
      * generator's result already speaks the catalog before that pass exists.
      */

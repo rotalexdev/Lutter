@@ -67,6 +67,7 @@ public final class dev/rotalex/lutter/analysis/diagnostic/DiagnosticCodes {
 	public final fun getModifierArgInvalid-6lSHpRw ()Ljava/lang/String;
 	public final fun getModifierScopeMissing-6lSHpRw ()Ljava/lang/String;
 	public final fun getModifierUnknown-6lSHpRw ()Ljava/lang/String;
+	public final fun getNameReserved-6lSHpRw ()Ljava/lang/String;
 	public final fun getNavArgsMismatch-6lSHpRw ()Ljava/lang/String;
 	public final fun getPropEnumEntryInvalid-6lSHpRw ()Ljava/lang/String;
 	public final fun getPropNotBindable-6lSHpRw ()Ljava/lang/String;

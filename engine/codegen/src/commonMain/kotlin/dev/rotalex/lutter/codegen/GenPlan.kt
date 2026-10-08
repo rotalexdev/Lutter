@@ -111,7 +111,7 @@ public fun planDocument(document: ResolvedDocument, basePackage: String): GenPla
     }
     val pages = document.pages.entries.sortedBy { it.key.value }
     for ((id, page) in pages) {
-        val name: String = page.name + "Screen"
+        val name: String = page.name + ReservedCodegenNames.ScreenSuffix
         files += PlannedFile(
             "screens/" + name + ".kt",
             basePackage + ".screens",

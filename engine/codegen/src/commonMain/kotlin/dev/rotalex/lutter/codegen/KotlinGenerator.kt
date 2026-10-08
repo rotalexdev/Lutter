@@ -98,6 +98,9 @@ public class KotlinGenerator<A : Any, T : Any>(
         }
         diagnostics.clear()
         screenReceivers.clear()
+        // Before the plan and before any emitter: §16.7 asks for a located finding rather than a
+        // red compile harness, and the reserved set is the one thing a document cannot know.
+        diagnostics += ReservedCodegenNames.findings(document, options)
         state = StateEmitter(document, options, schema.functions)
         val reader: ExprEmitter = ExprEmitter(schema.functions, StateRead { id -> state?.readInScreen(id) })
         expressions = reader
@@ -236,8 +239,13 @@ public class KotlinGenerator<A : Any, T : Any>(
             planned.packageName,
             headerText(),
             listOf(
-                KtDeclaration.Interface(AppHostName, emptyList(), false, members),
-                KtDeclaration.Interface(SnackbarHostName, emptyList(), false, listOf(snackbarShow())),
+                KtDeclaration.Interface(ReservedCodegenNames.AppHostName, emptyList(), false, members),
+                KtDeclaration.Interface(
+                    ReservedCodegenNames.SnackbarHostName,
+                    emptyList(),
+                    false,
+                    listOf(snackbarShow()),
+                ),
             ),
         )
     }
@@ -318,7 +326,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             params += emitter.pageParameter(page)
         }
         declarations += KtDeclaration.Function(
-            page.name + "Screen",
+            page.name + ReservedCodegenNames.ScreenSuffix,
             listOf(composable),
             null,
             params,
@@ -853,11 +861,4 @@ public class KotlinGenerator<A : Any, T : Any>(
     }
 
     private class KeptParam(val binding: ParamBinding, val present: List<PropertyKey>)
-
-    private companion object {
-        // §11.6 and §16.5 name both; they are spelled here rather than read off `ActionReceiver`
-        // because that vocabulary is strategy-independent and these two names are not.
-        private const val AppHostName: String = "AppHost"
-        private const val SnackbarHostName: String = "SnackbarHost"
-    }
 }
