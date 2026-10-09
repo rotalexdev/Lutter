@@ -132,17 +132,121 @@ jobs:
             Write-Host "::warning::WiX v3 not found under Program Files; the MSI step decides"
           }
 
-      # `if: always()` so a failure downstream still hands over whatever was produced.
+      # ---------------------------------------------------------------------------
+      # Does the package actually launch?
       #
-      # `if-no-files-found: error`, not the `ignore` the rest of this repository uses: these two
-      # artifacts are the entire point of the workflow, so their absence IS the failure. `ignore`
-      # here is precisely what let a run report success while shipping nothing.
+      # Every other check in this repository answers "did it build". None of them
+      # answers "does the thing a human downloads run", and the maintainer found
+      # that out the only way he could: by downloading the artifact, extracting it
+      # by hand and getting **Failed to launch JVM** from the launcher. A green
+      # run had told him nothing, because the launcher is a native binary that
+      # nothing here ever executes.
       #
-      # The path is `binaries/main`, deliberately narrow. The first version uploaded the whole
-      # `build/compose/` directory, which put three top-level folders in the zip: `binaries/`,
-      # `tmp/` and `default-resources/`. `tmp/` is jpackage's staging copy of the application —
-      # a 97 MB duplicate, 40% of a 235 MB download — and the maintainer was left hunting
-      # through it for the one folder that mattered.
+      # So this runs it, in layers, and the layer that fails names itself. The
+      # order matters: each step below assumes the previous one passed, so the
+      # first red is the most specific answer available.
+      #
+      #   1. `--list-modules`  what jlink actually put in the image. Compose's
+      #                         default is four modules, so this is the evidence
+      #                         for or against the `modules(...)` list.
+      #   2. `java -version`    whether the image can create a VM at all. This is
+      #                         what "Failed to launch JVM" actually reports, and
+      #                         it needs no display.
+      #   3. the launcher       the packaged artefact itself, end to end.
+      #
+      # Step 3 on a GUI runner has no interactive desktop, so the window cannot
+      # be opened and a failure there is reported but does not fail the job. The
+      # point of running it is to tell "the launcher cannot start a JVM" apart
+      # from "the launcher started and the application then failed", which are
+      # different bugs with different fixes — and that distinction is exactly what
+      # could not be made from the outside.
+      # ---------------------------------------------------------------------------
+      - name: What the jlink runtime actually contains
+        id: runtime
+        run: |
+          set -uo pipefail
+          # A stable path rather than `mktemp`, and no hand-off through $GITHUB_ENV: the upload
+          # step below has to name this file, and a path that only exists because the previous
+          # step exported it is a path that silently stops existing.
+          probe_dir="$RUNNER_TEMP/preview-probe"
+          log="$probe_dir/runtime-probe.txt"
+          mkdir -p "$probe_dir"
+
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            root="samples/desktop-preview/build/compose/binaries/main/app/LutterPreview"
+            java="$root/runtime/bin/java.exe"
+            launcher="$root/LutterPreview.exe"
+          else
+            root="samples/desktop-preview/build/compose/binaries/main/app/LutterPreview"
+            java="$root/runtime/bin/java"
+            launcher="$root/bin/LutterPreview"
+          fi
+
+          {
+            echo "== root =="
+            echo "$root"
+            echo
+            echo "== launcher present? =="
+            if [ -e "$launcher" ]; then echo "yes: $launcher"; else echo "NO: $launcher is missing"; fi
+            echo
+            echo "== VM library present? =="
+            if [ "${{ runner.os }}" = "Windows" ]; then
+              ls -la "$root/runtime/bin/server/jvm.dll" 2>&1
+              ls -la "$root/runtime/bin/java.dll" 2>&1
+            else
+              ls -la "$root/runtime/lib/server/libjvm.so" 2>&1
+            fi
+            echo
+            echo "== jlink --list-modules (Compose's default is four) =="
+            "$java" --list-modules 2>&1 || echo "!! the bundled java could not start at all"
+            echo
+            echo "== java -version =="
+            "$java" -version 2>&1 || echo "!! the bundled runtime could not create a VM"
+          } 2>&1 | tee "$log"
+
+          # The gate. A jlink image that cannot create a VM is a broken package, and it is the
+          # one failure this repository could previously not see at all — it needed a human to
+          # download the artifact to discover. No display is involved, so this is exact.
+          if ! "$java" -version >/dev/null 2>&1; then
+            echo "::error::the jlink runtime in the package cannot start a VM - reproduced in CI, and it is the 'Failed to launch JVM' the maintainer reported"
+            exit 1
+          fi
+
+      - name: Launch the packaged preview
+        id: launch
+        run: |
+          set -uo pipefail
+          log="$RUNNER_TEMP/preview-probe/launch-probe.txt"
+          mkdir -p "$(dirname "$log")"
+
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            root="samples/desktop-preview/build/compose/binaries/main/app/LutterPreview"
+            launcher="$root/LutterPreview.exe"
+          else
+            root="samples/desktop-preview/build/compose/binaries/main/app/LutterPreview"
+            launcher="$root/bin/LutterPreview"
+          fi
+
+          {
+            echo "== launching $launcher =="
+            echo "A GUI runner has no interactive desktop, so an AWT failure here is expected"
+            echo "and is NOT a packaging defect. A launcher-level failure IS, and the step"
+            echo "above has already ruled that out for the VM itself."
+            echo
+            "$launcher" 2>&1
+            echo "exit=$?"
+          } 2>&1 | tee "$log" || true
+
+          echo "::notice::launch probe written; see the preview-launch-log artifact"
+
+      # ---------------------------------------------------------------------------
+      # One artifact per kind, not one per leg.
+      #
+      # The first version uploaded a single `preview-binaries-<os>`, so a
+      # maintainer who only wanted the installer downloaded the app-image with it,
+      # and vice versa. They are different decisions with different reasons, and
+      # they now download separately.
+      # ---------------------------------------------------------------------------
       - name: Upload the screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -152,11 +256,38 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Upload the packaged preview
+      # The installer alone. `binaries/main` also holds `app/`, and uploading the
+      # directory meant the `.msi` arrived wrapped around the app-image.
+      - name: Upload the installer
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: preview-binaries-${{ matrix.os }}
-          path: 'samples/desktop-preview/build/compose/binaries/main/'
+          name: preview-installer-${{ matrix.os }}
+          path: |
+            samples/desktop-preview/build/compose/binaries/main/msi/
+            samples/desktop-preview/build/compose/binaries/main/deb/
           if-no-files-found: error
+          retention-days: 30
+
+      # The app-image alone, for a maintainer who would rather not install anything.
+      - name: Upload the app image
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-app-image-${{ matrix.os }}
+          path: 'samples/desktop-preview/build/compose/binaries/main/app/'
+          if-no-files-found: error
+          retention-days: 30
+
+      # The probe output, so the next "it does not run" report is answered by a
+      # download rather than by another round of speculation. `${{ runner.temp }}` is the
+      # same directory the two steps above wrote to, by name rather than by a variable
+      # one of them exported for the other.
+      - name: Upload the launch probe log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-launch-log-${{ matrix.os }}
+          path: ${{ runner.temp }}/preview-probe/
+          if-no-files-found: ignore
           retention-days: 30
