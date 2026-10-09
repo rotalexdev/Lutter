@@ -41,9 +41,9 @@ import kotlin.test.assertTrue
  * Desktop runs headless, so pixels compare here and need no display.
  *
  * The click runs on the navigating fixture's own screen, which declares the navigator as a
- * parameter and so is in no registry. Only the generated side moves: the runtime's button
- * renderer passes an empty `onClick` and nothing in the runtime dispatches a node's handlers.
- * Both trees are re-compared after the press either way.
+ * parameter and so is in no registry. Both sides move: `ButtonRenderer` hands its press to the
+ * node's own `onClick` through `RenderScope.Dispatch`, and the generated screen closes over the
+ * same navigator. Both trees are re-compared after the press.
  */
 @OptIn(ExperimentalTestApi::class)
 class ConformanceTest {
