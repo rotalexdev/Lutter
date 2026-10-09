@@ -6,7 +6,8 @@ One authoritative, serializable, versioned UI document goes in. A typed
 `ResolvedDocument` comes out, and from that single input the engine either renders the
 document live in Compose or generates deterministic Kotlin/Compose source from it. The
 design is specified in [`PLAN.md`](PLAN.md); this repository implements it phase by phase
-and is currently in the middle of the first one that contains domain code.
+and is currently in Phase 8. Both paths work end to end today — `forge generate` on a JSON
+document, and `:samples:desktop-preview` rendering one.
 
 It is not a visual editor and not an IDE (PLAN §1, §3). The editor is a *future client* of
 this engine; what lives here is the part it will consume.
@@ -16,7 +17,7 @@ this engine; what lives here is the part it will consume.
 ```
               ┌───────────────┐      ┌──────────┐      ┌───────────────────┐
               │  UiDocument   │ ───▶ │ Analyzer │ ───▶ │ ResolvedDocument  │
-              │ pure records  │      │ 8 passes │      │ typed, defaults   │
+              │ pure records  │      │ 6 passes │      │ typed, defaults   │
               └───────────────┘      └──────────┘      └─────────┬─────────┘
                                  Diagnostics                      │
                                          ┌───────────────────────┴──────────────┐
@@ -57,34 +58,48 @@ checks and the conformance suite exist. PLAN §4.2, ADR-003.
 
 ## State of the project
 
-**Phase 0 is merged. Phase 1 is in progress, with two of its nine work units merged.**
-This is a greenfield project under construction, not a library anyone can depend on yet.
+**Phases 0 through 7 are merged. Phase 8 is partial, Phase 9 has not started, and Phase 10 is
+partial.** This is a project under construction, not a library anyone can depend on yet: no
+publishing plugin is applied and nothing has been released.
 
 | | |
 |---|---|
-| Merged | Phase 0 in full: build logic, 15 module shells, the architecture guardrails, CI. Then Phase 1 T1, typed identifiers with validating constructors (`#12`), and T2, canonical numerics (`#13`). T3 through T9 — the `Value` union, `TypeRef`, the `Expr` AST, `Node`, the document records, `NodeTable` and the DSL — are not started. |
+| Merged | Phase 0 in full (build logic, 15 modules, the architecture guardrails, CI). Phase 1, the domain model in full — the `Value` union, `TypeRef`, the `Expr` AST, `Node`, the document records, `NodeTable`, `DocumentIndex`, `ReferenceIndex` and the DSL all exist in `engine/model/src/commonMain/`. Phase 2, the schema registries. Phase 3, canonical JSON and the envelope. Phase 4, the analyzer and both backends. Phases 5, 6 and 7, components, expressions and state, events and navigation. |
 | Version | `0.1.0-SNAPSHOT`, group `dev.rotalex.lutter`, Gradle root project `forge-engine`. Never published — no publishing plugin is applied. |
 | Releases | None. |
 | Documentation | This file, and `PLAN.md`. The format spec, plugin guide and getting-started guide are Phase 10 and do not exist. |
 
+### Where each phase actually stands
+
+PLAN §32's phase list, read against the source rather than against the merge history. The
+specific gap is named for every phase that is not done, because "partial" without a gap is
+the sentence this section exists to replace.
+
+| Phase | State | What is there, and what is missing |
+|---|---|---|
+| 0 — Build foundation | done | Build logic on the shared catalog, 15 modules, `verifyModuleGraph` + `selfTestModuleGraph`, nine architecture rules, ABI baselines, CI. |
+| 1 — Domain model | done | Every API §32 names: ids with validating constructors, `Value`, `TypeRef`, `PropertyValue`, `Expr`, `ActionSequence`, `Node`, `NodeTable`, `UiDocument`, both indices, the DSL, and D1's canonical numerics. |
+| 2 — Schema | done | `Registry`, `Schema`/`SchemaBuilder`, the spec families, `ValueKind`s, `SchemaOverlay`, plugin contributions, the spec DSL. |
+| 3 — Serialization | partial | `CanonicalJsonWriter`, `Envelope`, `JsonDocumentCodec`, `ForgeJson`, `NodeTableSerializer`, `MigrationChain` and `nonWebMain` file storage are all in. **Missing:** `PropertyValueSerializer` — §18.5's collapsing of `{"k":"const","value":X}` to `X` is not written, so `{"type":"const","value":…}` is what reaches the wire; and `MigrationChain` is registered empty, so there is no synthetic `1→2` migration. Round-trip is tested, not property-tested over generated documents. |
+| 4 — Analysis + walking skeleton | done | `Analyzer` runs passes 1, 3, 4, 5, 6 and 7 (passes 2 and 8 are absent by design and `Analyzer`'s KDoc says so); `ResolvedDocument`, `UiRuntime` with Compose renderers, `KotlinGenerator`, and `forge generate` end to end. |
+| 5 — Component wave 1 | done | Row, Box, Spacer, Button, TextField (value renders, the edit does not — §32's own scope), Card, the §31.2 modifier set, `Cases` emit, scope validation (`modifier.scope_missing`), conformance per component. |
+| 6 — Expressions and state | done | `TypeChecker`/`OperatorRules`, `Evaluator`, page/app/derived state emit, `StateStrategy`, `SnapshotStateStore`, and `num.format` implemented with integer math on **both** sides through the one `fixedDecimalText`. |
+| 7 — Events, actions, navigation | done | `ActionSpec`/`ActionExecutor` and handlers, host functions and `AppHost`, `flow.if`, args → route params, `BackStackNavigator`, `AppRoot`, and a click-navigation conformance fixture. |
+| 8 — Components, themes, resources | partial | The records exist: `ComponentDecl` with `params` and `slots`, `ThemeDecl`, `ResourceDecl`, and `SchemaOverlay` synthesises them. **Missing:** token resolution against the selected theme (`UiScreen`'s own KDoc says the skeleton answers ambient style and real lookup is `ThemeHost`'s), `DeclInstanceRenderer`, theme codegen (`AppTheme.kt`, `AppTokens`), resource emit, and `struct.component_cycle`. |
+| 9 — Editing API | not started | `:engine:editing` is one file holding a package declaration and a comment. No `DocumentController`, commands, patches, history, diffing or `IdRemapper`. It depends only on P1 and P2, so it is the cheapest phase left. |
+| 10 — Tooling and hardening | partial | `forge generate` runs, and `:samples:desktop-preview` renders a document and packages an installer. **Missing:** `validate`, `diff` and `migrate` (the usage text names them; `main()` refuses anything but `generate`), benchmark suites, the permutation and fuzz jobs of §28.5/§29, hot reload, and `docs/`. |
+
 | Module | What is actually in it |
 |---|---|
-| `:engine:model` | The identifier layer (18 `@JvmInline value class` identifiers with validating constructors, `IdSyntax`, `IdGenerator` with a sequential variant for fixtures), `SchemaVersion`, `EngineInternalApi`, and canonical numerics with their serializers. About 1400 lines including tests. |
-| `:engine:test-support` | The `Golden` reader and a `GoldenSource` seam. No fixtures yet. |
-| `:tools:cli` | A `main()` that prints its own stub and exits 0. No subcommand is implemented; `validate`, `generate` and `diff` arrive in Phase 4. |
-| `:tools:architecture-tests` | Four working rules over `java.nio.file`. |
-| everything else | A shell: one file holding a package declaration and a comment saying what the module will contain. |
-
-What `:engine:model` does **not** have yet, and what the rest of the engine is blocked on:
-`Value`, `TypeRef`, `PropertyValue`, `Expr`, `ActionSequence`, `Node`, `NodeTable`,
-`UiDocument`, `DocumentIndex`, `ReferenceIndex` and the DSL. The plan is explicit that there
-is no partial version of this module another module can be written against — either the
-vocabulary is closed, or `:engine:codegen` waits (PLAN §32, Phase 1).
-
-Consequently, none of this exists yet: document decoding, canonical JSON, the envelope, the
-migration chain, the analyzer and its diagnostics, `ResolvedDocument`, any Compose
-renderer, the code generator, the editing API, any real `forge` subcommand, and a runnable
-sample application. The `conformance` CI job is wired to a module that is still a shell.
+| `:engine:model` | The whole vocabulary: 18 `@JvmInline value class` identifiers with validating constructors, `Value`, `TypeRef`, `PropertyValue`, `Expr`, `ActionSequence`, `Node`, `NodeTable`, the document records, both indices, `IdGenerator`, the DSL, and canonical numerics with their serializers. About 11k lines including tests. |
+| `:engine:analysis` | `Analyzer` and its passes, the expression type checker, scope analysis, and `ResolvedDocument`. About 5.7k lines including tests. |
+| `:engine:codegen` | The hand-written `Kt*` IR, the printer, the literal printer and the emitters for actions, expressions and state, plus reserved-name checking. About 8.3k lines including tests. |
+| `:engine:test-support` | The `Golden` reader and `classpathGoldenSource()`, a classpath-backed `GoldenSource` so a committed fixture is found on every target. |
+| `:tools:cli` | `forge generate <document.json>` end to end: decode, validate, generate, write. `validate`, `diff` and `migrate` are named in the usage text and not implemented. |
+| `:tools:architecture-tests` | Nine working rules over `java.nio.file`: the two named in PLAN §23.4 that Konsist could not have done (`NoComposeInPureModulesTest`, `NoPlatformApisInCommonMainTest`), `NoImplicitSerialNameTest`, `NoComponentWhenTest`, `NoUntypedStringMapTest`, `NoMutableObjectStateTest`, plus three the plan did not anticipate (`NoIllegalJvmNameTest`, `NoJvmOnlyCollectionMembersTest`, `NoUncanonicalFloatTest`). |
+| `:integration:generated-compile` | Runs the CLI over eight fixture documents, compiles what it emits, and compares the rendered result against the runtime — including a click-navigation and an expression-corpus case. |
+| `:samples:desktop-preview` | A runnable Compose window that loads a JSON document, with a packaged installer per OS. `gradle :samples:desktop-preview:run`. |
+| `:engine:editing` | A shell: one file holding a package declaration and a comment saying what the module will contain. Every other module here is implemented. |
 
 ## What it requires
 
@@ -249,20 +264,31 @@ beyond plain string resources, iOS/Wasm *runtime* support, and collaboration.
 
 ### Not built yet
 
-Everything above the model. No document can be decoded, nothing can be validated, there is
-no `ResolvedDocument` to render or generate from, and the sample application is a comment
-file rather than an app. The phase plan is in PLAN §32: Phase 0 through Phase 10 plus a
-post-MVP roadmap, and the project is in Phase 1.
+The model, the schema, the codec, the analyzer and both backends are all here; what is left
+is named per phase in [Where each phase actually stands](#where-each-phase-actually-stands).
+The short version: `:engine:editing` is a shell, Phase 8's theme resolution and component
+instancing are records without a renderer or a generator, `validate` / `diff` / `migrate`
+are usage text, and there is one committed golden document where §36.2 wants twenty-five
+codegen fixtures. The phase plan is in PLAN §32: Phase 0 through Phase 10 plus a post-MVP
+roadmap.
 
 Two specific gaps in the guardrails themselves, since a guardrail you assume exists is
 worse than one you know is missing:
 
-- PLAN §23.4 nominates seven architecture rules. **All seven are implemented**, plus two more
+- PLAN §23.4 nominates seven architecture rules. **All seven are implemented**, plus three more
   that the plan did not anticipate: `NoIllegalJvmNameTest` (a backticked function name the JVM
-  backend rejects, which cost this repository four CI round-trips) and
+  backend rejects, which cost this repository four CI round-trips),
   `NoJvmOnlyCollectionMembersTest` (a `java.util` member reached through interop with no
-  import, which is the defect the Wasm canary used to be the only thing to catch). The rules
-  live in `:tools:architecture-tests` and run inside the root `gradle check`.
+  import, which is the defect the Wasm canary used to be the only thing to catch) and
+  `NoUncanonicalFloatTest` (a persisted `Float` field without `CanonicalFloat` or
+  `CanonicalDouble`, which the canary would have caught the same way). The rules live in
+  `:tools:architecture-tests` and run inside the root `gradle check`.
+- The module graph has one allow-list per *scope* now, not one overall.
+  `ModuleGraphRules.ALLOWED` is what a `commonMain*` edge is held to and
+  `ALLOWED_IN_TESTS` is the delta for a `commonTest*` edge, so a test harness is reachable
+  from a module's tests and from nowhere else. `selfTestModuleGraph` proves both halves:
+  the harness edge is refused from every `commonMain` in the graph and accepted from a
+  `commonTest`.
 - PLAN §21.1 asks the pure modules to declare `iosSimulatorArm64` and `wasmJs` canary
   targets, and §28.7 lists a `canary` job and a `nightly` job. **None of the four exists.**
   The Wasm canary compile was real until it was removed; `commonMain` purity is now enforced
@@ -305,7 +331,8 @@ fix first.
 ## Modules
 
 Base package `dev.rotalex.lutter.*`. The graph below is not a convention: it is
-machine-enforced by `verifyModuleGraph` from a hard-coded allow-list (PLAN §23.2, §23.3).
+machine-enforced by `verifyModuleGraph` from two hard-coded allow-lists, one per scope
+(PLAN §23.2, §23.3).
 
 ```
 :engine:model            ── records: ids, Value, TypeRef, Expr, Node, UiDocument
@@ -331,6 +358,13 @@ schema changes. `:engine:codegen` and `:engine:runtime` may not see each other i
 direction. `:engine:analysis` may not see `:engine:interpreter`, so type checking never
 depends on a value that only exists at runtime.
 
+**No module may reach `:engine:test-support` from `commonMain`.** A test harness on a
+shipped compile classpath is a production type one import away, and it would be invisible in
+review because the edge reads like any other one. So the harness is reachable from a
+`commonTest*` edge and nowhere else, through `ALLOWED_IN_TESTS` rather than `ALLOWED`, and
+`selfTestModuleGraph` proves both halves on every build. `:engine:serialization` is the one
+consumer today.
+
 Three module classes, per PLAN §21.1:
 
 - **Pure** — `model`, `schema`, `serialization`, `interpreter`, `analysis`, `editing`,
@@ -345,13 +379,17 @@ Three module classes, per PLAN §21.1:
 
 | Guardrail | What it blocks | Where |
 |---|---|---|
-| `verifyModuleGraph` | Any project dependency outside the allow-list | root task |
-| `selfTestModuleGraph` | A regression in the checker itself | root task |
+| `verifyModuleGraph` | Any project dependency outside the allow-list for the scope it was declared in | root task |
+| `selfTestModuleGraph` | A regression in the checker itself, and a test harness in any `commonMain` | root task |
 | `NoComposeInPureModulesTest` | Compose imports in a pure engine module | `:tools:architecture-tests` |
 | `NoPlatformApisInCommonMainTest` | `java.*` / `android.*` imported in any `commonMain` | `:tools:architecture-tests` |
 | `NoJvmOnlyCollectionMembersTest` | `putIfAbsent`, `computeIfAbsent`, `merge` and the other JVM-only collection members reached through interop with no import | `:tools:architecture-tests` |
 | `NoUntypedStringMapTest` | `Map<String, Any>` in engine sources | `:tools:architecture-tests` |
 | `NoMutableObjectStateTest` | An `object` declaring a `var` | `:tools:architecture-tests` |
+| `NoImplicitSerialNameTest` | A variant of a persisted sealed hierarchy with no `@SerialName` | `:tools:architecture-tests` |
+| `NoComponentWhenTest` | `when` over a component type or `node.type` in engine code | `:tools:architecture-tests` |
+| `NoIllegalJvmNameTest` | A backticked declaration name the JVM backend rejects | `:tools:architecture-tests` |
+| `NoUncanonicalFloatTest` | A persisted `Float` field without `CanonicalFloat` / `CanonicalDouble` | `:tools:architecture-tests` |
 | `explicitApi()` | An undeclared public API surface | every KMP library module |
 | `checkKotlinAbi` | A binary-incompatible public API change | every KMP library module |
 
@@ -359,12 +397,16 @@ Three module classes, per PLAN §21.1:
 `check` depends on the first, so `gradle check` covers the graph. The architecture rules are
 plain JUnit tests in `:tools:architecture-tests` and run inside `check` like everything
 else. The graph checker reads *declared* project dependencies across ten Gradle
-configurations — `commonMain*` and `commonTest*` for the KMP modules, `api`,
-`implementation`, `testImplementation` and friends for the two JVM tools — and never
-resolves them, so checking a name never downloads anything. The source rules find the
-repository root by walking up to the first ancestor containing `settings.gradle.kts`, and
-read files with `java.nio.file`; `SourceRules.kt` holds the shared scanners and states its
-own limitations.
+configurations, and it reads them **split by scope**: the eight main-scoped ones
+(`commonMainApi`, `commonMainImplementation`, `commonMainRuntimeOnly`,
+`commonMainCompileOnly`, `api`, `implementation`, `compileOnly`, `runtimeOnly`) are held to
+`ALLOWED`, and the two test-scoped ones (`commonTestImplementation`, `testImplementation`)
+to `ALLOWED` plus `ALLOWED_IN_TESTS`. The configuration names live in `ModuleGraphRules`
+beside the map each one selects, so the split cannot drift from the policy. It never
+resolves a configuration, so checking a name never downloads anything. The source rules find
+the repository root by walking up to the first ancestor containing `settings.gradle.kts`,
+and read files with `java.nio.file`; `SourceRules.kt` holds the shared scanners and states
+its own limitations.
 
 ABI reference dumps are committed under `*/api/`, one per KMP library module — thirteen of
 them. The two JVM tool modules have none: `abiValidation()` is applied by the KMP library
@@ -377,7 +419,7 @@ Three required checks on `dev` and `main`, plus one workflow that is deliberatel
 | Workflow | Required | Triggers | What it actually runs |
 |---|---|---|---|
 | `check` | yes | push to `dev`, any PR into `dev` or `main` | The convention plugins' own `:convention:check`; then `gradle check verifyModuleGraph checkKotlinAbi`; then `selfTestModuleGraph`, which runs even on an already-failing run so the checker is never only proven on green. On failure it regenerates and commits missing ABI reference dumps, and refuses to auto-commit from a fork. |
-| `conformance` | yes | push to `dev`, any PR into `dev` or `main` | `:integration:generated-compile:desktopTest`. The module is a shell, so this is currently a job proving its own wiring. It exists from Phase 0 on purpose: a CI job discovered to be misconfigured the day it first has real work is a job that reports a false problem about the code under test. |
+| `conformance` | yes | push to `dev`, any PR into `dev` or `main` | `:integration:generated-compile:desktopTest`: the CLI generates Kotlin from eight fixture documents, it compiles, and the rendered result is compared against the runtime — including a click-navigation case and an expression corpus. The job itself has existed since Phase 0 so that a job discovered to be misconfigured would be discovered before it had real work to report a false problem about. |
 | `branch-policy` | yes | any PR into `dev` or `main` | That the branch name is `<type>/<slug>` with no version in it, and that the PR title is a strict conventional commit, at most 100 characters, not ending in a period. |
 | `preview-artifacts` | **no** | only when a path that can change a pixel or a binary changes, on a PR into `dev` or `main`, on push to `dev`, or on demand | `:samples:desktop-preview:desktopTest` and `:samples:desktop-preview:packageDistributionForCurrentOS`, on both `ubuntu-latest` and `windows-latest`. It uploads the rendered screenshots and the packaged binary per OS. |
 
@@ -500,7 +542,7 @@ by this: it belongs in KDoc, next to the code it explains, where it cannot drift
 
 ## Where the reasoning lives
 
-`PLAN.md` is the specification — 2575 lines, and the authority for anything this file claims
+`PLAN.md` is the specification — about 2800 lines, and the authority for anything this file claims
 about the design. The sections cited above are the ones worth reading first: §1 for what the
 project is, §3 for what it is not, §4 for the architecture and the difficult decisions,
 §5.6 for the normalized-record trade-off, §21 for targets, §23 for the dependency graph and
