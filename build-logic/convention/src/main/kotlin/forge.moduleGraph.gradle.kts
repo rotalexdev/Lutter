@@ -4,7 +4,7 @@ import forge.modulegraph.SelfTestModuleGraphTask
 import forge.modulegraph.VerifyModuleGraphTask
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
-import org.gradle.api.language.base.plugins.LifecycleBasePlugin
+import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 // The policy is ModuleGraphRules.ALLOWED (PLAN §23.2) plus ModuleGraphRules.ALLOWED_IN_TESTS
 // for test-scoped edges. Both are referenced, not restated: a second copy in a Gradle script
