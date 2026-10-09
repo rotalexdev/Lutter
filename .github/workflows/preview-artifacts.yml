@@ -164,7 +164,14 @@ jobs:
       - name: What the package actually contains
         id: structure
         run: |
-          set -uo pipefail
+          # GitHub invokes bash as `bash --noprofile --norc -eo pipefail {0}`, so `-e` is
+          # ALREADY on before this script sees it, and `set -uo pipefail` does not turn it
+          # off - it only adds two more options. Every command below is one that is meant
+          # to be able to fail: an `ls` of a file that may be absent, a launcher that is
+          # killed on purpose, a `grep` that is the assertion. With `-e` the first of those
+          # aborts the step, which is how a probe that was working reported nothing at all.
+          set +eu
+          set -o pipefail
           # A workspace-relative path, not `$RUNNER_TEMP`. On a Windows runner the shell is
           # Git Bash and `$RUNNER_TEMP` is `D:\a\_temp`, where every backslash is an escape to
           # bash; the upload step would then be looking for a directory that was never created.
@@ -244,7 +251,14 @@ jobs:
       - name: Launch the packaged preview and classify what came back
         id: launch
         run: |
-          set -uo pipefail
+          # GitHub invokes bash as `bash --noprofile --norc -eo pipefail {0}`, so `-e` is
+          # ALREADY on before this script sees it, and `set -uo pipefail` does not turn it
+          # off - it only adds two more options. Every command below is one that is meant
+          # to be able to fail: an `ls` of a file that may be absent, a launcher that is
+          # killed on purpose, a `grep` that is the assertion. With `-e` the first of those
+          # aborts the step, which is how a probe that was working reported nothing at all.
+          set +eu
+          set -o pipefail
           probe_dir="samples/desktop-preview/build/preview-probe"
           log="$probe_dir/launch-probe.txt"
           mkdir -p "$probe_dir"
