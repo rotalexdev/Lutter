@@ -257,10 +257,12 @@ post-MVP roadmap, and the project is in Phase 1.
 Two specific gaps in the guardrails themselves, since a guardrail you assume exists is
 worse than one you know is missing:
 
-- PLAN §23.4 nominates seven architecture rules. **Four are implemented.** The rules that
-  every sealed subclass of a persisted hierarchy carries a `@SerialName`, that no `when`
-  expression dispatches on a `ComponentType` or a node's `type`, and that float values go
-  through the canonical `Value` factories rather than a raw `Float` do not exist yet.
+- PLAN §23.4 nominates seven architecture rules. **All seven are implemented**, plus two more
+  that the plan did not anticipate: `NoIllegalJvmNameTest` (a backticked function name the JVM
+  backend rejects, which cost this repository four CI round-trips) and
+  `NoJvmOnlyCollectionMembersTest` (a `java.util` member reached through interop with no
+  import, which is the defect the Wasm canary used to be the only thing to catch). The rules
+  live in `:tools:architecture-tests` and run inside the root `gradle check`.
 - PLAN §21.1 asks the pure modules to declare `iosSimulatorArm64` and `wasmJs` canary
   targets, and §28.7 lists a `canary` job and a `nightly` job. **None of the four exists.**
   The Wasm canary compile was real until it was removed; `commonMain` purity is now enforced

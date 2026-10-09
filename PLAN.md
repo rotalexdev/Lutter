@@ -1981,7 +1981,7 @@ engine/codegen/src/commonTest/resources/codegen/
     …
 ```
 
-`Golden.assertEquals(actual, "codegen/basic_column.expected.kt")`; update mode with `-Pgolden.update=true` (writes the file; CI forbids the flag). Fixtures are embedded as Kotlin constants by the `embedFixtures` Gradle task, so **identical goldens run on all targets** (Android, Desktop, and the wasm/iOS canaries), verifying cross-platform determinism.
+`Golden.assertEquals(actual, "codegen/basic_column.expected.kt")`; update mode with `-Pgolden.update=true` (writes the file; CI forbids the flag). Fixtures are embedded as Kotlin constants by the `embedFixtures` Gradle task, so **identical goldens run on every target the build has** (Android and Desktop), verifying cross-target determinism.
 
 ### 28.3 Determinism tests
 
@@ -2595,7 +2595,7 @@ Tests (`commonTest`): `IdsTest`, `DecimalTest`, `ValueFactoryTest`, `NodeTableTe
 |---|---|
 | `:engine:test-support` | `Golden.kt`, `FixtureLoader.kt`, `TestSchemas.kt` (toy pack), `SampleDocuments.kt`, `FakeActionEnv.kt`, `DocumentGenerator.kt` (property-based Arb), `Assertions.kt` |
 | `:tools:cli` | `Main.kt`, `commands/ValidateCommand.kt`, `GenerateCommand.kt`, `MigrateCommand.kt`, `DiffCommand.kt`, `FileSink.kt`, `Output.kt` |
-| `:tools:architecture-tests` | `ModuleGraphTest.kt`, `NoComposeInDomainTest.kt`, `SerialNameRuleTest.kt`, `NoComponentWhenTest.kt`, `NoRawMapAnyTest.kt` |
+| `:tools:architecture-tests` | `NoComposeInPureModulesTest.kt`, `NoPlatformApisInCommonMainTest.kt`, `NoJvmOnlyCollectionMembersTest.kt`, `NoImplicitSerialNameTest.kt`, `NoComponentWhenTest.kt`, `NoUntypedStringMapTest.kt`, `NoUncanonicalFloatTest.kt`, `NoMutableObjectStateTest.kt`, `NoIllegalJvmNameTest.kt`, `SourceRules.kt`, `RepositoryRoot.kt` |
 | `:integration:generated-compile` | `build.gradle.kts` (generate task), `src/commonTest/.../ConformanceTest.kt`, `ExpressionCorpusTest.kt`, `SemanticsDump.kt`, `fixtures/*.json`, `src/desktopTest/.../PixelCompareTest.kt` |
 | `:samples:desktop-preview` | `Main.kt` (window, file watcher, `UiScreen` host, diagnostics panel — a viewer, not an editor) |
 
@@ -2783,7 +2783,7 @@ The MVP is complete only when **all** items are demonstrably true (CI evidence i
 ### 36.3 Architecture
 
 - [ ] The architecture does not require a visual editor: `:tools:cli` performs decode → validate → generate, and `:samples:desktop-preview` renders a document, using only public APIs.
-- [ ] The core domain model (`:engine:model`, `:schema`, `:serialization`, `:interpreter`, `:analysis`, `:editing`, `:codegen`, `:builtins`) has **no Compose dependency** (`verifyModuleGraph`, `NoComposeInDomainTest`).
+- [ ] The core domain model (`:engine:model`, `:schema`, `:serialization`, `:interpreter`, `:analysis`, `:editing`, `:codegen`, `:builtins`) has **no Compose dependency** (`verifyModuleGraph`, `NoComposeInPureModulesTest`).
 - [ ] The module dependency graph matches §23 exactly, with no cycles (`ModuleGraphTest`).
 - [ ] `:engine:codegen` and `:engine:runtime` do not depend on each other.
 - [ ] `explicitApi` is on everywhere; ABI dumps are committed and checked; internal APIs are `internal` or `@EngineInternalApi`.
@@ -2792,7 +2792,7 @@ The MVP is complete only when **all** items are demonstrably true (CI evidence i
 ### 36.4 KMP readiness
 
 - [ ] All pure modules compile and pass `commonTest` on Android and Desktop, and no JVM-only collection member reaches any `commonMain` (`NoJvmOnlyCollectionMembersTest`, `NoPlatformApisInCommonMainTest`).
-- [ ] No `java.*`/`android.*` import in any `commonMain` source set (`CommonMainPurityTest`).
+- [ ] No `java.*`/`android.*` import in any `commonMain` source set (`NoPlatformApisInCommonMainTest`).
 - [ ] `expect/actual` declarations exist only in the allow-listed files of §21.3.
 
 ### 36.5 Performance and quality gates
