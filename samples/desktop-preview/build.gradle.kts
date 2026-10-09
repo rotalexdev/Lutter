@@ -1,3 +1,7 @@
+// Named explicitly rather than relying on the default imports the Compose plugin contributes:
+// a missing import here is a red build, and one line is cheaper than a CI round trip.
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+
 plugins {
     // Phase 10: a runnable Compose Multiplatform desktop app. `compose.desktop.application` is
     // what creates `run`, so the entry point is named here once and nowhere else.
@@ -29,19 +33,30 @@ compose.desktop {
     application {
         mainClass = "dev.rotalex.lutter.samples.desktoppreview.MainKt"
 
-        // What `packageDistributionForCurrentOS` builds: a jpackage app-image, which is a
-        // self-contained folder holding the launcher, a jlink'd runtime and the jars. No
-        // `targetFormats` is declared on purpose — an MSI needs WiX and a .deb needs dpkg, so
-        // each one can only be produced on its own OS, and the app-image needs neither and is
-        // therefore the one format a Linux leg and a Windows leg can both produce.
+        // `AppImage` is the folder form of the app-image, and its `targetOS` is `currentOS`, so
+        // it is the one format every runner can build. `Msi` and `Deb` are the real installers,
+        // and each is declared for its own OS only — jpackage refuses to build them anywhere
+        // else, which is why the workflow is a matrix and not one job.
         //
-        // The name and version are not decoration: jpackage names the launcher after them, and
-        // the defaults would put `desktop-preview` and `unspecified` in every downloaded file.
+        // Without a `targetFormats` declaration `packageDistributionForCurrentOS` has no format
+        // to package for the current OS and resolves to UP-TO-DATE having written nothing. That
+        // is what the first version of this workflow did, and it looked like success.
+        //
+        // The name and version are not decoration: jpackage names the launcher and the installer
+        // after them, and the defaults would put `desktop-preview` and `unspecified` in every
+        // file the maintainer downloads.
         nativeDistributions {
+            targetFormats(TargetFormat.AppImage, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "LutterPreview"
             packageVersion = "1.0.0"
             description = "Lutter desktop preview"
             vendor = "Lutter"
+
+            // dpkg wants a maintainer and Compose's default is empty, which shows up as a
+            // `lintian` warning in a `.deb` nobody asked for but everyone downloads.
+            linux {
+                debMaintainer = "Lutter"
+            }
         }
     }
 }

@@ -389,11 +389,21 @@ repository declares, so this workflow becoming merge-blocking would take a delib
 there. What it can do is cost minutes, which is what its `paths:` filter is for: it skips any
 change to a module that cannot alter a rendered pixel or a packaged binary.
 
-Both artifacts are downloaded from the run page's **Artifacts** section at the bottom of the run:
+Both artifacts are downloaded from the run page's **Artifacts** section at the bottom of the run.
 `preview-screenshots-<os>` holds the PNGs of the rendered UI, and `preview-binaries-<os>` holds
-the packaged application. The Windows one is an app-image folder — unzip it and run
-`LutterPreview.exe`; the launcher needs the `bin` and `lib` folders beside it, so keep them
-together rather than copying the executable out on its own.
+the packaged application, with two shapes inside it:
+
+- `msi/LutterPreview-1.0.0.msi` (Windows) or `deb/lutterpreview_1.0.0_amd64.deb` (Linux) — the
+  installer. This is the one to run; it puts the application where the platform expects it.
+- `app/LutterPreview/` — the app-image, if you would rather not install anything.
+
+The app-image is a folder that only works as a whole: `LutterPreview.exe` (or `bin/LutterPreview`
+on Linux) beside an `app/` directory holding `LutterPreview.cfg` and every jar, and a `runtime/`
+directory holding the bundled JVM. Copying the executable out on its own gives you
+"Failed to launch JVM", because the launcher finds neither. **If Windows Defender quarantines a
+file out of `runtime/bin/`, the same error appears** — these are unsigned binaries extracted
+from a download, which is exactly the shape Defender is trained to stop, and the fix is to allow
+the folder rather than to rebuild it.
 
 `dependabot` is scoped to the GitHub Actions this repository owns and targets `dev`. It
 cannot manage the Gradle dependency versions: those live inside a Maven artifact, so a
