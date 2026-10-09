@@ -182,30 +182,48 @@ jobs:
             ls -la "$root" 2>&1
             echo
             echo "== the VM itself =="
+            # The two layouts are NOT the same and the first version of this probe assumed
+            # they were. Windows puts the runtime at `runtime/` and the jars at `app/`; Linux
+            # puts both under `lib/`, so the same `ls` that found `jvm.dll` on one leg reported
+            # a missing file on the other and made the report look broken.
             if [ "${{ runner.os }}" = "Windows" ]; then
               ls -la "$root/runtime/bin/server/jvm.dll" 2>&1
               ls -la "$root/runtime/bin/java.dll" 2>&1
-              echo "runtime/release:"; cat "$root/runtime/release" 2>&1 | head -5
             else
-              ls -la "$root/runtime/lib/server/libjvm.so" 2>&1
-              echo "runtime/release:"; cat "$root/runtime/release" 2>&1 | head -5
+              ls -la "$root/lib/runtime/lib/server/libjvm.so" 2>&1
+              ls -la "$root/lib/runtime/lib/libjli.so" 2>&1
+            fi
+            echo
+            echo "== the runtime's own module list (jlink release file) =="
+            if [ "${{ runner.os }}" = "Windows" ]; then
+              cat "$root/runtime/release" 2>&1 | head -5
+            else
+              cat "$root/lib/runtime/release" 2>&1 | head -5
             fi
             echo
             echo "== the launcher's configuration =="
             if [ "${{ runner.os }}" = "Windows" ]; then
-              ls -la "$root/app/LutterPreview.cfg" 2>&1
-              echo "--- first lines ---"; head -3 "$root/app/LutterPreview.cfg" 2>&1
+              cfg="$root/app/LutterPreview.cfg"
             else
-              ls -la "$root/app/LutterPreview.cfg" 2>&1
-              echo "--- first lines ---"; head -3 "$root/app/LutterPreview.cfg" 2>&1
+              cfg="$root/lib/app/LutterPreview.cfg"
             fi
+            ls -la "$cfg" 2>&1
+            echo "--- first lines ---"; head -3 "$cfg" 2>&1
             echo
             echo "== Skiko's native library =="
-            ls -la "$root/app/"*skiko* 2>&1
+            if [ "${{ runner.os }}" = "Windows" ]; then
+              ls -la "$root/app/"*skiko* 2>&1
+            else
+              ls -la "$root/lib/app/"*skiko* 2>&1
+            fi
             echo
             echo "== how many jars, and how big =="
-            ls "$root/app/"*.jar 2>/dev/null | wc -l
-            du -sh "$root/app" "$root/runtime" 2>&1
+            if [ "${{ runner.os }}" = "Windows" ]; then
+              ls "$root/app/"*.jar 2>/dev/null | wc -l
+            else
+              ls "$root/lib/app/"*.jar 2>/dev/null | wc -l
+            fi
+            du -sh "$root" 2>&1
             # The block above is a report, and several of its commands are expected to fail -
             # an `ls` of a file that may be absent is the point of asking. Without this the
             # block's status is the last command's, `pipefail` propagates it, and a step whose

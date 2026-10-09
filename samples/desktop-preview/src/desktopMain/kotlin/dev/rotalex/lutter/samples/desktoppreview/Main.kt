@@ -11,22 +11,51 @@ import dev.rotalex.lutter.serialization.JsonDocumentCodec
 import java.io.File
 
 /**
- * The document the window opens on when it is given no path: the fixture whose button navigates.
+ * The document the window opens on when it is given no path.
  *
- * Read from the module that owns it, so this repository holds one document that answers "does a
- * press reach the next page" rather than two that answer it separately. The path is relative to
- * the working directory, which is this module's own directory under both `run` and `desktopTest`.
+ * Relative to the **module directory**, which is the working directory under `gradle run` and
+ * under `desktopTest`. It is not relative to anything a packaged build can rely on: unzip the
+ * app-image in `Downloads` and double-click the launcher, the working directory is wherever the
+ * user extracted it, this path resolves to nothing, and the window never opens.
+ *
+ * That failure was reported as "Failed to launch JVM" — which is the last line jpackage's
+ * launcher prints *after* the application's own output, not a statement about the VM. The real
+ * message was the `IllegalStateException` above it.
+ *
+ * So this is a preference, not a promise: [readDocument] falls back to the copy bundled in the
+ * jar, and a path handed in on the command line still wins over both.
  */
 public const val DEFAULT_DOCUMENT: String =
     "../../integration/generated-compile/fixtures-navigating/button_navigate.json"
 
-/** The document at [path], decoded. The refusal names the absolute path, which is the one to fix. */
+/** The copy shipped inside the jar, for a packaged build that has no repository around it. */
+private const val BUNDLED_DOCUMENT: String = "/default-document.json"
+
+/**
+ * The document at [path], decoded, or the bundled one when [path] is not there.
+ *
+ * The order is deliberate. A path the caller named always wins — that is the `--args` case and
+ * it is how a second document gets looked at. A path that exists wins next, which keeps
+ * `gradle run` reading the repository's fixture so an edit to it is visible without rebuilding
+ * anything. Only when neither holds does the bundled copy answer, and that is the packaged
+ * case, where it is the only document there is.
+ *
+ * The refusal names both paths it tried, because the useful question when one of them is wrong
+ * is which one was consulted.
+ */
 public fun readDocument(path: String): UiDocument {
     val file = File(path)
-    check(file.isFile) {
-        "No document at '${file.absolutePath}'. Pass one: gradle :samples:desktop-preview:run --args=<path>"
+    if (file.isFile) return JsonDocumentCodec.decode(file.readText().encodeToByteArray()).document
+
+    val bundled = MainKt::class.java.getResourceAsStream(BUNDLED_DOCUMENT)
+    if (bundled != null) {
+        return bundled.use { JsonDocumentCodec.decode(it.readBytes()).document }
     }
-    return JsonDocumentCodec.decode(file.readText().encodeToByteArray()).document
+
+    error(
+        "No document at '${file.absolutePath}' and no '$BUNDLED_DOCUMENT' in the jar. " +
+            "Pass one: gradle :samples:desktop-preview:run --args=<path>",
+    )
 }
 
 /**
