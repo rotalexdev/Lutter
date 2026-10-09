@@ -1,4 +1,4 @@
-public final class dev/rotalex/lutter/testsupport/ClasspathGoldenSourceKt {
+public final class dev/rotalex/lutter/testsupport/ClasspathGoldenSource_desktopKt {
 	public static final fun classpathGoldenSource ()Ldev/rotalex/lutter/testsupport/GoldenSource;
 }
 
