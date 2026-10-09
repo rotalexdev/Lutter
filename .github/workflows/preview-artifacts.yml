@@ -103,20 +103,46 @@ jobs:
       # A jpackage app-image: a self-contained folder with the launcher, a jlink'd runtime and
       # the jars. It needs no WiX and no dpkg, which is what lets one task name serve both legs.
       #
-      # `createDistributable`, NOT `packageDistributionForCurrentOS`: the latter packages only the
-      # formats named in `targetFormats`, and with none declared it resolves to UP-TO-DATE and
-      # writes nothing at all. That was not visible here — `if-no-files-found: ignore` swallowed
-      # the missing output and the job went green having produced no binary whatsoever. An
-      # installer format would also make this a per-OS question again, which is the very thing
-      # this matrix has to be.
+      # `createDistributable` first, then `packageDistributionForCurrentOS` for the installer.
+      # The two are not redundant: the installer tasks consume the app-image, and running the
+      # app-image task on its own guarantees the folder exists even on an OS whose installer
+      # format fails to build.
       - name: Package the preview for this operating system
-        run: gradle :samples:desktop-preview:createDistributable
+        run: gradle :samples:desktop-preview:createDistributable :samples:desktop-preview:packageDistributionForCurrentOS
+
+      # WiX 3.14 ships preinstalled on the Windows image, but its `bin` is not on PATH
+      # (actions/runner-images#9551). jpackage looks for `candle.exe` and `light.exe`, and the
+      # JDK 21 in this build understands WiX v3 only — WiX v4 support landed in JDK 24, and
+      # having only v4 installed makes jpackage fail exactly the way a missing one does.
+      #
+      # `shell: pwsh` overrides the job's `bash` default on purpose; this is Windows-only work.
+      # A miss is a warning rather than a failure, because the packaging step is the real judge
+      # and a red here would be a red about a directory that may simply be elsewhere.
+      - name: Put WiX on the PATH for jpackage
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $wix = Get-ChildItem 'C:\Program Files (x86)\WiX Toolset v3.*\bin' -Directory -ErrorAction SilentlyContinue |
+            Where-Object { Test-Path (Join-Path $_.FullName 'candle.exe') } |
+            Select-Object -First 1
+          if ($wix) {
+            "$($wix.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+            Write-Host "WiX found at $($wix.FullName)"
+          } else {
+            Write-Host "::warning::WiX v3 not found under Program Files; the MSI step decides"
+          }
 
       # `if: always()` so a failure downstream still hands over whatever was produced.
       #
       # `if-no-files-found: error`, not the `ignore` the rest of this repository uses: these two
       # artifacts are the entire point of the workflow, so their absence IS the failure. `ignore`
       # here is precisely what let a run report success while shipping nothing.
+      #
+      # The path is `binaries/main`, deliberately narrow. The first version uploaded the whole
+      # `build/compose/` directory, which put three top-level folders in the zip: `binaries/`,
+      # `tmp/` and `default-resources/`. `tmp/` is jpackage's staging copy of the application —
+      # a 97 MB duplicate, 40% of a 235 MB download — and the maintainer was left hunting
+      # through it for the one folder that mattered.
       - name: Upload the screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -131,6 +157,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: preview-binaries-${{ matrix.os }}
-          path: 'samples/desktop-preview/build/compose/'
+          path: 'samples/desktop-preview/build/compose/binaries/main/'
           if-no-files-found: error
           retention-days: 30
