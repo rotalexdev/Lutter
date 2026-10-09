@@ -41,7 +41,7 @@ kotlin {
 
     compilerOptions {
         // -Werror rather than the deprecated `kotlin.allWarningsAsErrors` flag: it reaches
-        // every compilation in the module (Android, JVM, native, Wasm) through one
+        // every compilation in the module (Android and JVM) through one
         // property, so there is no target that silently keeps warnings on.
         if (warningsAsErrors) {
             freeCompilerArgs.add("-Werror")
@@ -75,17 +75,24 @@ kotlin {
         }
     }
 
-    // The build supports exactly three targets: Android and Desktop (JVM) here, and Wasm
-    // from `forge.canary.targets`, which the pure engine modules add. Nothing else — no
-    // Kotlin/Native, no JS — so there is no target a stray platform API could hide behind.
+    // The build supports exactly two targets: Android and Desktop (JVM). Nothing else — no
+    // Kotlin/Native, no JS, no Wasm — so a target added later is a deliberate act rather
+    // than an inherited default.
+    //
+    // That set is also why `commonMain` purity is a *static* rule and not a compiler
+    // guarantee: with no third target, nothing rejects a JVM type in `commonMain` at
+    // compile time. `NoPlatformApisInCommonMainTest` and
+    // `NoJvmOnlyCollectionMembersTest` in `:tools:architecture-tests` are what stand in for
+    // the compiler that used to. The second one exists because the first only reads imports,
+    // and a `java.util.Map` Java 8 default method needs no import at all.
 
     // KGP's built-in ABI validation (KEEP-0440), which replaced
     // binary-compatibility-validator. It produces `checkKotlinAbi`.
     //
-    // `keepLocallyUnsupportedTargets` is left at its default on purpose: it is what lets a
-    // Linux runner infer the iOS and Wasm ABI instead of failing on targets it cannot
-    // build. Setting it to false would trade a green CI for a check that only works on a
-    // Mac.
+    // `keepLocallyUnsupportedTargets` is left at its default on purpose. It used to be what
+    // let a Linux runner infer the iOS and Wasm ABI instead of failing on targets it cannot
+    // build; with no non-JVM target left it has nothing to infer and setting it to false
+    // would change nothing today and arm a Mac-only failure for whoever adds a target.
     // Called with no arguments: that is what enables it. Kotlin 2.4 removed the `enabled`
     // property, and the no-arg function is the supported way to switch validation on. It is
     // still `@ExperimentalAbiValidation`, so the opt-in stays.
