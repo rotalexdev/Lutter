@@ -272,10 +272,15 @@ internal object SourceRules {
     }
 
     /**
-     * Index just past the `*/` closing a block comment that opened before [from], or the end
-     * of [text]. An unterminated comment consumes the rest of the file rather than throwing:
-     * a file whose KDoc is left open is already broken, and reporting it as forty violations
-     * is not more useful than reporting none.
+     * Index just past the closing delimiter of a block comment that opened before [from], or
+     * the end of [text]. An unterminated comment consumes the rest of the file rather than
+     * throwing: a file whose KDoc is left open is already broken, and reporting it as forty
+     * violations is not more useful than reporting none.
+     *
+     * The delimiter is spelled in words rather than written out, because this sentence is
+     * inside a block comment and writing it would close the comment right here. The compiler
+     * reads what follows the delimiter as code and reports "Expecting member declaration",
+     * which names nothing that is actually wrong.
      */
     private fun endOfBlockComment(text: String, from: Int): Int {
         val close = text.indexOf("*/", from)
