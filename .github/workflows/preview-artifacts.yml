@@ -206,6 +206,11 @@ jobs:
             echo "== how many jars, and how big =="
             ls "$root/app/"*.jar 2>/dev/null | wc -l
             du -sh "$root/app" "$root/runtime" 2>&1
+            # The block above is a report, and several of its commands are expected to fail -
+            # an `ls` of a file that may be absent is the point of asking. Without this the
+            # block's status is the last command's, `pipefail` propagates it, and a step whose
+            # entire job is to report turns red over a file that was allowed to be missing.
+            true
           } 2>&1 | tee "$log"
 
       # The gate. There is no `java` executable inside a jlink image, so "can this runtime
@@ -239,11 +244,32 @@ jobs:
             exit 1
           fi
 
-          {
-            echo "== launching $launcher =="
-            "$launcher" 2>&1
-            echo "exit=$?"
-          } > "$log" 2>&1
+          # Bounded, because a launcher that succeeds hangs: it creates the VM, initialises
+          # AWT, opens a window and waits for a user who is not there. The first version of
+          # this step ran it unbounded and the Windows job sat there for twelve minutes with
+          # the step still `in_progress` - which is the most informative outcome this probe
+          # can produce, thrown away because nothing wrote it down.
+          #
+          # Background, poll, kill. `timeout(1)` is not guaranteed on the Windows Git Bash
+          # image, and a probe that only works on one leg of a matrix is not a probe.
+          "$launcher" > "$log" 2>&1 &
+          pid=$!
+
+          waited=0
+          while kill -0 "$pid" 2>/dev/null; do
+            if [ "$waited" -ge 25 ]; then
+              echo "== the launcher was still running after ${waited}s; it started and is waiting for a window ==" >> "$log"
+              kill "$pid" 2>/dev/null
+              sleep 1
+              kill -9 "$pid" 2>/dev/null
+              break
+            fi
+            sleep 1
+            waited=$((waited + 1))
+          done
+          wait "$pid" 2>/dev/null
+          code=$?
+          echo "exit=$code after ${waited}s" >> "$log"
           cat "$log"
 
           # Launcher-level failures. "Failed to launch JVM" is the jpackage launcher's own
