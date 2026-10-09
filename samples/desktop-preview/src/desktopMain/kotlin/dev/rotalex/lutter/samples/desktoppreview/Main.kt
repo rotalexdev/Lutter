@@ -47,15 +47,30 @@ public fun readDocument(path: String): UiDocument {
     val file = File(path)
     if (file.isFile) return JsonDocumentCodec.decode(file.readText().encodeToByteArray()).document
 
-    val bundled = MainKt::class.java.getResourceAsStream(BUNDLED_DOCUMENT)
+    val bundled = BundledDocument.bytes(BUNDLED_DOCUMENT)
     if (bundled != null) {
-        return bundled.use { JsonDocumentCodec.decode(it.readBytes()).document }
+        return JsonDocumentCodec.decode(bundled).document
     }
 
     error(
         "No document at '${file.absolutePath}' and no '$BUNDLED_DOCUMENT' in the jar. " +
             "Pass one: gradle :samples:desktop-preview:run --args=<path>",
     )
+}
+
+/**
+ * Reads a document out of this jar.
+ *
+ * An object rather than a line in [readDocument] because the classloader call needs a class to
+ * be reached through, and the obvious one does not exist: this file's own facade is `MainKt` on
+ * the JVM and has no Kotlin name to be referenced by. [UiDocument] is a real class that is
+ * already imported, and its classloader is the same one either way.
+ */
+private object BundledDocument {
+
+    /** @return the bytes of [path] inside the jar, or null when it is not there. */
+    fun bytes(path: String): ByteArray? =
+        UiDocument::class.java.getResourceAsStream(path)?.use { it.readBytes() }
 }
 
 /**

@@ -66,7 +66,7 @@ class DesktopPreviewTest {
         assertTrue(onDisk.isFile, "the repository fixture is missing at ${onDisk.absolutePath}")
 
         val bundled =
-            checkNotNull(javaClass.getResourceAsStream("/default-document.json")) {
+            checkNotNull(JsonDocumentCodec::class.java.getResourceAsStream("/default-document.json")) {
                 "/default-document.json is not on the test classpath; the packaged app " +
                     "would open on nothing"
             }
@@ -90,7 +90,7 @@ class DesktopPreviewTest {
     @Test
     fun `a path that does not exist falls back to the bundled document`() {
         val bundled =
-            checkNotNull(javaClass.getResourceAsStream("/default-document.json")) {
+            checkNotNull(JsonDocumentCodec::class.java.getResourceAsStream("/default-document.json")) {
                 "/default-document.json is not on the test classpath"
             }
         val expected = JsonDocumentCodec.decode(bundled.use { it.readBytes() }).document
