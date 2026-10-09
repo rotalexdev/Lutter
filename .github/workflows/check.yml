@@ -194,17 +194,66 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
-      - name: Say on the pull request where the baseline is
-        if: failure() && steps.verify.outcome == 'failure' && (steps.baseline.outputs.changes_detected != 'true' || steps.converge.outputs.converged != 'true')
+      # The two steps below used to be one, and it told a maintainer to download an artifact
+      # that had never been uploaded.
+      #
+      # The upload above publishes `abi-baseline` on exactly one condition: regeneration
+      # succeeded. The comment did not carry that condition, so on a run where `regenerate`
+      # itself FAILED, the upload was skipped and the comment still posted - claiming "it got as
+      # far as publishing the files" and "the regenerated dumps are attached to this run as
+      # abi-baseline". Observed on PR #38, run 37829419984: step 8 failed, step 12 was skipped,
+      # step 13 succeeded, and the run's only artifacts were `test-results` and `problems-report`.
+      #
+      # Worse, that comment ended with `git add -- ':(glob)**/api/**' && git commit`. The
+      # regenerate step runs `find . -path '*/api/*' -name '*.api' -delete` before recording,
+      # and it died before it could put most of them back, so the tree held every dump DELETED
+      # except those recorded first. Following the comment would have committed that erasure -
+      # the exact outcome the comment at the regenerate step is written to prevent.
+      #
+      # It also had a file check standing in for the real signal: `[ -f .../model.api ]` passed
+      # on that run, because `:engine:model` happened to be recorded before the build died in
+      # `:engine:codegen`. One module's dump says nothing about whether the set is complete.
+      #
+      # So there are two comments now, mutually exclusive, and the condition is `regenerate`'s
+      # own outcome - the only thing that knows whether anything was produced.
+      #
+      # A recovery message that misdiagnoses is worse than none: each of these first
+      # establishes what actually happened.
+      - name: Say on the pull request that regeneration did not finish
+        if: failure() && steps.verify.outcome == 'failure' && steps.regenerate.outcome != 'success' && (steps.baseline.outputs.changes_detected != 'true' || steps.converge.outputs.converged != 'true')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
         run: |
-          if [ ! -f engine/model/api/desktop/model.api ]; then
-            echo "no ABI dumps were produced, so there is nothing to hand over"
-            echo "the build failed before or during recording; read the log for the real cause"
+          if [ -z "$PR" ]; then
+            echo "not a pull request and nothing was produced; read the log for the real cause"
             exit 0
           fi
+          cat > "$RUNNER_TEMP/abi.md" <<'EOF'
+          ### Re-recording the ABI dumps did not finish
+
+          The job tried to regenerate the reference dumps and **failed partway**, so there is
+          **no `abi-baseline` artifact on this run and nothing to download**.
+
+          Nothing needs fixing in your checkout. Regeneration deletes every dump before
+          re-recording them and died before it could put most of them back, so whatever is under
+          `**/api/**` in the runner's tree is partial. Do not commit it - that commits the
+          deletion, not a baseline.
+
+          The cause is earlier in this run's log, and it is nearly always a compile error:
+          `gradle check` stops at the first failure, so `checkKotlinAbi` failing is often a
+          symptom rather than the defect. `scripts/ci-triage.sh triage <run-id>` reduces that
+          log to file:line plus message.
+          EOF
+          gh pr comment "$PR" --body-file "$RUNNER_TEMP/abi.md" \
+            || echo "could not comment on #$PR; read the log for the real cause"
+
+      - name: Say on the pull request where the baseline is
+        if: failure() && steps.verify.outcome == 'failure' && steps.regenerate.outcome == 'success' && (steps.baseline.outputs.changes_detected != 'true' || steps.converge.outputs.converged != 'true')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
           if [ -z "$PR" ]; then
             echo "not a pull request; the artifact is on the run and there is nothing to comment on"
             exit 0
@@ -214,8 +263,8 @@ jobs:
 
           The job could not close this one on its own. It regenerates the dumps and commits
           them, then re-runs itself through `workflow_dispatch` - the one documented way a
-          `GITHUB_TOKEN` push can start a run. It got as far as publishing the files, which
-          means one of these:
+          `GITHUB_TOKEN` push can start a run. The dumps were regenerated and published, so one
+          of these is what stopped it:
 
           - the push was refused, most often a fork with no write access;
           - regeneration did not converge, and retrying would loop;
