@@ -350,13 +350,28 @@ convention, and those modules are not KMP libraries.
 
 ## CI
 
-Three workflows, all required checks on `dev` and `main`.
+Three required checks on `dev` and `main`, plus one workflow that is deliberately not one.
 
-| Workflow | Triggers | What it actually runs |
-|---|---|---|
-| `check` | push to `dev`, any PR into `dev` or `main` | The convention plugins' own `:convention:check`; then `gradle check verifyModuleGraph checkKotlinAbi`; then `compileTestKotlinWasmJs` for the eight pure engine modules; then `selfTestModuleGraph`, which runs even on an already-failing run so the checker is never only proven on green. On failure it regenerates and commits missing ABI reference dumps, and refuses to auto-commit from a fork. |
-| `conformance` | push to `dev`, any PR into `dev` or `main` | `:integration:generated-compile:desktopTest`. The module is a shell, so this is currently a job proving its own wiring. It exists from Phase 0 on purpose: a CI job discovered to be misconfigured the day it first has real work is a job that reports a false problem about the code under test. |
-| `branch-policy` | any PR into `dev` or `main` | That the branch name is `<type>/<slug>` with no version in it, and that the PR title is a strict conventional commit, at most 100 characters, not ending in a period. |
+| Workflow | Required | Triggers | What it actually runs |
+|---|---|---|---|
+| `check` | yes | push to `dev`, any PR into `dev` or `main` | The convention plugins' own `:convention:check`; then `gradle check verifyModuleGraph checkKotlinAbi`; then `compileTestKotlinWasmJs` for the eight pure engine modules; then `selfTestModuleGraph`, which runs even on an already-failing run so the checker is never only proven on green. On failure it regenerates and commits missing ABI reference dumps, and refuses to auto-commit from a fork. |
+| `conformance` | yes | push to `dev`, any PR into `dev` or `main` | `:integration:generated-compile:desktopTest`. The module is a shell, so this is currently a job proving its own wiring. It exists from Phase 0 on purpose: a CI job discovered to be misconfigured the day it first has real work is a job that reports a false problem about the code under test. |
+| `branch-policy` | yes | any PR into `dev` or `main` | That the branch name is `<type>/<slug>` with no version in it, and that the PR title is a strict conventional commit, at most 100 characters, not ending in a period. |
+| `preview-artifacts` | **no** | only when a path that can change a pixel or a binary changes, on a PR into `dev` or `main`, on push to `dev`, or on demand | `:samples:desktop-preview:desktopTest` and `:samples:desktop-preview:packageDistributionForCurrentOS`, on both `ubuntu-latest` and `windows-latest`. It uploads the rendered screenshots and the packaged binary per OS. |
+
+`preview-artifacts` is not a gate and should not be made one. `check` answers "is this branch
+sound?", and discards everything it builds; this one answers a question a green tick cannot —
+*what does it draw, and can I run it?* — by leaving the answer as a downloadable artifact.
+Required status checks are branch-protection settings on GitHub's side rather than anything the
+repository declares, so this workflow becoming merge-blocking would take a deliberate change
+there. What it can do is cost minutes, which is what its `paths:` filter is for: it skips any
+change to a module that cannot alter a rendered pixel or a packaged binary.
+
+Both artifacts are downloaded from the run page's **Artifacts** section at the bottom of the run:
+`preview-screenshots-<os>` holds the PNGs of the rendered UI, and `preview-binaries-<os>` holds
+the packaged application. The Windows one is an app-image folder — unzip it and run
+`LutterPreview.exe`; the launcher needs the `bin` and `lib` folders beside it, so keep them
+together rather than copying the executable out on its own.
 
 `dependabot` is scoped to the GitHub Actions this repository owns and targets `dev`. It
 cannot manage the Gradle dependency versions: those live inside a Maven artifact, so a

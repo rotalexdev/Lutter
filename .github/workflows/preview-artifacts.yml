@@ -1,0 +1,127 @@
+name: preview-artifacts
+
+# Downloadable evidence that the engine draws something and packages. NOT a gate.
+#
+# This is deliberately not the release pipeline — there is no release pipeline. It is also
+# deliberately not `check`: `check` answers "is this branch sound?", and everything it builds
+# is thrown away when the run ends. This one answers a different question the maintainer keeps
+# asking, which is "what does it actually look like, and can I run it?" — a question a green
+# tick cannot answer.
+#
+# It is therefore NOT a required check and is not intended to become one. Nothing in this
+# repository enforces a registry of required checks; those are branch-protection settings on
+# GitHub's side. If this job is ever added as required, a flaky Windows leg would block every
+# merge, and that is the failure mode to avoid rather than the one to plan around.
+#
+# Triggers: pull requests and pushes, filtered to the paths that can actually change a
+# rendered pixel or a packaged binary. See the `paths:` block for why the filter is not simply
+# "everything".
+on:
+  push:
+    branches: [ dev ]
+    paths:
+      - 'samples/desktop-preview/**'
+      - 'integration/generated-compile/fixtures-navigating/**'
+      - 'engine/runtime/**'
+      - 'engine/builtins-compose/**'
+      - 'build-logic/**'
+      - 'gradle.properties'
+      - '.github/workflows/preview-artifacts.yml'
+  pull_request:
+    branches: [ dev, main ]
+    paths:
+      - 'samples/desktop-preview/**'
+      - 'integration/generated-compile/fixtures-navigating/**'
+      - 'engine/runtime/**'
+      - 'engine/builtins-compose/**'
+      - 'build-logic/**'
+      - 'gradle.properties'
+      - '.github/workflows/preview-artifacts.yml'
+  # So the maintainer can ask for the artifacts on a branch without pushing to it.
+  workflow_dispatch:
+
+concurrency:
+  group: preview-artifacts-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  artifacts:
+    name: Preview on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+
+    # A matrix here is not a preference. JetBrains' own packaging-tools documentation says the
+    # built-in distribution tasks "must be run from each OS you target" — cross-building is a
+    # Conveyor feature, and Conveyor is commercial. There is no configuration in which the
+    # Ubuntu runner below produces a Windows executable; only a Windows runner can.
+    #
+    # `fail-fast: false` so a red leg still leaves the other one's artifacts downloadable.
+    # A missing Linux download because Windows broke is the worst outcome this job has.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+
+    # `mkdir -p ~/.gradle && cp …` below is bash, and the default shell on a Windows runner is
+    # PowerShell, where `mkdir -p` is not a valid invocation. One default for both legs beats
+    # a per-step `shell:` that someone eventually forgets to add.
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Apply the CI-only Gradle properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          # The same JDK `check` uses, and for the same reason: no Gradle toolchain anywhere in
+          # this build, so there is only ever one JVM number in play.
+          java-version: '21'
+
+      # No wrapper JAR is committed (see README.md), so this is the action's documented
+      # "project doesn't use Gradle wrapper" path, exactly as in `check` and `conformance`.
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.5.0'
+
+      # Renders `UiApp` — the same composable `main` hands to `Window` — through Skia and writes
+      # PNGs. Headless, so no display and no Xvfb.
+      #
+      # This also runs `DesktopPreviewTest`, which performs a real click. That is deliberate: the
+      # screenshots show what the UI looks like and this suite shows that it responds, and the
+      # second claim needs the first to be worth anything.
+      - name: Render the preview's screens
+        run: gradle :samples:desktop-preview:desktopTest
+
+      # A jpackage app-image: a self-contained folder with the launcher, a jlink'd runtime and
+      # the jars. No `targetFormats` is declared on purpose — an MSI needs WiX and a .deb needs
+      # dpkg, while an app-image needs neither, which is what lets one task name serve both legs.
+      - name: Package the preview for this operating system
+        run: gradle :samples:desktop-preview:packageDistributionForCurrentOS
+
+      # `if: always()` on both, so a failure downstream still hands over whatever was produced.
+      # A half-finished run that uploads nothing tells the maintainer nothing.
+      - name: Upload the screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-screenshots-${{ matrix.os }}
+          path: 'samples/desktop-preview/build/screenshots/'
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload the packaged preview
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-binaries-${{ matrix.os }}
+          path: 'samples/desktop-preview/build/compose/binaries/'
+          if-no-files-found: ignore
+          retention-days: 30
