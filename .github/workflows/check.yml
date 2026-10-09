@@ -287,31 +287,12 @@ jobs:
           gh pr comment "$PR" --body-file "$RUNNER_TEMP/abi.md" \
             || echo "could not comment on #$PR; the artifact is on the run"
 
-      # `always()` so the Wasm canary runs even on a run where something else is already
-      # red. A guardrail that is only proven on green runs is a guardrail that is never proven
-      # while it matters — and this is the guardrail that catches a JVM type leaking into
-      # commonMain, so a red run is exactly when it is worth running.
-      #
-      # The `if` is load-bearing and was missing. A bare `if` is conjoined with `success()` by
-      # GitHub, so without it this step ran only when every earlier step had passed, and a
-      # canary that only runs on a green build is not a canary.
-      - name: Compile common tests for Wasm
-        if: always()
-        run: |
-          gradle \
-            :engine:model:compileTestKotlinWasmJs \
-            :engine:schema:compileTestKotlinWasmJs \
-            :engine:serialization:compileTestKotlinWasmJs \
-            :engine:interpreter:compileTestKotlinWasmJs \
-            :engine:analysis:compileTestKotlinWasmJs \
-            :engine:editing:compileTestKotlinWasmJs \
-            :engine:codegen:compileTestKotlinWasmJs \
-            :engine:builtins:compileTestKotlinWasmJs
-
-      # `always()` for the same reason as the Wasm canary above, and the same trap: without
-      # an explicit status function this step is skipped on any already-red run, so the one
-      # job that proves the module-graph checker can still *fail* would never run on a run
-      # where that mattered.
+      # `always()` so the self-test runs even on a run where something else is already red.
+      # A guardrail that is only proven on green runs is a guardrail that is never proven
+      # while it matters, and a bare `if` is conjoined with `success()` by GitHub, so
+      # without the explicit status function this step would be skipped on any already-red
+      # run — and the one job that proves the module-graph checker can still *fail* would
+      # never run on a run where that mattered.
       - name: Prove the graph checker rejects an illegal edge
         if: always()
         run: gradle selfTestModuleGraph

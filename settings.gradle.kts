@@ -14,41 +14,19 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
-    // PREFER_SETTINGS, not FAIL_ON_PROJECT_REPOS, and the reason is specific: the Kotlin
-    // Gradle plugin registers the Node.js and browser download repositories on the *project*
-    // for the Wasm and JS targets, and FAIL_ON_PROJECT_REPOS rejects the build outright
-    // rather than resolving it ("repository 'Distributions at https://nodejs.org/dist' was
-    // added by unknown code"). PREFER_SETTINGS keeps the guarantee that actually matters —
-    // settings repositories win, and a module adding its own only earns a warning.
+    // PREFER_SETTINGS, not FAIL_ON_PROJECT_REPOS. Settings repositories win and a module adding
+    // its own only earns a warning — which is the guarantee worth keeping, and it is now the
+    // only thing here that matters. It used to be there for a second reason: the Kotlin Gradle
+    // plugin registers the Node.js and Yarn download repositories on the *project* for the Wasm
+    // and JS targets, and FAIL_ON_PROJECT_REPOS rejected the build outright rather than
+    // resolving it ("repository 'Distributions at https://nodejs.org/dist' was added by
+    // unknown code"). That workaround, and the two `ivy` blocks that went with it, are gone
+    // with the canary targets.
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
 
     repositories {
         google()
         mavenCentral()
-
-        // The Kotlin Gradle plugin resolves the Node.js distribution as the ivy module
-        // `org.nodejs:node` from https://nodejs.org/dist, and it declares that repository on
-        // each project rather than in settings. With PREFER_SETTINGS the project declaration
-        // is ignored, so the distribution has to be declared here or resolution fails with
-        // "Could not find org.nodejs:node:25.0.0". Only the wasmJs canary target needs it,
-        // but it is needed for the whole build to configure, so it is unconditional.
-        ivy("https://nodejs.org/dist") {
-            name = "Node Distributions at https://nodejs.org/dist"
-            patternLayout { artifact("v[revision]/[artifact](-v[revision]-[classifier]).[ext]") }
-            metadataSources { artifact() }
-            content { includeModule("org.nodejs", "node") }
-        }
-
-        // Yarn, for the same reason and with the same shape. Declared together with Node
-        // rather than discovered one CI round at a time: the Kotlin plugin's set of
-        // per-project distribution repositories is a fixed list, and a build that has no
-        // toolchain to run it locally should not learn the list by failing.
-        ivy("https://github.com/yarnpkg/yarn/releases/download") {
-            name = "Yarn Distributions at https://github.com/yarnpkg/yarn/releases/download"
-            patternLayout { artifact("v[revision]/[artifact](-v[revision]).[ext]") }
-            metadataSources { artifact() }
-            content { includeModule("com.yarnpkg", "yarn") }
-        }
     }
 
     versionCatalogs {

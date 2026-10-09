@@ -50,7 +50,7 @@ Deliverables of the MVP: engine libraries (Gradle modules), a JVM CLI (`forge va
 | G6 | Versioned format with a real migration chain | Frozen historical fixtures (§19) |
 | G7 | Core domain has zero Compose dependency | Module graph check + Konsist |
 | G8 | Editor-agnostic API with patches, undo/redo, structured diagnostics | `:engine:editing` tests; CLI uses the same APIs |
-| G9 | KMP-ready: `commonMain` first; Android + Desktop now; iOS/Wasm/JS later without domain rewrites | Compile canaries for iOS/Wasm on pure modules from Phase 0 |
+| G9 | KMP-ready: `commonMain` first; Android + Desktop now; iOS/Wasm/JS later without domain rewrites | Static analysis: no Compose and no JVM/Android-only API in any `commonMain` (`:tools:architecture-tests`) |
 | G10 | Small coherent architecture; every module and abstraction has a concrete reason | §22 justification table, §35 anti-patterns |
 
 ---
@@ -1602,7 +1602,7 @@ public sealed interface Qualifier {
 | Compose (`runtime`, `builtins-compose`) | Android, Desktop(JVM) | iOS, wasmJs | `commonMain`, minimal `androidMain`/`desktopMain` |
 | Tools (`cli`, `architecture-tests`) | JVM | — | JVM only |
 
-**Canary targets:** from Phase 0, pure modules also declare `iosSimulatorArm64` and `wasmJs` targets with *compile + commonTest* jobs in CI. Cost is near-zero while `commonMain` stays pure, and it prevents JVM leakage into the domain. Do not publish them until supported.
+**Canary targets:** not declared. Pure modules compile for Android and Desktop only, so no compiler rejects a JVM type in `commonMain` and the purity obligation is carried by static analysis instead — `NoPlatformApisInCommonMainTest` and `NoJvmOnlyCollectionMembersTest` in `:tools:architecture-tests`, inside `check`. Declaring `iosSimulatorArm64` or `wasmJs` later stays a build edit rather than a domain rewrite, which is what keeping `commonMain` pure buys. Do not publish them until supported.
 
 ### 21.2 Boundaries
 
@@ -1689,7 +1689,6 @@ Every module has an owner concern and a reason to exist; the total is 11 engine 
 kotlin {
     explicitApi()
     androidTarget(); jvm("desktop")
-    iosSimulatorArm64(); wasmJs { browser() }          // canaries: compile + commonTest only
     sourceSets { commonTest.dependencies { implementation(kotlin("test")) } }
 }
 ```
@@ -1982,7 +1981,7 @@ engine/codegen/src/commonTest/resources/codegen/
     …
 ```
 
-`Golden.assertEquals(actual, "codegen/basic_column.expected.kt")`; update mode with `-Pgolden.update=true` (writes the file; CI forbids the flag). Fixtures are embedded as Kotlin constants by the `embedFixtures` Gradle task, so **identical goldens run on all targets** (Android, Desktop, and the wasm/iOS canaries), verifying cross-platform determinism.
+`Golden.assertEquals(actual, "codegen/basic_column.expected.kt")`; update mode with `-Pgolden.update=true` (writes the file; CI forbids the flag). Fixtures are embedded as Kotlin constants by the `embedFixtures` Gradle task, so **identical goldens run on every target the build has** (Android and Desktop), verifying cross-target determinism.
 
 ### 28.3 Determinism tests
 
@@ -2011,7 +2010,7 @@ Compilation of generated code is not simulated: it is a **real Gradle compile** 
 | Job | Content |
 |---|---|
 | `check` | Build, unit tests (Desktop JVM + Android unit), Konsist, module graph, ABI check, `allWarningsAsErrors` |
-| `canary` | Compile + `commonTest` for iOS simulator and wasmJs on pure modules |
+| `canary` | *(not implemented)* — no canary target is declared. `commonMain` purity is enforced statically instead, by `NoPlatformApisInCommonMainTest` and `NoJvmOnlyCollectionMembersTest` inside `check`. |
 | `conformance` | `:integration:generated-compile:desktopTest` |
 | `nightly` | Fuzzed compile batch, benchmarks vs baseline, property tests with high iteration count |
 
@@ -2293,7 +2292,7 @@ Size legend: S ≤ 1 week, M 1–2 weeks, L 2–4 weeks (single senior developer
 - **APIs:** ids, `Value`, `TypeRef`, `PropertyValue`, `Expr`, `ActionSequence`, `Node`, `UiDocument`, `NodeTable`, `DocumentIndex`, `ReferenceIndex`, `IdGenerator`, DSL, canonical number helpers.
 - **Tasks:** implement §5; validating constructors; `Decimal` canonical formatter (integer arithmetic); traversal utilities; ABI dump.
 - **Tests:** id validation; canonical numbers table-driven on all targets; index correctness; property tests for index invariants; Konsist `@SerialName` rule.
-- **Acceptance:** model compiles on Android, Desktop, iOS, wasm; zero non-allowed dependencies.
+- **Acceptance:** model compiles on Android and Desktop, its `commonMain` holds no JVM/Android-only API (`:tools:architecture-tests`), and it has zero non-allowed dependencies.
 - **Depends on:** P0.
 
 ### Phase 2 — Schema (M) ‖ Phase 3 — Serialization (M) (parallelizable)
@@ -2596,7 +2595,7 @@ Tests (`commonTest`): `IdsTest`, `DecimalTest`, `ValueFactoryTest`, `NodeTableTe
 |---|---|
 | `:engine:test-support` | `Golden.kt`, `FixtureLoader.kt`, `TestSchemas.kt` (toy pack), `SampleDocuments.kt`, `FakeActionEnv.kt`, `DocumentGenerator.kt` (property-based Arb), `Assertions.kt` |
 | `:tools:cli` | `Main.kt`, `commands/ValidateCommand.kt`, `GenerateCommand.kt`, `MigrateCommand.kt`, `DiffCommand.kt`, `FileSink.kt`, `Output.kt` |
-| `:tools:architecture-tests` | `ModuleGraphTest.kt`, `NoComposeInDomainTest.kt`, `SerialNameRuleTest.kt`, `NoComponentWhenTest.kt`, `NoRawMapAnyTest.kt` |
+| `:tools:architecture-tests` | `NoComposeInPureModulesTest.kt`, `NoPlatformApisInCommonMainTest.kt`, `NoJvmOnlyCollectionMembersTest.kt`, `NoImplicitSerialNameTest.kt`, `NoComponentWhenTest.kt`, `NoUntypedStringMapTest.kt`, `NoUncanonicalFloatTest.kt`, `NoMutableObjectStateTest.kt`, `NoIllegalJvmNameTest.kt`, `SourceRules.kt`, `RepositoryRoot.kt` |
 | `:integration:generated-compile` | `build.gradle.kts` (generate task), `src/commonTest/.../ConformanceTest.kt`, `ExpressionCorpusTest.kt`, `SemanticsDump.kt`, `fixtures/*.json`, `src/desktopTest/.../PixelCompareTest.kt` |
 | `:samples:desktop-preview` | `Main.kt` (window, file watcher, `UiScreen` host, diagnostics panel — a viewer, not an editor) |
 
@@ -2773,7 +2772,7 @@ The MVP is complete only when **all** items are demonstrably true (CI evidence i
 
 ### 36.2 Determinism and correctness
 
-- [ ] Generated code is byte-identical across runs, across operating systems, and across engine targets (Desktop, Android, wasm and iOS canaries) for all golden fixtures (`DeterminismTest`, canary jobs).
+- [ ] Generated code is byte-identical across runs, across operating systems, and across the engine targets (Desktop, Android) for all golden fixtures (`DeterminismTest`, `check`).
 - [ ] Permutation tests (different construction orders) yield identical bytes/diagnostics/generated files (`PermutationTest`).
 - [ ] Generated code **compiles** for every conformance fixture as a real Gradle module compile, and the nightly fuzz batch of ≥ 200 random valid documents compiles with zero errors (`:integration:generated-compile:desktopTest`, nightly job).
 - [ ] Runtime and generated code have the same semantics: semantics dumps equal for all conformance fixtures, interaction scripts produce equal dumps, and Desktop pixel comparison has zero difference (`ConformanceTest`, `PixelCompareTest`).
@@ -2784,7 +2783,7 @@ The MVP is complete only when **all** items are demonstrably true (CI evidence i
 ### 36.3 Architecture
 
 - [ ] The architecture does not require a visual editor: `:tools:cli` performs decode → validate → generate, and `:samples:desktop-preview` renders a document, using only public APIs.
-- [ ] The core domain model (`:engine:model`, `:schema`, `:serialization`, `:interpreter`, `:analysis`, `:editing`, `:codegen`, `:builtins`) has **no Compose dependency** (`verifyModuleGraph`, `NoComposeInDomainTest`).
+- [ ] The core domain model (`:engine:model`, `:schema`, `:serialization`, `:interpreter`, `:analysis`, `:editing`, `:codegen`, `:builtins`) has **no Compose dependency** (`verifyModuleGraph`, `NoComposeInPureModulesTest`).
 - [ ] The module dependency graph matches §23 exactly, with no cycles (`ModuleGraphTest`).
 - [ ] `:engine:codegen` and `:engine:runtime` do not depend on each other.
 - [ ] `explicitApi` is on everywhere; ABI dumps are committed and checked; internal APIs are `internal` or `@EngineInternalApi`.
@@ -2792,8 +2791,8 @@ The MVP is complete only when **all** items are demonstrably true (CI evidence i
 
 ### 36.4 KMP readiness
 
-- [ ] All pure modules compile and pass `commonTest` on Android, Desktop, iOS simulator (canary) and wasmJs (canary).
-- [ ] No `java.*`/`android.*` import in any `commonMain` source set (`CommonMainPurityTest`).
+- [ ] All pure modules compile and pass `commonTest` on Android and Desktop, and no JVM-only collection member reaches any `commonMain` (`NoJvmOnlyCollectionMembersTest`, `NoPlatformApisInCommonMainTest`).
+- [ ] No `java.*`/`android.*` import in any `commonMain` source set (`NoPlatformApisInCommonMainTest`).
 - [ ] `expect/actual` declarations exist only in the allow-listed files of §21.3.
 
 ### 36.5 Performance and quality gates

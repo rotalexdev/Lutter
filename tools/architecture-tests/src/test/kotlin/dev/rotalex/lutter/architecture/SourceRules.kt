@@ -107,6 +107,47 @@ internal object SourceRules {
     private val illegalJvmNameCharacter = Regex("""[.;\[\]/<>]""")
 
     /**
+     * The JVM-only collection members that reach `commonMain` without an import.
+     *
+     * Every name here is a member of `java.util.Map` / `java.util.Collection` and of nothing
+     * in Kotlin's common stdlib, and every one is reached through JVM interop, so
+     * `NoPlatformApisInCommonMainTest` cannot see it: that rule reads `imports`, and these
+     * calls need none.
+     *
+     * The leading dot is what keeps a *declaration* out of it. `fun merge(other: Overlay)` is
+     * an ordinary domain method and is not reported, while `overlay.merge(other)` is. What the
+     * dot cannot do is read the receiver's type, so a future non-collection type with a method
+     * of one of these names is reported too; that is the stated cost of a text rule, and the
+     * fix is a name, not a suppression.
+     *
+     * The trailing `(` or `{` is what makes it a *call*. Both are needed, and dropping the
+     * `{` is the bug this rule was written after: `removeIf { it.isStale() }` and
+     * `replaceAll { k, v -> v }` take their functional interface as a trailing lambda and have
+     * no parentheses at all, so a pattern that demanded `(` reports the seven members that are
+     * called with arguments and silently misses the two that are not. A rule that covers the
+     * common spelling of a defect and not the other spelling of it is worse than no rule,
+     * because it reads as coverage.
+     */
+    private val jvmOnlyCollectionMember =
+        Regex(
+            """\.\s*(putIfAbsent|putIfPresent|computeIfAbsent|computeIfPresent|compute|merge|removeIf|replaceAll|getOrDefault)\s*[({]""",
+        )
+
+    /**
+     * `forEach` in the shape only `java.util.Map.forEach(BiConsumer)` has.
+     *
+     * Arity is the discriminator, and it is exact. The Java form takes two parameters;
+     * Kotlin's `Map.forEach` takes one — a `Map.Entry` — and Kotlin's `Iterable.forEach` takes
+     * one element. So `{ (key, value) -> }` is the common `Map.forEach` and is legal, and two
+     * *bare* comma-separated parameters is the only spelling that has to be a `BiConsumer`.
+     * The parentheses are the whole rule: they are what keeps this from reporting all
+     * twenty-eight legitimate `forEach` calls in this repository's `commonMain`.
+     *
+     * `forEachIndexed` cannot match, because `\s*\{` has to follow `forEach` itself.
+     */
+    private val forEachAsBiConsumer = Regex("""\.\s*forEach\s*\{\s*[A-Za-z_]\w*\s*,\s*[A-Za-z_]\w*\s*->""")
+
+    /**
      * Declarations in [text] whose backticked name cannot be a JVM method name.
      *
      * Kotlin's backticks allow almost any character in an identifier, and the compiler accepts
@@ -124,6 +165,146 @@ internal object SourceRules {
                 val line = text.take(match.range.first).count { it == '\n' } + 1
                 "$name carries '$offender', which the JVM refuses in a method name (line $line)"
             }.toList()
+
+    /**
+     * Calls in [text] to a collection member that only exists on the JVM.
+     *
+     * This is the replacement for a compiler that is no longer asked. `wasmJs` was what used
+     * to prove `commonMain` was pure: `owners.putIfAbsent(name, page.name)` in
+     * `ReservedCodegenNames.kt` resolved on desktop and failed only on
+     * `:engine:codegen:compileKotlinWasmJs`, with `Unresolved reference 'putIfAbsent'`. That
+     * call carried no `java.` import, so `NoPlatformApisInCommonMainTest` would not have
+     * reported it either. With the Wasm target gone nothing is left that notices, which is
+     * what this function and the test that drives it are for.
+     *
+     * Comments and literals are removed first, and that is the part that makes the rule
+     * trustworthy rather than a nuisance. This codebase explains itself in KDoc, so a
+     * paragraph about `putIfAbsent` reads exactly like the call that has to be reported, and a
+     * rule that fires on a comment is a rule that gets deleted after its first false alarm.
+     * A member named in a KDoc line or inside a message is prose; a member named in the code
+     * between them is the defect.
+     *
+     * Limitations, stated because they are real: the strip is a single left-to-right pass, so
+     * a `${…}` interpolation *inside a raw string* is treated as string content and is not
+     * scanned. Everything else — line comments, block and KDoc comments across lines, quoted
+     * and raw strings, char literals — is handled, and newlines are preserved so the line
+     * numbers below are the file's own.
+     */
+    fun jvmOnlyCollectionMemberOccurrences(text: String): List<String> {
+        val code = codeWithoutCommentsOrLiterals(text)
+
+        val named = jvmOnlyCollectionMember.findAll(code).map { it.groupValues[1] to it.range.first }
+        val biConsumer = forEachAsBiConsumer.findAll(code).map { "forEach" to it.range.first }
+
+        return (named + biConsumer)
+            .map { (member, at) ->
+                val line = code.take(at).count { it == '\n' } + 1
+                "$member is a JVM-only collection member with no common equivalent (line $line)"
+            }.sorted()
+            .toList()
+    }
+
+    /**
+     * [text] with comments and literals removed and newlines kept, so a match's column still
+     * carries the line number it had in the file.
+     *
+     * One left-to-right pass rather than a chain of regular expressions, and that is the point
+     * rather than an accident: each construct is consumed whole, so a `//` inside a string is
+     * eaten with the string, a `"` inside a line comment is eaten with the comment, and the
+     * order the branches are tested in cannot matter. Per-line regexes cannot do this — a
+     * `"""` opener is three characters and a KDoc runs for as many lines as it likes — which is
+     * the limitation `codeOnly` above states for brace counting.
+     *
+     * Every branch calls [appendSkippedNewlines], including the two whose span cannot contain
+     * one. That is deliberate: it makes "the line numbers survive" structural instead of
+     * something to be re-derived per branch, and getting it wrong is invisible until a real
+     * file fails — a KDoc is twenty lines long, so skipping it without counting reports a
+     * finding on the wrong line, and a line number is the entire reason the message carries
+     * one.
+     */
+    private fun codeWithoutCommentsOrLiterals(text: String): String {
+        val code = StringBuilder(text.length)
+        var index = 0
+
+        while (index < text.length) {
+            val character = text[index]
+            val next = text.getOrNull(index + 1)
+            val skipTo =
+                when {
+                    character == '/' && next == '/' -> indexOfOrEnd(text, '\n', index)
+                    character == '/' && next == '*' -> endOfBlockComment(text, index + 2)
+                    text.startsWith("\"\"\"", index) -> endOfRawString(text, index + 3)
+                    character == '"' -> endOfQuoted(text, index + 1, '"')
+                    character == '\'' -> endOfQuoted(text, index + 1, '\'')
+                    else -> -1
+                }
+
+            if (skipTo >= 0) {
+                code.appendSkippedNewlines(text, index, skipTo)
+                index = skipTo
+            } else {
+                if (character == '\n') code.append('\n') else code.append(character)
+                index++
+            }
+        }
+
+        return code.toString()
+    }
+
+    /**
+     * Appends one newline for every newline in `text[start until end]`, so a stripped comment or
+     * literal leaves every line after it on the line it was written on.
+     *
+     * Applied uniformly rather than only to the constructs that can span lines — a line comment
+     * and a quoted string stop before their newline, so appending for them is a no-op, and one
+     * unconditional call is easier to be right about than four conditional ones.
+     */
+    private fun StringBuilder.appendSkippedNewlines(text: String, start: Int, end: Int) {
+        for (position in start until end) {
+            if (text[position] == '\n') append('\n')
+        }
+    }
+
+    /** Index of the next [character] from [from], or the end of [text] when there is none. */
+    private fun indexOfOrEnd(text: String, character: Char, from: Int): Int {
+        val found = text.indexOf(character, from)
+        return if (found < 0) text.length else found
+    }
+
+    /**
+     * Index just past the closing delimiter of a block comment that opened before [from], or
+     * the end of [text]. An unterminated comment consumes the rest of the file rather than
+     * throwing: a file whose KDoc is left open is already broken, and reporting it as forty
+     * violations is not more useful than reporting none.
+     *
+     * The delimiter is spelled in words rather than written out, because this sentence is
+     * inside a block comment and writing it would close the comment right here. The compiler
+     * reads what follows the delimiter as code and reports "Expecting member declaration",
+     * which names nothing that is actually wrong.
+     */
+    private fun endOfBlockComment(text: String, from: Int): Int {
+        val close = text.indexOf("*/", from)
+        return if (close < 0) text.length else close + 2
+    }
+
+    /** Index just past the `"""` closing a raw string, or the end of [text]. */
+    private fun endOfRawString(text: String, from: Int): Int {
+        val close = text.indexOf("\"\"\"", from)
+        return if (close < 0) text.length else close + 3
+    }
+
+    /** Index just past the [terminator] closing a literal opened before [from]. */
+    private fun endOfQuoted(text: String, from: Int, terminator: Char): Int {
+        var index = from
+
+        while (index < text.length && text[index] != terminator) {
+            if (text[index] == '\\') index++
+            if (index < text.length && text[index] == '\n') return index
+            index++
+        }
+
+        return if (index < text.length) index + 1 else text.length
+    }
 
     /** Every `Map<String, Any>` (or `Any?`, or `MutableMap`) written in [text]. */
     fun untypedStringMapOccurrences(text: String): List<String> =

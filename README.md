@@ -181,16 +181,32 @@ version cascade here. One PR, full CI matrix.
 
 ### Targets
 
-Exactly three: **Android, Desktop (JVM) and Wasm**. No Kotlin/Native, no JS. The pure
-engine modules add `wasmJs` through the `forge.wasm.targets` convention plugin, so JVM
-leakage into `commonMain` fails the build instead of surviving review, and the Wasm compiler
-rejects JVM types in `commonMain` on every run. There is no fourth target a stray `java.`
-import could hide behind.
+Exactly two: **Android and Desktop (JVM)**. No Kotlin/Native, no JS, no Wasm.
 
-Building even that needs network access to Maven Central, Google's repository, and the Node
-and Yarn distribution repositories declared in `settings.gradle.kts` — the Kotlin plugin
-registers the latter two per-project for the Wasm target, so they are declared in settings
-with `PREFER_SETTINGS` rather than being discovered by a failing build.
+`commonMain` purity — no JVM type and no Compose import reaching it — is a **static** rule
+and not a compiler guarantee. That is a change of kind, not of degree: with only JVM-family
+targets, no compiler rejects a JVM type in `commonMain` at all, so the check is static. Two
+tests in `:tools:architecture-tests` carry the weight, and the second exists because the first
+would not have caught the case that actually shipped:
+
+- `NoPlatformApisInCommonMainTest` bans a `java.`, `javax.` or `android.` **import** in any
+  `commonMain`, in any module.
+- `NoJvmOnlyCollectionMembersTest` bans the collection members that reach `commonMain`
+  through JVM interop with **no import at all** — `putIfAbsent`, `computeIfAbsent`, `merge`,
+  `removeIf` and the rest of `java.util.Map`'s Java 8 defaults, plus `forEach` in the two-
+  argument `BiConsumer` shape that Kotlin's common `Map.forEach` cannot have.
+
+That second rule is not speculative. `owners.putIfAbsent(name, page.name)` in
+`ReservedCodegenNames.kt` compiled for Desktop, imported nothing, and failed only on
+`:engine:codegen:compileKotlinWasmJs`. It is now `getOrPut`, and the rule is what keeps it
+that way. `NoComposeInPureModulesTest` holds the Compose half of the same promise for the
+eight pure modules.
+
+Building needs network access to Maven Central and Google's repository.
+`settings.gradle.kts` still declares the Node and Yarn distribution repositories, which the
+Kotlin plugin registers per-project for the Wasm and JS targets; no target needs them now, and
+they are left in place rather than removed on a guess, because an unused ivy block is inert
+and a wrong removal is a resolution failure.
 
 ### To contribute
 
@@ -241,14 +257,18 @@ post-MVP roadmap, and the project is in Phase 1.
 Two specific gaps in the guardrails themselves, since a guardrail you assume exists is
 worse than one you know is missing:
 
-- PLAN §23.4 nominates seven architecture rules. **Four are implemented.** The rules that
-  every sealed subclass of a persisted hierarchy carries a `@SerialName`, that no `when`
-  expression dispatches on a `ComponentType` or a node's `type`, and that float values go
-  through the canonical `Value` factories rather than a raw `Float` do not exist yet.
-- PLAN §21.1 asks the pure modules to declare an `iosSimulatorArm64` canary target next to
-  `wasmJs`, and §28.7 lists a `canary` job and a `nightly` job. **None of the three exists.**
-  Only the Wasm canary compile is real, and it runs inside `check`, so the fuzz-compile
-  batch of §28.5 and the benchmark baselines of §29 have nowhere to run at all.
+- PLAN §23.4 nominates seven architecture rules. **All seven are implemented**, plus two more
+  that the plan did not anticipate: `NoIllegalJvmNameTest` (a backticked function name the JVM
+  backend rejects, which cost this repository four CI round-trips) and
+  `NoJvmOnlyCollectionMembersTest` (a `java.util` member reached through interop with no
+  import, which is the defect the Wasm canary used to be the only thing to catch). The rules
+  live in `:tools:architecture-tests` and run inside the root `gradle check`.
+- PLAN §21.1 asks the pure modules to declare `iosSimulatorArm64` and `wasmJs` canary
+  targets, and §28.7 lists a `canary` job and a `nightly` job. **None of the four exists.**
+  The Wasm canary compile was real until it was removed; `commonMain` purity is now enforced
+  statically by `NoPlatformApisInCommonMainTest` and `NoJvmOnlyCollectionMembersTest` rather
+  than by a compiler that rejected JVM types. The fuzz-compile batch of §28.5 and the
+  benchmark baselines of §29 still have nowhere to run.
 - PLAN §36.5 asks for `allWarningsAsErrors` in CI. See the note under
   [Versions](#versions-come-from-a-shared-catalog-not-from-this-repository): the property
   exists, defaults to `false`, and no workflow sets it.
@@ -314,8 +334,9 @@ depends on a value that only exists at runtime.
 Three module classes, per PLAN §21.1:
 
 - **Pure** — `model`, `schema`, `serialization`, `interpreter`, `analysis`, `editing`,
-  `codegen`, `builtins`. `commonMain` only. No Compose, no JVM APIs. These also declare the
-  `wasmJs` target through `forge.wasm.targets`.
+  `codegen`, `builtins`. `commonMain` only. No Compose, no JVM APIs, enforced by
+  `NoComposeInPureModulesTest`, `NoPlatformApisInCommonMainTest` and
+  `NoJvmOnlyCollectionMembersTest`.
 - **Compose** — `runtime`, `builtins-compose`. `commonMain`, because Compose Multiplatform
   is common code.
 - **Tools** — `cli`, `architecture-tests`. JVM only.
@@ -327,7 +348,8 @@ Three module classes, per PLAN §21.1:
 | `verifyModuleGraph` | Any project dependency outside the allow-list | root task |
 | `selfTestModuleGraph` | A regression in the checker itself | root task |
 | `NoComposeInPureModulesTest` | Compose imports in a pure engine module | `:tools:architecture-tests` |
-| `NoPlatformApisInCommonMainTest` | `java.*` / `android.*` in any `commonMain` | `:tools:architecture-tests` |
+| `NoPlatformApisInCommonMainTest` | `java.*` / `android.*` imported in any `commonMain` | `:tools:architecture-tests` |
+| `NoJvmOnlyCollectionMembersTest` | `putIfAbsent`, `computeIfAbsent`, `merge` and the other JVM-only collection members reached through interop with no import | `:tools:architecture-tests` |
 | `NoUntypedStringMapTest` | `Map<String, Any>` in engine sources | `:tools:architecture-tests` |
 | `NoMutableObjectStateTest` | An `object` declaring a `var` | `:tools:architecture-tests` |
 | `explicitApi()` | An undeclared public API surface | every KMP library module |
@@ -354,7 +376,7 @@ Three required checks on `dev` and `main`, plus one workflow that is deliberatel
 
 | Workflow | Required | Triggers | What it actually runs |
 |---|---|---|---|
-| `check` | yes | push to `dev`, any PR into `dev` or `main` | The convention plugins' own `:convention:check`; then `gradle check verifyModuleGraph checkKotlinAbi`; then `compileTestKotlinWasmJs` for the eight pure engine modules; then `selfTestModuleGraph`, which runs even on an already-failing run so the checker is never only proven on green. On failure it regenerates and commits missing ABI reference dumps, and refuses to auto-commit from a fork. |
+| `check` | yes | push to `dev`, any PR into `dev` or `main` | The convention plugins' own `:convention:check`; then `gradle check verifyModuleGraph checkKotlinAbi`; then `selfTestModuleGraph`, which runs even on an already-failing run so the checker is never only proven on green. On failure it regenerates and commits missing ABI reference dumps, and refuses to auto-commit from a fork. |
 | `conformance` | yes | push to `dev`, any PR into `dev` or `main` | `:integration:generated-compile:desktopTest`. The module is a shell, so this is currently a job proving its own wiring. It exists from Phase 0 on purpose: a CI job discovered to be misconfigured the day it first has real work is a job that reports a false problem about the code under test. |
 | `branch-policy` | yes | any PR into `dev` or `main` | That the branch name is `<type>/<slug>` with no version in it, and that the PR title is a strict conventional commit, at most 100 characters, not ending in a period. |
 | `preview-artifacts` | **no** | only when a path that can change a pixel or a binary changes, on a PR into `dev` or `main`, on push to `dev`, or on demand | `:samples:desktop-preview:desktopTest` and `:samples:desktop-preview:packageDistributionForCurrentOS`, on both `ubuntu-latest` and `windows-latest`. It uploads the rendered screenshots and the packaged binary per OS. |

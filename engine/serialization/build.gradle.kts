@@ -1,15 +1,14 @@
 plugins {
     id("forge.kmp.library")
-    // PLAN §21.1 canary: proving this module's commonMain stays free of
-    // platform APIs, so JVM leakage fails the build instead of passing review.
-    id("forge.wasm.targets")
     alias(rootLibs.plugins.kotlin.serialization)
 }
 
 kotlin {
     sourceSets {
-        // PLAN §21.1/§33.3: Android and Desktop share a filesystem, wasmJs has none. This
-        // intermediate set is new: nothing needed storage before P4, so no pattern existed.
+        // PLAN §21.1/§33.3: Android and Desktop share a filesystem, and a web target would
+        // have none. This intermediate set is new: nothing needed storage before P4, so no
+        // pattern existed. It stays scoped to the two targets that have a filesystem, so
+        // adding one later is a `dependsOn` rather than a move.
         val nonWebMain by creating {
             dependsOn(getByName("commonMain"))
             dependencies {
