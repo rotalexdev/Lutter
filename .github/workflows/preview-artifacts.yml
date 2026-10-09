@@ -161,83 +161,103 @@ jobs:
       # different bugs with different fixes — and that distinction is exactly what
       # could not be made from the outside.
       # ---------------------------------------------------------------------------
-      - name: What the jlink runtime actually contains
-        id: runtime
+      - name: What the package actually contains
+        id: structure
         run: |
           set -uo pipefail
-          # A stable path rather than `mktemp`, and no hand-off through $GITHUB_ENV: the upload
-          # step below has to name this file, and a path that only exists because the previous
-          # step exported it is a path that silently stops existing.
-          probe_dir="$RUNNER_TEMP/preview-probe"
-          log="$probe_dir/runtime-probe.txt"
+          # A workspace-relative path, not `$RUNNER_TEMP`. On a Windows runner the shell is
+          # Git Bash and `$RUNNER_TEMP` is `D:\a\_temp`, where every backslash is an escape to
+          # bash; the upload step would then be looking for a directory that was never created.
+          # A relative path needs no translation on either OS.
+          probe_dir="samples/desktop-preview/build/preview-probe"
+          log="$probe_dir/structure-probe.txt"
+          mkdir -p "$probe_dir"
+
+          root="samples/desktop-preview/build/compose/binaries/main/app/LutterPreview"
+          {
+            echo "== app-image root =="
+            echo "$root"
+            echo
+            echo "== top level =="
+            ls -la "$root" 2>&1
+            echo
+            echo "== the VM itself =="
+            if [ "${{ runner.os }}" = "Windows" ]; then
+              ls -la "$root/runtime/bin/server/jvm.dll" 2>&1
+              ls -la "$root/runtime/bin/java.dll" 2>&1
+              echo "runtime/release:"; cat "$root/runtime/release" 2>&1 | head -5
+            else
+              ls -la "$root/runtime/lib/server/libjvm.so" 2>&1
+              echo "runtime/release:"; cat "$root/runtime/release" 2>&1 | head -5
+            fi
+            echo
+            echo "== the launcher's configuration =="
+            if [ "${{ runner.os }}" = "Windows" ]; then
+              ls -la "$root/app/LutterPreview.cfg" 2>&1
+              echo "--- first lines ---"; head -3 "$root/app/LutterPreview.cfg" 2>&1
+            else
+              ls -la "$root/app/LutterPreview.cfg" 2>&1
+              echo "--- first lines ---"; head -3 "$root/app/LutterPreview.cfg" 2>&1
+            fi
+            echo
+            echo "== Skiko's native library =="
+            ls -la "$root/app/"*skiko* 2>&1
+            echo
+            echo "== how many jars, and how big =="
+            ls "$root/app/"*.jar 2>/dev/null | wc -l
+            du -sh "$root/app" "$root/runtime" 2>&1
+          } 2>&1 | tee "$log"
+
+      # The gate. There is no `java` executable inside a jlink image, so "can this runtime
+      # create a VM?" cannot be asked by running its own java — the first version of this probe
+      # tried, and the run answered `runtime/bin/java.exe: No such file or directory`, which is
+      # a property of every jlink image rather than a defect.
+      #
+      # The launcher is the probe instead, and it is a better one: the jpackage launcher calls
+      # `JNI_CreateJavaVM` BEFORE any application code runs, so a failure to start the JVM is
+      # reported before AWT is ever touched. That makes the distinction this repository could
+      # not previously make — "the package is broken" against "the runner has no display" —
+      # decidable on a headless machine.
+      - name: Launch the packaged preview and classify what came back
+        id: launch
+        run: |
+          set -uo pipefail
+          probe_dir="samples/desktop-preview/build/preview-probe"
+          log="$probe_dir/launch-probe.txt"
           mkdir -p "$probe_dir"
 
           if [ "${{ runner.os }}" = "Windows" ]; then
             root="samples/desktop-preview/build/compose/binaries/main/app/LutterPreview"
-            java="$root/runtime/bin/java.exe"
             launcher="$root/LutterPreview.exe"
           else
             root="samples/desktop-preview/build/compose/binaries/main/app/LutterPreview"
-            java="$root/runtime/bin/java"
             launcher="$root/bin/LutterPreview"
           fi
 
-          {
-            echo "== root =="
-            echo "$root"
-            echo
-            echo "== launcher present? =="
-            if [ -e "$launcher" ]; then echo "yes: $launcher"; else echo "NO: $launcher is missing"; fi
-            echo
-            echo "== VM library present? =="
-            if [ "${{ runner.os }}" = "Windows" ]; then
-              ls -la "$root/runtime/bin/server/jvm.dll" 2>&1
-              ls -la "$root/runtime/bin/java.dll" 2>&1
-            else
-              ls -la "$root/runtime/lib/server/libjvm.so" 2>&1
-            fi
-            echo
-            echo "== jlink --list-modules (Compose's default is four) =="
-            "$java" --list-modules 2>&1 || echo "!! the bundled java could not start at all"
-            echo
-            echo "== java -version =="
-            "$java" -version 2>&1 || echo "!! the bundled runtime could not create a VM"
-          } 2>&1 | tee "$log"
-
-          # The gate. A jlink image that cannot create a VM is a broken package, and it is the
-          # one failure this repository could previously not see at all — it needed a human to
-          # download the artifact to discover. No display is involved, so this is exact.
-          if ! "$java" -version >/dev/null 2>&1; then
-            echo "::error::the jlink runtime in the package cannot start a VM - reproduced in CI, and it is the 'Failed to launch JVM' the maintainer reported"
+          if [ ! -e "$launcher" ]; then
+            echo "::error::no launcher at '$launcher' - the package did not build"
             exit 1
-          fi
-
-      - name: Launch the packaged preview
-        id: launch
-        run: |
-          set -uo pipefail
-          log="$RUNNER_TEMP/preview-probe/launch-probe.txt"
-          mkdir -p "$(dirname "$log")"
-
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            root="samples/desktop-preview/build/compose/binaries/main/app/LutterPreview"
-            launcher="$root/LutterPreview.exe"
-          else
-            root="samples/desktop-preview/build/compose/binaries/main/app/LutterPreview"
-            launcher="$root/bin/LutterPreview"
           fi
 
           {
             echo "== launching $launcher =="
-            echo "A GUI runner has no interactive desktop, so an AWT failure here is expected"
-            echo "and is NOT a packaging defect. A launcher-level failure IS, and the step"
-            echo "above has already ruled that out for the VM itself."
-            echo
             "$launcher" 2>&1
             echo "exit=$?"
-          } 2>&1 | tee "$log" || true
+          } > "$log" 2>&1
+          cat "$log"
 
-          echo "::notice::launch probe written; see the preview-launch-log artifact"
+          # Launcher-level failures. "Failed to launch JVM" is the jpackage launcher's own
+          # string and is the one the maintainer reported; the others are the two ways the
+          # same thing presents when the runtime is incomplete rather than absent.
+          if grep -qiE "failed to launch jvm|cannot find the java|unable to create vm|no jvm" "$log"; then
+            echo "::error::the launcher could not start a JVM - the package is broken, not merely headless"
+            exit 1
+          fi
+
+          # Everything else is reported, not fatal. A GUI runner has no interactive desktop, so
+          # the application is expected to fail here — and the point is that it got far enough
+          # to fail that way, which is itself the evidence.
+          echo "::notice::the launcher started; whatever it printed next is the application, not the packaging"
 
       # ---------------------------------------------------------------------------
       # One artifact per kind, not one per leg.
@@ -288,6 +308,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: preview-launch-log-${{ matrix.os }}
-          path: ${{ runner.temp }}/preview-probe/
+          path: 'samples/desktop-preview/build/preview-probe/'
           if-no-files-found: ignore
           retention-days: 30
