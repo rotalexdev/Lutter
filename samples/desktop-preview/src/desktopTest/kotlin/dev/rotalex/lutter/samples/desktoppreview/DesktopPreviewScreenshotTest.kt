@@ -1,6 +1,12 @@
 package dev.rotalex.lutter.samples.desktoppreview
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.renderComposeScene
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.model.ids.PageId
@@ -57,14 +63,14 @@ class DesktopPreviewScreenshotTest {
         // `ResolvedDocument` and `UiRuntime` as parameter types would make this file an import of
         // `:engine:analysis`, which the sample does not declare and would have to declare.
         val start = renderComposeScene(width = WIDTH, height = HEIGHT) {
-            UiApp(runtime, document, RuntimeEnvironment(navigator = navigator))
+            surface { UiApp(runtime, document, RuntimeEnvironment(navigator = navigator)) }
         }
         write(start, output.resolve("01-start.png"))
 
         // The same act the document's `nav.navigate` performs, through the same public entry point.
         navigator.navigate(PageId(PROFILE), emptyMap())
         val after = renderComposeScene(width = WIDTH, height = HEIGHT) {
-            UiApp(runtime, document, RuntimeEnvironment(navigator = navigator))
+            surface { UiApp(runtime, document, RuntimeEnvironment(navigator = navigator)) }
         }
         write(after, output.resolve("02-profile.png"))
 
@@ -72,6 +78,20 @@ class DesktopPreviewScreenshotTest {
         // empty render. The size is the only cheap assertion that the scene actually drew.
         assertTrue(start.width > 0 && start.height > 0, "the start page rendered empty")
         assertTrue(after.width > 0 && after.height > 0, "the profile page rendered empty")
+    }
+
+    /**
+     * The window's content over an opaque white background.
+     *
+     * The desktop window inherits its background from the platform, but an offscreen scene has
+     * none, and an all-transparent PNG is a bad thing to hand a human: black text on transparent
+     * disappears entirely in any viewer that draws a dark backdrop, which is exactly how these
+     * files first read here — as empty. White is also what the window actually looks like, so
+     * this is faithful rather than cosmetic.
+     */
+    @Composable
+    private fun surface(content: @Composable () -> Unit) {
+        Box(Modifier.fillMaxSize().background(Color.White)) { content() }
     }
 
     /**

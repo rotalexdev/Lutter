@@ -101,20 +101,29 @@ jobs:
         run: gradle :samples:desktop-preview:desktopTest
 
       # A jpackage app-image: a self-contained folder with the launcher, a jlink'd runtime and
-      # the jars. No `targetFormats` is declared on purpose — an MSI needs WiX and a .deb needs
-      # dpkg, while an app-image needs neither, which is what lets one task name serve both legs.
+      # the jars. It needs no WiX and no dpkg, which is what lets one task name serve both legs.
+      #
+      # `createDistributable`, NOT `packageDistributionForCurrentOS`: the latter packages only the
+      # formats named in `targetFormats`, and with none declared it resolves to UP-TO-DATE and
+      # writes nothing at all. That was not visible here — `if-no-files-found: ignore` swallowed
+      # the missing output and the job went green having produced no binary whatsoever. An
+      # installer format would also make this a per-OS question again, which is the very thing
+      # this matrix has to be.
       - name: Package the preview for this operating system
-        run: gradle :samples:desktop-preview:packageDistributionForCurrentOS
+        run: gradle :samples:desktop-preview:createDistributable
 
-      # `if: always()` on both, so a failure downstream still hands over whatever was produced.
-      # A half-finished run that uploads nothing tells the maintainer nothing.
+      # `if: always()` so a failure downstream still hands over whatever was produced.
+      #
+      # `if-no-files-found: error`, not the `ignore` the rest of this repository uses: these two
+      # artifacts are the entire point of the workflow, so their absence IS the failure. `ignore`
+      # here is precisely what let a run report success while shipping nothing.
       - name: Upload the screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: preview-screenshots-${{ matrix.os }}
           path: 'samples/desktop-preview/build/screenshots/'
-          if-no-files-found: ignore
+          if-no-files-found: error
           retention-days: 30
 
       - name: Upload the packaged preview
@@ -122,6 +131,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: preview-binaries-${{ matrix.os }}
-          path: 'samples/desktop-preview/build/compose/binaries/'
-          if-no-files-found: ignore
+          path: 'samples/desktop-preview/build/compose/'
+          if-no-files-found: error
           retention-days: 30
