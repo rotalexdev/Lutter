@@ -57,6 +57,27 @@ compose.desktop {
             linux {
                 debMaintainer = "Lutter"
             }
+
+            // The jlink runtime is four modules by default — `java.base`, `java.desktop`,
+            // `java.logging`, `jdk.crypto.ec` — and that set is jpackage's `--runtime-image`.
+            // Anything an app needs beyond those has to be named here or it is simply absent
+            // from the packaged `runtime/`, and the absence is a launch-time failure rather
+            // than a compile error, so nothing in this build would ever report it.
+            //
+            // `jdk.unsupported` is `sun.misc.Unsafe`, which Skiko's native interop reaches
+            // for. It is the one Compose Desktop applications are known to need and the one
+            // its four-module default omits.
+            //
+            // The rest are named for what breaks without them, and the CI launch probe in
+            // `.github/workflows/preview-artifacts.yml` is what proves the list is sufficient
+            // — it runs the packaged launcher and fails on a non-zero exit, so a module that
+            // goes missing from this list is a red run rather than a bug report.
+            modules(
+                "jdk.unsupported", // sun.misc.Unsafe: Skiko native interop
+                "java.naming", // DNS, and therefore any network call
+                "java.management", // JMX; pulled in by tooling that reads the JVM
+                "jdk.zipfs", // zip/jar file systems, used by classpath scanners
+            )
         }
     }
 }

@@ -431,13 +431,31 @@ repository declares, so this workflow becoming merge-blocking would take a delib
 there. What it can do is cost minutes, which is what its `paths:` filter is for: it skips any
 change to a module that cannot alter a rendered pixel or a packaged binary.
 
-Both artifacts are downloaded from the run page's **Artifacts** section at the bottom of the run.
-`preview-screenshots-<os>` holds the PNGs of the rendered UI, and `preview-binaries-<os>` holds
-the packaged application, with two shapes inside it:
+Four artifacts, downloaded separately from the run page's **Artifacts** section, so taking one
+does not drag the other three along:
 
-- `msi/LutterPreview-1.0.0.msi` (Windows) or `deb/lutterpreview_1.0.0_amd64.deb` (Linux) — the
-  installer. This is the one to run; it puts the application where the platform expects it.
-- `app/LutterPreview/` — the app-image, if you would rather not install anything.
+| Artifact | What it is |
+| --- | --- |
+| `preview-screenshots-<os>` | PNGs of the rendered UI, taken headlessly in CI |
+| `preview-installer-<os>` | `LutterPreview-1.0.0.msi` (Windows) or `lutterpreview_1.0.0_amd64.deb` (Linux) — **the one to run** |
+| `preview-app-image-<os>` | The unpacked application, for a maintainer who would rather not install anything |
+| `preview-launch-log-<os>` | What CI saw when it launched the package. Start here when a report says it does not run |
+
+**CI launches the package.** A green run used to mean only "it built", and the maintainer
+discovered otherwise by downloading the artifact and getting **Failed to launch JVM** from a
+green build. The `preview-artifacts` job now runs the packaged runtime in layers — what jlink
+put in the image, whether that image can create a VM at all, then the launcher itself — and
+**fails on a runtime that cannot start**, which needs no display and so is exact. The launcher
+step reports but does not fail, because a GUI runner has no interactive desktop and an AWT
+failure there is expected; the point of running it is to tell "the launcher cannot start a JVM"
+apart from "the launcher started and the application then failed", which are different bugs
+with different fixes.
+
+This is why the build names its jlink modules explicitly. Compose Desktop's default runtime is
+**four modules** — `java.base`, `java.desktop`, `java.logging`, `jdk.crypto.ec` — and that set
+is jpackage's `--runtime-image`. Anything else an application needs is simply absent from the
+packaged `runtime/`, and the absence is a launch-time failure that no compile in this
+repository would ever report.
 
 The app-image is a folder that only works as a whole: `LutterPreview.exe` (or `bin/LutterPreview`
 on Linux) beside an `app/` directory holding `LutterPreview.cfg` and every jar, and a `runtime/`
