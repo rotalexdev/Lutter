@@ -1,3 +1,7 @@
+public final class dev/rotalex/lutter/testsupport/ClasspathGoldenSource_desktopKt {
+	public static final fun classpathGoldenSource ()Ldev/rotalex/lutter/testsupport/GoldenSource;
+}
+
 public final class dev/rotalex/lutter/testsupport/Golden {
 	public static final field INSTANCE Ldev/rotalex/lutter/testsupport/Golden;
 	public final fun assertEquals (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/testsupport/GoldenSource;Z)Ljava/lang/String;
