@@ -28,5 +28,20 @@ dependencies {
 compose.desktop {
     application {
         mainClass = "dev.rotalex.lutter.samples.desktoppreview.MainKt"
+
+        // What `packageDistributionForCurrentOS` builds: a jpackage app-image, which is a
+        // self-contained folder holding the launcher, a jlink'd runtime and the jars. No
+        // `targetFormats` is declared on purpose — an MSI needs WiX and a .deb needs dpkg, so
+        // each one can only be produced on its own OS, and the app-image needs neither and is
+        // therefore the one format a Linux leg and a Windows leg can both produce.
+        //
+        // The name and version are not decoration: jpackage names the launcher after them, and
+        // the defaults would put `desktop-preview` and `unspecified` in every downloaded file.
+        nativeDistributions {
+            packageName = "LutterPreview"
+            packageVersion = "1.0.0"
+            description = "Lutter desktop preview"
+            vendor = "Lutter"
+        }
     }
 }
