@@ -142,11 +142,17 @@ public class KotlinGenerator<A : Any, T : Any>(
             val written: MutableMap<String, GeneratedFile> = LinkedHashMap()
             val components: List<PlannedFile> = order.orEmpty()
                 .mapNotNull { id -> plan.files.firstOrNull { it.componentId == id } }
+            // Components first, in the order [componentOrder] gives: `componentReceivers` is
+            // filled when a component is written and read when an instantiation site is written,
+            // so a screen emitted before its callee reads an empty map and silently emits a call
+            // that passes nothing for a receiver the callee declares. The comment above this
+            // block said "components go first" while the loops said the other way round, and the
+            // symptom is a screen missing a parameter rather than a refusal.
+            for (planned in components) emitPlanned(planned, document)?.let { written[it.path] = it }
             for (planned in plan.files) {
                 if (planned.kind == PlannedFileKind.App || planned in components) continue
                 emitPlanned(planned, document)?.let { written[it.path] = it }
             }
-            for (planned in components) emitPlanned(planned, document)?.let { written[it.path] = it }
             for (planned in plan.files) {
                 if (planned.kind != PlannedFileKind.App) continue
                 emitPlanned(planned, document)?.let { written[it.path] = it }
