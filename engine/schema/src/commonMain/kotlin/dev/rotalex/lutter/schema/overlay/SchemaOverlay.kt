@@ -58,24 +58,28 @@ public fun documentComponentSpec(
 }
 
 /**
- * The declaration a `doc.*` type names, as the tail its namespace leaves — or null.
+ * The declaration a `doc.*` type names, or null when the type is not an instance of one.
  *
  * The inverse of [documentComponentSpec], and the one place the namespace is read back. Runtime
  * and codegen both have to answer "which declaration is this node?" from a type alone, and two
  * copies of the prefix arithmetic would be two answers the day the spelling moved.
  *
- * A bare `String` rather than a [ComponentDeclId], because the caller builds the id from what
- * comes back and that construction is a total function with its own validation. What is worth
- * having in one place is the arithmetic, not the wrapping.
+ * A [ComponentDeclId] rather than the bare tail because that is what every caller indexes with,
+ * and the validity rule then rides on the id's own `init` instead of a second copy of the syntax
+ * — `IdSyntax` is internal to `:engine:model`, so asking it from here was never possible and a
+ * local copy of its regex would have been a second answer to the same question.
  *
- * A tail that is not a legal simple id reads as null rather than throwing: a component type
- * arrives here from a document that may name something that does not exist, and the caller's
- * question is whether this type is an instance at all.
+ * Null rather than a throw when the tail is not a legal id: a component type arrives here from a
+ * document that may name something that does not exist, and the caller's question is whether this
+ * type is an instance at all, not whether it is well formed.
  */
-public fun documentDeclTailOf(type: String): String? {
+public fun documentDeclIdOf(type: String): ComponentDeclId? {
     if (!type.startsWith(DOCUMENT_PREFIX)) return null
-    val tail = type.substring(DOCUMENT_PREFIX.length)
-    return if (IdSyntax.isValidSimple(tail)) tail else null
+    return try {
+        ComponentDeclId(type.substring(DOCUMENT_PREFIX.length))
+    } catch (_: IllegalArgumentException) {
+        null
+    }
 }
 
 /**

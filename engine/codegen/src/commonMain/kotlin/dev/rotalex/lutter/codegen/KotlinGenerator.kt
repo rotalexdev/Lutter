@@ -18,8 +18,10 @@ import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.expr.TypedExpr
 import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.EventKey
+import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
@@ -38,6 +40,7 @@ import dev.rotalex.lutter.schema.component.SlotBinding
 import dev.rotalex.lutter.schema.component.ValueEmit
 import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
+import dev.rotalex.lutter.schema.overlay.documentDeclIdOf
 import dev.rotalex.lutter.schema.types.EnumEntrySpec
 import dev.rotalex.lutter.schema.types.EnumTypeSpec
 
@@ -82,6 +85,15 @@ public class KotlinGenerator<A : Any, T : Any>(
     // Per-run beside the two above. Reads the generator's own diagnostics list, so a refused step
     // is the finding and not a second one beside it.
     private var actions: ActionEmitter? = null
+    // §8.4's specs, carried on the resolved document rather than read from this generator's own
+    // schema: a `doc.*` type is per-document by construction, so the static registry never holds
+    // one. Set per run beside the three above, for the same reason — one generator serves many
+    // documents and a component of the previous one is not a component of this one.
+    private var componentSpecs: Map<ComponentDeclId, ComponentSpec> = emptyMap()
+    // What each emitted component function asks of its caller, filled in as the component files
+    // are written and read at every instantiation site. A call has to know the callee's signature
+    // before it is written, which is why `generate` orders component files ahead of their callers.
+    private val componentReceivers: MutableMap<ComponentDeclId, List<ActionReceiver>> = mutableMapOf()
 
     private val rememberCoroutineScope: KotlinSymbol =
         KotlinSymbol("androidx.compose.runtime", "rememberCoroutineScope")
@@ -98,6 +110,8 @@ public class KotlinGenerator<A : Any, T : Any>(
         }
         diagnostics.clear()
         screenReceivers.clear()
+        componentReceivers.clear()
+        componentSpecs = document.componentSpecs
         // Before the plan and before any emitter: §16.7 asks for a located finding rather than a
         // red compile harness, and the reserved set is the one thing a document cannot know.
         diagnostics += ReservedCodegenNames.findings(document, options)
@@ -116,14 +130,23 @@ public class KotlinGenerator<A : Any, T : Any>(
         refuseCollisions(plan)
         val files: MutableList<GeneratedFile> = mutableListOf()
         if (diagnostics.none { it.severity == Severity.Error }) {
-            // `App.kt` is planned first, but it calls every screen, so it is emitted last: what
-            // those screens need from their caller is only known once they have been emitted. The
-            // output order stays the plan's, so nothing downstream sees a different file list.
+            // Three passes over one plan, because emission order is a dependency order and not a
+            // presentation order. Components go first: an instantiation site has to know the
+            // component function's declared params and the environment receivers its handlers
+            // reached for, and neither is known until that function has been written.
+            // [componentOrder] puts a component after every component it instantiates, so a
+            // component calling a component resolves the same way. `App.kt` is planned first but
+            // calls every screen, so it is emitted last, for the same reason one level up.
+            // The output order stays the plan's, so nothing downstream sees a different file list.
+            val order: List<ComponentDeclId>? = componentOrder(document)
             val written: MutableMap<String, GeneratedFile> = LinkedHashMap()
+            val components: List<PlannedFile> = order.orEmpty()
+                .mapNotNull { id -> plan.files.firstOrNull { it.componentId == id } }
             for (planned in plan.files) {
-                if (planned.kind == PlannedFileKind.App) continue
+                if (planned.kind == PlannedFileKind.App || planned in components) continue
                 emitPlanned(planned, document)?.let { written[it.path] = it }
             }
+            for (planned in components) emitPlanned(planned, document)?.let { written[it.path] = it }
             for (planned in plan.files) {
                 if (planned.kind != PlannedFileKind.App) continue
                 emitPlanned(planned, document)?.let { written[it.path] = it }
@@ -261,11 +284,11 @@ public class KotlinGenerator<A : Any, T : Any>(
         val parameters: MutableList<KtParam> = mutableListOf()
         for (param in declaration.params) {
             val label: String = "Host function '" + declaration.name + "' parameter '" + param.name.value + "'"
-            val spelled: KtExpr = spelledHostType(label, param.type) ?: return null
+            val spelled: KtExpr = spelledType(label, param.type) ?: return null
             parameters += KtParam(param.name.value, spelled, null)
         }
         val returned: KtExpr? = declaration.returns?.let {
-            spelledHostType("Host function '" + declaration.name + "' return", it) ?: return null
+            spelledType("Host function '" + declaration.name + "' return", it) ?: return null
         }
         return KtDeclaration.Function(
             name = declaration.name,
@@ -286,7 +309,15 @@ public class KotlinGenerator<A : Any, T : Any>(
         body = emptyList(),
     )
 
-    private fun spelledHostType(label: String, typeRef: TypeRef): KtExpr? =
+    /**
+     * A `TypeRef` as a declared parameter type, or null once a finding is recorded.
+     *
+     * Shared by the three places a document names a type the generator has to spell out — a host
+     * function's parameters and return, and a document component's declared params — because they
+     * ask one question and three copies of the refusal would be three wordings of one finding.
+     * [label] is what the message names, so the caller says which declaration it is about.
+     */
+    private fun spelledType(label: String, typeRef: TypeRef): KtExpr? =
         when (val spelling = KotlinTypes.spellingFor(typeRef)) {
             is TypeSpelling.Spelled -> spelling.expr
             is TypeSpelling.Unspelled -> {
@@ -347,24 +378,146 @@ public class KotlinGenerator<A : Any, T : Any>(
         val held: List<ResolvedState> = document.componentState[componentId].orEmpty()
         if (refuseState(held, at)) return null
         val body: KtExpr = emitNode(root, true, emptyList()) ?: return null
-        // Drained and not recorded: nothing the generator emits calls a component function — its
-        // body is inlined into the slot lambda that holds it — so there is no caller whose
-        // signature a component's receivers could belong to.
+        // Recorded rather than drained away: a component function now has a caller — §5.5 makes an
+        // instance a call, and every instantiation site has to pass the receivers this body closed
+        // over. The set is written before the caller is emitted, which is what `generate`'s file
+        // order exists for.
         val reads: Set<ActionReceiver> = drainReads()
+        componentReceivers[componentId] = reads.filter { it.type != null }.sortedBy { it.member }
+        val declared: List<KtParam> = componentParams(componentId, document) ?: return null
         val statements: List<KtStmt> =
             emitter.componentLocals(held).orEmpty() + actionLocals(reads) + listOf(KtStmt.Expr(body))
         val function: KtDeclaration.Function = KtDeclaration.Function(
             componentId.value,
             listOf(composable),
             null,
-            environmentParams(reads) + modifierParam(),
+            declared + environmentParams(reads) + modifierParam() + slotParams(document, componentId),
             statements,
         )
         return KtFile(planned.packageName, headerText(), listOf(function))
     }
 
+    /**
+     * §5.5's declared params, as the function's own parameters, or null once a finding is recorded.
+     *
+     * Declaration order rather than the sorted order pass 7 stores props in, because the order a
+     * document wrote is the order a reader expects and the instantiation sites read the same spec —
+     * so the two agree by construction rather than by two sorts happening to match.
+     *
+     * A declared parameter gets **no Kotlin default**, which is a decision and not an omission.
+     * `ParamDecl` carries no default value, so there is nothing to write one from, and the
+     * alternative — making an omitted parameter nullable — would change what the body's expression
+     * against it typechecks as. An instance that omits one is refused at its own call site
+     * ([emitInstance]) rather than producing a file that does not compile.
+     */
+    private fun componentParams(
+        componentId: ComponentDeclId,
+        document: ResolvedDocument,
+    ): List<KtParam>? {
+        val spec: ComponentSpec = document.componentSpecs[componentId] ?: return emptyList()
+        val params: MutableList<KtParam> = mutableListOf()
+        for (declared in spec.properties) {
+            val label: String = "Component '${componentId.value}' parameter '${declared.key.value}'"
+            val spelled: KtExpr = spelledType(label, declared.type) ?: return null
+            params += KtParam(declared.key.value, spelled, null)
+        }
+        return params
+    }
+
+    /**
+     * One `@Composable () -> Unit` per declared slot, each defaulting to an empty one.
+     *
+     * The default is what makes an unfilled slot and an empty one the same drawing on both
+     * backends: the runtime renders nothing for a slot no instance filled, and `{}` renders
+     * nothing. Last in the signature so the first declared slot can be passed as a trailing
+     * lambda, which is what every other slot binding in this generator does.
+     */
+    private fun slotParams(document: ResolvedDocument, componentId: ComponentDeclId): List<KtParam> {
+        val spec: ComponentSpec = document.componentSpecs[componentId] ?: return emptyList()
+        return spec.slots.map { slot ->
+            KtParam(slot.name.value, slotContentType(), KtExpr.Lambda(emptyList(), emptyList()))
+        }
+    }
+
+    /**
+     * `@Composable () -> Unit`, as a type expression.
+     *
+     * A literal rather than a `Ref` because it is a type, not a symbol: `KtRef` would name one
+     * identifier and record one import, and the annotation is what has to travel beside it. The
+     * import rides on the literal's symbol list, which is how `KtPrinter` finds every symbol an
+     * emitted file needs — including inside a parameter type.
+     */
+    private fun slotContentType(): KtExpr = KtExpr.Literal("@Composable () -> Unit", listOf(composable))
+
     /** The receivers the handlers in the file just written closed over, emptied by reading. */
     private fun drainReads(): Set<ActionReceiver> = actionEmitter()?.drainReads() ?: emptySet()
+
+    /**
+     * Component declarations in the order their files may be written, or null once a finding is
+     * recorded.
+     *
+     * An instantiation site writes the callee's signature into the call, so the callee has to be
+     * emitted first — and "the callee" is not `planDocument`'s alphabetical order when one
+     * component instantiates another. Depth-first over the `doc.*` edges, which is a total order
+     * for an acyclic declaration graph and the same one two runs over one document take.
+     *
+     * A cycle is the case the runtime reports at render time (a declaration's body is not a node
+     * of the tree that instantiates it, so pass 1's cycle check never sees it) and the generator
+     * reports here for the same reason: there is no order to write them in, and an order that
+     * silently picked one would emit a component passing a receiver it never declared.
+     */
+    private fun componentOrder(document: ResolvedDocument): List<ComponentDeclId>? {
+        val ids: List<ComponentDeclId> = document.components.keys.sortedBy { it.value }
+        val out: MutableList<ComponentDeclId> = mutableListOf()
+        val done: MutableSet<ComponentDeclId> = mutableSetOf()
+        val onStack: MutableSet<ComponentDeclId> = mutableSetOf()
+        fun visit(id: ComponentDeclId) {
+            if (id in done) return
+            if (!onStack.add(id)) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    DiagnosticLocation(componentDeclId = id),
+                    "Component '${id.value}' is part of an instantiation cycle, and no file order " +
+                        "writes it",
+                )
+                return
+            }
+            for (next in instantiatedIn(document, id)) visit(next)
+            onStack.remove(id)
+            done += id
+            out += id
+        }
+        for (id in ids) {
+            // One finding is the refusal: a result carrying an error is empty files, so a second
+            // would change nothing about what the caller does with it.
+            if (diagnostics.any { it.severity == Severity.Error }) break
+            visit(id)
+        }
+        return if (diagnostics.any { it.severity == Severity.Error }) null else out
+    }
+
+    /**
+     * The components one declaration's own body instantiates, in id order.
+     *
+     * Walked over the body rather than the whole node table: two declarations sharing a subtree is
+     * not a thing a document can express (§5.6 gives every node exactly one parent), and reading
+     * the table would make one component's demand another's.
+     */
+    private fun instantiatedIn(
+        document: ResolvedDocument,
+        id: ComponentDeclId,
+    ): List<ComponentDeclId> {
+        val root: ResolvedNode = document.components[id] ?: return emptyList()
+        val found: MutableSet<ComponentDeclId> = linkedSetOf()
+        val seen: MutableSet<NodeId> = mutableSetOf()
+        fun walk(node: ResolvedNode) {
+            if (!seen.add(node.id)) return
+            documentDeclIdOf(node.type)?.let { found += it }
+            for (children in node.slots.values) children.forEach(::walk)
+        }
+        walk(root)
+        return found.filter { it in document.components }.sortedBy { it.value }
+    }
 
     /**
      * What every screen written so far needs its caller to supply, per page.
@@ -453,6 +606,8 @@ public class KotlinGenerator<A : Any, T : Any>(
     // modifiers resolve against, and read from this walk rather than from `ResolvedNode.scopes`
     // because a set has no innermost.
     private fun emitNode(node: ResolvedNode, isRoot: Boolean, scopes: List<ScopeId>): KtExpr? {
+        val declared: ComponentDeclId? = documentDeclIdOf(node.type)
+        if (declared != null) return emitInstance(node, declared, isRoot, scopes)
         val spec: ComponentSpec? = schema.components[node.type]
         if (spec == null) {
             refuse(DiagnosticCodes.CodegenNoBinding, node, "No spec for '${node.type}'")
@@ -467,10 +622,11 @@ public class KotlinGenerator<A : Any, T : Any>(
             }
             return emitter.emit(node)
         }
-        if (binding !is CodegenBinding.ComposeCall) {
-            refuse(DiagnosticCodes.CodegenNoBinding, node, "No compose call for '${node.type}'")
-            return null
-        }
+        // The third variant is the only one left, and the sealed interface has three: a binding that is
+        // neither a custom emitter nor an intrinsic is a Compose call, so there is no fourth
+        // refusal left to make here. `Custom` and `Intrinsic` both return above, which is what
+        // narrows `binding` to `ComposeCall` for the rest of this function.
+        if (binding is CodegenBinding.Intrinsic) return emitIntrinsic(node, spec)
         unboundEvent(binding, node)?.let { unbound ->
             refuse(DiagnosticCodes.CodegenNoBinding, node, "Event '$unbound' has no parameter to receive it")
             return null
@@ -506,6 +662,142 @@ public class KotlinGenerator<A : Any, T : Any>(
             }
         }
         return KtExpr.Call(KtExpr.Ref(KtSymbolRef(binding.function)), args, trailing)
+    }
+
+    /**
+     * A `doc.*` node as the call §5.5 says it is: the component function, its declared params, the
+     * receivers its body closed over, and its filled slots.
+     *
+     * The whole of the difference from a `ComposeCall` is where the answer comes from. A library
+     * component's signature is `CodegenBinding.ComposeCall` data in this generator's own schema; a
+     * document component's is §8.4's synthesized spec, which only exists on the resolved document —
+     * so the callee is named from the declaration id and the arguments are read off that spec.
+     *
+     * Arguments are **named**, not positional. A component call always mixes value arguments, a
+     * `modifier` argument and slot lambdas, and a positional argument is only unambiguous while it
+     * is the first of them; naming each one is what lets the list grow without a call site moving.
+     */
+    private fun emitInstance(
+        node: ResolvedNode,
+        componentId: ComponentDeclId,
+        isRoot: Boolean,
+        scopes: List<ScopeId>,
+    ): KtExpr? {
+        val spec: ComponentSpec = componentSpecs[componentId] ?: run {
+            refuse(
+                DiagnosticCodes.CodegenNoBinding,
+                node,
+                "No synthesized spec for component '${componentId.value}'",
+            )
+            return null
+        }
+        val args: MutableList<KtArg> = mutableListOf()
+        for (declared in spec.properties) {
+            val prop: ResolvedProp? = node.props[declared.key]
+            if (prop == null) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Component '${node.type}' omits parameter '${declared.key.value}', which its " +
+                        "declaration gives no default to omit it with",
+                )
+                return null
+            }
+            args += KtArg(declared.key.value, valueOf(prop, spec.properties, node) ?: return null)
+        }
+        // What the callee's own handlers reached for. Recorded on this file as well, because the
+        // argument is a name that resolves to *this* function's parameter — one it has to declare
+        // now that it is a caller rather than only a declaration.
+        for (receiver in componentReceivers[componentId].orEmpty()) {
+            args += KtArg(receiver.member, KtExpr.Name(receiver.member))
+            actionEmitter()?.require(receiver)
+        }
+        modifierArg("modifier", node, isRoot, scopes)?.let { args += it }
+        var trailing: KtExpr.Lambda? = null
+        for (slot in spec.slots) {
+            val lambda: KtExpr.Lambda =
+                slotLambda(SlotBinding(slot.name, LambdaTarget.Trailing), node, spec, scopes)
+                    ?: return null
+            if (trailing == null) {
+                trailing = lambda
+            } else {
+                args += KtArg(slot.name.value, lambda)
+            }
+        }
+        return KtExpr.Call(KtExpr.Ref(KtSymbolRef(componentSymbol(componentId))), args, trailing)
+    }
+
+    /**
+     * Where a document component's function is written, which is the plan's own path.
+     *
+     * `GenPlan` decides the file, and the file's package is the only thing that can say where its
+     * declaration lives — so the two are read from one place rather than the package being spelled
+     * a second time here.
+     */
+    private fun componentSymbol(componentId: ComponentDeclId): KotlinSymbol =
+        KotlinSymbol(options.basePackage + ".components", componentId.value)
+
+    /**
+     * An engine-owned intrinsic: the one the generator knows how to write.
+     *
+     * `core.SlotOutlet` draws a slot the *instance* filled, and in generated code that slot is the
+     * component function's own parameter — so the outlet is the call `content()`. It is a bare call
+     * rather than an inlined copy of the children because the children were written in a different
+     * tree, in the caller's scope; the runtime draws them by asking the open instance, and this is
+     * the same question asked of a function parameter.
+     *
+     * Anything else declaring intrinsic emission is a gap on this side of the line, and §16.7 says
+     * a gap throws rather than refusing the document — which is what [CodegenCoverage] already
+     * does at construction for everything in the static schema. The two arms are the two cases
+     * there are: a table hit and a miss, so a new `IntrinsicNode` fails to compile here rather
+     * than falling into the throw.
+     */
+    private fun emitIntrinsic(node: ResolvedNode, spec: ComponentSpec): KtExpr? =
+        when (IntrinsicNodes.kindOf(spec)) {
+            IntrinsicNodes.SlotOutlet -> emitSlotOutlet(node)
+            null -> throw CodegenBug(
+                "Component '${spec.type}' declares intrinsic emission and has no emitter",
+            )
+        }
+
+    /**
+     * `content()` — the named slot's parameter, invoked.
+     *
+     * The slot name is a `PropertyKey`, so it is the node's own property rather than a name chosen
+     * here: the document decides which of the declaration's slots an outlet draws, exactly as it
+     * decides on the runtime side. Read as a name and not as a property because the value is the
+     * function's parameter name, and the two are the same string only because `SlotName` and
+     * `PropertyKey` are both simple ids — which is what `InstanceScope` relies on too.
+     */
+    private fun emitSlotOutlet(node: ResolvedNode): KtExpr? {
+        val written: ResolvedProp = node.props[IntrinsicNodes.slotName] ?: run {
+            refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "A slot outlet names no slot")
+            return null
+        }
+        val constant: Value? = (written.value as? PropertyValue.Const)?.value
+        if (constant == null) {
+            // The runtime evaluates the name at render time, so a computed one works there. The
+            // generated parameter has to be named in the source, and §16.2 has no way to spell a
+            // name that is only known at run time — so this is the one row where the two backends
+            // do not agree, and it is a refusal rather than a silently frozen name.
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                node,
+                "A slot outlet names a computed slot, and a generated parameter has to be named in the source",
+            )
+            return null
+        }
+        val named: Value.Str = constant as? Value.Str ?: run {
+            refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "A slot outlet's slot is not a string")
+            return null
+        }
+        val name = try {
+            SlotName(named.v)
+        } catch (_: IllegalArgumentException) {
+            refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "'${named.v}' is not a slot name")
+            return null
+        }
+        return KtExpr.Call(KtExpr.Name(name.value), emptyList())
     }
 
     // Present and not defaulted away; absent reads as omitted, never as null.

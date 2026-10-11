@@ -6,6 +6,7 @@ import dev.rotalex.lutter.schema.action.ActionEmit
 import dev.rotalex.lutter.schema.action.ActionSpec
 import dev.rotalex.lutter.schema.component.CodegenBinding
 import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.component.SpecOrigin
 import dev.rotalex.lutter.schema.component.ValueEmit
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
 
@@ -69,7 +70,18 @@ public object CodegenCoverage {
 
     // The engine-owned path reads a node's properties and the synthesis around it; a slot or an
     // event on the spec is one that path has nowhere to put, so it fails rather than vanishes.
+    //
+    // A `doc.*` spec is the one exemption, and it is an exemption rather than a gap: an instance's
+    // params and slots are emitted — passed at the call site, declared on the function — so the
+    // rule below would refuse the very shape the document path depends on. It is keyed on
+    // [SpecOrigin] rather than on the `doc.` spelling because that is the field that says the spec
+    // was synthesized, and the two would otherwise be two answers to one question.
+    //
+    // `core.SlotOutlet` is **not** exempt: its emitter writes a call to a slot parameter and
+    // nothing else, so a slot or an event added to that spec would still have nowhere to go. It
+    // passes today because it declares neither, which is the correct reason.
     private fun intrinsicProblem(spec: ComponentSpec): String? {
+        if (spec.origin is SpecOrigin.Document) return null
         spec.slots.firstOrNull()?.let { return "slot '${it.name.value}' emits nothing yet" }
         spec.events.firstOrNull()?.let { return "event '${it.key.value}' emits nothing yet" }
         return null

@@ -23,6 +23,7 @@ import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.component.SpecOrigin
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
 
 /**
@@ -96,9 +97,20 @@ internal class ResolutionPass(
             }
         val components = LinkedHashMap<ComponentDeclId, ResolvedNode>()
         val componentState = LinkedHashMap<ComponentDeclId, List<ResolvedState>>()
+        val componentSpecs = LinkedHashMap<ComponentDeclId, ComponentSpec>()
+        // §8.4's specs, read back out of the view rather than synthesized a second time: this is
+        // the same object passes 3 to 7 validated against, and re-deriving it here would let the
+        // signature codegen emits drift from the one the document was checked against. `origin` is
+        // what says which declaration a `doc.*` spec belongs to, so the lookup is keyed, not guessed.
+        val specs: Map<ComponentDeclId, ComponentSpec> = schema.components.all()
+            .mapNotNull { spec -> (spec.origin as? SpecOrigin.Document)?.let { it.id to spec } }
+            .toMap()
         for ((id, decl) in document.components.entries.sortedBy { it.key.value }) {
             components[id] = build(decl.root)
             componentState[id] = statesOf(decl.state)
+            componentSpecs[id] = checkNotNull(specs[id]) {
+                "Declaration '$id' has no synthesized spec in the analyzed view"
+            }
         }
         return ResolvedDocument(
             pages,
@@ -108,6 +120,7 @@ internal class ResolutionPass(
             statesOf(document.appState),
             componentState,
             document.hostFunctions,
+            componentSpecs,
         )
     }
 
