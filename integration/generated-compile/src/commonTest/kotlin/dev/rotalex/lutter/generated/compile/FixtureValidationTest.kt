@@ -24,9 +24,15 @@ class FixtureValidationTest {
      * The fixture set itself, spelled out.
      *
      * A list rather than a count, because the list is the claim: each entry names a document that
-     * exists for a reason — a layout half, a state half, an expression corpus, and Phase 8's
-     * component with a param and a slot. Adding a fixture without a reason for it is the drift
-     * this catches, and so is dropping one.
+     * exists for a reason — a layout half, a state half, an expression corpus, Phase 8's component
+     * with a param and a slot, and its two theme-token documents. Adding a fixture without a
+     * reason for it is the drift this catches, and so is dropping one.
+     *
+     * The two theme fixtures are a pair and not one: `theme_tokens` is the only document that can
+     * hold a token the theme declares *and* a token it shadows, and `material_token` is the only
+     * one that can hold a token Material answers for. §14.2's rule — a selected theme is the whole
+     * vocabulary — means no single document reaches both, and between them they are the whole of
+     * §14.2's resolution table.
      */
     @Test
     fun `the suite covers every wave one layout document plus one state one component and one corpus`() {
@@ -37,9 +43,11 @@ class FixtureValidationTest {
                 "column_text",
                 "component_param_slot",
                 "expression_corpus",
+                "material_token",
                 "row_weight",
                 "spacer_size",
                 "text_field_state",
+                "theme_tokens",
             ),
             FixtureDocuments.ids,
         )

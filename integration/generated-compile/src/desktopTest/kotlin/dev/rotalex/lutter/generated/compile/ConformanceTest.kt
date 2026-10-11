@@ -23,6 +23,8 @@ import dev.rotalex.lutter.generated.button_navigate.AppRoot
 import dev.rotalex.lutter.generated.button_navigate.Route
 import dev.rotalex.lutter.generated.button_navigate.screens.HomeScreen
 import dev.rotalex.lutter.generated.component_param_slot.screens.HomeScreen as ComponentHomeScreen
+import dev.rotalex.lutter.generated.material_token.screens.HomeScreen as MaterialHomeScreen
+import dev.rotalex.lutter.generated.theme_tokens.screens.HomeScreen as ThemeHomeScreen
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.runtime.BackStackNavigator
 import dev.rotalex.lutter.runtime.RuntimeEnvironment
@@ -56,6 +58,8 @@ class ConformanceTest {
         const val NAVIGATING: String = "button_navigate"
         const val CONTINUE: String = "Continue"
         const val COMPONENT: String = "component_param_slot"
+        const val THEME: String = "theme_tokens"
+        const val MATERIAL: String = "material_token"
         const val TAP: String = "Tap"
     }
 
@@ -218,6 +222,100 @@ class ConformanceTest {
         assertEquals(runtimeAfterImage.first, generatedAfterImage.first, "fixture '$COMPONENT'")
         assertContentEquals(runtimeAfterImage.second, generatedAfterImage.second, "fixture '$COMPONENT'")
     }
+
+    /**
+     * Phase 8, second clause: a token resolves to the same thing on both backends.
+     *
+     * The themed fixture's two token rows are the whole of the claim, and the order matters. The
+     * theme *shadows* `md.typography.labelLarge` with 30sp against Material's 14sp and declares a
+     * `caption` of its own at 12sp, so:
+     *
+     *  - if provenance were ignored, codegen would write `MaterialTheme.typography.labelLarge`
+     *    for the shadowed row and Material's 14sp would draw where 30sp was asked for. The
+     *    generated file would compile, so this is not a build failure catching the bug — it is
+     *    thirty pixels of wrong glyph between two trees that are otherwise identical;
+     *  - `caption` has no Material member at all, so the same mistake writes
+     *    `MaterialTheme.typography.caption` and the file does not compile. The shadowed row is the
+     *    one that proves provenance is *honoured*; the caption is the one that proves it is
+     *    *needed*;
+     *  - `Tokens` above them is the control, the same role `n_idle` plays in
+     *    `component_param_slot`: a row neither token touches, which must be identical either way.
+     *
+     * The heights are asserted and not the pixels: a font size is what makes one row taller than
+     * another, and the pixel comparison is the other half of the claim rather than a replacement
+     * for it.
+     */
+    @Test
+    fun `a themed token draws the theme's style on both paths, and the sizes differ`() =
+        runComposeUiTest {
+            val resolved = resolve(THEME)
+            setContent {
+                UiScreen(
+                    ConformanceHarness.runtime(ConformanceHarness.schema()),
+                    resolved,
+                    HOME,
+                    ConformanceHarness.environment(),
+                )
+            }
+            assertEquals(listOf("Tokens", "Shadowed", "Brand caption"), texts(), "runtime, before")
+            val runtimeRows: Pair<Float, Float> = tokenRowHeights()
+            val runtimeAfter = dumpSemantics()
+            val runtimePixels = pixelBytes()
+
+            setContent { ThemeHomeScreen(modifier = Modifier) }
+            assertEquals(listOf("Tokens", "Shadowed", "Brand caption"), texts(), "generated, before")
+            val generatedRows: Pair<Float, Float> = tokenRowHeights()
+            val generatedAfter = dumpSemantics()
+            val generatedPixels = pixelBytes()
+
+            // 30sp against 12sp: the shadowed row is the taller one by a margin no rounding
+            // explains. Both rows are 30 and 12 because the theme said so, so a fixture that
+            // rendered Material's 14sp for the shadowed row would fail this on either side.
+            assertTrue(runtimeRows.first > runtimeRows.second * 2f, "runtime heights $runtimeRows")
+            assertTrue(generatedRows.first > generatedRows.second * 2f, "generated heights $generatedRows")
+            assertEquals(runtimeRows, generatedRows, "the rows are not the same height on both paths")
+
+            assertEquals(runtimeAfter, generatedAfter, "fixture '$THEME'")
+            assertEquals(runtimePixels.first, generatedPixels.first, "fixture '$THEME'")
+            assertContentEquals(runtimePixels.second, generatedPixels.second, "fixture '$THEME'")
+        }
+
+    /**
+     * The same claim for the other half of §14.2: a token Material answers for, in a document
+     * that selects no theme.
+     *
+     * §14.2 makes a selected theme the whole vocabulary, so this row cannot live beside a themed
+     * one — a themed document naming `md.typography.bodyLarge` is `token.unknown`. It is a
+     * separate fixture for that reason and not for convenience, and it is the only thing in this
+     * suite that draws the Material arm end to end.
+     */
+    @Test
+    fun `a material token draws Material's own role on both paths`() = runComposeUiTest {
+        val resolved = resolve(MATERIAL)
+        setContent {
+            UiScreen(
+                ConformanceHarness.runtime(ConformanceHarness.schema()),
+                resolved,
+                HOME,
+                ConformanceHarness.environment(),
+            )
+        }
+        val runtimeAfter = dumpSemantics()
+        val runtimePixels = pixelBytes()
+
+        setContent { MaterialHomeScreen(modifier = Modifier) }
+        val generatedPixels = pixelBytes()
+
+        assertEquals(runtimeAfter, dumpSemantics(), "fixture '$MATERIAL'")
+        assertEquals(runtimePixels.first, generatedPixels.first, "fixture '$MATERIAL'")
+        assertContentEquals(runtimePixels.second, generatedPixels.second, "fixture '$MATERIAL'")
+    }
+
+    /** The themed fixture's two token rows: the shadowed one and the brand caption. */
+    private fun ComposeUiTest.tokenRowHeights(): Pair<Float, Float> = Pair(
+        onNode(hasText("Shadowed")).fetchSemanticsNode().size.height.toFloat(),
+        onNode(hasText("Brand caption")).fetchSemanticsNode().size.height.toFloat(),
+    )
 
     /** The component fixture's press, found by its own label. */
     private fun ComposeUiTest.tapButton(): SemanticsNodeInteraction = onNode(hasText(TAP))
