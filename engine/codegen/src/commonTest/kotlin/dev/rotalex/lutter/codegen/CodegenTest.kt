@@ -1354,7 +1354,7 @@ class CodegenTest {
 
     @Test
     fun `a material token emits the member off its own theme group`() {
-        val result = generate(homeDocument(styledWith("md.typography.bodyLarge", material)))
+        val result = generate(homeDocument(styledWith("md.typography.bodyLarge", material())))
 
         assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
         assertTrue(
