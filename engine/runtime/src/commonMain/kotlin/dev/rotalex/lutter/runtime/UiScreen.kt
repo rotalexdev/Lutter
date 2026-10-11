@@ -1,22 +1,29 @@
 package dev.rotalex.lutter.runtime
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
+import dev.rotalex.lutter.analysis.resolved.materialRoleOf
 import dev.rotalex.lutter.interpreter.EvalScope
 import dev.rotalex.lutter.interpreter.RuntimeDiagnostic
 import dev.rotalex.lutter.interpreter.action.ActionEnv
 import dev.rotalex.lutter.interpreter.constantOrNull
 import dev.rotalex.lutter.interpreter.env.Destination
 import dev.rotalex.lutter.interpreter.eval.Evaluator
+import dev.rotalex.lutter.model.doc.TextStyleSpec
+import dev.rotalex.lutter.model.doc.ThemeDecl
 import dev.rotalex.lutter.model.doc.TokenName
 import dev.rotalex.lutter.model.expr.TypedExpr
 import dev.rotalex.lutter.model.ids.ComponentDeclId
@@ -206,11 +213,132 @@ internal class MapPropertyReader(
     }
 }
 
-/** The skeleton theme: ambient style now, token lookup with ThemeHost later. */
+/**
+ * §14.2's runtime row: a name the document's own theme declares reads that theme, and a `md.*`
+ * name reads Material 3.
+ *
+ * The theme is the document's rather than an ambient one, because §14.2 resolves a token against
+ * the *selected* theme and §14.1's runtime column maps `md.*` through `MaterialTheme.*` — the two
+ * are one lookup from opposite ends, and this is the end the interpreter has. A document that
+ * selects no theme resolves `md.*` to Material's defaults, which is what the second arm answers:
+ * `MaterialTheme.typography` falls back to the Material 3 baseline when no `MaterialTheme` sits
+ * above it in the composition, so both backends read the same thing with no provider present.
+ *
+ * [theme] is read for the first time. It was a constructor parameter nothing looked at, so every
+ * token drew as `TextStyle.Default` whatever the document declared — which is the half of the
+ * disagreement codegen cannot have: analysis had already decided, for each token, whose it was.
+ */
 internal class DefaultThemeHandle(theme: ResolvedTheme) : ThemeHandle {
+
+    private val selected: ThemeDecl? = theme.theme
+
     @Composable
-    override fun textStyle(name: TokenName): TextStyle = TextStyle.Default
+    override fun textStyle(name: TokenName): TextStyle {
+        val declared: TextStyleSpec? = typographyRole(selected, name)
+        if (declared != null) return textStyleOf(declared) ?: TextStyle.Default
+        // The *bare* role, not the whole token name: codegen strips the `md.<kind>.` prefix
+        // before it writes `MaterialTheme.<group>.<role>`, and handing this table the whole
+        // name matched nothing and fell through to `TextStyle.Default` — the two backends
+        // drew the same screen at different sizes. Both read `materialRoleOf`, which lives
+        // in `:engine:analysis` because both of them may see it and not each other.
+        val role: String = materialRoleOf(name.value, "typography") ?: return TextStyle.Default
+        return materialTextStyle(role) ?: TextStyle.Default
+    }
 }
+
+/**
+ * The typography role [name] addresses in [theme], or null.
+ *
+ * The role map is where a typography token is read from, and the brand map cannot answer one:
+ * `ThemeDecl.custom` holds a `Value` and no `Value` spells a `TextStyle`. So a name this theme
+ * does not declare is Material's by elimination, which is the same question `resolveToken` asks
+ * in the other direction and gets the same way — a role the document wrote down is the
+ * document's, and the only two answers are those.
+ */
+internal fun typographyRole(theme: ThemeDecl?, name: TokenName): TextStyleSpec? =
+    theme?.typography?.entries?.firstOrNull { it.key.value == name.value }?.value
+
+/**
+ * §14.1's typography role as a Compose `TextStyle`, or null when the role declares something this
+ * engine does not spell.
+ *
+ * Four keys, and they are the four a `TextStyle` argument list takes of a document's own: size,
+ * line height, letter spacing and colour. The list is closed rather than open because the mirror
+ * of it in `LiteralPrinter` is — a key this side silently ignores and that side writes out is two
+ * backends disagreeing about a font, and §14.1 says in so many words that no section enumerates
+ * the properties, so the vocabulary is the schema's and this is the schema saying which ones.
+ *
+ * An absent key is the `TextStyle.Default` answer and a key of the wrong kind refuses: they are
+ * different facts, and only one of them is the document asking for something unspellable.
+ */
+internal fun textStyleOf(spec: TextStyleSpec): TextStyle? {
+    if (spec.keys.any { it !in textStyleKeys }) return null
+    val size: TextUnit = spOf(spec, fontSizeKey) ?: return null
+    val lineHeight: TextUnit = spOf(spec, lineHeightKey) ?: return null
+    val letterSpacing: TextUnit = spOf(spec, letterSpacingKey) ?: return null
+    val color: Color = colorOf(spec) ?: return null
+    return TextStyle(
+        fontSize = size,
+        lineHeight = lineHeight,
+        letterSpacing = letterSpacing,
+        color = color,
+    )
+}
+
+// `TextUnit.Unspecified` for an absent key, null for one whose value is not an `sp`.
+private fun spOf(spec: TextStyleSpec, key: PropertyKey): TextUnit? {
+    val value: Value = spec[key] ?: return TextUnit.Unspecified
+    return if (value is Value.Sp) value.v.sp else null
+}
+
+// `Color.Unspecified` for an absent key, null for one whose value is not a colour.
+private fun colorOf(spec: TextStyleSpec): Color? {
+    val value: Value = spec[colorKey] ?: return Color.Unspecified
+    return if (value is Value.Color) value.argb.toCompose() else null
+}
+
+/**
+ * `MaterialTheme.typography.<role>`, or null when Material publishes no role by that name.
+ *
+ * A `when` over Material 3's fifteen roles because Kotlin has no member-by-name lookup on an
+ * object, and the name a document wrote is the only thing available: the token arrives as a
+ * `TokenName` because `ThemeHandle` answers names, which is also why this is the one place a
+ * token is read rather than resolved into a value the caller carries.
+ *
+ * `LiteralPrinter.MaterialTextRoles` is the other copy of this vocabulary, checked at generation
+ * so a role neither side knows is a located finding rather than a red build in the consumer's
+ * tree. They are a pair and the conformance fixture is what holds them together.
+ */
+@Composable
+private fun materialTextStyle(role: String): TextStyle? {
+    val typography: Typography = MaterialTheme.typography
+    return when (role) {
+        "displayLarge" -> typography.displayLarge
+        "displayMedium" -> typography.displayMedium
+        "displaySmall" -> typography.displaySmall
+        "headlineLarge" -> typography.headlineLarge
+        "headlineMedium" -> typography.headlineMedium
+        "headlineSmall" -> typography.headlineSmall
+        "titleLarge" -> typography.titleLarge
+        "titleMedium" -> typography.titleMedium
+        "titleSmall" -> typography.titleSmall
+        "bodyLarge" -> typography.bodyLarge
+        "bodyMedium" -> typography.bodyMedium
+        "bodySmall" -> typography.bodySmall
+        "labelLarge" -> typography.labelLarge
+        "labelMedium" -> typography.labelMedium
+        "labelSmall" -> typography.labelSmall
+        else -> null
+    }
+}
+
+// `textStyleOf`'s four keys, named because the same four strings are the ones
+// `LiteralPrinter` writes as Kotlin parameter names and a fifth key belongs to neither.
+private val fontSizeKey: PropertyKey = PropertyKey("fontSize")
+private val lineHeightKey: PropertyKey = PropertyKey("lineHeight")
+private val letterSpacingKey: PropertyKey = PropertyKey("letterSpacing")
+private val colorKey: PropertyKey = PropertyKey("color")
+private val textStyleKeys: Set<PropertyKey> = setOf(fontSizeKey, lineHeightKey, letterSpacingKey, colorKey)
 
 /**
  * The scope renderers actually get: reads, fold, keyed slots, handle threading.
