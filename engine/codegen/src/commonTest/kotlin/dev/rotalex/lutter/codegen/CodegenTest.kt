@@ -12,11 +12,16 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedPage
 import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.analysis.resolved.ResolvedState
 import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
+import dev.rotalex.lutter.analysis.resolved.ResolvedToken
+import dev.rotalex.lutter.analysis.resolved.TokenSource
 import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
 import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.ParamDecl
 import dev.rotalex.lutter.model.doc.StateDecl
+import dev.rotalex.lutter.model.doc.TextRole
+import dev.rotalex.lutter.model.doc.ThemeDecl
+import dev.rotalex.lutter.model.doc.TokenName
 import dev.rotalex.lutter.model.expr.Expr
 import dev.rotalex.lutter.model.expr.ExprType
 import dev.rotalex.lutter.model.expr.PropertyValue
@@ -32,8 +37,10 @@ import dev.rotalex.lutter.model.ids.ParamName
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.ids.StateId
+import dev.rotalex.lutter.model.ids.ThemeId
 import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.RefKind
+import dev.rotalex.lutter.model.type.TokenKind
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.Schema
@@ -75,6 +82,7 @@ class CodegenTest {
 
     private val columnType: ComponentType = ComponentType("test.Column")
     private val textType: ComponentType = ComponentType("test.Text")
+    private val styledType: ComponentType = ComponentType("test.Styled")
     private val ghostType: ComponentType = ComponentType("test.Ghost")
     private val rowType: ComponentType = ComponentType("test.Row")
     private val boxType: ComponentType = ComponentType("test.Box")
@@ -86,6 +94,7 @@ class CodegenTest {
     private val weightType: ModifierType = ModifierType("test.weight")
     private val alignType: ModifierType = ModifierType("test.align")
     private val textKey: PropertyKey = PropertyKey("text")
+    private val styleKey: PropertyKey = PropertyKey("style")
     private val spacingKey: PropertyKey = PropertyKey("spacing")
     private val valueKey: PropertyKey = PropertyKey("value")
     private val allKey: PropertyKey = PropertyKey("all")
@@ -1339,6 +1348,101 @@ class CodegenTest {
         return KotlinGenerator(schema, CodegenOptions("com.example.app")).generate(homeDocument(root))
     }
 
+    // ---------------------------------------------------------------------------
+    // Theme tokens: §9.2's codegen column, read against the provenance pass 7 decided.
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun `a material token emits the member off its own theme group`() {
+        val result = generate(homeDocument(styledWith("md.typography.bodyLarge", material)))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        assertTrue(
+            styleScreen(result).contains("style = MaterialTheme.typography.bodyLarge"),
+            styleScreen(result),
+        )
+    }
+
+    @Test
+    fun `a token the theme declares emits the value the theme wrote, not a member name`() {
+        val brand: ResolvedTheme = brandTheme()
+        val result = generate(homeDocument(styledWith("caption", custom()), theme = brand))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = styleScreen(result)
+        assertTrue(screen.contains("style = TextStyle(fontSize = 28.0.sp)"), screen)
+        assertTrue(screen.contains("import androidx.compose.ui.unit.sp"), screen)
+        assertTrue(!screen.contains("MaterialTheme.typography.caption"), screen)
+    }
+
+    @Test
+    fun `a token whose provenance is gone refuses rather than assuming material`() {
+        val node: ResolvedNode = ResolvedNode(
+            NodeId("n_1"),
+            styledType,
+            mapOf(
+                textKey to ResolvedProp(textKey, PropertyValue.Const(Value.Str("Hi")), PropOrigin.Specified, null),
+                styleKey to ResolvedProp(
+                    styleKey,
+                    PropertyValue.Const(Value.Token(TokenKind.Typography, "md.typography.bodyLarge")),
+                    PropOrigin.Specified,
+                    null,
+                ),
+            ),
+            emptyList(),
+            emptyMap(),
+            emptySet(),
+        )
+
+        val result = generate(homeDocument(node))
+
+        assertTrue(result.files.files.isEmpty())
+        assertTrue(
+            result.diagnostics.single().message.contains("no resolved provenance"),
+            result.diagnostics.toString(),
+        )
+    }
+
+    /** The screen a styled node generated, for the two token cases above. */
+    private fun styleScreen(result: CodegenResult): String =
+        result.files.files.single { it.path == "screens/HomeScreen.kt" }.content
+
+    /** One `Text` styled by [name] with [token] as the provenance pass 7 would have attached. */
+    private fun styledWith(name: String, token: ResolvedToken): ResolvedNode = ResolvedNode(
+        NodeId("n_1"),
+        styledType,
+        mapOf(
+            textKey to ResolvedProp(textKey, PropertyValue.Const(Value.Str("Hi")), PropOrigin.Specified, null),
+            styleKey to ResolvedProp(
+                styleKey,
+                PropertyValue.Const(Value.Token(TokenKind.Typography, name)),
+                PropOrigin.Specified,
+                token,
+            ),
+        ),
+        emptyList(),
+        emptyMap(),
+        emptySet(),
+    )
+
+    private fun material: ResolvedToken =
+        ResolvedToken(TokenKind.Typography, "md.typography.bodyLarge", TokenSource.Material)
+
+    private fun custom(): ResolvedToken =
+        ResolvedToken(TokenKind.Typography, "caption", TokenSource.Custom)
+
+    // A theme whose `caption` role is the document's own, which is §14.1's MVP line: a single
+    // theme, selected implicitly, and one typography role with a size written down.
+    private fun brandTheme(): ResolvedTheme = ResolvedTheme(
+        ThemeDecl(
+            id = ThemeId("t_brand"),
+            name = "Brand",
+            typography = mapOf(
+                TextRole("caption") to mapOf(PropertyKey("fontSize") to Value.Sp(28f)),
+            ),
+        ),
+    )
+
     private fun generate(
         document: ResolvedDocument,
         incoming: List<Diagnostic> = emptyList(),
@@ -1350,6 +1454,7 @@ class CodegenTest {
         state: List<ResolvedState> = emptyList(),
         appState: List<ResolvedState> = emptyList(),
         hostFunctions: List<HostFunctionDecl> = emptyList(),
+        theme: ResolvedTheme = ResolvedTheme(null),
     ): ResolvedDocument {
         val pages = mapOf(
             PageId("p_home") to ResolvedPage(PageId("p_home"), "Home", "home", root, state),
@@ -1358,7 +1463,7 @@ class CodegenTest {
             pages,
             emptyMap(),
             indexOf(pages),
-            ResolvedTheme(null),
+            theme,
             appState,
             hostFunctions = hostFunctions,
         )
@@ -1447,6 +1552,7 @@ class CodegenTest {
                 },
             )
             component(textStub(textType, KotlinSymbol("androidx.compose.material3", "Text")))
+            component(styledStub())
             component(choiceStub())
             modifier(
                 ModifierSpec(
@@ -1531,6 +1637,24 @@ class CodegenTest {
             property(text)
             composeCall(function) {
                 param("text", from = text, positional = Positional.WhenSole)
+            }
+        }
+    }
+
+    /**
+     * §7.4's `Text` with its `style` parameter, which is the one property in the engine typed as
+     * a token and so the only one a token test can travel through.
+     */
+    private fun styledStub(): ComponentSpec {
+        val text = prop<String>("text", TypeRef.Str, required = true)
+        val style = prop<TokenName?>("style", TypeRef.Nullable(TypeRef.Token(TokenKind.Typography)))
+        return componentSpec(styledType, 1) {
+            metadata("Styled", Category.Basic)
+            property(text)
+            property(style)
+            composeCall(KotlinSymbol("androidx.compose.material3", "Text")) {
+                param("text", from = text, positional = Positional.WhenSole)
+                param("style", from = style)
             }
         }
     }

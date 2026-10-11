@@ -12,8 +12,10 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.analysis.resolved.ResolvedPage
 import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.analysis.resolved.ResolvedState
+import dev.rotalex.lutter.analysis.resolved.ResolvedToken
 import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.doc.HostFunctionDecl
+import dev.rotalex.lutter.model.doc.ThemeDecl
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.expr.TypedExpr
 import dev.rotalex.lutter.model.ids.ComponentDeclId
@@ -85,6 +87,13 @@ public class KotlinGenerator<A : Any, T : Any>(
     // Per-run beside the two above. Reads the generator's own diagnostics list, so a refused step
     // is the finding and not a second one beside it.
     private var actions: ActionEmitter? = null
+    // The document's selected theme, per run beside the three above. Carried rather than reached
+    // for from a [ResolvedToken], because provenance says *whose* a token is and not what it is
+    // worth: a document-owned token is a name until someone reads the value out of the theme that
+    // declared it, and this is the only thing in the generator holding one. One generator serves
+    // many documents, so a theme left over from the previous run would be another document's
+    // brand map.
+    private var theme: ThemeDecl? = null
     // §8.4's specs, carried on the resolved document rather than read from this generator's own
     // schema: a `doc.*` type is per-document by construction, so the static registry never holds
     // one. Set per run beside the three above, for the same reason — one generator serves many
@@ -112,6 +121,7 @@ public class KotlinGenerator<A : Any, T : Any>(
         screenReceivers.clear()
         componentReceivers.clear()
         componentSpecs = document.componentSpecs
+        theme = document.theme.theme
         // Before the plan and before any emitter: §16.7 asks for a located finding rather than a
         // red compile harness, and the reserved set is the one thing a document cannot know.
         diagnostics += ReservedCodegenNames.findings(document, options)
@@ -939,6 +949,11 @@ public class KotlinGenerator<A : Any, T : Any>(
      * against the [StateRead] for the site the read appears in. A constant emits exactly as it
      * did before either arm existed, which is what keeps a document with no computed property
      * byte-identical.
+     *
+     * A constant token is the one place [LiteralPrinter] is handed anything but the value, and
+     * it is handed it from [ResolvedProp.token]: pass 7 resolved that token against the selected
+     * theme and attached what it decided, so this generator never re-derives it — it only has to
+     * carry it one call deeper, plus the theme to read a document-owned value out of.
      */
     private fun valueOf(
         prop: ResolvedProp,
@@ -951,7 +966,21 @@ public class KotlinGenerator<A : Any, T : Any>(
             is PropertyValue.Const -> stored.value
         }
         if (constant is Value.Enum) return enumLiteral(constant.entry, declared, prop.key, node, entries)
-        val literal = LiteralPrinter.emit(constant)
+        // Null for everything that is not a token, and refused for a token whose provenance is
+        // gone: pass 7 attaches one to every constant token, so a null here is a lost record
+        // rather than a document fault, and the printer answers a token with no provenance by
+        // emitting nothing rather than by assuming it is Material's.
+        val provenance: ResolvedToken? = prop.token
+        if (constant is Value.Token && provenance == null) {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                node,
+                "Token '" + constant.name + "' carries no resolved provenance, and pass 7 " +
+                    "attaches one to every token a document uses",
+            )
+            return null
+        }
+        val literal = LiteralPrinter.emit(constant, provenance, theme)
         if (literal == null) {
             refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Value kind emits nothing yet")
             return null

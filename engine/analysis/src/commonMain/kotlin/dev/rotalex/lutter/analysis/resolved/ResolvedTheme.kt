@@ -45,9 +45,20 @@ internal fun themeKnows(theme: ThemeDecl, name: String): Boolean =
         theme.dimensions.keys.any { it.value == name } ||
         theme.custom.keys.any { it.value == name }
 
-/** Decides a token's source: a name in the brand map is custom, the rest is material. */
+/**
+ * Decides a token's source: a name the selected theme declares is the document's own, the rest
+ * is Material's.
+ *
+ * [themeKnows] and not a lookup in `ThemeDecl.custom`, because those are the two halves of one
+ * question and pass 4 already asks it with `themeKnows` to decide whether the token is legal at
+ * all. Answering it for one map here and for all five there would mark a legal token `Material`:
+ * a role the document wrote in `typography`, `colors`, `shapes` or `dimensions` is as much its own
+ * as one in `custom`, and codegen writes a `Material` token as a member off the matching
+ * `MaterialTheme` group — so a role Material does not publish becomes a name in a generated file
+ * that does not compile.
+ */
 internal fun resolveToken(token: Value.Token, theme: ThemeDecl?): ResolvedToken {
-    val custom = theme?.custom?.keys?.any { it.value == token.name } == true
+    val custom = theme != null && themeKnows(theme, token.name)
     val source = if (custom) TokenSource.Custom else TokenSource.Material
     return ResolvedToken(token.kind, token.name, source)
 }
