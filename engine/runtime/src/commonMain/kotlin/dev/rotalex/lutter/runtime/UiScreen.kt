@@ -15,6 +15,7 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
+import dev.rotalex.lutter.analysis.resolved.materialRoleOf
 import dev.rotalex.lutter.interpreter.EvalScope
 import dev.rotalex.lutter.interpreter.RuntimeDiagnostic
 import dev.rotalex.lutter.interpreter.action.ActionEnv
@@ -235,7 +236,13 @@ internal class DefaultThemeHandle(theme: ResolvedTheme) : ThemeHandle {
     override fun textStyle(name: TokenName): TextStyle {
         val declared: TextStyleSpec? = typographyRole(selected, name)
         if (declared != null) return textStyleOf(declared) ?: TextStyle.Default
-        return materialTextStyle(name.value) ?: TextStyle.Default
+        // The *bare* role, not the whole token name: codegen strips the `md.<kind>.` prefix
+        // before it writes `MaterialTheme.<group>.<role>`, and handing this table the whole
+        // name matched nothing and fell through to `TextStyle.Default` — the two backends
+        // drew the same screen at different sizes. Both read `materialRoleOf`, which lives
+        // in `:engine:analysis` because both of them may see it and not each other.
+        val role: String = materialRoleOf(name.value, "typography") ?: return TextStyle.Default
+        return materialTextStyle(role) ?: TextStyle.Default
     }
 }
 
