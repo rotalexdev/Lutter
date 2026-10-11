@@ -25,7 +25,7 @@ import dev.rotalex.lutter.model.ids.SlotName
  * that does it.
  *
  * **Nothing else in `:engine:editing` may produce a changed `UiDocument` from an existing one.**
- * The planners (`command/planners/*.kt`, §33.6) return patches; `history/History.kt` replays
+ * The planners under `command/planners` (§33.6) return patches; `history/History.kt` replays
  * patches; `diff/DocumentDiff.kt` computes patches; `migration/SpecMigrationPass.kt` is
  * specified as "apply component migrations as a patch". Every one of them is a *producer* or a
  * *caller*, and this object is the callee they all share.
