@@ -295,7 +295,7 @@ class ComponentCodegenTest {
 
     /** The declaration body: the `Text` that reads the parameter, the outlet, and an optional press. */
     private fun defaultBody(withPress: Boolean): ResolvedNode {
-        val children = mutableListOf(textAs("n_label", "label"), outlet())
+        val children = mutableListOf(textAs("n_label", PropertyKey("label")), outlet())
         if (withPress) children += pressHandler()
         return column("n_body", children)
     }
@@ -417,7 +417,8 @@ class ComponentCodegenTest {
         }
 
     private fun content(result: CodegenResult, path: String): String =
-        assertNotNull(result.files.files.firstOrNull { it.path == path }) {
-            "no '$path' in ${result.files.files.map { it.path }}"
-        }.content
+        assertNotNull(
+            result.files.files.firstOrNull { it.path == path },
+            "no '$path' in ${result.files.files.map { it.path }}",
+        ).content
 }
