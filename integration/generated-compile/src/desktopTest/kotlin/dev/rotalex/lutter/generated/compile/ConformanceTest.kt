@@ -22,6 +22,7 @@ import dev.rotalex.lutter.generated.button_navigate.AppNavigator
 import dev.rotalex.lutter.generated.button_navigate.AppRoot
 import dev.rotalex.lutter.generated.button_navigate.Route
 import dev.rotalex.lutter.generated.button_navigate.screens.HomeScreen
+import dev.rotalex.lutter.generated.component_param_slot.screens.HomeScreen as ComponentHomeScreen
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.runtime.BackStackNavigator
 import dev.rotalex.lutter.runtime.RuntimeEnvironment
@@ -54,6 +55,8 @@ class ConformanceTest {
         const val PACKAGE: String = "dev.rotalex.lutter.generated."
         const val NAVIGATING: String = "button_navigate"
         const val CONTINUE: String = "Continue"
+        const val COMPONENT: String = "component_param_slot"
+        const val TAP: String = "Tap"
     }
 
     @Test
@@ -165,6 +168,70 @@ class ConformanceTest {
             assertEquals(runtimeAfterImage.first, generatedAfterImage.first, "after the press")
             assertContentEquals(runtimeAfterImage.second, generatedAfterImage.second, "after the press")
         }
+
+    /**
+     * Phase 8's click: a press whose effect travels through a component's **param**.
+     *
+     * `state.set` rewrites the page's `label`, the page passes that state into `doc.c_badge` as a
+     * declared argument, and the badge's body draws it. So this is not the same press as the one
+     * above with a component wrapped round it: if the generated side dropped the argument, or read
+     * it in the wrong scope, the badge's `Text` would still read "Live" after the press while the
+     * runtime's reads "Tapped" — and the two would differ in the semantics tree and in every
+     * pixel of that row. The idle badge next to it is the control: its `label` is a constant, so
+     * it must be unchanged on both sides.
+     *
+     * The button lives in the page's tree rather than inside the badge, and that is a limitation
+     * rather than a choice. §5.5 gives a component body the app's state and its own, so a handler
+     * in the body can write neither of them on the runtime today (§12.1's component store does
+     * not exist there) or reach them on the generated side without `AppRoot`, which the shared
+     * fixture registry never composes. A press that changes an input is the strongest click this
+     * suite can make against a document component until that store exists.
+     */
+    @Test
+    fun `a press rewrites the param one badge draws, on both paths`() = runComposeUiTest {
+        val resolved = resolve(COMPONENT)
+        setContent {
+            UiScreen(
+                ConformanceHarness.runtime(ConformanceHarness.schema()),
+                resolved,
+                HOME,
+                ConformanceHarness.environment(),
+            )
+        }
+        assertEquals(listOf("Live", "amber body", "Idle", "green body", "Tap"), texts(), "runtime, before")
+        assertTrue(tapButton().exposesClick(), "the runtime button exposes no click action")
+        tapButton().performClick()
+        waitForIdle()
+        val runtimeAfter = dumpSemantics()
+        val runtimeAfterImage = pixelBytes()
+
+        setContent { ComponentHomeScreen(modifier = Modifier) }
+        assertEquals(listOf("Live", "amber body", "Idle", "green body", "Tap"), texts(), "generated, before")
+        assertTrue(tapButton().exposesClick(), "the generated button exposes no click action")
+        tapButton().performClick()
+        waitForIdle()
+        val generatedAfter = dumpSemantics()
+        val generatedAfterImage = pixelBytes()
+
+        assertEquals(listOf("Tapped", "amber body", "Idle", "green body", "Tap"), texts(), "after the press")
+        assertEquals(runtimeAfter, generatedAfter, "fixture '$COMPONENT' after the press")
+        assertEquals(runtimeAfterImage.first, generatedAfterImage.first, "fixture '$COMPONENT'")
+        assertContentEquals(runtimeAfterImage.second, generatedAfterImage.second, "fixture '$COMPONENT'")
+    }
+
+    /** The component fixture's press, found by its own label. */
+    private fun ComposeUiTest.tapButton(): SemanticsNodeInteraction = onNode(hasText(TAP))
+
+    /** Every text in the composed tree, in tree order. */
+    private fun ComposeUiTest.texts(): List<String> {
+        val found = mutableListOf<String>()
+        fun walk(node: SemanticsNode) {
+            node.config.valueOrNull(SemanticsProperties.Text)?.forEach { found += it.text }
+            for (child in node.children) walk(child)
+        }
+        walk(onRoot().fetchSemanticsNode())
+        return found
+    }
 
     /** The button by its label, which is the whole of §28.4's `click("Continue")` script. */
     private fun ComposeUiTest.continueButton(): SemanticsNodeInteraction = onNode(hasText(CONTINUE))

@@ -20,13 +20,22 @@ class FixtureValidationTest {
         }
     }
 
+    /**
+     * The fixture set itself, spelled out.
+     *
+     * A list rather than a count, because the list is the claim: each entry names a document that
+     * exists for a reason — a layout half, a state half, an expression corpus, and Phase 8's
+     * component with a param and a slot. Adding a fixture without a reason for it is the drift
+     * this catches, and so is dropping one.
+     */
     @Test
-    fun `the suite covers every wave one layout document plus one state document and one corpus`() {
+    fun `the suite covers every wave one layout document plus one state one component and one corpus`() {
         assertEquals(
             listOf(
                 "box_align",
                 "column_color",
                 "column_text",
+                "component_param_slot",
                 "expression_corpus",
                 "row_weight",
                 "spacer_size",
