@@ -179,7 +179,7 @@ class ComponentRuntimeTest {
             result.diagnostics.none { it.severity == Severity.Error },
             "fixture '$COMPONENT' does not resolve: ${result.diagnostics}",
         )
-        return assertNotNull(result.resolved) { "fixture '$COMPONENT' resolved nothing" }
+        return assertNotNull(result.resolved, "fixture '$COMPONENT' resolved nothing")
     }
 
     private fun resolve(document: UiDocument): ResolvedDocument {
@@ -188,7 +188,7 @@ class ComponentRuntimeTest {
             result.diagnostics.none { it.severity == Severity.Error },
             "the document does not resolve: ${result.diagnostics}",
         )
-        return assertNotNull(result.resolved) { "the document resolved nothing" }
+        return assertNotNull(result.resolved, "the document resolved nothing")
     }
 
     private fun host(reported: MutableList<RuntimeDiagnostic>): RuntimeEnvironment =
