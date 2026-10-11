@@ -85,6 +85,17 @@ public class ActionEmitter(
     }
 
     /**
+     * Records a receiver this file needs without a handler of its own naming it.
+     *
+     * A component call is the case: a component function's handlers closed over `navigator`, so
+     * every function that *calls* that component passes `navigator` on, and this call is the
+     * generator's own emission rather than an action's. Same demand as [on] records, same drain.
+     */
+    internal fun require(receiver: ActionReceiver): Unit {
+        reads += receiver
+    }
+
+    /**
      * [sequence] as the statements a handler body is made of, or null once a finding is recorded.
      *
      * A sequence reaching a suspending call is wrapped whole: the wrapper is what makes the body

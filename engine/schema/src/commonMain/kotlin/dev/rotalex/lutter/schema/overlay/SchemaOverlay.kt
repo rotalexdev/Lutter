@@ -3,6 +3,7 @@ package dev.rotalex.lutter.schema.overlay
 import dev.rotalex.lutter.model.doc.ComponentDecl
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.ActionId
+import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.ids.ModifierType
@@ -54,6 +55,31 @@ public fun documentComponentSpec(
         codegen = CodegenBinding.Intrinsic,
         origin = SpecOrigin.Document(decl.id),
     )
+}
+
+/**
+ * The declaration a `doc.*` type names, or null when the type is not an instance of one.
+ *
+ * The inverse of [documentComponentSpec], and the one place the namespace is read back. Runtime
+ * and codegen both have to answer "which declaration is this node?" from a type alone, and two
+ * copies of the prefix arithmetic would be two answers the day the spelling moved.
+ *
+ * A [ComponentDeclId] rather than the bare tail because that is what every caller indexes with,
+ * and the validity rule then rides on the id's own `init` instead of a second copy of the syntax
+ * — `IdSyntax` is internal to `:engine:model`, so asking it from here was never possible and a
+ * local copy of its regex would have been a second answer to the same question.
+ *
+ * Null rather than a throw when the tail is not a legal id: a component type arrives here from a
+ * document that may name something that does not exist, and the caller's question is whether this
+ * type is an instance at all, not whether it is well formed.
+ */
+public fun documentDeclIdOf(type: String): ComponentDeclId? {
+    if (!type.startsWith(DOCUMENT_PREFIX)) return null
+    return try {
+        ComponentDeclId(type.substring(DOCUMENT_PREFIX.length))
+    } catch (_: IllegalArgumentException) {
+        null
+    }
 }
 
 /**

@@ -1,0 +1,115 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {
+      "c_badge": {
+        "id": "c_badge",
+        "name": "Badge",
+        "params": [
+          {"name": "label", "type": {"type": "str"}},
+          {"name": "accent", "type": {"type": "color"}}
+        ],
+        "slots": [{"name": "content"}],
+        "root": "n_badge_body"
+      }
+    },
+    "meta": {"name": "ComponentParamSlot"},
+    "nodes": {
+      "n_badge_body": {
+        "id": "n_badge_body",
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 6}}},
+        "slots": {"children": ["n_badge_label", "n_badge_outlet"]},
+        "type": "core.Column"
+      },
+      "n_badge_label": {
+        "id": "n_badge_label",
+        "props": {
+          "color": {"type": "expr", "expr": {"type": "ref", "target": {"type": "param", "name": "accent"}}},
+          "text": {"type": "expr", "expr": {"type": "ref", "target": {"type": "param", "name": "label"}}}
+        },
+        "type": "m3.Text"
+      },
+      "n_badge_outlet": {
+        "id": "n_badge_outlet",
+        "props": {"slot": {"type": "const", "value": {"type": "str", "v": "content"}}},
+        "type": "core.SlotOutlet"
+      },
+      "n_root": {
+        "id": "n_root",
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 8}}},
+        "slots": {"children": ["n_heading", "n_live", "n_idle", "n_button"]},
+        "type": "core.Column"
+      },
+      "n_heading": {
+        "id": "n_heading",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Badges"}}},
+        "type": "m3.Text"
+      },
+      "n_live": {
+        "id": "n_live",
+        "props": {
+          "accent": {"type": "const", "value": {"type": "color", "argb": "#FFFFB300"}},
+          "label": {"type": "expr", "expr": {"type": "ref", "target": {"type": "state", "id": "s_label"}}}
+        },
+        "slots": {"content": ["n_live_note"]},
+        "type": "doc.c_badge"
+      },
+      "n_live_note": {
+        "id": "n_live_note",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "amber body"}}},
+        "type": "m3.Text"
+      },
+      "n_idle": {
+        "id": "n_idle",
+        "props": {
+          "accent": {"type": "const", "value": {"type": "color", "argb": "#FF1B5E20"}},
+          "label": {"type": "const", "value": {"type": "str", "v": "Idle"}}
+        },
+        "slots": {"content": ["n_idle_note"]},
+        "type": "doc.c_badge"
+      },
+      "n_idle_note": {
+        "id": "n_idle_note",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "green body"}}},
+        "type": "m3.Text"
+      },
+      "n_button": {
+        "id": "n_button",
+        "events": {
+          "onClick": {
+            "steps": [
+              {
+                "action": "state.set",
+                "args": {
+                  "target": {"type": "expr", "expr": {"type": "ref", "target": {"type": "state", "id": "s_label"}}},
+                  "value": {"type": "const", "value": {"type": "str", "v": "Tapped"}}
+                }
+              }
+            ]
+          }
+        },
+        "slots": {"content": ["n_button_label"]},
+        "type": "m3.Button"
+      },
+      "n_button_label": {
+        "id": "n_button_label",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Tap"}}},
+        "type": "m3.Text"
+      }
+    },
+    "pages": {
+      "p_home": {
+        "id": "p_home",
+        "name": "Home",
+        "root": "n_root",
+        "route": "home",
+        "state": [
+          {"id": "s_label", "name": "label", "type": {"type": "str"}, "initial": {"type": "str", "v": "Live"}}
+        ]
+      }
+    }
+  }
+}

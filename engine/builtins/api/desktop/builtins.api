@@ -155,6 +155,12 @@ public final class dev/rotalex/lutter/builtins/SizeModifier {
 	public final fun getWidth ()Ldev/rotalex/lutter/schema/component/PropertySpec;
 }
 
+public final class dev/rotalex/lutter/builtins/SlotOutletSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/SlotOutletSpec;
+	public final fun getSlot ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
 public final class dev/rotalex/lutter/builtins/SpacerSpec {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/SpacerSpec;
 	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;

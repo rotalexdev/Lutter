@@ -4,6 +4,7 @@ import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
+import dev.rotalex.lutter.schema.component.ComponentSpec
 
 /**
  * One page with its tree built: the unit runtime screens and codegen files consume.
@@ -31,6 +32,14 @@ public data class ResolvedPage(
  * single lowering pipeline leaves codegen no route to `UiDocument`, and a generated `AppHost` is
  * a member per declaration while `host.call` must know whether each one suspends. A default keeps
  * every existing construction of this type compiling.
+ *
+ * [componentSpecs] is the same argument one step further on. [components] holds a declaration's
+ * **body** — a node, which says what it draws and nothing about how it is called — and the spec
+ * `SchemaOverlay` synthesized for it is what says which params and slots it has. Codegen needs
+ * both: the body to emit the function, the signature to call it. Synthesizing the spec a second
+ * time inside the generator would be a second answer to a question the analyzer already settled,
+ * and a generator whose call disagreed with the pass that validated the instance would emit a
+ * function the document was never checked against. A default for the same reason as above.
  */
 public data class ResolvedDocument(
     public val pages: Map<PageId, ResolvedPage>,
@@ -40,4 +49,5 @@ public data class ResolvedDocument(
     public val appState: List<ResolvedState> = emptyList(),
     public val componentState: Map<ComponentDeclId, List<ResolvedState>> = emptyMap(),
     public val hostFunctions: List<HostFunctionDecl> = emptyList(),
+    public val componentSpecs: Map<ComponentDeclId, ComponentSpec> = emptyMap(),
 )

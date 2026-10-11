@@ -1105,6 +1105,7 @@ public final class dev/rotalex/lutter/schema/overlay/SchemaOverlay : dev/rotalex
 public final class dev/rotalex/lutter/schema/overlay/SchemaOverlayKt {
 	public static final fun documentComponentSpec (Ldev/rotalex/lutter/model/doc/ComponentDecl;Ljava/util/Map;Ldev/rotalex/lutter/schema/component/Category;)Ldev/rotalex/lutter/schema/component/ComponentSpec;
 	public static synthetic fun documentComponentSpec$default (Ldev/rotalex/lutter/model/doc/ComponentDecl;Ljava/util/Map;Ldev/rotalex/lutter/schema/component/Category;ILjava/lang/Object;)Ldev/rotalex/lutter/schema/component/ComponentSpec;
+	public static final fun documentDeclIdOf (Ljava/lang/String;)Ljava/lang/String;
 }
 
 public final class dev/rotalex/lutter/schema/plugin/PluginDescriptor {

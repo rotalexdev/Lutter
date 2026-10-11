@@ -59,8 +59,11 @@ public class UiRuntime(
  * Both halves of the plugin pair are checked, because an unwired modifier fails the same way
  * an unwired component does — silently, as a node drawn without what the document asked for.
  *
- * Document-overlay types (`doc.*`) are not schema members, so they are not checked
- * here; their renderer is resolved per node at render time instead.
+ * Document-overlay types (`doc.*`) are deliberately not checked, and the reason is not that
+ * they are excused: they are not in [schema]. A `doc.*` type has no renderer of its own, because
+ * §5.5 makes an instance draw its declaration's body. `RenderNode` resolves one through
+ * `RenderScope.RenderInstance`, and the declaration is guaranteed to be there because pass 7
+ * lowers every declaration in the document it analyzed.
  */
 public object RuntimeCoverage {
     /** Every component and modifier type in [schema] must read back out of [runtime]. */
