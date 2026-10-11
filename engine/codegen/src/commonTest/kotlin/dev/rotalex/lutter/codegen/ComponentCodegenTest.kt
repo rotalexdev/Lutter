@@ -13,7 +13,10 @@ import dev.rotalex.lutter.model.action.ActionStep
 import dev.rotalex.lutter.model.doc.ComponentDecl
 import dev.rotalex.lutter.model.doc.ParamDecl
 import dev.rotalex.lutter.model.doc.SlotDecl
+import dev.rotalex.lutter.model.expr.Expr
 import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.expr.RefTarget
+import dev.rotalex.lutter.model.expr.TypedExpr
 import dev.rotalex.lutter.model.ids.ActionId
 import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.ComponentType
@@ -30,8 +33,8 @@ import dev.rotalex.lutter.schema.action.ActionEmit
 import dev.rotalex.lutter.schema.action.ActionMetadata
 import dev.rotalex.lutter.schema.action.ActionSpec
 import dev.rotalex.lutter.schema.action.action
-import dev.rotalex.lutter.schema.component.Category
 import dev.rotalex.lutter.schema.component.Cardinality
+import dev.rotalex.lutter.schema.component.Category
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.LambdaTarget
@@ -324,10 +327,19 @@ class ComponentCodegenTest {
         emptySet(),
     )
 
+    /**
+     * A `Text` whose text is a **reference to a param**, not the string that names it.
+     *
+     * The constant version emitted `Text("label")` where the test expected `Text(label)`, and
+     * the generator was right: §9 gives an expression-backed property a typed expression and a
+     * constant-backed one a constant, and this was built as the second. A component body that
+     * printed its parameter's *name* rather than its value would have passed the test and been
+     * useless.
+     */
     private fun textAs(id: String, key: PropertyKey): ResolvedNode = ResolvedNode(
         NodeId(id),
         textType,
-        mapOf(textKey to string(textKey, key.value)),
+        mapOf(textKey to paramAs(textKey, key)),
         emptyList(),
         emptyMap(),
         emptySet(),
@@ -363,6 +375,17 @@ class ComponentCodegenTest {
 
     private fun string(key: PropertyKey, value: String): ResolvedProp =
         ResolvedProp(key, PropertyValue.Const(Value.Str(value)), PropOrigin.Specified, null)
+
+    /** [key] bound to the param named [target] — §9's `param.<name>` reference. */
+    private fun paramAs(key: PropertyKey, target: PropertyKey): ResolvedProp {
+        val reference: RefTarget = RefTarget.Param(ParamName(target.value))
+        return ResolvedProp(
+            key,
+            PropertyValue.Computed(Expr.Ref(reference)),
+            PropOrigin.Specified,
+            TypedExpr(Expr.Ref(reference), TypeRef.Str, setOf(reference)),
+        )
+    }
 
     // -----------------------------------------------------------------------------------------
     // Harness
