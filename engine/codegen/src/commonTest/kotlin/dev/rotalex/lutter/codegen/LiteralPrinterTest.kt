@@ -40,7 +40,7 @@ class LiteralPrinterTest {
         ),
         shapes = mapOf(ShapeRole("pill") to mapOf(PropertyKey("corner") to Value.Dp(99f))),
         dimensions = mapOf(TokenName("md.dimension.gutter") to Value.Dp(16f)),
-        custom = mapOf(TokenName("brand.accent") to Value.Color(ColorArgb.parse("#FFB300"))),
+        custom = mapOf(TokenName("brand.accent") to Value.Color(ColorArgb.parse("#FFFFB300"))),
     )
 
     private fun textOf(value: EmittedLiteral?): String? = value?.text
