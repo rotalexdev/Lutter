@@ -26,6 +26,7 @@ internal object LiteralPrinter {
     private val MaterialTheme: KotlinSymbol =
         KotlinSymbol("androidx.compose.material3", "MaterialTheme")
     private val ComposeTextStyle: KotlinSymbol = KotlinSymbol("androidx.compose.ui.text", "TextStyle")
+    private val HexDigits: String = "0123456789ABCDEF"
 
     /**
      * The name prefix and the `MaterialTheme` group each kind's `md.` names reach, §14.1's
