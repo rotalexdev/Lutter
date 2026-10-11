@@ -1425,7 +1425,7 @@ class CodegenTest {
         emptySet(),
     )
 
-    private fun material: ResolvedToken =
+    private fun material(): ResolvedToken =
         ResolvedToken(TokenKind.Typography, "md.typography.bodyLarge", TokenSource.Material)
 
     private fun custom(): ResolvedToken =

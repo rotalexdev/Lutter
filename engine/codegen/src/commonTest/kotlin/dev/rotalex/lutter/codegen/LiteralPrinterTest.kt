@@ -3,6 +3,7 @@ package dev.rotalex.lutter.codegen
 import dev.rotalex.lutter.analysis.resolved.ResolvedToken
 import dev.rotalex.lutter.analysis.resolved.TokenSource
 import dev.rotalex.lutter.model.doc.ColorRole
+import dev.rotalex.lutter.model.doc.ColorSpec
 import dev.rotalex.lutter.model.doc.ShapeRole
 import dev.rotalex.lutter.model.doc.TextRole
 import dev.rotalex.lutter.model.doc.ThemeDecl
@@ -11,7 +12,6 @@ import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.ThemeId
 import dev.rotalex.lutter.model.type.TokenKind
 import dev.rotalex.lutter.model.value.ColorArgb
-import dev.rotalex.lutter.model.value.ColorSpec
 import dev.rotalex.lutter.model.value.Value
 import kotlin.test.Test
 import kotlin.test.assertEquals
