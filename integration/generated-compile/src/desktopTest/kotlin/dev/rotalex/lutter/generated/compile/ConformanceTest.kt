@@ -198,7 +198,7 @@ class ConformanceTest {
                 ConformanceHarness.environment(),
             )
         }
-        assertEquals(listOf("Live", "amber body", "Idle", "green body", "Tap"), texts(), "runtime, before")
+        assertEquals(listOf("Badges", "Live", "amber body", "Idle", "green body", "Tap"), texts(), "runtime, before")
         assertTrue(tapButton().exposesClick(), "the runtime button exposes no click action")
         tapButton().performClick()
         waitForIdle()
@@ -206,14 +206,14 @@ class ConformanceTest {
         val runtimeAfterImage = pixelBytes()
 
         setContent { ComponentHomeScreen(modifier = Modifier) }
-        assertEquals(listOf("Live", "amber body", "Idle", "green body", "Tap"), texts(), "generated, before")
+        assertEquals(listOf("Badges", "Live", "amber body", "Idle", "green body", "Tap"), texts(), "generated, before")
         assertTrue(tapButton().exposesClick(), "the generated button exposes no click action")
         tapButton().performClick()
         waitForIdle()
         val generatedAfter = dumpSemantics()
         val generatedAfterImage = pixelBytes()
 
-        assertEquals(listOf("Tapped", "amber body", "Idle", "green body", "Tap"), texts(), "after the press")
+        assertEquals(listOf("Badges", "Tapped", "amber body", "Idle", "green body", "Tap"), texts(), "after the press")
         assertEquals(runtimeAfter, generatedAfter, "fixture '$COMPONENT' after the press")
         assertEquals(runtimeAfterImage.first, generatedAfterImage.first, "fixture '$COMPONENT'")
         assertContentEquals(runtimeAfterImage.second, generatedAfterImage.second, "fixture '$COMPONENT'")

@@ -80,7 +80,7 @@ class ComponentRuntimeTest {
             }
 
             assertEquals(
-                listOf("Live", "amber body", "Idle", "green body", "Tap"),
+                listOf("Badges", "Live", "amber body", "Idle", "green body", "Tap"),
                 texts(),
                 "two instances, two labels, two slots",
             )
