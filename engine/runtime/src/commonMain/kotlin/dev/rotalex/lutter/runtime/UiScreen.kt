@@ -92,18 +92,23 @@ public fun UiScreen(
     val expressions = ExpressionSource(runtime.evaluator, screen)
     Box(modifier = modifier) {
         val scope = DefaultRenderScope(
-            environment,
-            DefaultThemeHandle(document.theme),
-            runtime,
-            null,
-            expressions,
+            environment = environment,
+            theme = DefaultThemeHandle(document.theme),
+            runtime = runtime,
+            expressions = expressions,
             // Material's press is a plain lambda, so dispatch cannot be composable and needs a
             // scope held here rather than remembered per call.
-            rememberCoroutineScope(),
+            coroutines = rememberCoroutineScope(),
             // §8.4's declarations, lowered by pass 7: an instance renders one of these rather
             // than anything the renderer registry carries.
             declarations = document.components,
-        ) { eventArgs -> ScreenActionEnv(screen, pageState, environment, eventArgs) }
+            // Named, not a trailing lambda. `DefaultRenderScope` grew `declarations`, `open`,
+            // `opened`, `instanceRoot` and `instanceModifier` after `actionEnv`, so a trailing
+            // lambda binds to the *last* parameter and this stopped being the argument it reads
+            // like. The compiler said "no value passed for 'actionEnv'" and "expected Modifier",
+            // which is the same mistake stated twice.
+            actionEnv = { eventArgs -> ScreenActionEnv(screen, pageState, environment, eventArgs) },
+        )
         key(resolved.root.id) {
             environment.hooks.Decorate(resolved.root) {
                 RenderNode(runtime, resolved.root, scope)
@@ -296,7 +301,7 @@ internal class DefaultRenderScope(
      * already being drawn, and what its params bind to. Only the last step is composable.
      */
     internal fun expand(node: ResolvedNode): Expanded? {
-        val decl = documentDeclIdOf(node.type)
+        val decl = documentDeclIdOf(node.type.value)
         if (decl == null) {
             environment.diagnostics(
                 RuntimeDiagnostic("No renderer for '${node.type}' and it names no document component", node.id),

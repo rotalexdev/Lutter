@@ -512,7 +512,7 @@ public class KotlinGenerator<A : Any, T : Any>(
         val seen: MutableSet<NodeId> = mutableSetOf()
         fun walk(node: ResolvedNode) {
             if (!seen.add(node.id)) return
-            documentDeclIdOf(node.type)?.let { found += it }
+            documentDeclIdOf(node.type.value)?.let { found += it }
             for (children in node.slots.values) children.forEach(::walk)
         }
         walk(root)
@@ -606,7 +606,7 @@ public class KotlinGenerator<A : Any, T : Any>(
     // modifiers resolve against, and read from this walk rather than from `ResolvedNode.scopes`
     // because a set has no innermost.
     private fun emitNode(node: ResolvedNode, isRoot: Boolean, scopes: List<ScopeId>): KtExpr? {
-        val declared: ComponentDeclId? = documentDeclIdOf(node.type)
+        val declared: ComponentDeclId? = documentDeclIdOf(node.type.value)
         if (declared != null) return emitInstance(node, declared, isRoot, scopes)
         val spec: ComponentSpec? = schema.components[node.type]
         if (spec == null) {
@@ -622,11 +622,19 @@ public class KotlinGenerator<A : Any, T : Any>(
             }
             return emitter.emit(node)
         }
-        // The third variant is the only one left, and the sealed interface has three: a binding that is
-        // neither a custom emitter nor an intrinsic is a Compose call, so there is no fourth
-        // refusal left to make here. `Custom` and `Intrinsic` both return above, which is what
-        // narrows `binding` to `ComposeCall` for the rest of this function.
         if (binding is CodegenBinding.Intrinsic) return emitIntrinsic(node, spec)
+        // The third variant is the only one left, and the sealed interface has three: a binding
+        // that is neither a custom emitter nor an intrinsic is a Compose call. This has to be
+        // *written* as a narrowing check and not left to the two returns above: Kotlin cannot
+        // smart-cast to "whatever is left over", so dropping this line leaves `binding` typed as
+        // the sealed interface and every `binding.events` / `.slots` / `.function` below it is an
+        // error. It is unreachable for a three-variant sealed hierarchy, which is why it refuses
+        // rather than throws — the same answer the old check gave for a fourth variant that does
+        // not exist.
+        if (binding !is CodegenBinding.ComposeCall) {
+            refuse(DiagnosticCodes.CodegenNoBinding, node, "No compose call for '${node.type}'")
+            return null
+        }
         unboundEvent(binding, node)?.let { unbound ->
             refuse(DiagnosticCodes.CodegenNoBinding, node, "Event '$unbound' has no parameter to receive it")
             return null
@@ -754,7 +762,7 @@ public class KotlinGenerator<A : Any, T : Any>(
      */
     private fun emitIntrinsic(node: ResolvedNode, spec: ComponentSpec): KtExpr? =
         when (IntrinsicNodes.kindOf(spec)) {
-            IntrinsicNodes.SlotOutlet -> emitSlotOutlet(node)
+            IntrinsicNode.SlotOutlet -> emitSlotOutlet(node)
             null -> throw CodegenBug(
                 "Component '${spec.type}' declares intrinsic emission and has no emitter",
             )
