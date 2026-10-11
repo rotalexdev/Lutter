@@ -83,13 +83,17 @@ class PatchRoundTripTest {
             val patch = Patch(listOf(case.op))
 
             val applied = PatchApplier.apply(patch, case.before)
+            val restored = PatchApplier.apply(patch.inverse(), applied)
 
-            assertEquals(case.after, applied, "forward, ${case.name}")
-            assertEquals(
-                case.before,
-                PatchApplier.apply(patch.inverse(), applied),
-                "inverse, ${case.name}",
-            )
+            // The tree is asserted before the document, and both are asserted. `NodeTable`
+            // prints as `NodeTable(size=5)`, so a difference in the table reaches the message
+            // as nothing at all — two rounds of this table were spent reading two documents
+            // that printed identically. [treeOf] names the node instead, and the whole-document
+            // assertion is kept because it is the property and the tree is only part of it.
+            assertEquals(treeOf(case.after), treeOf(applied), "forward, ${case.name}: node tree")
+            assertEquals(case.after, applied, "forward, ${case.name}: whole document")
+            assertEquals(treeOf(case.before), treeOf(restored), "inverse, ${case.name}: node tree")
+            assertEquals(case.before, restored, "inverse, ${case.name}: whole document")
         }
     }
 
@@ -390,6 +394,34 @@ private class PatchCase(
     val after: UiDocument,
 )
 
+/**
+ * The document's node table as `id(type) slot:[children]` lines, one per row, ascending by id.
+ *
+ * `NodeTable.toString()` is `NodeTable(size=5)` — the size and nothing else — so an assertion
+ * about a whole [UiDocument] reports a difference inside the table as two documents that print
+ * identically. That is not a small annoyance: it is how a broken row here survived two rounds
+ * of review, because the message carried no evidence at all.
+ *
+ * Every row is printed, not only the ones reachable from a slot, because the failures worth
+ * catching are the ones where a row came back when it should have gone, or did not come back
+ * at all — and both of those are invisible in a reachable-only view.
+ *
+ * The order is the document's, not this function's: [dev.rotalex.lutter.model.doc.NodeTable.ids]
+ * is ascending by id by contract (§18.2), and slots are sorted by name for the same reason, so
+ * two runs on two targets produce the same string and a diff of two failures is readable.
+ */
+private fun treeOf(document: UiDocument): String = buildString {
+    for (id in document.nodes.ids()) {
+        val node = document.nodes.require(id)
+        val slots = node.slots.entries
+            .sortedBy { it.key.value }
+            .joinToString(" ") { (slot, children) ->
+                "$slot:" + children.joinToString(",", "[", "]") { it.value }
+            }
+        append(id.value).append('(').append(node.type.value).append(')').append(' ').append(slots).append('\n')
+    }
+}
+
 // ---------------------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------------------
@@ -462,17 +494,25 @@ private fun homePage(): Page = Page(id = HOME, name = "HomeScreen", route = "/ho
 private fun detailPage(): Page = Page(id = DETAIL, name = "DetailScreen", route = "/detail", root = ROOT)
 
 /**
- * The base document, and the only place the table's "before" states come from.
+ * The base document, and the only place the table's "before" and "after" states come from.
  *
  * Every defaulted parameter is a field one of the eight ops writes, so a row of the table names
  * the one thing it changes and nothing else has to be repeated. A `null` node removes a row
  * from the table rather than blanking a field, because `RemoveSubtree` is about rows and a row
  * that is present but unreferenced would not be testing the same thing.
+ *
+ * **The parameter order is load bearing.** `beta`'s default reads `betaContent`, which Kotlin
+ * only permits for a parameter declared *earlier* — so `betaContent` comes first here and the
+ * two cannot be swapped. They were, and `beta`'s default was a literal instead, which left
+ * `betaContent` a parameter that was declared, was passed by a row, and was read by nothing:
+ * the "move between two parents" row silently expressed an expectation the fixture then threw
+ * away. A fixture parameter that no row can affect is worse than no parameter, because the row
+ * reads as though it said something.
  */
 private fun document(
     alpha: Node? = alphaRow(),
-    beta: Node? = betaRow(listOf(LEAF)),
     betaContent: List<NodeId> = listOf(LEAF),
+    beta: Node? = betaRow(betaContent),
     gamma: Node? = gammaRow(),
     leaf: Node? = leafRow(),
     rootChildren: List<NodeId> = listOf(ALPHA, BETA, GAMMA),
