@@ -83,6 +83,26 @@ public interface RenderScope {
     public fun withScope(handle: ScopeHandle, content: @Composable RenderScope.() -> Unit)
 
     /**
+     * The `doc.*` instance whose declaration body is rendering, or null outside one.
+     *
+     * §5.5 gives a document component no renderer of its own: an instance draws its declaration's
+     * body, and a node in that body that renders a named slot has to reach the instance to learn
+     * which children were filled in. That is the whole of what this is for, and it is null for a
+     * page's own tree so a slot outlet outside a component body has nothing to draw.
+     */
+    public val instance: ResolvedNode?
+
+    /**
+     * Renders [node] as the instance of the declaration its type names (§5.7).
+     *
+     * The engine's own path for a node the renderer registry does not carry, so a `doc.*` type
+     * needs no renderer and no registry entry. A declaration whose body is missing, or one that
+     * instantiates itself, reports through [environment]'s diagnostics and renders nothing.
+     */
+    @Composable
+    public fun RenderInstance(node: ResolvedNode)
+
+    /**
      * Runs the handler [node] declares for [event], with [args] bound as its event arguments.
      *
      * The engine's side of a press. A renderer that binds an event calls this and nothing else,

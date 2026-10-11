@@ -3,6 +3,7 @@ package dev.rotalex.lutter.schema.overlay
 import dev.rotalex.lutter.model.doc.ComponentDecl
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.ActionId
+import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.ids.ModifierType
@@ -54,6 +55,27 @@ public fun documentComponentSpec(
         codegen = CodegenBinding.Intrinsic,
         origin = SpecOrigin.Document(decl.id),
     )
+}
+
+/**
+ * The declaration a `doc.*` type names, as the tail its namespace leaves — or null.
+ *
+ * The inverse of [documentComponentSpec], and the one place the namespace is read back. Runtime
+ * and codegen both have to answer "which declaration is this node?" from a type alone, and two
+ * copies of the prefix arithmetic would be two answers the day the spelling moved.
+ *
+ * A bare `String` rather than a [ComponentDeclId], because the caller builds the id from what
+ * comes back and that construction is a total function with its own validation. What is worth
+ * having in one place is the arithmetic, not the wrapping.
+ *
+ * A tail that is not a legal simple id reads as null rather than throwing: a component type
+ * arrives here from a document that may name something that does not exist, and the caller's
+ * question is whether this type is an instance at all.
+ */
+public fun documentDeclTailOf(type: String): String? {
+    if (!type.startsWith(DOCUMENT_PREFIX)) return null
+    val tail = type.substring(DOCUMENT_PREFIX.length)
+    return if (IdSyntax.isValidSimple(tail)) tail else null
 }
 
 /**
