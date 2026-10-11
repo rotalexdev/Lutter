@@ -95,6 +95,8 @@ public fun UiScreen(
             environment = environment,
             theme = DefaultThemeHandle(document.theme),
             runtime = runtime,
+            // The page's own scope owns no handle; the ones renderers open are nested inside it.
+            handle = null,
             expressions = expressions,
             // Material's press is a plain lambda, so dispatch cannot be composable and needs a
             // scope held here rather than remembered per call.
