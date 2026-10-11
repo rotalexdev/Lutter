@@ -63,6 +63,29 @@ import dev.rotalex.lutter.model.ids.SlotName
  * function's job is to make the change the patch describes and not to decide whether the
  * result is a legal document.
  *
+ * ### The one canonicalisation, and why §26.2's property needs it
+ *
+ * **An op that empties a slot removes that slot's key.** `{"content":[]}` becomes `{}`.
+ *
+ * It is here because the alternative is a broken inverse, and the case is short. Insert a
+ * child into a slot the node does not have, and the node's `slots` goes from `{}` to
+ * `{"content":["n_f"]}`. Undo it, and the only thing `PatchOp.RemoveSubtree` knows about the
+ * slot is that it held one child at index 0 — the parent's `slots` map as it was *before* the
+ * insertion is not in the op, is not in `RemovedSubtree`, and cannot be: §26.2 fixes
+ * `InsertNodes(parent, slot, index, nodes)` and `RemoveSubtree(root, captured)` down to those
+ * fields, and there is nowhere in either to record "this slot key was not there". Leaving the
+ * empty list behind restores `{"content":[]}`, which is not the document that was edited, and
+ * §26.2's property fails on the one case a user hits immediately — dropping the last child out
+ * of a component that has just been given one.
+ *
+ * So the applier picks the branch that round-trips, and pays for it with an honest limit:
+ * **a document that already spelled the empty slot comes back without it.** `Node.slots` is
+ * `Map<SlotName, List<NodeId>>` and every reader treats a missing key and an empty list
+ * identically — §15.4 walks the list, and an empty list renders nothing — so the two documents
+ * mean the same thing and differ only in bytes. `PatchRoundTripTest` asserts the limit rather
+ * than leaving it to be discovered, and this is the only place in this file that changes a
+ * document beyond what an op names.
+ *
  * @see PatchOp for the vocabulary, and for the three gaps in it this function cannot paper
  *   over.
  * @see PatchInverter for why the ops carry enough to be undone without a document.
@@ -213,7 +236,7 @@ public object PatchApplier {
         }
 
         val remaining: List<NodeId> = siblings.toMutableList().also { it.removeAt(from.index) }
-        return table.with(parent.copy(slots = parent.slots + (from.slot to remaining)))
+        return table.with(parent.copy(slots = withSlot(parent.slots, from.slot, remaining)))
     }
 
     /** Puts [id] at [to], returning the table with that done. */
@@ -226,8 +249,20 @@ public object PatchApplier {
         }
 
         val extended: List<NodeId> = siblings.toMutableList().also { it.add(to.index, id) }
-        return table.with(parent.copy(slots = parent.slots + (to.slot to extended)))
+        return table.with(parent.copy(slots = withSlot(parent.slots, to.slot, extended)))
     }
+
+    /**
+     * [slots] with [slot] holding exactly [children], or with [slot] gone when [children] is
+     * empty. See the class KDoc: this is the applier's one canonicalisation and it is load
+     * bearing for §26.2's property.
+     */
+    private fun withSlot(
+        slots: Map<SlotName, List<NodeId>>,
+        slot: SlotName,
+        children: List<NodeId>,
+    ): Map<SlotName, List<NodeId>> =
+        if (children.isEmpty()) slots - slot else slots + (slot to children)
 
     /**
      * [table] with [parent]'s [slot] holding exactly [children].
@@ -245,7 +280,7 @@ public object PatchApplier {
         children: List<NodeId>,
     ): UiDocument {
         val node = table.require(parent)
-        return document.copy(nodes = table.with(node.copy(slots = node.slots + (slot to children))))
+        return document.copy(nodes = table.with(node.copy(slots = withSlot(node.slots, slot, children))))
     }
 
     // -----------------------------------------------------------------------------------

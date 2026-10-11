@@ -47,13 +47,30 @@ import kotlinx.serialization.json.jsonPrimitive
  * something every reader can compute on the wire, where two engines could then disagree about
  * it. The key list is asserted rather than trusted.
  *
- * ### The `Json` here
+ * ### The `Json` here, and the one line that must not be shortened
  *
  * `:engine:serialization`'s single configured instance is `internal` to that module and §23.3
- * puts it out of this module's reach, so the default `Json` is used. That is deliberate: what is
- * under test is the *descriptors* these types generate — the serial names and the discriminator
- * key — and neither depends on configuration. `ValueTest` and `NodeTest` do the same thing for
- * the same reason.
+ * puts it out of this module's reach, so the default `Json` is used — the same one `ValueTest`,
+ * `TypeRefTest` and `NodeTest` use. The project's other spelling, `ForgeJson`'s
+ * `classDiscriminator = "k"`, applies only to a hierarchy that does not pin its own key, and
+ * every persisted hierarchy in `:engine:model` pins `"type"` through `@JsonClassDiscriminator`.
+ * This module pins `"type"` the same way, so the default `Json` is the right one.
+ *
+ * **Every [tagOf] call below names its hierarchy: `tagOf<PatchOp>(…)`, not `tagOf(…)`.** That
+ * is not ceremony, and getting it wrong fails the way this file first failed: with the type
+ * argument left to inference, `tagOf(PatchOp.InsertNodes(…))` makes `T` the *concrete class*,
+ * `serializer<T>()` resolves that class's own serializer instead of the sealed hierarchy's,
+ * and the encoder writes `{"parent":…,"slot":…}` with no discriminator at all. Nothing throws —
+ * the bytes are valid JSON and simply have no `type` key, so the failure surfaces as a
+ * `NoSuchElementException` from the lookup rather than as anything about serialization.
+ *
+ * `NodeTest`'s KDoc states the rule this file is following, and it is worth repeating because
+ * it is the single easiest mistake to make in this repository: *"every encode that asserts
+ * bytes pins its base type — `Json.encodeToString<Node>(node)`. `encodeToString` infers its
+ * type argument from the value, so an unannotated call resolves the concrete serializer and,
+ * for a sealed union, writes no discriminator at all."* `ValueTest` gets the same effect
+ * without the annotation because its fixture declares `val value: Value`, so inference lands on
+ * the hierarchy by accident of the fixture rather than by decision.
  */
 class PatchWireFormatTest {
 
@@ -72,18 +89,18 @@ class PatchWireFormatTest {
      */
     @Test
     fun `every op spells its own tag on the wire`() {
-        assertEquals("insertNodes", tagOf(PatchOp.InsertNodes(root, children, 0, listOf(childRow))))
+        assertEquals("insertNodes", tagOf<PatchOp>(PatchOp.InsertNodes(root, children, 0, listOf(childRow))))
         assertEquals(
             "removeSubtree",
-            tagOf(PatchOp.RemoveSubtree(child, RemovedSubtree(root, children, 0, listOf(childRow)))),
+            tagOf<PatchOp>(PatchOp.RemoveSubtree(child, RemovedSubtree(root, children, 0, listOf(childRow)))),
         )
         assertEquals(
             "moveNode",
-            tagOf(PatchOp.MoveNode(child, Placement(root, children, 0), Placement(root, content, 0))),
+            tagOf<PatchOp>(PatchOp.MoveNode(child, Placement(root, children, 0), Placement(root, content, 0))),
         )
         assertEquals(
             "setProp",
-            tagOf(
+            tagOf<PatchOp>(
                 PatchOp.SetProp(
                     child,
                     PropertyKey("text"),
@@ -94,11 +111,13 @@ class PatchWireFormatTest {
         )
         assertEquals(
             "setModifiers",
-            tagOf(PatchOp.SetModifiers(child, listOf(ModifierEntry(ModifierType("layout.padding"))), emptyList())),
+            tagOf<PatchOp>(
+                PatchOp.SetModifiers(child, listOf(ModifierEntry(ModifierType("layout.padding"))), emptyList()),
+            ),
         )
         assertEquals(
             "setHandler",
-            tagOf(
+            tagOf<PatchOp>(
                 PatchOp.SetHandler(
                     child,
                     EventKey("onClick"),
@@ -107,12 +126,16 @@ class PatchWireFormatTest {
                 ),
             ),
         )
-        assertEquals("setNodeName", tagOf(PatchOp.SetNodeName(child, null, "a")))
-        assertEquals("putRecord", tagOf(PatchOp.PutRecord(RecordRef.Theme(ThemeId("t_base")), null, null)))
+        assertEquals("setNodeName", tagOf<PatchOp>(PatchOp.SetNodeName(child, null, "a")))
+        assertEquals(
+            "putRecord",
+            tagOf<PatchOp>(PatchOp.PutRecord(RecordRef.Theme(ThemeId("t_base")), null, null)),
+        )
 
         // The two inner hierarchies are the same argument one level down, and they guard the
         // same failure: a `PutRecord` whose `ref` and whose record disagree about what they are
-        // would decode as a reference to one thing carrying another.
+        // would decode as a reference to one thing carrying another. These two already named
+        // their hierarchy, which is what the eight above had to be taught to do.
         assertEquals("theme", tagOf<RecordRef>(RecordRef.Theme(ThemeId("t_base"))))
         assertEquals("page", tagOf<Record>(Record.Page(Page(PageId("p_home"), "Home", "/home", root = root))))
     }
@@ -185,7 +208,14 @@ class PatchWireFormatTest {
         }
     }
 
-    /** The discriminator of [value], read back out of its encoded form. */
+    /**
+     * The discriminator of [value], read back out of its encoded form.
+     *
+     * `encodeToString<T>` rather than `encodeToString`, always — see the class KDoc. With `T`
+     * pinned to the hierarchy, `serializer<T>()` is the sealed serializer and the tag is
+     * written; with `T` inferred from the argument, it is the concrete class's serializer and
+     * there is no tag to read.
+     */
     private inline fun <reified T> tagOf(value: T): String =
         Json.parseToJsonElement(Json.encodeToString<T>(value)).jsonObject.tag()
 

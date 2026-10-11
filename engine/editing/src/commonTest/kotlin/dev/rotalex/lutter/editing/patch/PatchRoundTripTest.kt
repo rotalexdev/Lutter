@@ -114,19 +114,14 @@ class PatchRoundTripTest {
      * Insert, then remove, then move, on one tree — undone in reverse.
      *
      * Every position here is a position in the document *as the op before it left it*, and that
-     * is the only reason this works. `n_f` is inserted at index 0, which pushes `n_a` to 1 —
+     * is the only reason this works. `n_f` goes in at index 0, which pushes `n_a` from 0 to 1 —
      * and the removal says 1, and is only correct because the insert ran first. Removing `n_a`
      * then pushes `n_c` from 3 to 2, and the move says 2. Nothing recomputes anything, and
-     * nothing could: every index was fixed when the op was planned, against a document state
+     * nothing could: every index was fixed when its op was planned, against a document state
      * that exists only as the result of the ops before it.
      *
-     * The last assertion is the point of the whole file. The three inverted ops *do* round trip
-     * when applied in reverse order and are *refused* when applied in the order they were
-     * written — the insertion's inverse wants `n_f` at index 0 of a slot that now reads
-     * `[n_c, n_f, n_b]`, so it would delete the wrong node, and the applier's position check is
-     * what catches it. That is what a plausible "invert each op, keep the order" implementation
-     * would produce: a `Patch` that satisfies every single-op round trip and fails the only
-     * property anybody asked for.
+     * The trace is asserted step by step because the end state alone cannot say *why* the
+     * removal says 1 or the move says 2, and those two numbers are the whole subject.
      */
     @Test
     fun `the ops interact on one tree and the inverse undoes them in reverse order`() {
@@ -137,16 +132,15 @@ class PatchRoundTripTest {
         val move = PatchOp.MoveNode(GAMMA, Placement(ROOT, CHILDREN, 2), Placement(ROOT, CHILDREN, 0))
         val patch = Patch(listOf(insert, remove, move))
 
-        // The intermediate steps, asserted one at a time, because the end state alone cannot
-        // say *why* the removal says 1 or the move says 2.
         assertEquals(
             listOf(FALCON, ALPHA, BETA, GAMMA),
             PatchApplier.apply(Patch(listOf(insert)), before).nodes.require(ROOT).slots[CHILDREN],
             "the insert did not push n_a to the index the removal names",
         )
-        assertNull(
-            PatchApplier.apply(Patch(listOf(insert, remove)), before).nodes[ALPHA],
-            "the removal did not take the row it captured",
+        assertEquals(
+            listOf(FALCON, BETA, GAMMA),
+            PatchApplier.apply(Patch(listOf(insert, remove)), before).nodes.require(ROOT).slots[CHILDREN],
+            "the removal did not close the gap that moved n_c to index 2",
         )
 
         val after = PatchApplier.apply(patch, before)
@@ -155,10 +149,55 @@ class PatchRoundTripTest {
         assertNull(after.nodes[ALPHA], "the removed node is still in the table")
 
         assertEquals(before, PatchApplier.apply(patch.inverse(), after), "the inverse did not restore it")
+    }
 
-        // The same three ops over the same document, in the order the patch was written in.
-        assertFailsWith<IllegalArgumentException>(message = "reversal is what makes this invertible") {
-            PatchApplier.apply(Patch(patch.inverse().ops), after)
+    /**
+     * Inverting each op is not enough — the list has to be reversed as well.
+     *
+     * The two lists below hold the same three ops and differ by nothing but their order. One is
+     * what [Patch.inverse] returns and it restores the document. The other is what a plausible
+     * implementation produces by inverting op by op and leaving the list alone, and the
+     * applier refuses its very first op: the insertion's inverse says `n_f` was at index 0 of
+     * `n_root`'s `children`, and index 0 now holds `n_c`, which the move put there.
+     *
+     * That refusal is the point of [PatchApplier]'s position checks. §5.6's normalized
+     * document is built so that a wrong-order result is *invisible* to every existence check in
+     * the engine — every row is still present and every slot still names real nodes — so the
+     * applier comparing the id it expects against the id it finds is the only place in the
+     * engine that can catch a patch applied to the wrong moment.
+     *
+     * The in-place list is written out by hand rather than derived from `patch.inverse().ops`,
+     * and that is deliberate. `inverse().ops` is *already* reversed, so reading both lists off
+     * the same call is how an earlier draft of this file came to assert that the correct order
+     * fails. The two lists here are the claim: they differ only by order, and only one of them
+     * applies.
+     */
+    @Test
+    fun `inverting each op without reversing the list is refused`() {
+        val before = document()
+        val patch = Patch(
+            listOf(
+                PatchOp.InsertNodes(ROOT, CHILDREN, 0, listOf(falconRow())),
+                PatchOp.RemoveSubtree(ALPHA, RemovedSubtree(ROOT, CHILDREN, 1, listOf(alphaRow()))),
+                PatchOp.MoveNode(GAMMA, Placement(ROOT, CHILDREN, 2), Placement(ROOT, CHILDREN, 0)),
+            ),
+        )
+        val after = PatchApplier.apply(patch, before)
+
+        val reversed = patch.inverse().ops
+        val inPlace = listOf(
+            PatchOp.RemoveSubtree(FALCON, RemovedSubtree(ROOT, CHILDREN, 0, listOf(falconRow()))),
+            PatchOp.InsertNodes(ROOT, CHILDREN, 1, listOf(alphaRow())),
+            PatchOp.MoveNode(GAMMA, Placement(ROOT, CHILDREN, 0), Placement(ROOT, CHILDREN, 2)),
+        )
+
+        assertEquals(reversed.toSet(), inPlace.toSet(), "the two lists hold different ops")
+        assertEquals(listOf(GAMMA, FALCON, BETA), after.nodes.require(ROOT).slots.getValue(CHILDREN))
+
+        assertEquals(before, PatchApplier.apply(Patch(reversed), after))
+
+        assertFailsWith<IllegalArgumentException>(message = "order is part of the inverse, not a detail") {
+            PatchApplier.apply(Patch(inPlace), after)
         }
     }
 
@@ -236,6 +275,47 @@ class PatchRoundTripTest {
             Patch(listOf(PatchOp.PutRecord(RecordRef.Theme(BASE_THEME), null, null))).touchedNodes.isEmpty(),
             "a record op addresses a declaration, not a node",
         )
+    }
+
+    // -----------------------------------------------------------------------------------
+    // The one canonicalisation, pinned rather than discovered
+    // -----------------------------------------------------------------------------------
+
+    /**
+     * Undoing an insert into a slot the node did not have comes back to *no slot*, not to an
+     * empty one — and a document that spelled the empty slot comes back without it.
+     *
+     * This is `PatchApplier`'s documented canonicalisation, asserted here because a limit that
+     * is only prose is a limit the next reader re-discovers as a bug. See the applier's class
+     * KDoc for why there is no alternative: §26.2 fixes `InsertNodes(parent, slot, index,
+     * nodes)`, so no op can record that the slot key was absent, and the applier has to pick
+     * one spelling of "this slot holds nothing".
+     *
+     * It picks the one that round-trips, because a node whose only child was just deleted is
+     * the common case and it must come back exactly as it was. The price is that
+     * `{"content":[]}` and `{}` converge — they mean the same thing to every reader, and they
+     * differ only in bytes, so the two documents were already interchangeable and now they
+     * *are* interchangeable rather than merely equivalent.
+     */
+    @Test
+    fun `an emptied slot is dropped from the parent rather than left holding an empty list`() {
+        val absent = document()
+        val spelled = document(
+            gamma = Node(id = GAMMA, type = ComponentType("m3.Text"), slots = mapOf(CONTENT to emptyList())),
+        )
+        val patch = Patch(listOf(PatchOp.InsertNodes(GAMMA, CONTENT, 0, listOf(falconRow()))))
+
+        // The round trip that §26.2's property requires: the slot was absent, and it is
+        // absent again rather than present-and-empty.
+        val undone = PatchApplier.apply(patch.inverse(), PatchApplier.apply(patch, absent))
+
+        assertEquals(absent, undone, "undoing an insert into an absent slot did not restore the document")
+        assertEquals(emptyMap(), undone.nodes.require(GAMMA).slots, "an emptied slot key survived")
+
+        // And the limit, stated as a fact rather than as a hope: the two spellings converge.
+        val undoneSpelled = PatchApplier.apply(patch.inverse(), PatchApplier.apply(patch, spelled))
+
+        assertEquals(absent, undoneSpelled, "the canonicalisation does not converge as documented")
     }
 
     // -----------------------------------------------------------------------------------
