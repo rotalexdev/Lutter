@@ -84,8 +84,18 @@ class ThemeHandleTest {
     }
 
     @Test
-    fun `an empty role refuses, because there is no style to draw`() {
-        assertNull(textStyleOf(emptyMap()))
+    fun `an empty role draws as the default, because an absent key is not a refusal`() {
+        // The neighbour above is the whole rule: what refuses is a key carrying the *wrong
+        // kind*. An absent key is `TextUnit.Unspecified`, so a role with nothing in it has no
+        // wrong kind and must not refuse — otherwise the engine's answer to "no size was
+        // declared" would depend on whether some other key happened to be declared, which is
+        // a distinction the document's author never made.
+        val style: TextStyle = assertNotNull(textStyleOf(emptyMap()))
+
+        assertEquals(TextUnit.Unspecified, style.fontSize)
+        assertEquals(TextUnit.Unspecified, style.lineHeight)
+        assertEquals(TextUnit.Unspecified, style.letterSpacing)
+        assertEquals(Color.Unspecified, style.color)
     }
 
     @Test
