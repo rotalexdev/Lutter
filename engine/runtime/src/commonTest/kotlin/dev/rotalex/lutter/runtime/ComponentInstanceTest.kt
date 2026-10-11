@@ -268,7 +268,7 @@ class ComponentInstanceTest {
             runtime,
             null,
             ExpressionSource(Evaluator(), MapEvalScope(MapStateStore())),
-            NoScope,
+            NoScope(),
             actions,
             declarations,
         )

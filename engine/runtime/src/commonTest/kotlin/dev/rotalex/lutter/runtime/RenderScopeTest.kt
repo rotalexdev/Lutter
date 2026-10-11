@@ -167,10 +167,13 @@ class RenderScopeTest {
             null,
             expressions(),
             TestScope(),
-        ) { args ->
-            val store = MapStateStore()
-            ScreenActionEnv(MapEvalScope(store), store, RuntimeEnvironment(StubNavigator), args)
-        }
+            // Named, not a trailing lambda: `DefaultRenderScope` grew parameters after
+            // `actionEnv`, and a trailing lambda binds to the last one.
+            actionEnv = { args ->
+                val store = MapStateStore()
+                ScreenActionEnv(MapEvalScope(store), store, RuntimeEnvironment(StubNavigator), args)
+            },
+        )
     }
 
     private fun expressions(): ExpressionSource =
