@@ -383,6 +383,9 @@ class ComponentCodegenTest {
             key,
             PropertyValue.Computed(Expr.Ref(reference)),
             PropOrigin.Specified,
+            // `token` is §14's design-token resolution and this prop names no token; `typed` is
+            // the check, and it is the fifth parameter, not the fourth.
+            null,
             TypedExpr(Expr.Ref(reference), TypeRef.Str, setOf(reference)),
         )
     }
