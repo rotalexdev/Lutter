@@ -267,6 +267,11 @@ public final class dev/rotalex/lutter/analysis/resolved/ResolvedTheme {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/analysis/resolved/ResolvedThemeKt {
+	public static final fun materialRoleOf (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+	public static synthetic fun materialRoleOf$default (Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ljava/lang/String;
+}
+
 public final class dev/rotalex/lutter/analysis/resolved/ResolvedToken {
 	public fun <init> (Ldev/rotalex/lutter/model/type/TokenKind;Ljava/lang/String;Ldev/rotalex/lutter/analysis/resolved/TokenSource;)V
 	public final fun component1 ()Ldev/rotalex/lutter/model/type/TokenKind;
