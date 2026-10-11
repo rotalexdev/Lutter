@@ -146,7 +146,7 @@ class PatchWireFormatTest {
                 PatchOp.SetNodeName(child, null, null),
                 PatchOp.PutRecord(
                     RecordRef.State(StateId("s_count"), 0),
-                    StateDecl(id = StateId("s_count"), name = "count", type = TypeRef.Str),
+                    Record.State(StateDecl(id = StateId("s_count"), name = "count", type = TypeRef.Str)),
                     null,
                 ),
             ),

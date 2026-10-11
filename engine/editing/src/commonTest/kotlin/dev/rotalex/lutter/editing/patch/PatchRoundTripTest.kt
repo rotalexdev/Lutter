@@ -510,7 +510,7 @@ private val CASES: List<PatchCase> = listOf(
     PatchCase(
         name = "remove a theme",
         before = document(themes = mapOf(BASE_THEME to BASE_THEME_DECL)),
-        op = PatchOp.PutRecord(RecordRef.Theme(BASE_THEME), BASE_THEME_DECL, null),
+        op = PatchOp.PutRecord(RecordRef.Theme(BASE_THEME), Record.Theme(BASE_THEME_DECL), null),
         after = document(),
     ),
     PatchCase(
