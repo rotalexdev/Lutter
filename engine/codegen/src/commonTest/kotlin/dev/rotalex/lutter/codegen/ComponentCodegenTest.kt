@@ -14,6 +14,7 @@ import dev.rotalex.lutter.model.doc.ComponentDecl
 import dev.rotalex.lutter.model.doc.ParamDecl
 import dev.rotalex.lutter.model.doc.SlotDecl
 import dev.rotalex.lutter.model.expr.Expr
+import dev.rotalex.lutter.model.expr.ExprType
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.expr.RefTarget
 import dev.rotalex.lutter.model.expr.TypedExpr
@@ -386,7 +387,7 @@ class ComponentCodegenTest {
             // `token` is §14's design-token resolution and this prop names no token; `typed` is
             // the check, and it is the fifth parameter, not the fourth.
             null,
-            TypedExpr(Expr.Ref(reference), TypeRef.Str, setOf(reference)),
+            TypedExpr(Expr.Ref(reference), ExprType.Of(TypeRef.Str), setOf(reference)),
         )
     }
 
