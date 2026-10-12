@@ -166,8 +166,10 @@ internal fun slotFilterRejections(
 
 /** "This component has no such slot", which the other two refusals cannot be asked without. */
 private fun undeclaredSlot(spec: ComponentSpec, parent: NodeId, slot: SlotName): Diagnostic = Diagnostic(
+severity = Severity.Error,
     code = EditCodes.UndeclaredSlot,
-    node = parent,
+    location = DiagnosticLocation(
+        nodeId = parent,
     message = "'${spec.type}' declares no slot named '$slot'",
     args = mapOf("component" to spec.type.value, "slot" to slot.value),
 )
@@ -268,7 +270,7 @@ internal fun danglingChildren(document: UiDocument, node: Node): List<NodeId> =
  * file another work unit owns is the smaller of the two mistakes.
  */
 internal fun remapIds(rows: List<Node>, fresh: List<NodeId>): List<Node> {
-    val mapping: Map<NodeId, NodeId> = rows.zip(fresh).toMap()
+    val mapping: Map<NodeId, NodeId> = rows.zip(fresh) { row, id -> row.id to id }.toMap()
     return rows.map { node ->
         node.copy(
             id = mapping.getValue(node.id),
