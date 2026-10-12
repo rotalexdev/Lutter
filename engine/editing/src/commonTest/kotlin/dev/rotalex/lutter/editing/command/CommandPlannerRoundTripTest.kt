@@ -108,7 +108,28 @@ class CommandPlannerRoundTripTest {
     }
 }
 
-/** One row: the command, the document it is planned against, the ops, and what they produce. */
+/**
+ * One row: the command, the document it is planned against, the ops, and what they produce.
+ *
+ * ### The rule a row's `rows` expression has to keep
+ *
+ * **A command that re-parents a node changes where a row points, never whether it exists.**
+ * `rows` is a list of `Node`s and `BASE_ROWS - x` removes one from the *document*, not from a
+ * slot, so a row that moves a node and then subtracts that node's row is asserting a deletion
+ * the planner never made — and the failure it produces reads like an applier bug, because the
+ * expected tree is simply one row short.
+ *
+ * So: **subtract the row whose own content the edit rewrites, and never the row that merely
+ * changed parent.** `MoveNode` subtracts `betaNode()` (it holds `n_a` afterwards) and leaves
+ * `alphaNode()` alone. `RemoveNode` and `UnwrapNode` are the rows where subtraction *is* the
+ * scenario, because there the rows really do leave the table — `UnwrapNode(BETA)` dissolves
+ * `n_b` itself while `n_d` and `n_e` are lifted into its place and stay.
+ *
+ * This is the mirror of the defect `PatchRoundTripTest`'s fixture KDoc records, not the same
+ * defect: there a fixture parameter was declared, passed by a row and read by nothing, so the
+ * row's request was silently discarded. Here nothing is discarded — `plannerDocument` is a
+ * total helper and every parameter of it is read — and the row simply asked for too much.
+ */
 private class PlanCase(
     val name: String,
     val before: UiDocument,
@@ -205,7 +226,12 @@ private val CASES: List<PlanCase> = listOf(
         ops = listOf(PatchOp.MoveNode(ALPHA, Placement(ROOT, CHILDREN, 0), Placement(BETA, CHILDREN, 1))),
         after = plannerDocument(
             rootChildren = listOf(BETA, GAMMA, FOXTROT, GOLF),
-            rows = BASE_ROWS - alphaNode() + Node(
+            // `betaNode()` is what comes out, not `alphaNode()`. A move relocates a row and
+            // rewrites no row, so `n_a` is still in the table afterwards — only its parent
+            // changed, which is what the new `n_b` and the new `rootChildren` above say. The
+            // first version of this row subtracted `alphaNode()` and the expected tree came
+            // back one row short of the one the applier produced; see the rule on [PlanCase].
+            rows = BASE_ROWS - betaNode() + Node(
                 id = BETA,
                 type = COLUMN,
                 slots = mapOf(CHILDREN to listOf(DELTA, ALPHA, ECHO)),
