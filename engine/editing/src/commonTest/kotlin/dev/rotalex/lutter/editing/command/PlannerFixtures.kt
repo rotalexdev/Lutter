@@ -23,6 +23,7 @@ import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.SequentialIdGenerator
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.type.TypeRef
+import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.Schema
 import dev.rotalex.lutter.schema.SchemaBuilder
 import dev.rotalex.lutter.schema.component.Cardinality

@@ -8,6 +8,7 @@ import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.Page
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.IdGenerator
+import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.SlotName
 import kotlin.reflect.KClass
