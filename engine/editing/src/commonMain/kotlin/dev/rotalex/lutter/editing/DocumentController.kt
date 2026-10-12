@@ -193,10 +193,10 @@ public class DocumentController<A : Any, F : Any, T : Any>(
                 "building rather than against the one it has not published yet"
         }
 
-        val planned: CommandResult = CommandPlanner.plan(command, stateFlow.value.document, schema, ids)
-        if (planned is CommandResult.Rejected) return planned
-
-        val patch: Patch = planned.patch
+        val patch: Patch = when (val planned = CommandPlanner.plan(command, stateFlow.value.document, schema, ids)) {
+            is CommandResult.Ok -> planned.patch
+            is CommandResult.Rejected -> return planned
+        }
         val applied: UiDocument = PatchApplier.apply(patch, stateFlow.value.document)
 
         // Recorded before the publish, so the `canUndo` and `canRedo` the publish copies out
@@ -317,10 +317,13 @@ public class DocumentController<A : Any, F : Any, T : Any>(
 
         override fun dispatch(command: Command): CommandResult {
             val planned: CommandResult = CommandPlanner.plan(command, document, schema, ids)
-            if (planned is CommandResult.Rejected) return planned
+            val patch: Patch = when (planned) {
+                is CommandResult.Ok -> planned.patch
+                is CommandResult.Rejected -> return planned
+            }
 
-            document = PatchApplier.apply(planned.patch, document)
-            ops.addAll(planned.patch.ops)
+            document = PatchApplier.apply(patch, document)
+            ops.addAll(patch.ops)
             return planned
         }
     }
