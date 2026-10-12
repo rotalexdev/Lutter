@@ -166,10 +166,9 @@ internal fun slotFilterRejections(
 
 /** "This component has no such slot", which the other two refusals cannot be asked without. */
 private fun undeclaredSlot(spec: ComponentSpec, parent: NodeId, slot: SlotName): Diagnostic = Diagnostic(
-severity = Severity.Error,
+    severity = Severity.Error,
     code = EditCodes.UndeclaredSlot,
-    location = DiagnosticLocation(
-        nodeId = parent,
+    location = DiagnosticLocation(nodeId = parent),
     message = "'${spec.type}' declares no slot named '$slot'",
     args = mapOf("component" to spec.type.value, "slot" to slot.value),
 )
