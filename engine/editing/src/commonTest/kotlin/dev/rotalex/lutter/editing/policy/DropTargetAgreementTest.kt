@@ -297,7 +297,7 @@ class DropTargetAgreementTest {
 
         for (parentId in document.nodes.ids()) {
             val parent: Node = document.nodes[parentId] ?: continue
-            val spec: ComponentSpec? = components[parent.type] ?: continue
+            val spec: ComponentSpec = components[parent.type] ?: continue
             for (slot in spec.slots) {
                 found += DropTarget(parentId, slot.name, parent.slots[slot.name].orEmpty().size)
             }
