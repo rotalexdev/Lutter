@@ -1,6 +1,6 @@
 public final class dev/rotalex/lutter/codegen/ActionEmitter {
 	public fun <init> (Ldev/rotalex/lutter/schema/registry/Registry;Ldev/rotalex/lutter/codegen/ExprEmitter;Ljava/util/Map;Ldev/rotalex/lutter/codegen/HostDecl;Ldev/rotalex/lutter/codegen/CodegenOptions;Ljava/util/List;)V
-	public final fun emit (Ldev/rotalex/lutter/model/action/ActionSequence;Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;)Ljava/util/List;
+	public final fun emit (Ldev/rotalex/lutter/model/action/ActionSequence;Ldev/rotalex/lutter/model/diagnostic/DiagnosticLocation;)Ljava/util/List;
 	public final fun getImports ()Ljava/util/List;
 }
 
@@ -809,7 +809,7 @@ public final class dev/rotalex/lutter/codegen/StateEmitter {
 	public final fun pageParameter (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;)Ldev/rotalex/lutter/codegen/KtParam;
 	public final fun pageState (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;)Ljava/util/List;
 	public final fun readInScreen-P6upbFI (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtExpr;
-	public final fun refusal (Ldev/rotalex/lutter/analysis/resolved/ResolvedState;Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;)Ldev/rotalex/lutter/analysis/diagnostic/Diagnostic;
+	public final fun refusal (Ldev/rotalex/lutter/analysis/resolved/ResolvedState;Ldev/rotalex/lutter/model/diagnostic/DiagnosticLocation;)Ldev/rotalex/lutter/model/diagnostic/Diagnostic;
 }
 
 public final class dev/rotalex/lutter/codegen/StateEmitter$Companion {

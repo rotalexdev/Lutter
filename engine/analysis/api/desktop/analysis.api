@@ -10,126 +10,46 @@ public final class dev/rotalex/lutter/analysis/Analyzer {
 	public final fun analyze (Ldev/rotalex/lutter/model/doc/UiDocument;)Ldev/rotalex/lutter/analysis/AnalysisResult;
 }
 
-public final class dev/rotalex/lutter/analysis/diagnostic/Diagnostic {
-	public synthetic fun <init> (Ldev/rotalex/lutter/analysis/diagnostic/Severity;Ljava/lang/String;Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;Ljava/lang/String;Ljava/util/Map;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public synthetic fun <init> (Ldev/rotalex/lutter/analysis/diagnostic/Severity;Ljava/lang/String;Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;Ljava/lang/String;Ljava/util/Map;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Ldev/rotalex/lutter/analysis/diagnostic/Severity;
-	public final fun component2-6lSHpRw ()Ljava/lang/String;
-	public final fun component3 ()Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;
-	public final fun component4 ()Ljava/lang/String;
-	public final fun component5 ()Ljava/util/Map;
-	public final fun component6 ()Ljava/util/List;
-	public final fun copy-KQKcPEo (Ldev/rotalex/lutter/analysis/diagnostic/Severity;Ljava/lang/String;Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;Ljava/lang/String;Ljava/util/Map;Ljava/util/List;)Ldev/rotalex/lutter/analysis/diagnostic/Diagnostic;
-	public static synthetic fun copy-KQKcPEo$default (Ldev/rotalex/lutter/analysis/diagnostic/Diagnostic;Ldev/rotalex/lutter/analysis/diagnostic/Severity;Ljava/lang/String;Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;Ljava/lang/String;Ljava/util/Map;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/analysis/diagnostic/Diagnostic;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getArgs ()Ljava/util/Map;
-	public final fun getCode-6lSHpRw ()Ljava/lang/String;
-	public final fun getLocation ()Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;
-	public final fun getMessage ()Ljava/lang/String;
-	public final fun getSeverity ()Ldev/rotalex/lutter/analysis/diagnostic/Severity;
-	public final fun getSuggestions ()Ljava/util/List;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
-public final class dev/rotalex/lutter/analysis/diagnostic/DiagnosticCode {
-	public static final synthetic fun box-impl (Ljava/lang/String;)Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticCode;
-	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
-	public fun equals (Ljava/lang/Object;)Z
-	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
-	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
-	public final fun getValue ()Ljava/lang/String;
-	public fun hashCode ()I
-	public static fun hashCode-impl (Ljava/lang/String;)I
-	public fun toString ()Ljava/lang/String;
-	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
-	public final synthetic fun unbox-impl ()Ljava/lang/String;
-}
-
 public final class dev/rotalex/lutter/analysis/diagnostic/DiagnosticCodes {
 	public static final field INSTANCE Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticCodes;
-	public final fun getActionArgInvalid-6lSHpRw ()Ljava/lang/String;
-	public final fun getActionStateNotWritable-6lSHpRw ()Ljava/lang/String;
-	public final fun getActionUnknown-6lSHpRw ()Ljava/lang/String;
-	public final fun getCodegenNameCollision-6lSHpRw ()Ljava/lang/String;
-	public final fun getCodegenNoBinding-6lSHpRw ()Ljava/lang/String;
-	public final fun getCodegenNoTypeSpelling-6lSHpRw ()Ljava/lang/String;
-	public final fun getCodegenStrategyUnsupported-6lSHpRw ()Ljava/lang/String;
-	public final fun getComponentChildNotAllowed-6lSHpRw ()Ljava/lang/String;
-	public final fun getComponentConflictingProperties-6lSHpRw ()Ljava/lang/String;
-	public final fun getComponentSlotCardinality-6lSHpRw ()Ljava/lang/String;
-	public final fun getComponentSlotUnknown-6lSHpRw ()Ljava/lang/String;
-	public final fun getComponentUnknown-6lSHpRw ()Ljava/lang/String;
-	public final fun getExprNullableAccess-6lSHpRw ()Ljava/lang/String;
-	public final fun getExprTypeMismatch-6lSHpRw ()Ljava/lang/String;
-	public final fun getExprUnknownFunction-6lSHpRw ()Ljava/lang/String;
-	public final fun getExprUnresolvedRef-6lSHpRw ()Ljava/lang/String;
-	public final fun getModifierArgInvalid-6lSHpRw ()Ljava/lang/String;
-	public final fun getModifierScopeMissing-6lSHpRw ()Ljava/lang/String;
-	public final fun getModifierUnknown-6lSHpRw ()Ljava/lang/String;
-	public final fun getNameReserved-6lSHpRw ()Ljava/lang/String;
-	public final fun getNavArgsMismatch-6lSHpRw ()Ljava/lang/String;
-	public final fun getPropEnumEntryInvalid-6lSHpRw ()Ljava/lang/String;
-	public final fun getPropNotBindable-6lSHpRw ()Ljava/lang/String;
-	public final fun getPropRange-6lSHpRw ()Ljava/lang/String;
-	public final fun getPropRequiredMissing-6lSHpRw ()Ljava/lang/String;
-	public final fun getPropTypeMismatch-6lSHpRw ()Ljava/lang/String;
-	public final fun getPropUnknown-6lSHpRw ()Ljava/lang/String;
-	public final fun getRefDangling-6lSHpRw ()Ljava/lang/String;
-	public final fun getRefKindMismatch-6lSHpRw ()Ljava/lang/String;
-	public final fun getResourceUnknown-6lSHpRw ()Ljava/lang/String;
-	public final fun getStructCycle-6lSHpRw ()Ljava/lang/String;
-	public final fun getStructDuplicateId-6lSHpRw ()Ljava/lang/String;
-	public final fun getStructMissingNode-6lSHpRw ()Ljava/lang/String;
-	public final fun getStructMissingRoot-6lSHpRw ()Ljava/lang/String;
-	public final fun getStructMultipleParents-6lSHpRw ()Ljava/lang/String;
-	public final fun getStructOrphan-6lSHpRw ()Ljava/lang/String;
-	public final fun getTokenUnknown-6lSHpRw ()Ljava/lang/String;
-	public final fun getValueNonFinite-6lSHpRw ()Ljava/lang/String;
-}
-
-public final class dev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation {
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/String;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/String;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1-3crtHuc ()Ljava/lang/String;
-	public final fun component2-mioi_pY ()Ljava/lang/String;
-	public final fun component3-05jdo6Y ()Ljava/lang/String;
-	public final fun component4-rE79kGE ()Ljava/lang/String;
-	public final fun component5 ()Ljava/lang/Integer;
-	public final fun component6-wGiQZ7k ()Ljava/lang/String;
-	public final fun component7 ()Ljava/util/List;
-	public final fun copy-q5aSIiI (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/String;Ljava/util/List;)Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;
-	public static synthetic fun copy-q5aSIiI$default (Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticLocation;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getComponentDeclId-mioi_pY ()Ljava/lang/String;
-	public final fun getEvent-wGiQZ7k ()Ljava/lang/String;
-	public final fun getModifierIndex ()Ljava/lang/Integer;
-	public final fun getNodeId-05jdo6Y ()Ljava/lang/String;
-	public final fun getPageId-3crtHuc ()Ljava/lang/String;
-	public final fun getPath ()Ljava/util/List;
-	public final fun getProperty-rE79kGE ()Ljava/lang/String;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
-public final class dev/rotalex/lutter/analysis/diagnostic/Severity : java/lang/Enum {
-	public static final field Error Ldev/rotalex/lutter/analysis/diagnostic/Severity;
-	public static final field Info Ldev/rotalex/lutter/analysis/diagnostic/Severity;
-	public static final field Warning Ldev/rotalex/lutter/analysis/diagnostic/Severity;
-	public static fun getEntries ()Lkotlin/enums/EnumEntries;
-	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/analysis/diagnostic/Severity;
-	public static fun values ()[Ldev/rotalex/lutter/analysis/diagnostic/Severity;
-}
-
-public final class dev/rotalex/lutter/analysis/diagnostic/Suggestion {
-	public fun <init> (Ljava/lang/String;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;)Ldev/rotalex/lutter/analysis/diagnostic/Suggestion;
-	public static synthetic fun copy$default (Ldev/rotalex/lutter/analysis/diagnostic/Suggestion;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/analysis/diagnostic/Suggestion;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getLabel ()Ljava/lang/String;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
+	public final fun getActionArgInvalid-a0Ipk4o ()Ljava/lang/String;
+	public final fun getActionStateNotWritable-a0Ipk4o ()Ljava/lang/String;
+	public final fun getActionUnknown-a0Ipk4o ()Ljava/lang/String;
+	public final fun getCodegenNameCollision-a0Ipk4o ()Ljava/lang/String;
+	public final fun getCodegenNoBinding-a0Ipk4o ()Ljava/lang/String;
+	public final fun getCodegenNoTypeSpelling-a0Ipk4o ()Ljava/lang/String;
+	public final fun getCodegenStrategyUnsupported-a0Ipk4o ()Ljava/lang/String;
+	public final fun getComponentChildNotAllowed-a0Ipk4o ()Ljava/lang/String;
+	public final fun getComponentConflictingProperties-a0Ipk4o ()Ljava/lang/String;
+	public final fun getComponentSlotCardinality-a0Ipk4o ()Ljava/lang/String;
+	public final fun getComponentSlotUnknown-a0Ipk4o ()Ljava/lang/String;
+	public final fun getComponentUnknown-a0Ipk4o ()Ljava/lang/String;
+	public final fun getExprNullableAccess-a0Ipk4o ()Ljava/lang/String;
+	public final fun getExprTypeMismatch-a0Ipk4o ()Ljava/lang/String;
+	public final fun getExprUnknownFunction-a0Ipk4o ()Ljava/lang/String;
+	public final fun getExprUnresolvedRef-a0Ipk4o ()Ljava/lang/String;
+	public final fun getModifierArgInvalid-a0Ipk4o ()Ljava/lang/String;
+	public final fun getModifierScopeMissing-a0Ipk4o ()Ljava/lang/String;
+	public final fun getModifierUnknown-a0Ipk4o ()Ljava/lang/String;
+	public final fun getNameReserved-a0Ipk4o ()Ljava/lang/String;
+	public final fun getNavArgsMismatch-a0Ipk4o ()Ljava/lang/String;
+	public final fun getPropEnumEntryInvalid-a0Ipk4o ()Ljava/lang/String;
+	public final fun getPropNotBindable-a0Ipk4o ()Ljava/lang/String;
+	public final fun getPropRange-a0Ipk4o ()Ljava/lang/String;
+	public final fun getPropRequiredMissing-a0Ipk4o ()Ljava/lang/String;
+	public final fun getPropTypeMismatch-a0Ipk4o ()Ljava/lang/String;
+	public final fun getPropUnknown-a0Ipk4o ()Ljava/lang/String;
+	public final fun getRefDangling-a0Ipk4o ()Ljava/lang/String;
+	public final fun getRefKindMismatch-a0Ipk4o ()Ljava/lang/String;
+	public final fun getResourceUnknown-a0Ipk4o ()Ljava/lang/String;
+	public final fun getStructCycle-a0Ipk4o ()Ljava/lang/String;
+	public final fun getStructDuplicateId-a0Ipk4o ()Ljava/lang/String;
+	public final fun getStructMissingNode-a0Ipk4o ()Ljava/lang/String;
+	public final fun getStructMissingRoot-a0Ipk4o ()Ljava/lang/String;
+	public final fun getStructMultipleParents-a0Ipk4o ()Ljava/lang/String;
+	public final fun getStructOrphan-a0Ipk4o ()Ljava/lang/String;
+	public final fun getTokenUnknown-a0Ipk4o ()Ljava/lang/String;
+	public final fun getValueNonFinite-a0Ipk4o ()Ljava/lang/String;
 }
 
 public final class dev/rotalex/lutter/analysis/resolved/PropOrigin : java/lang/Enum {
