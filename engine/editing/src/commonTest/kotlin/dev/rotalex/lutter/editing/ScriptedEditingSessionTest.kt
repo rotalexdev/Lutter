@@ -64,7 +64,7 @@ class ScriptedEditingSessionTest {
         val second = runScript()
 
         assertEquals(first.revision, second.revision, "the two runs applied different numbers of patches")
-        assertEquals(first.document, second.document, "the two runs left different documents")
+        assertSameDocument(first.document, second.document, "the two runs left different documents")
         assertEquals(first.tree, second.tree, "the two runs left different node tables")
         assertEquals(first.undoSteps, second.undoSteps, "the two runs produced different undo stacks")
     }
@@ -85,7 +85,7 @@ class ScriptedEditingSessionTest {
         while (controller.undo()) steps++
 
         assertEquals(5, steps, "five gestures, five undo steps")
-        assertEquals(plannerDocument(), controller.state.value.document)
+        assertSameDocument(plannerDocument(), controller.state.value.document, "the whole session, undone")
         assertEquals(emptyList(), structuralFindings(controller.state.value.document))
     }
 
@@ -110,7 +110,7 @@ class ScriptedEditingSessionTest {
 
         assertEquals(5, undone)
         assertEquals(undone, redone, "some entries could be undone but not redone")
-        assertEquals(after, controller.state.value.document)
+        assertSameDocument(after, controller.state.value.document, "every entry redone")
     }
 
     /**

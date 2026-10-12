@@ -53,11 +53,24 @@ class DocumentControllerRulesTest {
      * is allowed to, and it stops working the moment anything is edited after the undo — not
      * because redo was disabled, but because the document it would have been applied to is no
      * longer the one it was undone from.
+     *
+     * ### The end of this script is the state before the *third* rename, not the original
+     *
+     * Two entries exist by the time the clearing dispatch runs: "First" on the undo stack and
+     * "Second" on the redo stack, already undone. The clearing dispatch pushes "Third", and
+     * undoing it restores the document to where it was before "Third" was written — which is
+     * `ALPHA` named `First`, because the first `undo()` put it there and the `redo()`/`undo()`
+     * pair after it undid each other.
+     *
+     * So the document at the end is **not** the one the controller was built with; the "First"
+     * entry is still on the stack and is one more undo away. The expectation below is therefore
+     * read off the controller immediately before the clearing dispatch rather than remembered
+     * from the start of the test, which is the rule `assertSameDocument`'s KDoc states and the
+     * reason this row once asked for a document that never existed.
      */
     @Test
     fun `a new command clears the redo stack`() {
         val controller = controller()
-        val pristine: UiDocument = controller.state.value.document
 
         controller.dispatch(Command.RenameNode(ALPHA, "First"))
         controller.dispatch(Command.RenameNode(ALPHA, "Second"))
@@ -70,6 +83,10 @@ class DocumentControllerRulesTest {
         assertEquals("Second", labelOf(controller.state.value.document, ALPHA))
         assertTrue(controller.undo())
 
+        // What the clearing edit is written over. Read here, not from the start of the test.
+        val beforeClearing: UiDocument = controller.state.value.document
+        assertEquals("First", labelOf(beforeClearing, ALPHA))
+
         controller.dispatch(Command.RenameNode(ALPHA, "Third"))
 
         assertFalse(controller.state.value.canRedo)
@@ -79,7 +96,8 @@ class DocumentControllerRulesTest {
         // And the edit that cleared it is still one undo step away, so clearing did not cost
         // the redo entry's place in the stack.
         assertTrue(controller.undo())
-        assertEquals(pristine, controller.state.value.document)
+        assertEquals("First", labelOf(controller.state.value.document, ALPHA), "the undo restored the wrong state")
+        assertSameDocument(beforeClearing, controller.state.value.document, "after undoing the clearing edit")
     }
 
     /**
@@ -100,7 +118,7 @@ class DocumentControllerRulesTest {
         assertTrue(refused is CommandResult.Rejected, "expected a rejection, got $refused")
         assertEquals(EditCodes.NoParent, (refused as CommandResult.Rejected).reasons.single().code)
 
-        assertEquals(pristine, controller.state.value.document, "a refusal mutated the document")
+        assertSameDocument(pristine, controller.state.value.document, "a refusal mutated the document")
         assertEquals(0L, controller.state.value.revision, "a refusal advanced the revision")
         assertFalse(controller.state.value.canUndo)
         assertFalse(controller.undo(), "a refusal became an undo step")
@@ -134,7 +152,7 @@ class DocumentControllerRulesTest {
         var steps: Int = 0
         while (controller.undo()) steps++
         assertEquals(2, steps, "the refusal became a step")
-        assertEquals(pristine, controller.state.value.document)
+        assertSameDocument(pristine, controller.state.value.document, "the redo stack survived the refusal")
     }
 
     /**
@@ -167,7 +185,7 @@ class DocumentControllerRulesTest {
         while (controller.undo()) steps++
 
         assertEquals(1, steps, "three commands produced three undo steps")
-        assertEquals(pristine, controller.state.value.document)
+        assertSameDocument(pristine, controller.state.value.document, "one undo step, whole session")
     }
 
     /**
@@ -199,8 +217,8 @@ class DocumentControllerRulesTest {
 
         assertEquals(1, singleSteps)
         assertEquals(1, bulkSteps)
-        assertEquals(plannerDocument(), single.state.value.document)
-        assertEquals(plannerDocument(), bulk.state.value.document)
+        assertSameDocument(plannerDocument(), single.state.value.document, "one insert, undone")
+        assertSameDocument(plannerDocument(), bulk.state.value.document, "three inserts, undone")
     }
 
     /**

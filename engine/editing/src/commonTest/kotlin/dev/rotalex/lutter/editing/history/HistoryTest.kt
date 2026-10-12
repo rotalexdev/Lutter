@@ -1,5 +1,6 @@
 package dev.rotalex.lutter.editing.history
 
+import dev.rotalex.lutter.editing.assertSameDocument
 import dev.rotalex.lutter.editing.command.ALPHA
 import dev.rotalex.lutter.editing.command.plannerDocument
 import dev.rotalex.lutter.editing.labelOf
@@ -240,7 +241,7 @@ class HistoryTest {
         val typed: UiDocument = PatchApplier.apply(entry.patch, document)
 
         assertEquals("Alphb", labelOf(typed, ALPHA))
-        assertEquals(document, PatchApplier.apply(entry.patch.inverse(), typed))
+        assertSameDocument(document, PatchApplier.apply(entry.patch.inverse(), typed), "the merged entry, inverted")
     }
 
     /** [History]'s limit keeps the newest entries, because those are the ones somebody wants back. */
