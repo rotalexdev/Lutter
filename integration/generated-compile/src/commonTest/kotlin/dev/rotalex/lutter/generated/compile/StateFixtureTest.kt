@@ -1,9 +1,9 @@
 package dev.rotalex.lutter.generated.compile
 
-import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.codegen.CodegenOptions
 import dev.rotalex.lutter.codegen.CodegenResult
 import dev.rotalex.lutter.codegen.KotlinGenerator
+import dev.rotalex.lutter.model.diagnostic.Severity
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

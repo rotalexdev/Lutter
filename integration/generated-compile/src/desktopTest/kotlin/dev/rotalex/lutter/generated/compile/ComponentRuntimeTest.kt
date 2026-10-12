@@ -8,12 +8,12 @@ import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.v2.runComposeUiTest
-import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.interpreter.RuntimeDiagnostic
 import dev.rotalex.lutter.interpreter.env.Destination
 import dev.rotalex.lutter.interpreter.env.Navigator
+import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.doc.ParamDecl
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.dsl.buildDocument

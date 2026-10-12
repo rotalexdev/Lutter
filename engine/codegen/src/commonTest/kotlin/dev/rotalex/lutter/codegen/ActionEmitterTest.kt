@@ -1,7 +1,5 @@
 package dev.rotalex.lutter.codegen
 
-import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
-import dev.rotalex.lutter.analysis.diagnostic.DiagnosticLocation
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.analysis.resolved.ResolvedPage
@@ -9,6 +7,8 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedState
 import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
 import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
+import dev.rotalex.lutter.model.diagnostic.Diagnostic
+import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
 import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.expr.BinaryOp

@@ -1,5 +1,7 @@
 package dev.rotalex.lutter.analysis.diagnostic
 
+import dev.rotalex.lutter.model.diagnostic.Diagnostic
+
 /**
  * PLAN §17.2's order: severity first, then page, node, code, property. Total and stable.
  *

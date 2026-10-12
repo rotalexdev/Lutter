@@ -1,7 +1,7 @@
 package dev.rotalex.lutter.analysis.pass
 
-import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
 import dev.rotalex.lutter.analysis.typing.ExprScope
+import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.doc.ParamDecl
 import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.doc.UiDocument

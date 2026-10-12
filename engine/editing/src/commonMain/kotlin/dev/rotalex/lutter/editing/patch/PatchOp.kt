@@ -40,12 +40,13 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 /**
  * The closed vocabulary of edits a command may produce, and the whole of it.
  *
- * PLAN §26.2 declares eight, and this file declares eight with the plan's names and the plan's
- * field names, in the plan's order. Nothing is added, because every addition here is paid for
- * twice: `PatchApplier` grows a branch and `PatchInverter` grows a branch, and a ninth op that
- * only one of the two remembered is a patch whose inverse is silently wrong.
+ * PLAN §26.2 declares eight, and this file declares those eight with the plan's names and the
+ * plan's field names, in the plan's order, plus the ninth that D30 added. Nothing else is
+ * added, because every addition here is paid for twice: `PatchApplier` grows a branch and
+ * `PatchInverter` grows a branch, and an op that only one of the two remembered is a patch
+ * whose inverse is silently wrong.
  *
- * ### Why these eight, and what the set is for
+ * ### Why these nine, and what the set is for
  *
  * They are not "every change the engine can make". They are the changes §26.1 chose for a
  * command to produce — *"Command → forward/inverse Patch"*, chosen over a snapshot per step
@@ -54,12 +55,17 @@ import kotlinx.serialization.json.JsonClassDiscriminator
  * consumers of this vocabulary, not extensions of it: the migration pass is explicitly "apply
  * component migrations as a patch", and the diff is a patch between two documents.
  *
+ * The ninth is [PutNodes], and it exists because the first eight could not answer a question
+ * the document asks: a page's root is a row that no slot references (§5.5 makes `Page.root` a
+ * pointer into the table precisely so a page holds no nodes), and nothing in the original eight
+ * could put a row there. See its own KDoc for what it does and does not check.
+ *
  * ### Every op carries its own `old`, and that is the property being bought
  *
- * Six of the eight have a field literally named `old`; [InsertNodes] and [RemoveSubtree] carry
- * the whole subtree they inserted or captured instead, which is the same information with a
- * different shape. The consequence is the one §26.2 draws out immediately after the
- * declaration: **inverting a patch needs no document.** There is no lookup, no index, no
+ * Six of the nine have a field literally named `old`; [InsertNodes], [PutNodes] and
+ * [RemoveSubtree] carry the whole subtree they wrote or captured instead, which is the same
+ * information with a different shape. The consequence is the one §26.2 draws out immediately
+ * after the declaration: **inverting a patch needs no document.** There is no lookup, no index, no
  * "where was this node before", and therefore no way for an inverse to be computed against a
  * document that has moved on since the command ran. `PatchInverter` is the file that spells
  * this out.
@@ -79,6 +85,10 @@ import kotlinx.serialization.json.JsonClassDiscriminator
  * have already restored. A relative offset would have to be recomputed against a document
  * that no longer exists. `PatchApplier.applyMove` states the consequence for the one case
  * where it is easy to get wrong.
+ *
+ * **[PutNodes] has no position at all** and neither does its inverse, because rows written
+ * into the table are in no slot until something references them. `RemovedSubtree` spells that
+ * absence as three nulls rather than as an index of minus one; see its KDoc for why.
  *
  * ### Serializable, and why every tag is spelled
  *
@@ -100,8 +110,11 @@ import kotlinx.serialization.json.JsonClassDiscriminator
  *    are fixed for the life of a document, and the third is the *selection* of a theme rather
  *    than a theme — §14.2's nullable id with a default, which no `PutRecord` can express,
  *    because [RecordRef.Theme] addresses a `ThemeDecl` and not the document's pointer at one.
- *    A theme switch is a gap in §26.2's set, and it is a real one; the fix is a ninth op, and
- *    a ninth op is a decision for whoever owns the plan rather than a guess for this one.
+ *    A theme switch is a gap in §26.2's set, and it is a real one; the fix is a tenth op, and
+ *    a tenth op is a decision for whoever owns the plan rather than a guess for this one.
+ *    D30 answered one such question and did not answer this one, which is the difference
+ *    between the two: a command in §25.3 had no way to express itself, while a theme switch has
+ *    no command yet.
  *  * **`UiDocument.hostFunctions` has no [RecordRef].** §26.2's own comment enumerates what
  *    `PutRecord` covers — *"pages, decls, themes, resources, state, models"* — and host
  *    functions are not in it. Adding a variant the comment does not sanction would be a
@@ -143,7 +156,8 @@ public sealed interface PatchOp {
      *
      * @throws IllegalArgumentException at apply time, never here: an empty [nodes] list has
      *   no root to place. Construction stays total so a patch can be built and inspected
-     *   before anybody has a document to apply it to.
+     *   before anybody has a document to apply it to. [PutNodes] is the exception and says why
+     *   it cannot be: an empty one would have no inverse.
      */
     @Serializable
     @SerialName("insertNodes")
@@ -162,6 +176,63 @@ public sealed interface PatchOp {
     ) : PatchOp
 
     /**
+     * Rows put into the table with no parent: the table-level counterpart to [InsertNodes].
+     *
+     * [InsertNodes] answers *"make these rows reachable from here"* — it needs a parent node,
+     * a slot name and a position, and it writes the rows **and** the reference that makes them
+     * reachable. This op answers the other half — *"these rows exist"* — and is what a page
+     * root is, because `Page.root` names a `NodeId` that no node's slot lists.
+     *
+     * **The split is not a convenience.** `AddPage` is two facts — a `Page` record and the rows
+     * its root names — and emitting only the record would produce a document whose page points
+     * at a node the table does not hold. That is not a rejected command; it is a document that
+     * fails later, as `NodeTable.require`'s `IllegalStateException`, from whichever component
+     * walks the page first, naming a missing node rather than the edit that made it missing.
+     * The planner therefore emits this op and then the `PutRecord` that makes the first one
+     * reachable, and the second op is what makes the pair undoable as a whole.
+     *
+     * ### A row nothing points at is a legal intermediate state
+     *
+     * Applying this op alone leaves the document in a state no §17 pass would accept — §17.1's
+     * structural pass would report `struct.missing_root` for the row nothing reaches — and that
+     * is deliberate. §6.2's invariants are properties of a *document*, and a patch is not a
+     * document; every op here may be applied in an order that is transiently illegal, which is
+     * why `PatchInverter` reverses the list as well as inverting each op.
+     *
+     * ### No slot index, and therefore none of [PatchApplier]'s position checks
+     *
+     * There is no `parent`, no `slot` and no `index` here, and there is deliberately no
+     * `from`. [PatchApplier]'s strictest check — that the node an op claims at a position is
+     * the node actually there — exists because §5.6's normalization makes a wrong-order
+     * document invisible to every existence check in the engine. **That failure mode needs a
+     * position, and this op has none to be wrong about.** What it does check is ids: writing a
+     * row whose id the table already holds would, through `NodeTable.with`, *replace* a live
+     * node rather than fail, so the applier refuses it.
+     *
+     * ### Never empty, which is a different rule from [InsertNodes]'s
+     *
+     * [InsertNodes] accepts an empty list and lets the applier refuse it, because a patch is
+     * often built before anybody holds the document to check it against. This one refuses at
+     * construction, and the reason is its inverse: [RemoveSubtree] names a root, that root is
+     * `nodes.first()`, and there is no first element of nothing. An empty `PutNodes` would be
+     * a patch that cannot be inverted at all, which is the one property §26.2's whole set is
+     * chosen to buy.
+     */
+    @Serializable
+    @SerialName("putNodes")
+    public data class PutNodes(
+        /** The rows to write, root first. Never empty. */
+        public val nodes: List<Node>,
+    ) : PatchOp {
+        init {
+            require(nodes.isNotEmpty()) {
+                "PatchOp.PutNodes carries no nodes, so it cannot be inverted: its inverse is a " +
+                    "RemoveSubtree whose root is the first of them"
+            }
+        }
+    }
+
+    /**
      * A whole subtree, lifted out of the document, together with where it came from.
      *
      * The [captured] field is the whole reason this op is invertible and the reason it is
@@ -176,6 +247,10 @@ public sealed interface PatchOp {
      * differs from the original in a way no property check can see — the nodes are all still
      * there, just in the wrong order, which for a `Column` is a different layout rather than a
      * smaller one.
+     *
+     * **All three position fields may be `null`**, and all three together, which is the form
+     * [PutNodes]'s inverse takes. See [RemovedSubtree] for why absence is spelled as null
+     * rather than as a reserved id.
      */
     @Serializable
     @SerialName("removeSubtree")
@@ -379,32 +454,90 @@ public data class Placement(
 /**
  * A subtree lifted out of a document, kept whole so it can be put back where it was.
  *
- * PLAN §26.2 names `RemovedSubtree` in [PatchOp.RemoveSubtree] and declares it nowhere, and
- * the four fields are not a design so much as the observation that its inverse,
- * [PatchOp.InsertNodes], takes exactly these four. Writing them as two records with the same
+ * PLAN §26.2 names `RemovedSubtree` in [PatchOp.RemoveSubtree] and declares it nowhere. The
+ * first three fields are not a design so much as the observation that its placed inverse,
+ * [PatchOp.InsertNodes], takes exactly those three; writing them as two records with the same
  * shape is what lets `PatchInverter` invert a removal with a field copy, and what lets a
  * command capture a subtree once and build either op from it.
  *
  * [nodes] follows [PatchOp.InsertNodes]'s convention: the whole subtree, flattened, root
- * first. [root] is spelled separately because §26.2's `RemoveSubtree` names it, and because
+ * first. The root is spelled separately because §26.2's `RemoveSubtree` names it, and because
  * the id is what the parent's slot held and therefore what the applier has to check before it
  * removes anything from that slot.
+ *
+ * ### Why the position is three nullables and not a reserved id
+ *
+ * **[PatchOp.PutNodes]'s inverse is a removal with no position**, because rows it wrote were
+ * in no slot to begin with — a page root is the ordinary case. That needs a way to say *"these
+ * rows existed, and nothing pointed at them"*, and the three ways to spell it were:
+ *
+ *  * **A reserved `NodeId`** such as a parent that cannot exist. Then an unplaced removal is
+ *    indistinguishable from a removal whose parent row has been deleted, and the applier has
+ *    to choose between "this capture was corrupt" and "this capture was unplaced" — and it
+ *    cannot, because both look the same on a document that is mid-patch.
+ *  * **A negative index.** Also a magic value, and a worse one: it is a valid `Int`, so it
+ *    survives serialization and round-trips, and the only thing distinguishing it from a
+ *    position is that a negative one can never match anything in a slot.
+ *  * **Three nullable fields**, which is what this is. Absent is absent, on the wire and in
+ *    memory, and [placement] is the one place a caller has to look to find out whether there
+ *    was one. It also keeps the wire keys exactly where they were, so a `RemoveSubtree` written
+ *    before this change still decodes.
+ *
+ * The cost is the thing `DiagnosticLocation` already pays in `:engine:model` and accepts: a state
+ * that is representable and wrong, here "one null out of three", is checkable in one place.
+ * [placement] is that place — it returns `null` unless all three agree, so no caller ever has
+ * to combine them itself.
+ *
+ * `RemovedSubtree.unplaced` is the constructor the inverter uses, and it exists so that "no
+ * position" is one named thing at the call site rather than three `null`s spelled out.
  */
 @Serializable
 public data class RemovedSubtree(
 
-    /** The parent the subtree was lifted from. */
-    public val parent: NodeId,
+    /** The parent the subtree was lifted from, or `null` when it was not in a slot. */
+    public val parent: NodeId?,
 
-    /** The slot it was lifted from. */
-    public val slot: SlotName,
+    /** The slot it was lifted from, or `null` along with [parent]. */
+    public val slot: SlotName?,
 
-    /** The position it held in that slot. */
-    public val index: Int,
+    /** The position it held in that slot, or `null` along with [parent]. */
+    public val index: Int?,
 
     /** The rows themselves, root first. Never empty. */
     public val nodes: List<Node>,
-)
+) {
+
+    /**
+     * Where these rows were lifted from, or `null` when they were not in a slot.
+     *
+     * A getter and not a stored field, for the reason [Patch.touchedNodes] is one: this class
+     * is `@Serializable`, and a member with a backing field would be written to the wire as a
+     * second, derived copy of three fields already there. It has no backing field, so the
+     * encoding of a `RemoveSubtree` is unchanged by this property existing.
+     *
+     * `null` unless **all three** agree — two of them set is not a position, and answering
+     * with half of one would hand a caller an address that names a node and a slot but no
+     * place in it.
+     */
+    public val placement: Placement?
+        get() = if (parent == null || slot == null || index == null) {
+            null
+        } else {
+            Placement(parent, slot, index)
+        }
+
+    public companion object {
+
+        /**
+         * A capture for rows that were in no slot: [PatchOp.PutNodes]'s inverse.
+         *
+         * The three position fields are `null`, and [placement] answers `null` for the same
+         * capture. Named rather than spelled out at the call site so that "unplaced" is one
+         * thing a reader can search for.
+         */
+        public fun unplaced(nodes: List<Node>): RemovedSubtree = RemovedSubtree(null, null, null, nodes)
+    }
+}
 
 /**
  * Where a [Record] lives in a `UiDocument`: which container, under which id.

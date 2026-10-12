@@ -1,0 +1,213 @@
+package dev.rotalex.lutter.editing.command.planners
+
+import dev.rotalex.lutter.editing.command.Command
+import dev.rotalex.lutter.editing.command.CommandResult
+import dev.rotalex.lutter.editing.command.EditCodes
+import dev.rotalex.lutter.editing.patch.PatchOp
+import dev.rotalex.lutter.model.doc.Node
+import dev.rotalex.lutter.model.doc.UiDocument
+import dev.rotalex.lutter.model.ids.ComponentType
+import dev.rotalex.lutter.model.ids.IdGenerator
+import dev.rotalex.lutter.model.ids.NodeId
+import dev.rotalex.lutter.model.index.DocumentIndex
+import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.registry.Registry
+
+/**
+ * [Command.InsertNode] and [Command.DuplicateNode]: the two commands that put rows into the
+ * table.
+ *
+ * They are one file because they are one question — *may these rows go here?* — asked about
+ * two different things: a subtree the caller already holds, and one that has to be copied
+ * first. Everything after that question is the same checks in the same order.
+ *
+ * ### The order of the checks, and why it is this one
+ *
+ * Existence first, then the index, then id freedom, then the schema. Each step after the
+ * first reads something the step before established, so a command naming a node that is not
+ * there is refused for that and not for the four other things also wrong with it — which
+ * matters, because a user who dropped a node into a deleted container should be told the
+ * container is gone, not that a slot is full.
+ *
+ * ### What is *not* checked about the inserted root
+ *
+ * **Whether its component type is registered.** A document naming a component this engine has
+ * never heard of still reads, still round-trips and is reported by §17 pass 4 as
+ * `component.unknown`; that is D4's rule and it is about *nodes*. Nothing about legality
+ * needs the child's spec — a `ChildFilter` is a set of component types, so membership is
+ * answered from the type alone. Refusing here would make an editor unable to place a node
+ * whose plugin has not registered its specs yet, which is the opposite of what D4 is for.
+ *
+ * The parent's spec is the other way round, and it is refused: without it there is no way to
+ * know whether the slot exists, and planning an edit that cannot be certified is the failure
+ * §25.3 exists to prevent.
+ */
+internal fun planInsertNode(
+    command: Command.InsertNode,
+    document: UiDocument,
+    components: Registry<ComponentType, ComponentSpec>,
+    ids: IdGenerator,
+): CommandResult {
+    val reasons = Rejections()
+
+    val parent: Node? = document.nodes[command.parent]
+    if (parent == null) {
+        reasons.add(
+            EditCodes.UnknownNode,
+            command.parent,
+            "no node '${command.parent}' to insert into",
+            mapOf("node" to command.parent.value),
+        )
+        return reasons.result(emptyList())
+    }
+
+    val spec: ComponentSpec? = specOf(parent, components)
+    if (spec == null) {
+        reasons.add(
+            EditCodes.UnknownComponent,
+            parent.id,
+            "'${parent.type}' is not registered, so its slots cannot be read",
+            mapOf("component" to parent.type.value),
+        )
+        return reasons.result(emptyList())
+    }
+
+    val subtree: List<Node> = command.subtree.nodes
+    val root: Node? = subtree.firstOrNull()
+    if (root == null) {
+        reasons.add(EditCodes.EmptySubtree, command.parent, "the subtree to insert holds no nodes")
+        return reasons.result(emptyList())
+    }
+
+    val siblings: List<NodeId> = parent.slots[command.slot].orEmpty()
+    if (command.index !in 0..siblings.size) {
+        reasons.add(
+            EditCodes.IndexOutOfRange,
+            command.parent,
+            "index ${command.index} is outside 0..${siblings.size} of '${command.slot}'",
+            mapOf("slot" to command.slot.value, "index" to command.index.toString()),
+        )
+        return reasons.result(emptyList())
+    }
+
+    // §6.2: an id is assigned once and never reused. `NodeTable.with` answers a collision by
+    // *replacing* the row, so a duplicate id here would not fail — it would delete a
+    // different node, which is the failure no existence check anywhere in the engine reports.
+    val taken: List<Node> = subtree.filter { it.id in document.nodes }
+    if (taken.isNotEmpty()) {
+        reasons.add(
+            EditCodes.DuplicateId,
+            taken.first().id,
+            "the subtree carries id '${taken.first().id}', which the document already holds",
+            mapOf("node" to taken.first().id.value),
+        )
+        return reasons.result(emptyList())
+    }
+
+    reasons.addAll(
+        slotRejections(
+            spec = spec,
+            parent = parent.id,
+            slot = command.slot,
+            childType = root.type,
+            countAfter = siblings.size + 1,
+        ),
+    )
+    if (!reasons.isEmpty) return reasons.result(emptyList())
+
+    return reasons.result(listOf(PatchOp.InsertNodes(parent.id, command.slot, command.index, subtree)))
+}
+
+/**
+ * [Command.DuplicateNode]: the node's subtree copied into the slot immediately after it,
+ * under ids the document is not already using.
+ *
+ * The copy is an insertion and not a move, because §6.2 says a move keeps ids and a duplicate
+ * does not — the same op with a different consequence. Everything after the capture is
+ * [planInsertNode]'s work, which is why this is in the same file.
+ *
+ * The generator's contract is checked rather than trusted. `IdGenerator.nextNodeId` promises
+ * an id no node is using, and a `SequentialIdGenerator` restarted against a document that
+ * already holds `n_1` breaks that promise; because `NodeTable.with` replaces rather than
+ * refuses, honouring it would quietly destroy a node. So an id that is already taken, or the
+ * same id handed out twice, is refused.
+ */
+internal fun planDuplicateNode(
+    command: Command.DuplicateNode,
+    document: UiDocument,
+    components: Registry<ComponentType, ComponentSpec>,
+    ids: IdGenerator,
+): CommandResult {
+    val reasons = Rejections()
+
+    val node: Node? = document.nodes[command.id]
+    if (node == null) {
+        reasons.add(EditCodes.UnknownNode, command.id, "no node '${command.id}' to duplicate")
+        return reasons.result(emptyList())
+    }
+
+    val from = DocumentIndex(document).parentOf(command.id)
+    if (from == null) {
+        reasons.add(
+            EditCodes.NoParent,
+            command.id,
+            "'${command.id}' is a root, and a copy of it would have nowhere to go",
+        )
+        return reasons.result(emptyList())
+    }
+
+    val parent: Node? = document.nodes[from.parentId]
+    if (parent == null) {
+        reasons.add(EditCodes.UnknownNode, from.parentId, "no node '${from.parentId}'")
+        return reasons.result(emptyList())
+    }
+
+    val spec: ComponentSpec? = specOf(parent, components)
+    if (spec == null) {
+        reasons.add(
+            EditCodes.UnknownComponent,
+            parent.id,
+            "'${parent.type}' is not registered, so its slots cannot be read",
+            mapOf("component" to parent.type.value),
+        )
+        return reasons.result(emptyList())
+    }
+
+    // A dangling child would be dropped by the walk and would then be missing from the copy,
+    // which is a smaller document than the user asked for rather than an error.
+    val dangling: List<NodeId> = danglingChildren(document, node)
+    if (dangling.isNotEmpty()) {
+        reasons.add(
+            EditCodes.UnknownNode,
+            dangling.first(),
+            "'${command.id}' lists child '${dangling.first()}', which the document does not hold",
+        )
+        return reasons.result(emptyList())
+    }
+
+    val rows: List<Node> = subtreeRows(document, command.id)
+    val fresh: List<NodeId> = List(rows.size) { ids.nextNodeId() }
+    if (fresh.any { it in document.nodes } || fresh.distinct().size != rows.size) {
+        reasons.add(
+            EditCodes.DuplicateId,
+            fresh.firstOrNull(),
+            "the id generator returned an id the document already holds, or the same id twice",
+        )
+        return reasons.result(emptyList())
+    }
+
+    reasons.addAll(
+        slotRejections(
+            spec = spec,
+            parent = parent.id,
+            slot = from.slot,
+            childType = node.type,
+            countAfter = parent.slots[from.slot].orEmpty().size + 1,
+        ),
+    )
+    if (!reasons.isEmpty) return reasons.result(emptyList())
+
+    // `from.index + 1` is the position the original node is pushed to by the insertion, which
+    // is what the slot holds when the op runs.
+    return reasons.result(listOf(PatchOp.InsertNodes(from.parentId, from.slot, from.index + 1, remapIds(rows, fresh))))
+}

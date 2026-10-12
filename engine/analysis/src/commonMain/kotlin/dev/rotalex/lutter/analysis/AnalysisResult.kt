@@ -1,8 +1,8 @@
 package dev.rotalex.lutter.analysis
 
-import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
-import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
+import dev.rotalex.lutter.model.diagnostic.Diagnostic
+import dev.rotalex.lutter.model.diagnostic.Severity
 
 /**
  * What analysis found, and the lowered document when nothing failed.

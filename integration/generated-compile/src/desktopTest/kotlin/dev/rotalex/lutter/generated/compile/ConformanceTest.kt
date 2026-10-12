@@ -14,7 +14,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
-import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.codegen.CodegenOptions
 import dev.rotalex.lutter.codegen.KotlinGenerator
@@ -25,6 +24,7 @@ import dev.rotalex.lutter.generated.button_navigate.screens.HomeScreen
 import dev.rotalex.lutter.generated.component_param_slot.screens.HomeScreen as ComponentHomeScreen
 import dev.rotalex.lutter.generated.material_token.screens.HomeScreen as MaterialHomeScreen
 import dev.rotalex.lutter.generated.theme_tokens.screens.HomeScreen as ThemeHomeScreen
+import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.runtime.BackStackNavigator
 import dev.rotalex.lutter.runtime.RuntimeEnvironment

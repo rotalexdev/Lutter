@@ -9,10 +9,10 @@ import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.v2.runComposeUiTest
-import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.codegen.CodegenOptions
 import dev.rotalex.lutter.codegen.CodegenResult
 import dev.rotalex.lutter.codegen.KotlinGenerator
+import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.expr.Expr
 import dev.rotalex.lutter.model.expr.PropertyValue

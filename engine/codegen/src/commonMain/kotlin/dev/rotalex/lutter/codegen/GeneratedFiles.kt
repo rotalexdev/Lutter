@@ -1,6 +1,6 @@
 package dev.rotalex.lutter.codegen
 
-import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
+import dev.rotalex.lutter.model.diagnostic.Diagnostic
 
 /** One emitted file: its path under the generated root, and its full text. */
 public data class GeneratedFile(public val path: String, public val content: String)

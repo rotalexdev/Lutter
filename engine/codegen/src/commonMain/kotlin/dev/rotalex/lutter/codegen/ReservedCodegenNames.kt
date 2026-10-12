@@ -1,11 +1,11 @@
 package dev.rotalex.lutter.codegen
 
-import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
 import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCodes
-import dev.rotalex.lutter.analysis.diagnostic.DiagnosticLocation
-import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.analysis.resolved.ResolvedPage
+import dev.rotalex.lutter.model.diagnostic.Diagnostic
+import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
+import dev.rotalex.lutter.model.diagnostic.Severity
 
 /**
  * The top-level identifiers this generator emits, and the document names they reserve.

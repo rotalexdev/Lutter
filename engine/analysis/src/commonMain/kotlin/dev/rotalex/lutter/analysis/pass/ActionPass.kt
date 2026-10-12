@@ -1,14 +1,14 @@
 package dev.rotalex.lutter.analysis.pass
 
-import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
-import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCode
 import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCodes
-import dev.rotalex.lutter.analysis.diagnostic.DiagnosticLocation
-import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.analysis.typing.ExprScope
 import dev.rotalex.lutter.analysis.typing.TypeChecker
 import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
+import dev.rotalex.lutter.model.diagnostic.Diagnostic
+import dev.rotalex.lutter.model.diagnostic.DiagnosticCode
+import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
+import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.Page

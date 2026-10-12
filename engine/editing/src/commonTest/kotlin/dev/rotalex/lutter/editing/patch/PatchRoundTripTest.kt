@@ -100,14 +100,15 @@ class PatchRoundTripTest {
     /**
      * The table is only worth what it covers, and a row that was forgotten leaves no trace.
      *
-     * Eight distinct op classes is the whole of §26.2's set, so anything less than eight means
-     * an op nobody round-tripped and the test above passed anyway.
+     * Nine distinct op classes is the whole of the set — §26.2's eight plus D30's `PutNodes` —
+     * so anything less than nine means an op nobody round-tripped and the test above passed
+     * anyway.
      */
     @Test
     fun `the table names every op in the closed set`() {
         val covered = CASES.mapTo(mutableSetOf()) { it.op::class }
 
-        assertEquals(8, covered.size, "the table covers ${covered.size} of §26.2's eight ops")
+        assertEquals(9, covered.size, "the table covers ${covered.size} of the set's nine ops")
     }
 
     // -----------------------------------------------------------------------------------
@@ -279,6 +280,18 @@ class PatchRoundTripTest {
             Patch(listOf(PatchOp.PutRecord(RecordRef.Theme(BASE_THEME), null, null))).touchedNodes.isEmpty(),
             "a record op addresses a declaration, not a node",
         )
+
+        // `PutNodes` names every row it writes, exactly as `InsertNodes` does, and a removal
+        // with no position still names its root.
+        assertEquals(
+            setOf(DELTA, ECHO),
+            Patch(listOf(PatchOp.PutNodes(listOf(deltaRow(), echoRow())))).touchedNodes,
+        )
+        assertEquals(
+            setOf(FALCON),
+            Patch(listOf(PatchOp.RemoveSubtree(FALCON, RemovedSubtree.unplaced(listOf(falconRow())))))
+                .touchedNodes,
+        )
     }
 
     // -----------------------------------------------------------------------------------
@@ -367,6 +380,21 @@ class PatchRoundTripTest {
         // A removal naming a position that holds something else.
         assertFailsWith<IllegalArgumentException> {
             appliedTo(PatchOp.PutRecord(RecordRef.State(StateId("s_count"), 1), null, null))
+        }
+
+        // Writing a row the table already holds, twice over: `NodeTable.with` *replaces*, so
+        // neither of these would fail loudly on its own — the first would delete a live node
+        // and the second would silently drop a row the op claimed to carry.
+        assertFailsWith<IllegalArgumentException>(message = "PutNodes replaces rather than refuses") {
+            appliedTo(PatchOp.PutNodes(listOf(alphaRow())))
+        }
+        assertFailsWith<IllegalArgumentException>(message = "the same id twice in one op") {
+            appliedTo(PatchOp.PutNodes(listOf(falconRow(), falconRow())))
+        }
+        // An empty one cannot be built at all: its inverse is a removal whose root is the first
+        // row, and there is no first row.
+        assertFailsWith<IllegalArgumentException>(message = "an empty PutNodes has no inverse") {
+            appliedTo(PatchOp.PutNodes(emptyList()))
         }
 
         // A node that is not in the table is `NodeTable.require`'s `IllegalStateException`,
@@ -549,6 +577,15 @@ private val CASES: List<PatchCase> = listOf(
         after = document(rootChildren = listOf(FALCON, ALPHA, BETA, GAMMA), extra = listOf(falconRow())),
     ),
     PatchCase(
+        // D30's ninth op. No slot index, so there is nothing for `PatchApplier`'s position
+        // checks to be wrong about — and the row exists to prove the *inverse* round trips,
+        // since an unplaced removal is a form `RemoveSubtree` did not have before.
+        name = "put rows in the table with no parent",
+        before = document(),
+        op = PatchOp.PutNodes(listOf(falconRow())),
+        after = document(extra = listOf(falconRow())),
+    ),
+    PatchCase(
         name = "insert a whole subtree, root first",
         before = document(),
         op = PatchOp.InsertNodes(ROOT, CHILDREN, 1, listOf(deltaRow(), echoRow())),
@@ -578,6 +615,12 @@ private val CASES: List<PatchCase> = listOf(
             RemovedSubtree(ROOT, CHILDREN, 1, listOf(betaRow(listOf(LEAF)), leafRow())),
         ),
         after = document(beta = null, leaf = null, rootChildren = listOf(ALPHA, GAMMA)),
+    ),
+    PatchCase(
+        name = "remove rows that were in no slot",
+        before = document(extra = listOf(falconRow())),
+        op = PatchOp.RemoveSubtree(FALCON, RemovedSubtree.unplaced(listOf(falconRow()))),
+        after = document(),
     ),
     PatchCase(
         name = "move within one slot",

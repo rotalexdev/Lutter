@@ -1,7 +1,5 @@
 package dev.rotalex.lutter.codegen
 
-import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
-import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.analysis.resolved.PropOrigin
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
@@ -10,6 +8,8 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
 import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
+import dev.rotalex.lutter.model.diagnostic.Diagnostic
+import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.doc.ComponentDecl
 import dev.rotalex.lutter.model.doc.ParamDecl
 import dev.rotalex.lutter.model.doc.SlotDecl

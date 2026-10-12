@@ -1,5 +1,7 @@
 package dev.rotalex.lutter.analysis.diagnostic
 
+import dev.rotalex.lutter.model.diagnostic.DiagnosticCode
+
 /**
  * The diagnostic codes passes 1, 3, 4, 5 and 6 emit — exactly PLAN §17.3's rows for those passes.
  *

@@ -1,10 +1,10 @@
 package dev.rotalex.lutter.analysis
 
-import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
 import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCodes
 import dev.rotalex.lutter.analysis.resolved.PropOrigin
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.analysis.resolved.ResolvedProp
+import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.doc.DataModelDecl
 import dev.rotalex.lutter.model.doc.FieldDecl
 import dev.rotalex.lutter.model.doc.StateDecl
