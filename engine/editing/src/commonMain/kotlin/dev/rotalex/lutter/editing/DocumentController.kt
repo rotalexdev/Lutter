@@ -193,7 +193,8 @@ public class DocumentController<A : Any, F : Any, T : Any>(
                 "building rather than against the one it has not published yet"
         }
 
-        val patch: Patch = when (val planned = CommandPlanner.plan(command, stateFlow.value.document, schema, ids)) {
+        val planned: CommandResult = CommandPlanner.plan(command, stateFlow.value.document, schema, ids)
+        val patch: Patch = when (planned) {
             is CommandResult.Ok -> planned.patch
             is CommandResult.Rejected -> return planned
         }
