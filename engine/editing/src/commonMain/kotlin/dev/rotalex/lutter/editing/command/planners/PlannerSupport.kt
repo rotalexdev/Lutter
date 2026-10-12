@@ -9,7 +9,6 @@ import dev.rotalex.lutter.model.diagnostic.DiagnosticCode
 import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
 import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.doc.Node
-import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.SlotName
@@ -22,16 +21,24 @@ import dev.rotalex.lutter.schema.registry.Registry
 // Everything the planners share that is not a command.
 //
 // The helpers are here rather than duplicated per family because each of them is a *fact about
-// the document* that two families need and a third would otherwise re-derive: where a node's
-// rows end, whether an id is free, what a slot's `Cardinality` permits, how a subtree is
-// walked. A copy of "which children does this node have" written four times is four answers
-// to one question, and the day they disagree is the day an inverse silently does not restore
-// a document.
+// the document* that two families need and a third would otherwise re-derive: what a slot's
+// `Cardinality` permits, and which child types its `ChildFilter` admits. A copy of "may this
+// slot take that" written four times is four answers to one question, and the day they disagree
+// is the day an editor offers a drop the planner refuses.
+//
+// The two facts that used to be here — which rows a subtree has, and which of a node's children
+// the document does not hold — moved to `template/NodeTemplate.kt`, where `NodeTemplate.capture`
+// needs them too. Three callers now walk a subtree rather than two, and two walks that disagreed
+// on which row is first would put a different node in a parent's slot depending on which command
+// asked. The direction is one-way because `Command.InsertNode` already carries a `NodeTemplate`,
+// so `command` depends on `template` and the walk belongs on that side of the edge.
 //
 // **Nothing in this file is public.** §33.6 gives the planners `internal`, and that includes
 // their vocabulary: a caller that wants the legal drop targets of a node asks `DropTargets`
 // (§33.6's own `policy` file), and a caller that wants to plan a command of its own — a
-// plugin, a migration — goes through `CommandPlanner`.
+// plugin, a migration — goes through `CommandPlanner`. `DropTargets` is the one exception and
+// it is a deliberate one: §25.3's promise is that it answers the same question the planners do,
+// so it calls `slotRejections` below rather than re-deriving it.
 
 /**
  * The reasons a command was refused, gathered in the order they were found.
@@ -210,70 +217,3 @@ private fun childNotAllowed(
         "child" to childType.value,
     ),
 )
-
-/**
- * Every row of the subtree rooted at [root]: the root, then its descendants depth first.
- *
- * Parents before their children, which is the only ordering the two ops that carry a subtree
- * need — [PatchOp.InsertNodes] places the first element and writes the rest into the table,
- * and [PatchOp.RemoveSubtree] deletes them all. Within that, the order is fixed rather than
- * incidental for two reasons: children are visited in slot-name order so a node's children
- * come back the same way on every target, because §6.2's determinism is a claim about
- * documents and this function feeds the patch that produces them; and a `seen` set stops a
- * cycle, because §6.2's invariants are §17.1's to report and an index built by walking
- * malformed input must terminate anyway.
- *
- * A child id the table does not hold is skipped rather than invented — `null` is the only
- * honest answer for a row that is not there — and the caller that needs to know asks
- * [danglingChildren], because a skipped child is a structural fault and this is a walk.
- */
-internal fun subtreeRows(document: UiDocument, root: NodeId): List<Node> {
-    val collected: MutableList<Node> = mutableListOf()
-    val seen: MutableSet<NodeId> = mutableSetOf(root)
-    val stack: MutableList<NodeId> = mutableListOf(root)
-
-    while (stack.isNotEmpty()) {
-        val id: NodeId = stack.removeAt(stack.lastIndex)
-        val node: Node = document.nodes[id] ?: continue
-        collected += node
-        val children: List<NodeId> = node.slots.entries
-            .sortedBy { it.key.value }
-            .flatMap { it.value }
-        // Reversed, so the first child is popped first and a node's own subtree is walked
-        // before its next sibling's.
-        for (index in children.indices.reversed()) {
-            val child: NodeId = children[index]
-            if (seen.add(child)) stack += child
-        }
-    }
-    return collected
-}
-
-/** The child ids [node] lists that the table does not hold. §17.1 reports them; we refuse on them. */
-internal fun danglingChildren(document: UiDocument, node: Node): List<NodeId> =
-    node.slots.values.flatten().filter { it !in document.nodes }
-
-/**
- * [rows] with every id replaced by the one at the same position in [fresh], and every child
- * reference rewritten to match.
- *
- * The one remap a duplicate needs, and the smallest one that is correct: §6.2's "ids are
- * never reused" is satisfied by a bijective rewrite of the rows *and* of the references
- * between them, and anything else is a second copy of somebody's subtree under the first
- * copy's identity.
- *
- * **This is a stopgap and says so.** §33.6 files `IdRemapper.kt` beside `NodeTemplate.kt`
- * for the clipboard, where the questions this does not ask matter — a paste that renumbers a
- * document, a reference into a moved subtree. When that file lands, this goes away and
- * `planDuplicateNode` calls it instead; leaving it here rather than reaching forward into a
- * file another work unit owns is the smaller of the two mistakes.
- */
-internal fun remapIds(rows: List<Node>, fresh: List<NodeId>): List<Node> {
-    val mapping: Map<NodeId, NodeId> = rows.zip(fresh) { row, id -> row.id to id }.toMap()
-    return rows.map { node ->
-        node.copy(
-            id = mapping.getValue(node.id),
-            slots = node.slots.mapValues { (_, children) -> children.map { mapping.getValue(it) } },
-        )
-    }
-}

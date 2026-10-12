@@ -126,8 +126,15 @@ public object CommandPlanner {
      * The branch is what makes a document that declares nothing pay nothing — the overlay
      * merges every registry on construction, and a document with no `doc.*` instances gains
      * nothing from the merge.
+     *
+     * **`internal` and not private, because there are two callers and one answer.**
+     * [dev.rotalex.lutter.editing.policy.DropTargets.forNode] resolves the same registry,
+     * because §25.3's promise that an editor is offered only legal targets is a promise that
+     * both sides resolve `doc.*` the same way. A private copy of these five lines in that file
+     * would be two implementations of "which specs apply to this document", and the second one
+     * would not be under this KDoc.
      */
-    private fun <A : Any, F : Any, T : Any> componentRegistry(
+    internal fun <A : Any, F : Any, T : Any> componentRegistry(
         document: UiDocument,
         schema: SchemaView<ComponentSpec, ModifierSpec, A, F, T>,
     ): Registry<ComponentType, ComponentSpec> =

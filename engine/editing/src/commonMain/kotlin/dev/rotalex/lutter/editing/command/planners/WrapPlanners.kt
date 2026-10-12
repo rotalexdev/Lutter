@@ -6,6 +6,8 @@ import dev.rotalex.lutter.editing.command.EditCodes
 import dev.rotalex.lutter.editing.patch.PatchOp
 import dev.rotalex.lutter.editing.patch.Placement
 import dev.rotalex.lutter.editing.patch.RemovedSubtree
+import dev.rotalex.lutter.editing.template.IdRemapper
+import dev.rotalex.lutter.editing.template.danglingChildren
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.ComponentType
@@ -117,7 +119,10 @@ internal fun planWrapNode(
     // slot that was already at its limit before the user touched anything.
     reasons.addAll(slotFilterRejections(parentSpec, parent.id, from.slot, command.wrapper))
 
-    val wrapperId: NodeId = ids.nextNodeId()
+    // One row created out of nothing, which is the smallest thing `IdRemapper` does. It is
+    // the same class `Command.DuplicateNode` mints a whole subtree's worth through, so there
+    // is one place in this module that decides what a new node's id is.
+    val wrapperId: NodeId = IdRemapper(document, ids).fresh()
     if (wrapperId in document.nodes) {
         reasons.add(
             EditCodes.DuplicateId,
