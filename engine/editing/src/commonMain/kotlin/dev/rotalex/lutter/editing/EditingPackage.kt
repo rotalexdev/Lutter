@@ -2,10 +2,10 @@
 //
 // PLAN §22.1 names what lives here and §33.6 the files. `DocumentController` owns
 // the document, `Command` states intent, `PatchOp` is the only mechanism that
-// changes anything, and `History` turns patches into undo/redo. The patches and
-// the commands are merged; the clipboard surface (`NodeTemplate.capture`,
-// `IdRemapper`), the drop-legality surface (`DropTargets`) and
-// `diff/DocumentDiff.kt` are later work units of Phase 9.
+// changes anything, and `History` turns patches into undo/redo. The patches, the
+// commands, the clipboard surface (`NodeTemplate.capture`, `IdRemapper`) and the
+// drop-legality surface (`DropTargets`) are merged; `diff/DocumentDiff.kt` and
+// `migration/SpecMigrationPass.kt` are later work units of Phase 9.
 //
 // Nothing here draws. The visual editor is `:app:editor` (PLAN §4.6 D28) and it
 // consumes this module; no `:engine:*` module may name it in

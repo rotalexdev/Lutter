@@ -4,6 +4,10 @@ import dev.rotalex.lutter.editing.command.Command
 import dev.rotalex.lutter.editing.command.CommandResult
 import dev.rotalex.lutter.editing.command.EditCodes
 import dev.rotalex.lutter.editing.patch.PatchOp
+import dev.rotalex.lutter.editing.template.IdRemapper
+import dev.rotalex.lutter.editing.template.NodeTemplate
+import dev.rotalex.lutter.editing.template.danglingChildren
+import dev.rotalex.lutter.editing.template.subtreeRows
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.ComponentType
@@ -126,6 +130,11 @@ internal fun planInsertNode(
  * does not — the same op with a different consequence. Everything after the capture is
  * [planInsertNode]'s work, which is why this is in the same file.
  *
+ * **The ids come from [IdRemapper]**, the same class the clipboard uses, so there is one
+ * answer to "what id does this copy get" in this module. §33.6 files it under `template`,
+ * where the paste that needs it more lives; §6.2's row — *"Duplicate/paste generates new ids
+ * (`IdRemapper`)"* — puts both words in one sentence for the same reason.
+ *
  * The generator's contract is checked rather than trusted. `IdGenerator.nextNodeId` promises
  * an id no node is using, and a `SequentialIdGenerator` restarted against a document that
  * already holds `n_1` breaks that promise; because `NodeTable.with` replaces rather than
@@ -186,11 +195,17 @@ internal fun planDuplicateNode(
     }
 
     val rows: List<Node> = subtreeRows(document, command.id)
-    val fresh: List<NodeId> = List(rows.size) { ids.nextNodeId() }
-    if (fresh.any { it in document.nodes } || fresh.distinct().size != rows.size) {
+    val copy: NodeTemplate = IdRemapper(document, ids).remap(rows)
+
+    // The remapper is built against the whole document, so an id it hands back is one nothing
+    // in the document is using — unless the generator broke the promise `IdGenerator` makes.
+    // That is checked here rather than trusted, because `NodeTable.with` answers a collision
+    // by replacing the row, and the same id twice is that collision one step earlier.
+    val minted: List<NodeId> = copy.nodes.map { it.id }
+    if (minted.any { it in document.nodes } || minted.distinct().size != rows.size) {
         reasons.add(
             EditCodes.DuplicateId,
-            fresh.firstOrNull(),
+            minted.firstOrNull(),
             "the id generator returned an id the document already holds, or the same id twice",
         )
         return reasons.result(emptyList())
@@ -209,5 +224,5 @@ internal fun planDuplicateNode(
 
     // `from.index + 1` is the position the original node is pushed to by the insertion, which
     // is what the slot holds when the op runs.
-    return reasons.result(listOf(PatchOp.InsertNodes(from.parentId, from.slot, from.index + 1, remapIds(rows, fresh))))
+    return reasons.result(listOf(PatchOp.InsertNodes(from.parentId, from.slot, from.index + 1, copy.nodes)))
 }

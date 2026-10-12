@@ -5,6 +5,7 @@ import dev.rotalex.lutter.editing.command.CommandResult
 import dev.rotalex.lutter.editing.command.EditCodes
 import dev.rotalex.lutter.editing.patch.PatchOp
 import dev.rotalex.lutter.editing.patch.RemovedSubtree
+import dev.rotalex.lutter.editing.template.subtreeRows
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.ComponentType
