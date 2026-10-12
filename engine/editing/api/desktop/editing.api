@@ -1,3 +1,50 @@
+public final class dev/rotalex/lutter/editing/DocumentChange {
+	public fun <init> (JLdev/rotalex/lutter/editing/patch/Patch;)V
+	public final fun component1 ()J
+	public final fun component2 ()Ldev/rotalex/lutter/editing/patch/Patch;
+	public final fun copy (JLdev/rotalex/lutter/editing/patch/Patch;)Ldev/rotalex/lutter/editing/DocumentChange;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/DocumentChange;JLdev/rotalex/lutter/editing/patch/Patch;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/DocumentChange;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPatch ()Ldev/rotalex/lutter/editing/patch/Patch;
+	public final fun getRevision ()J
+	public final fun getTouchedNodes ()Ljava/util/Set;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/DocumentController {
+	public fun <init> (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/model/ids/IdGenerator;Ldev/rotalex/lutter/editing/history/History;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/model/ids/IdGenerator;Ldev/rotalex/lutter/editing/history/History;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun dispatch (Ldev/rotalex/lutter/editing/command/Command;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/editing/history/MergeWindow;)Ldev/rotalex/lutter/editing/command/CommandResult;
+	public static synthetic fun dispatch$default (Ldev/rotalex/lutter/editing/DocumentController;Ldev/rotalex/lutter/editing/command/Command;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/editing/history/MergeWindow;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/CommandResult;
+	public final fun getChanges ()Lkotlinx/coroutines/flow/SharedFlow;
+	public final fun getState ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun redo ()Z
+	public final fun transaction (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public final fun undo ()Z
+}
+
+public final class dev/rotalex/lutter/editing/DocumentState {
+	public fun <init> (Ldev/rotalex/lutter/model/doc/UiDocument;JZZ)V
+	public final fun component1 ()Ldev/rotalex/lutter/model/doc/UiDocument;
+	public final fun component2 ()J
+	public final fun component3 ()Z
+	public final fun component4 ()Z
+	public final fun copy (Ldev/rotalex/lutter/model/doc/UiDocument;JZZ)Ldev/rotalex/lutter/editing/DocumentState;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/DocumentState;Ldev/rotalex/lutter/model/doc/UiDocument;JZZILjava/lang/Object;)Ldev/rotalex/lutter/editing/DocumentState;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCanRedo ()Z
+	public final fun getCanUndo ()Z
+	public final fun getDocument ()Ldev/rotalex/lutter/model/doc/UiDocument;
+	public final fun getRevision ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/rotalex/lutter/editing/TransactionScope {
+	public abstract fun dispatch (Ldev/rotalex/lutter/editing/command/Command;)Ldev/rotalex/lutter/editing/command/CommandResult;
+}
+
 public abstract interface class dev/rotalex/lutter/editing/command/Command {
 }
 
@@ -208,6 +255,48 @@ public final class dev/rotalex/lutter/editing/command/EditCodes {
 	public final fun getUndeclaredSlot-a0Ipk4o ()Ljava/lang/String;
 	public final fun getUnknownComponent-a0Ipk4o ()Ljava/lang/String;
 	public final fun getUnknownNode-a0Ipk4o ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/history/History {
+	public fun <init> ()V
+	public fun <init> (I)V
+	public synthetic fun <init> (IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun clear ()V
+	public final fun getCanRedo ()Z
+	public final fun getCanUndo ()Z
+	public final fun getRedoEntries ()Ljava/util/List;
+	public final fun getUndoEntries ()Ljava/util/List;
+	public final fun record (Ldev/rotalex/lutter/editing/history/Transaction;Ldev/rotalex/lutter/editing/history/MergeWindow;)V
+	public final fun redo ()Ldev/rotalex/lutter/editing/history/Transaction;
+	public final fun undo ()Ldev/rotalex/lutter/editing/history/Transaction;
+}
+
+public final class dev/rotalex/lutter/editing/history/MergeWindow {
+	public fun <init> (JJ)V
+	public final fun component1 ()J
+	public final fun component2 ()J
+	public final fun copy (JJ)Ldev/rotalex/lutter/editing/history/MergeWindow;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/history/MergeWindow;JJILjava/lang/Object;)Ldev/rotalex/lutter/editing/history/MergeWindow;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAtMillis ()J
+	public final fun getToleranceMillis ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/history/Transaction {
+	public fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/Patch;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ldev/rotalex/lutter/editing/patch/Patch;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/Patch;Ljava/lang/String;)Ldev/rotalex/lutter/editing/history/Transaction;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/history/Transaction;Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/Patch;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/history/Transaction;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLabel ()Ljava/lang/String;
+	public final fun getMergeKey ()Ljava/lang/String;
+	public final fun getPatch ()Ldev/rotalex/lutter/editing/patch/Patch;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class dev/rotalex/lutter/editing/patch/Patch {
