@@ -32,6 +32,8 @@ import dev.rotalex.lutter.model.doc.SlotDecl
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.ComponentType
+import dev.rotalex.lutter.model.ids.NodeId
+import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.overlay.SchemaOverlay
 import dev.rotalex.lutter.schema.registry.Registry
@@ -87,24 +89,28 @@ class DropTargetAgreementTest {
      * The message names the scenario, the candidate and **both** answers, because a
      * disagreement between two answers is what a reader has to adjudicate and neither answer
      * alone is evidence for it.
+     *
+     * The second loop covers the one premise the enumeration *shares* with the production
+     * resolver: a node whose type no spec resolves has no slots to name, so it is never a
+     * candidate. Sharing a premise is fine as long as the premise is asserted somewhere, and
+     * this is where: without the loop, `DropTargets` offering a parent whose spec it could not
+     * resolve would be compared against nothing at all, because the oracle has no candidate to
+     * disagree with.
      */
     @Test
     fun `every reported target plans and every candidate it did not report is refused`() {
         for (scenario in SCENARIOS) {
+            val components: Registry<ComponentType, ComponentSpec> = componentsIn(scenario.document)
             val reported: List<DropTarget> = DropTargets.forNode(scenario.document, SCHEMA, scenario.type)
 
-            for (candidate in candidatesIn(scenario.document)) {
+            for (candidate in candidatesIn(scenario.document, components)) {
                 val offered: Boolean = candidate in reported
-                val planned: CommandResult = CommandPlanner.plan(
-                    command = Command.InsertNode(
-                        candidate.parent,
-                        candidate.slot,
-                        candidate.index,
-                        NodeTemplate(listOf(Node(id = MINTED_ONE, type = scenario.type))),
-                    ),
-                    document = scenario.document,
-                    schema = SCHEMA,
-                    ids = freshIds(),
+                val planned: CommandResult = planInsert(
+                    scenario.document,
+                    candidate.parent,
+                    candidate.slot,
+                    candidate.index,
+                    scenario.type,
                 )
 
                 assertEquals(
@@ -112,6 +118,21 @@ class DropTargetAgreementTest {
                     planned is CommandResult.Ok,
                     "${scenario.name}: DropTargets ${if (offered) "offered" else "withheld"} " +
                         "$candidate and the planner said $planned",
+                )
+            }
+
+            for (unreadable in unreadableIn(scenario.document, components)) {
+                val parent: Node = scenario.document.nodes.require(unreadable)
+                assertTrue(
+                    reported.none { it.parent == unreadable },
+                    "${scenario.name}: '${parent.type}' is not registered, so '$unreadable' was " +
+                        "offered as a parent: $reported",
+                )
+                assertEquals(
+                    listOf(EditCodes.UnknownComponent),
+                    codesOf(planInsert(scenario.document, unreadable, CHILDREN, 0, scenario.type)),
+                    "${scenario.name}: inserting under the unregistered '$unreadable' was not " +
+                        "refused for having no spec",
                 )
             }
         }
@@ -131,6 +152,17 @@ class DropTargetAgreementTest {
      * nothing but *which node type is being dropped*. `Column.footer` is a `Many` slot with a
      * negative filter and `Card.content` is a `ZeroOrOne` with a positive one, so a suite
      * carrying only unbounded `Any` slots would pass with both checks deleted.
+     *
+     * ### The rule this table has broken three times
+     *
+     * **An expected list is one whole value, computed for the question that row asks.** Every
+     * failure this file has had is that one sentence broken a different way — a *prefix* where
+     * the whole list was required, a *whole-document* claim where one node was the subject, and
+     * a neighbouring row's *shape* borrowed for a different question. So: write every element
+     * down, justify each one by naming the policy that admits it, and never carry a row's shape
+     * across without carrying its reasoning. The code was right in all three, and the evidence
+     * was the other way round from what it looks like — the production answer and the oracle
+     * agreed with each other while the table disagreed with both.
      */
     @Test
     fun `the reported targets are exactly these`() {
@@ -217,15 +249,29 @@ class DropTargetAgreementTest {
      * D4 is not in tension with this. An unregistered **node** is preserved and reported as
      * `component.unknown`; an unregistered node used as the **parent** of an edit is where
      * the spec is needed to answer the question at all.
+     *
+     * ### The expectation is the base document's, with the root taken out
+     *
+     * `plannerDocument(rootType = …)` changes **one row**: the type of `n_root`. The twelve rows
+     * below it keep their registered types and stay legal parents, so "this document has no
+     * targets" is a claim about a document the fixture does not describe — an earlier version
+     * of this row asserted exactly that and failed on four targets. The claim this row is
+     * about is one node, so it is written as the full list it *does* expect: the base
+     * document's five text targets minus the root, which is the single difference.
      */
     @Test
     fun `a parent nothing registered is neither offered nor accepted`() {
         val document: UiDocument = plannerDocument(rootType = UNREGISTERED)
 
         assertEquals(
-            emptyList(),
+            listOf(
+                DropTarget(BETA, CHILDREN, 2),
+                DropTarget(JULIET, CHILDREN, 2),
+                DropTarget(KILO, CHILDREN, 0),
+                DropTarget(LIMA, CHILDREN, 0),
+            ),
             DropTargets.forNode(document, SCHEMA, TEXT),
-            "a root whose type is not registered was offered as a parent",
+            "the base document's text targets, less the root whose type nothing registers",
         )
 
         val planned: CommandResult = CommandPlanner.plan(
@@ -289,10 +335,13 @@ class DropTargetAgreementTest {
      * Every (node, declared slot) pair in [document], as a candidate at the end of its slot.
      *
      * The candidates come from the overlay applied directly; see the class KDoc for why the
-     * production resolver is not the source here.
+     * production resolver is not the source here. Nothing filters them: a candidate that is
+     * illegal is the point, and the test compares the two verdicts on each one.
      */
-    private fun candidatesIn(document: UiDocument): List<DropTarget> {
-        val components: Registry<ComponentType, ComponentSpec> = SchemaOverlay(SCHEMA, document).components
+    private fun candidatesIn(
+        document: UiDocument,
+        components: Registry<ComponentType, ComponentSpec>,
+    ): List<DropTarget> {
         val found: MutableList<DropTarget> = mutableListOf()
 
         for (parentId in document.nodes.ids()) {
@@ -304,6 +353,56 @@ class DropTargetAgreementTest {
         }
         return found
     }
+
+    /**
+     * The specs that apply to [document]: §8.4's overlay, applied directly rather than through
+     * the branch `CommandPlanner` takes on a document that declares no components.
+     *
+     * One function so the two loops above cannot disagree about which specs they are talking
+     * about — they are both the oracle, and an oracle with two answers is not one.
+     */
+    private fun componentsIn(document: UiDocument): Registry<ComponentType, ComponentSpec> =
+        SchemaOverlay(SCHEMA, document).components
+
+    /**
+     * The nodes in [document] no spec resolves.
+     *
+     * The premise the candidate list cannot express: a node with no spec has no slots, so there
+     * is no (node, slot) pair to enumerate, and an enumeration that stops here is agreeing with
+     * the production resolver by assumption rather than by comparison. The test asserts the
+     * assumption instead.
+     */
+    private fun unreadableIn(
+        document: UiDocument,
+        components: Registry<ComponentType, ComponentSpec>,
+    ): List<NodeId> {
+        val found: MutableList<NodeId> = mutableListOf()
+
+        for (parentId in document.nodes.ids()) {
+            val parent: Node = document.nodes[parentId] ?: continue
+            if (components[parent.type] == null) found += parentId
+        }
+        return found
+    }
+
+    /** One node of [type] inserted at [index] of [parent]'s [slot], planned and nothing more. */
+    private fun planInsert(
+        document: UiDocument,
+        parent: NodeId,
+        slot: SlotName,
+        index: Int,
+        type: ComponentType,
+    ): CommandResult = CommandPlanner.plan(
+        command = Command.InsertNode(
+            parent,
+            slot,
+            index,
+            NodeTemplate(listOf(Node(id = MINTED_ONE, type = type))),
+        ),
+        document = document,
+        schema = SCHEMA,
+        ids = freshIds(),
+    )
 
     /** The codes a plan was refused with, or nothing for an acceptance. */
     private fun codesOf(result: CommandResult): List<DiagnosticCode> = when (result) {
@@ -377,11 +476,21 @@ private fun undeclaredSlotDocument(): UiDocument = plannerDocument(
     ),
 )
 
+/**
+ * The base document with a root nothing registers.
+ *
+ * In `SCENARIOS` because the partition's second loop — the one over the nodes no spec resolves
+ * — has no other scenario to run on. `plannerDocument(rootType = …)` changes that one row and
+ * leaves the twelve below it, so this document still has four legal parents for a `Text`.
+ */
+private val UNREADABLE_ROOT_DOCUMENT: UiDocument = plannerDocument(rootType = UNREGISTERED)
+
 private val SCENARIOS: List<Scenario> = listOf(
     Scenario("a text node in the base document", BASE, TEXT),
     Scenario("a column in the base document", BASE, COLUMN),
     Scenario("a document component instance", INSTANCE_DOCUMENT, TEXT),
     Scenario("a card with an empty content slot", EMPTY_CARD_DOCUMENT, TEXT),
+    Scenario("a root nothing registers", UNREADABLE_ROOT_DOCUMENT, TEXT),
 )
 
 private val EXPECTED: List<Expected> = listOf(
@@ -426,14 +535,20 @@ private val EXPECTED: List<Expected> = listOf(
         name = "a document component instance",
         document = INSTANCE_DOCUMENT,
         type = TEXT,
-        // The instance comes first because `n_h` sorts before `n_k` and `n_root`, and its
-        // `content` slot exists only because §8.4 synthesized the spec from
-        // `ComponentDecl.slots`.
+        // Three, and every one of them justified by the rule that admits it:
+        //   * the instance's `content`, which exists only because §8.4 synthesized the spec
+        //     from `ComponentDecl.slots`, and whose `Cardinality.Many` has room;
+        //   * the two `Column.children` slots — `n_k`, which holds nothing, and the root,
+        //     which holds the instance.
+        // **No `footer`**, exactly as in the first row: the child here is `Text` and
+        // `Column.footer` is `Except({Text})`. An earlier version of this row carried a footer
+        // target because the row above it (which asks about a *column*) has them, and this row
+        // borrowed the shape instead of the reasoning. A target list is justified one element
+        // at a time, or it is a list of plausible-looking guesses.
         targets = listOf(
             DropTarget(HOTEL, CONTENT, 0),
             DropTarget(KILO, CHILDREN, 0),
             DropTarget(ROOT, CHILDREN, 1),
-            DropTarget(ROOT, FOOTER, 0),
         ),
     ),
 )

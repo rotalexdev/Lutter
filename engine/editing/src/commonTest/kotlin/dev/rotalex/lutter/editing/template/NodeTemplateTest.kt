@@ -11,7 +11,9 @@ import dev.rotalex.lutter.editing.command.CommandResult
 import dev.rotalex.lutter.editing.command.DELTA
 import dev.rotalex.lutter.editing.command.ECHO
 import dev.rotalex.lutter.editing.command.EditCodes
+import dev.rotalex.lutter.editing.command.FOXTROT
 import dev.rotalex.lutter.editing.command.GAMMA
+import dev.rotalex.lutter.editing.command.GOLF
 import dev.rotalex.lutter.editing.command.JULIET
 import dev.rotalex.lutter.editing.command.MINTED_ONE
 import dev.rotalex.lutter.editing.command.MINTED_THREE
@@ -168,12 +170,17 @@ class NodeTemplateTest {
         val ok = planned as? CommandResult.Ok ?: fail("the paste was refused: $planned")
         val pasted: UiDocument = PatchApplier.apply(ok.patch, BASE)
 
-        // Three new rows, the copy after the original, and the copy's own children with it.
+        // Three new rows, the copy at index 2 of the root's slot, and the copy's own children
+        // with it. **The whole slot list, not a prefix of it**: the first version of this
+        // assertion named the four children up to and including `Gamma` and called that the
+        // list, so it described a root with two fewer children than the document has. The card
+        // and the banner are in that slot and the paste does not touch them, which is the
+        // point of writing them down.
         assertEquals(BASE.nodes.size + 3, pasted.nodes.size)
         assertEquals(
-            listOf(ALPHA, BETA, MINTED_ONE, GAMMA),
+            listOf(ALPHA, BETA, MINTED_ONE, GAMMA, FOXTROT, GOLF),
             pasted.nodes.require(ROOT).slots[CHILDREN],
-            "the copy did not land next to the original",
+            "the copy did not land at index 2 of the root's slot",
         )
         assertEquals(listOf(MINTED_TWO, MINTED_THREE), pasted.nodes.require(MINTED_ONE).slots[CHILDREN])
         assertEquals(
