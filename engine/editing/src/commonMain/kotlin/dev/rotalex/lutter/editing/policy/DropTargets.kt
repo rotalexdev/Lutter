@@ -110,7 +110,9 @@ public object DropTargets {
             val parent: Node = document.nodes[parentId] ?: continue
 
             // No spec, no readable slots, so nothing can be certified here. See the file KDoc.
-            val spec: ComponentSpec? = components[parent.type] ?: continue
+            // Declared non-null: the elvis below is what makes it so, and annotating the
+            // nullable type only asks every use below to re-prove it.
+            val spec: ComponentSpec = components[parent.type] ?: continue
 
             for (slot in spec.slots) {
                 val children: List<NodeId> = parent.slots[slot.name].orEmpty()
