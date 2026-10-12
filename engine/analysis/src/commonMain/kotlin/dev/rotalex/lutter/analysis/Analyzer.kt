@@ -1,8 +1,6 @@
 package dev.rotalex.lutter.analysis
 
-import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
 import dev.rotalex.lutter.analysis.diagnostic.DiagnosticSorter
-import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.analysis.pass.ActionPass
 import dev.rotalex.lutter.analysis.pass.ExpressionPass
 import dev.rotalex.lutter.analysis.pass.ReferencePass
@@ -10,6 +8,8 @@ import dev.rotalex.lutter.analysis.pass.ResolutionPass
 import dev.rotalex.lutter.analysis.pass.SchemaPass
 import dev.rotalex.lutter.analysis.pass.StructuralPass
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
+import dev.rotalex.lutter.model.diagnostic.Diagnostic
+import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.ComponentSpec

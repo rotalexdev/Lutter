@@ -1,9 +1,7 @@
 package dev.rotalex.lutter.cli
 
-import dev.rotalex.lutter.analysis.Analyzer
 import dev.rotalex.lutter.analysis.AnalysisResult
-import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
-import dev.rotalex.lutter.analysis.diagnostic.Severity
+import dev.rotalex.lutter.analysis.Analyzer
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.builtins.registerBuiltinActions
 import dev.rotalex.lutter.builtins.registerBuiltinEnums
@@ -13,6 +11,8 @@ import dev.rotalex.lutter.builtins.registerBuiltinSpecs
 import dev.rotalex.lutter.codegen.CodegenOptions
 import dev.rotalex.lutter.codegen.CodegenResult
 import dev.rotalex.lutter.codegen.KotlinGenerator
+import dev.rotalex.lutter.model.diagnostic.Diagnostic
+import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.schema.Schema
 import dev.rotalex.lutter.schema.action.ActionSpec

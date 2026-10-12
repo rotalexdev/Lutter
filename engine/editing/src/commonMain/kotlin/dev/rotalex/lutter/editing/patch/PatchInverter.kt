@@ -15,10 +15,11 @@ package dev.rotalex.lutter.editing.patch
  *  * [PatchOp.MoveNode] has [PatchOp.MoveNode.from], and the two placements are each other's
  *    negation.
  *  * [PatchOp.RemoveSubtree] has [PatchOp.RemoveSubtree.captured], which is the entire subtree
- *    *and* the position it was lifted from.
- *  * [PatchOp.InsertNodes] needs no capture, because it is holding the new state and the
- *    position it went to, and the two facts about the document it leaves behind — which node,
- *    where — are exactly what [PatchOp.RemoveSubtree] needs.
+ *    *and* the position it was lifted from — or, for the form [PatchOp.PutNodes] produces, the
+ *    subtree and the fact that there was no position.
+ *  * [PatchOp.InsertNodes] and [PatchOp.PutNodes] need no capture, because each is holding the
+ *    new state and the place it went to, and the two facts about the document it leaves behind
+ *    — which nodes, where — are exactly what [PatchOp.RemoveSubtree] needs.
  *
  * So an inverse is a function of the op alone. There is no lookup, no parent index, no
  * "where was this node before", and — the consequence that matters for undo — **no way to
@@ -77,12 +78,31 @@ public object PatchInverter {
             captured = RemovedSubtree(op.parent, op.slot, op.index, op.nodes),
         )
 
-        is PatchOp.RemoveSubtree -> PatchOp.InsertNodes(
-            parent = op.captured.parent,
-            slot = op.captured.slot,
-            index = op.captured.index,
-            nodes = op.captured.nodes,
+        // The other half of the same pair, with the position it never had. `unplaced` is what
+        // makes this a two-line inversion rather than a reconstruction: the rows are the whole
+        // capture, and their absence from a slot is the one fact that has to be invented.
+        is PatchOp.PutNodes -> PatchOp.RemoveSubtree(
+            root = op.nodes.first().id,
+            captured = RemovedSubtree.unplaced(op.nodes),
         )
+
+        // The unplaced arm is not a fallback for a malformed capture. A capture is either
+        // placed or unplaced and the two never interleave: `placement` is null unless all
+        // three position fields agree, so anything else is an unplaced removal — which is the
+        // form D30 added, and the one `PutNodes` above produces.
+        is PatchOp.RemoveSubtree -> {
+            val from: Placement? = op.captured.placement
+            if (from == null) {
+                PatchOp.PutNodes(op.captured.nodes)
+            } else {
+                PatchOp.InsertNodes(
+                    parent = from.parent,
+                    slot = from.slot,
+                    index = from.index,
+                    nodes = op.captured.nodes,
+                )
+            }
+        }
 
         // Each placement is the other's. `PatchApplier` reads `to.index` against the list as it
         // is once `from` has been vacated, and swapping the two turns that rule into itself —

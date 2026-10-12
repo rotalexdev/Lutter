@@ -1,12 +1,12 @@
 package dev.rotalex.lutter.analysis.pass
 
-import dev.rotalex.lutter.analysis.diagnostic.Diagnostic
 import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCodes
-import dev.rotalex.lutter.analysis.diagnostic.DiagnosticLocation
-import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.analysis.resolved.isMaterialToken
 import dev.rotalex.lutter.analysis.resolved.selectTheme
 import dev.rotalex.lutter.analysis.resolved.themeKnows
+import dev.rotalex.lutter.model.diagnostic.Diagnostic
+import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
+import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.expr.PropertyValue

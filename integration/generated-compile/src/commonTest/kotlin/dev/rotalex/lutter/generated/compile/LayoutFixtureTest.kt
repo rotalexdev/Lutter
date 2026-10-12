@@ -2,11 +2,11 @@ package dev.rotalex.lutter.generated.compile
 
 import dev.rotalex.lutter.analysis.AnalysisResult
 import dev.rotalex.lutter.analysis.Analyzer
-import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.builtins.LayoutScopes
 import dev.rotalex.lutter.codegen.CodegenOptions
 import dev.rotalex.lutter.codegen.KotlinGenerator
+import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.schema.component.ScopeId

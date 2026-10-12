@@ -122,6 +122,7 @@ public object PatchApplier {
      */
     private fun applyOne(op: PatchOp, document: UiDocument): UiDocument = when (op) {
         is PatchOp.InsertNodes -> applyInsert(op, document)
+        is PatchOp.PutNodes -> applyPutNodes(op, document)
         is PatchOp.RemoveSubtree -> applyRemove(op, document)
         is PatchOp.MoveNode -> applyMove(op, document)
         is PatchOp.SetProp -> applySetProp(op, document)
@@ -171,7 +172,44 @@ public object PatchApplier {
     }
 
     /**
-     * Deletes the captured rows and takes the root out of the slot it was captured from.
+     * Writes rows into the table with no parent: [PatchOp.PutNodes].
+     *
+     * Two refusals, and the second is the one that matters. **An id the table already holds
+     * would replace the row**, because `NodeTable.with` replaces rather than refusing — so an
+     * unguarded write here would delete a live node and its whole subtree without a word. The
+     * same id twice *within* one op is the same failure one step later: the second write
+     * replaces the first, and the capture the inverse would carry is not the document.
+     *
+     * **No position checks, and there are none to have.** Every other node-table op names where
+     * a row went, and this one does not, because a row that nothing points at is exactly what
+     * it writes — a page root, before the `PutRecord` that makes it reachable. The strict
+     * checks in [applyInsert] and [applyRemove] exist because §5.6's normalization makes a
+     * wrong-order document invisible to every existence check in the engine; that failure needs
+     * an order to be wrong in.
+     */
+    private fun applyPutNodes(op: PatchOp.PutNodes, document: UiDocument): UiDocument {
+        val held = op.nodes.firstOrNull { it.id in document.nodes }
+        require(held == null) {
+            "PatchOp.PutNodes carries '${held?.id}', which the table already holds; writing it " +
+                "would replace a live node rather than add one"
+        }
+
+        val repeated = op.nodes.firstOrNull { node -> op.nodes.count { it.id == node.id } > 1 }
+        require(repeated == null) {
+            "PatchOp.PutNodes carries '${repeated?.id}' twice, and the second write would " +
+                "replace the first"
+        }
+
+        var table = document.nodes
+        for (node in op.nodes) {
+            table = table.with(node)
+        }
+        return document.copy(nodes = table)
+    }
+
+    /**
+     * Deletes the captured rows, and takes the root out of the slot it was captured from when
+     * there was one.
      *
      * The position is checked against the node's own id before anything is removed. A removal
      * that found a *different* node at that index would leave a document whose nodes are all
@@ -179,6 +217,15 @@ public object PatchApplier {
      * invisible: nothing is missing, so no existence check anywhere in the engine would notice.
      * The check is also what turns "this patch was built for another document" from a silent
      * corruption into an error that names both ids.
+     *
+     * **A capture with no position is [PatchOp.PutNodes]'s inverse** and does strictly less:
+     * the rows are dropped and no slot is touched, because there was no slot. See
+     * [RemovedSubtree] for how absence is spelled and why.
+     *
+     * A removal that drops rows something still references is *not* refused here. Nothing in
+     * this file can see reachability without walking the whole table, §17.1's structural pass
+     * reports the dangling reference as `struct.missing_node`, and a check that only half
+     * answered would be worse than the pass that answers all of it.
      */
     private fun applyRemove(op: PatchOp.RemoveSubtree, document: UiDocument): UiDocument {
         var table = document.nodes
@@ -186,17 +233,17 @@ public object PatchApplier {
             table = table.without(node.id)
         }
 
-        val slot = op.captured.slot
-        val siblings = table.require(op.captured.parent).slots[slot].orEmpty()
-        val index = op.captured.index
-        val found = siblings.getOrNull(index)
+        val from: Placement = op.captured.placement ?: return document.copy(nodes = table)
+
+        val siblings = table.require(from.parent).slots[from.slot].orEmpty()
+        val found = siblings.getOrNull(from.index)
         require(found == op.root) {
-            "PatchOp.RemoveSubtree captured '${op.root}' at ${op.captured.parent}.$slot[$index], " +
+            "PatchOp.RemoveSubtree captured '${op.root}' at ${from.parent}.${from.slot}[${from.index}], " +
                 "but that position holds '$found'"
         }
 
-        val remaining: List<NodeId> = siblings.toMutableList().also { it.removeAt(index) }
-        return withChildren(document, table, op.captured.parent, slot, remaining)
+        val remaining: List<NodeId> = siblings.toMutableList().also { it.removeAt(from.index) }
+        return withChildren(document, table, from.parent, from.slot, remaining)
     }
 
     /**

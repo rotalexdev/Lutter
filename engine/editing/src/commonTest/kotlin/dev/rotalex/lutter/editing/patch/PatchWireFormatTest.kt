@@ -22,6 +22,7 @@ import dev.rotalex.lutter.model.value.Value
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -90,6 +91,7 @@ class PatchWireFormatTest {
     @Test
     fun `every op spells its own tag on the wire`() {
         assertEquals("insertNodes", tagOf<PatchOp>(PatchOp.InsertNodes(root, children, 0, listOf(childRow))))
+        assertEquals("putNodes", tagOf<PatchOp>(PatchOp.PutNodes(listOf(childRow))))
         assertEquals(
             "removeSubtree",
             tagOf<PatchOp>(PatchOp.RemoveSubtree(child, RemovedSubtree(root, children, 0, listOf(childRow)))),
@@ -141,19 +143,24 @@ class PatchWireFormatTest {
     }
 
     /**
-     * A patch holding all eight, round-tripped.
+     * A patch holding every op, round-tripped.
      *
      * `Patch` rather than a bare `PatchOp`, because the interesting failure for the container is
      * an extra field and an extra field is only visible from outside the class. `touchedNodes` is
      * the one that would appear: it is a member, it is derived, and a member with a backing field
      * is serialized. It has none, so the object on the wire is `{"ops":[…]}` and nothing else —
      * asserted as a key list rather than as a substring, so that a *renamed* field fails too.
+     *
+     * The nine are the eight of §26.2 plus D30's `PutNodes`, and `PutNodes` is here rather than
+     * in a second test because the count is the assertion: nine ops, nine entries, and a tenth
+     * variant added without this list failing is the failure.
      */
     @Test
     fun `a patch holding every op round trips and writes only its ops`() {
         val patch = Patch(
             listOf(
                 PatchOp.InsertNodes(root, children, 0, listOf(childRow)),
+                PatchOp.PutNodes(listOf(childRow)),
                 PatchOp.RemoveSubtree(child, RemovedSubtree(root, children, 0, listOf(childRow))),
                 PatchOp.MoveNode(child, Placement(root, children, 0), Placement(root, content, 0)),
                 PatchOp.SetProp(child, PropertyKey("text"), null, PropertyValue.Const(Value.Str("hello"))),
@@ -180,13 +187,13 @@ class PatchWireFormatTest {
         val ops = parsed.jsonObject.getValue("ops").jsonArray
 
         assertEquals(listOf("ops"), parsed.jsonObject.keys.toList(), "the patch grew a wire field")
-        assertEquals(8, ops.size)
+        assertEquals(9, ops.size)
         assertEquals(patch, Json.decodeFromString<Patch>(text), "the round trip changed the patch")
 
         // And the two levels of union nesting survive, which is `NodeTest`'s argument applied to
         // this vocabulary: `PutRecord.ref` and `PutRecord.old` are two *different* sealed
         // hierarchies at two depths, and only the nesting says which is which.
-        val putRecord = ops[7].jsonObject
+        val putRecord = ops[8].jsonObject
         assertEquals("putRecord", putRecord.tag(), "the outer union lost its own tag")
         assertEquals("state", putRecord.getValue("ref").jsonObject.tag(), "the reference lost its tag")
         assertEquals("state", putRecord.getValue("old").jsonObject.tag(), "the record lost its tag")
@@ -206,6 +213,48 @@ class PatchWireFormatTest {
         assertFailsWith<SerializationException> {
             Json.decodeFromString<PatchOp>("""{"type":"reorderEverything"}""")
         }
+    }
+
+    /**
+     * The unplaced capture writes three explicit nulls, and reads back as one.
+     *
+     * D30 made [RemovedSubtree]'s three position fields nullable so that [PatchOp.PutNodes]
+     * could have an inverse, and this pins what that costs on the wire. The keys are exactly
+     * where they were — `parent`, `slot`, `index`, `nodes` — so a capture written before the
+     * change still decodes; what is new is that the position may be *absent*, and "absent" has
+     * to be a real JSON null rather than a missing key, or a reader could not tell it from a
+     * capture of a different shape.
+     *
+     * The round trip is the assertion that matters: `decode(encode(x)) == x` for a value whose
+     * fields are all null is the case a serializer that dropped nulls would turn into an
+     * unplaced-placed removal, which applies as "delete these rows" against the wrong document.
+     */
+    @Test
+    fun `an unplaced capture writes its position as three nulls and reads back as one`() {
+        val unplaced = RemovedSubtree.unplaced(listOf(childRow))
+
+        assertNull(unplaced.placement)
+        assertEquals(RemovedSubtree(null, null, null, listOf(childRow)), unplaced)
+
+        val encoded = Json.encodeToString<PatchOp>(
+            PatchOp.RemoveSubtree(child, unplaced),
+        )
+        val decoded = Json.decodeFromString<PatchOp>(encoded)
+
+        assertEquals(PatchOp.RemoveSubtree(child, unplaced), decoded)
+
+        val captured = Json.parseToJsonElement(encoded).jsonObject.getValue("captured").jsonObject
+        assertEquals("null", captured.getValue("parent").jsonPrimitive.content)
+        assertEquals("null", captured.getValue("slot").jsonPrimitive.content)
+        assertEquals("null", captured.getValue("index").jsonPrimitive.content)
+
+        // And the placed form is unaffected: the same three keys, holding values.
+        val placed = RemovedSubtree(root, children, 0, listOf(childRow))
+        assertEquals(Placement(root, children, 0), placed.placement)
+        assertEquals(
+            PatchOp.RemoveSubtree(child, placed),
+            Json.decodeFromString<PatchOp>(Json.encodeToString<PatchOp>(PatchOp.RemoveSubtree(child, placed))),
+        )
     }
 
     /**

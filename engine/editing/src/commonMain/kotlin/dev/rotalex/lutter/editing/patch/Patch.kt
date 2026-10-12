@@ -97,6 +97,7 @@ public data class Patch(
             for (op in ops) {
                 when (op) {
                     is PatchOp.InsertNodes -> for (node in op.nodes) touched.add(node.id)
+                    is PatchOp.PutNodes -> for (node in op.nodes) touched.add(node.id)
                     is PatchOp.RemoveSubtree -> {
                         touched.add(op.root)
                         for (node in op.captured.nodes) touched.add(node.id)

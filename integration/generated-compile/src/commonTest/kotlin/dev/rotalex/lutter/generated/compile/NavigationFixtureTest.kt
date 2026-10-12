@@ -1,6 +1,5 @@
 package dev.rotalex.lutter.generated.compile
 
-import dev.rotalex.lutter.analysis.diagnostic.Severity
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.codegen.CodegenOptions
 import dev.rotalex.lutter.codegen.CodegenResult
@@ -8,6 +7,7 @@ import dev.rotalex.lutter.codegen.KotlinGenerator
 import dev.rotalex.lutter.interpreter.MapEvalScope
 import dev.rotalex.lutter.interpreter.MapStateStore
 import dev.rotalex.lutter.interpreter.action.ActionOutcome
+import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
