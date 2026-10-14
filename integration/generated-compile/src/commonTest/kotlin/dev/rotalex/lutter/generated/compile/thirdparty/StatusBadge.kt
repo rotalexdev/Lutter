@@ -48,7 +48,7 @@ import dev.rotalex.lutter.schema.types.TypeSpec
  * is one: its `commonMain` holds two files whose only content is paths and a package, and every
  * assertion in it is in a test source set. Putting the component in `commonTest` rather than
  * `commonMain` keeps that true at the source-set level too, and has a second effect worth having:
- * KGP's ABI validation covers main compilations only, so nothing here can move an `api/*.api` dump.
+ * KGP's ABI validation covers main compilations only, so nothing here can move an `api` dumps dump.
  * The alternative — a class in `commonTest` of an `engine:*` module — would be *in* that module for
  * every purpose `ModuleGraphRules` cares about, which is the distinction this test exists to blur
  * and could not.
