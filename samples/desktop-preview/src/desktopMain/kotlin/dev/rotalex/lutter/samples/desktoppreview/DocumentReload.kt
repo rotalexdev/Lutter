@@ -52,7 +52,7 @@ internal class LoadedDocument(
  * `public` is a `public` class in the bytecode and belongs in `api/desktop/desktop-preview.api`,
  * so the marker is load-bearing rather than decorative.
  */
-internal sealed interface PreviewStatus {
+internal sealed class PreviewStatus {
 
     /**
      * The line to draw above the document, or null when there is nothing to say.
@@ -67,13 +67,13 @@ internal sealed interface PreviewStatus {
     val isFailure: Boolean
 
     /** A file is being watched and its bytes are the ones on screen. */
-    internal data class Watching(val location: String) : PreviewStatus {
+    data class Watching(val location: String) : PreviewStatus {
         override val message: String? = null
         override val isFailure: Boolean = false
     }
 
     /** Nothing on disk was named, so the copy bundled in the jar is what is on screen. */
-    internal data object Bundled : PreviewStatus {
+    data object Bundled : PreviewStatus {
         override val message: String =
             "Showing the document bundled in the jar: no file is being watched. " +
                 "Pass one to watch it: LutterPreview <document.json>"
@@ -85,13 +85,13 @@ internal sealed interface PreviewStatus {
      *
      * Not a refusal: nothing was read, so there is nothing wrong with what *was* on disk.
      */
-    internal data class Unreadable(val location: String, val reason: String) : PreviewStatus {
+    data class Unreadable(val location: String, val reason: String) : PreviewStatus {
         override val message: String = "Cannot read '$location': $reason"
         override val isFailure: Boolean = true
     }
 
     /** The bytes on disk are not a document this engine renders. The last one stays on screen. */
-    internal data class Rejected(val reason: String) : PreviewStatus {
+    data class Rejected(val reason: String) : PreviewStatus {
         override val message: String = "The document on disk was refused: $reason"
         override val isFailure: Boolean = true
     }
