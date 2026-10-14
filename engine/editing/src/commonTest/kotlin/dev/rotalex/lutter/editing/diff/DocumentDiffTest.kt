@@ -467,6 +467,10 @@ class DocumentDiffTest {
                 RecordRef.Resource(LOGO),
                 RecordRef.DataModel(USER_MODEL),
                 RecordRef.EnumType(COLOR_TYPE),
+                // `t_status` is in `old` and not in `new`, so it is written with `new = null`.
+                // A removal is a write like any other: without this the round trip would leave
+                // the enum in place, and this row is the only thing that would have noticed.
+                RecordRef.EnumType(STATUS_TYPE),
                 RecordRef.State(DISPLAY_NAME.id, 1),
                 RecordRef.State(EXTRA.id, 2),
                 RecordRef.HostFunction(SUBMIT, 0),
