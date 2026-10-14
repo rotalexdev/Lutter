@@ -600,12 +600,12 @@ internal object SourceRules {
      * **This cost four compile cycles across two phases.** Each was reported as a different error and
      * none pointed at the character: the first swallowed a file body, the second produced twelve
      * *"Unresolved reference"* cascades for functions that were declared in the file the parser had
-     * stopped reading, the third orphaned a KDoc, and the fourth made four fixtures unresolvable. All
-     * four were one `/*` in a doc comment, and in every case the only evidence was a count — eight
-     * `/*` against seven `*/`.
+     * stopped reading, the third orphaned a KDoc, and the fourth made four fixtures unresolvable.
+     * All four were one opener in a doc comment, and in every case the only evidence was a **count**:
+     * eight openers against seven closers.
      *
-     * Only the **first** opener on a line that is not itself a comment's own `/*` is reported, and
-     * `/**` is excluded because that is a declaration's own doc comment.
+     * A comment's own opener is not reported — `/**` on a declaration is how the rest of this file's
+     * documentation is written, and a rule that flagged its own convention would be unusable.
      */
     fun nestedBlockCommentOccurrences(text: String): List<String> {
         val violations = mutableListOf<String>()
