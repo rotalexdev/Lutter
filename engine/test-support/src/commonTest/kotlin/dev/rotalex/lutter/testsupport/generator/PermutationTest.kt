@@ -100,7 +100,7 @@ class PermutationTest {
         for (seed in seeds(PERMUTATION_SEED_COUNT)) {
             val original = outcomeOf(seed)
             for (order in ConstructionOrder.entries) {
-                val permuted = outcomeOf(permutedDocument(seed, order))
+                val permuted = outcomeOf(seed, permutedDocument(seed, order))
                 if (!original.documentBytes.contentEquals(permuted.documentBytes)) {
                     failures += "seed $seed, order $order: the canonical bytes differ " +
                         "(${original.documentBytes.size} against ${permuted.documentBytes.size})\n" +
@@ -139,7 +139,7 @@ class PermutationTest {
         for (seed in seeds(PERMUTATION_SEED_COUNT)) {
             val original = outcomeOf(seed)
             for (order in ConstructionOrder.entries) {
-                val permuted = outcomeOf(permutedDocument(seed, order))
+                val permuted = outcomeOf(seed, permutedDocument(seed, order))
                 if (original.analysisDiagnostics != permuted.analysisDiagnostics) {
                     failures += "seed $seed, order $order: the analysis diagnostics differ\n" +
                         "  original = ${original.analysisDiagnostics}\n" +
@@ -178,7 +178,7 @@ class PermutationTest {
         for (seed in seeds(PERMUTATION_SEED_COUNT)) {
             val original = outcomeOf(seed)
             for (order in ConstructionOrder.entries) {
-                val permuted = outcomeOf(permutedDocument(seed, order))
+                val permuted = outcomeOf(seed, permutedDocument(seed, order))
                 if (original.files.isEmpty() && permuted.files.isEmpty()) continue
                 checked += 1
                 if (original.files.map { it.path } != permuted.files.map { it.path }) {
@@ -259,11 +259,11 @@ class PermutationTest {
     }
 
     /**
-     * [document] rebuilt in [order], and how many of its maps came out in a different order.
+     * One document for [seed], rebuilt in [order].
      *
-     * The count is what makes the vacuity guard above possible: a permutation function that
-     * returns only a document cannot tell "I reordered everything" from "I reordered nothing",
-     * because both return the same equal document.
+     * A bare `UiDocument` and nothing else, because a permutation has no plan to carry: the plan
+     * records what the generator decided, and a permutation changes nothing about that. The count
+     * of maps that moved rides on [Permuted] instead, and only the vacuity guard reads it.
      *
      * `shuffled(random)` takes its source explicitly. The **no-argument** `shuffled()`, and the
      * same for `random()` and `randomOrNull()`, read `kotlin.random.Random.Default` — the

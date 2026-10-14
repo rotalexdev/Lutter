@@ -250,7 +250,7 @@ class DeterminismTest {
             val size = generated.document.nodes.size
             smallest = minOf(smallest, size)
             largest = maxOf(largest, size)
-            if (outcomeOf(generated).emitted) emitted += 1
+            if (outcomeOf(seed, generated.document).emitted) emitted += 1
         }
 
         val census = "seeds 0 until $CORPUS_SEED_COUNT; $emitted emitted code; " +

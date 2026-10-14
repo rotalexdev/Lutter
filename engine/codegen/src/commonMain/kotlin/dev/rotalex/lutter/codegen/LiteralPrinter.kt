@@ -19,10 +19,10 @@ import dev.rotalex.lutter.schema.component.KotlinSymbol
  */
 internal data class EmittedLiteral(val text: String, val symbols: List<KotlinSymbol>)
 
-/** Values to Kotlin text. Returns null where the skeleton has no valid spelling. */
 /** §5.4's four fractional digits — the same width [textOf] writes and the same this prints. */
 private const val MAX_FRACTIONAL_DIGITS: Int = 4
 
+/** Values to Kotlin text. Returns null where the skeleton has no valid spelling. */
 internal object LiteralPrinter {
     private val ComposeColor: KotlinSymbol = KotlinSymbol("androidx.compose.ui.graphics", "Color")
     private val DpUnit: KotlinSymbol = KotlinSymbol("androidx.compose.ui.unit", "dp")

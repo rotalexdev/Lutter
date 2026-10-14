@@ -7,6 +7,7 @@ import dev.rotalex.lutter.codegen.KotlinGenerator
 import dev.rotalex.lutter.codegen.PlannedFile
 import dev.rotalex.lutter.codegen.planDocument
 import dev.rotalex.lutter.model.diagnostic.Diagnostic
+import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.ActionId
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.FunctionId
@@ -71,6 +72,13 @@ import dev.rotalex.lutter.schema.types.TypeSpec
 // *identically*, which is itself a determinism claim and would otherwise go unchecked.
 //
 // The census in `DeterminismTest` is what stops the rest from passing over a corpus of nothing.
+//
+// ### Who uses this today
+//
+// Two suites: `DeterminismTest` and `PermutationTest`. It is written for the next one rather than
+// for those two — every helper takes a `UiDocument` and a seed, which is all a caller that did not
+// get its document from `DocumentGenerator` has. The one thing this file owns and neither suite
+// does is the filtered schema, and `codegenCorpusView` is the whole of that.
 
 /**
  * The schema the codegen corpus is generated and analysed against.
@@ -104,9 +112,15 @@ internal class CorpusFile(val path: String, val content: String)
  * One run of the whole pipeline over one document.
  *
  * Everything a determinism claim is made about, in the order it is produced: the canonical bytes,
- * what analysis said, what codegen said, and what codegen wrote. [planned] is the generator's own
+ * what analysis said, what codegen said, and what codegen wrote. [planned] is the engine's own
  * §16.5 file list, kept so the layout can be checked against the planner rather than against a
- * list written out in a test — the `GenerationPlan` argument, applied to file paths.
+ * list written out in a test.
+ *
+ * [codegenDiagnostics] is what **codegen** added, with the analysis findings already reported in
+ * [analysisDiagnostics] left out: `KotlinGenerator.generate` returns the diagnostics it was handed
+ * back alongside its own, so the unfiltered list names every analysis finding twice, and it names
+ * them at all on the success path while the refusal path below has none. Dropping the prefix makes
+ * the field mean the same thing either way.
  */
 internal class CorpusOutcome(
     val seed: Long,
@@ -127,7 +141,32 @@ internal class CorpusOutcome(
 }
 
 /**
- * One document through analysis and codegen, and nothing kept that a comparison could not use.
+ * One document from [seed], generated and pushed through the pipeline.
+ *
+ * The convenience half, and it earns its place because a determinism claim is about a *seed*:
+ * writing the two calls out at every site is how a site ends up comparing two runs that were not
+ * over the same seed.
+ */
+internal fun outcomeOf(seed: Long): CorpusOutcome =
+    outcomeOf(seed, DocumentGenerator(codegenCorpusView, seed).generate().document)
+
+/**
+ * [document], labelled with [seed], through analysis and codegen — nothing kept that a comparison
+ * could not use.
+ *
+ * ### Why the document is the argument and not the generator's `GeneratedDocument`
+ *
+ * A pipeline that only accepts a generator's output can only be fed by a generator. `PermutationTest`
+ * was the first caller that could not do that — a permuted document has no plan, because the plan
+ * records what the *generator* decided and a permutation changes nothing about that — so it handed
+ * this function a `UiDocument`, got an argument-type error, and the nine diagnostics behind that one
+ * were every member read off the wrong receiver.
+ *
+ * The input is the document; [seed] is a label for the failure message, which is all it ever was.
+ * Nothing in [CorpusOutcome] reads the generator's `GenerationPlan`: `planned` is §16.5's own
+ * `planDocument`, which is the thing the layout is checked against either way.
+ *
+ * ### Why nothing is reused
  *
  * A **fresh** `KotlinGenerator` and a **fresh** `Analyzer` per call, deliberately. A reused
  * generator is supported — `KotlinGenerator.generate` clears its per-run scratch, and
@@ -136,16 +175,14 @@ internal class CorpusOutcome(
  * a field that `generate` forgot to clear, because both runs start from the same cleared value;
  * two instances can.
  */
-internal fun outcomeOf(seed: Long): CorpusOutcome = outcomeOf(DocumentGenerator(codegenCorpusView, seed).generate())
-
-/** [generated] through the pipeline. See [outcomeOf] for why nothing is reused. */
-internal fun outcomeOf(generated: GeneratedDocument): CorpusOutcome {
-    val analysis = Analyzer<ActionSpec, FunctionSpec, TypeSpec>(codegenCorpusView).analyze(generated.document)
+internal fun outcomeOf(seed: Long, document: UiDocument): CorpusOutcome {
+    val analysis = Analyzer<ActionSpec, FunctionSpec, TypeSpec>(codegenCorpusView).analyze(document)
+    val reported: List<String> = analysis.diagnostics.map { renderDiagnostic(it) }
     val resolved = analysis.resolved
         ?: return CorpusOutcome(
-            generated.seed,
-            encodedBytes(generated.document),
-            analysis.diagnostics.map { renderDiagnostic(it) },
+            seed,
+            encodedBytes(document),
+            reported,
             emptyList(),
             emptyList(),
             emptyList(),
@@ -156,10 +193,10 @@ internal fun outcomeOf(generated: GeneratedDocument): CorpusOutcome {
         .generate(resolved, analysis.diagnostics)
 
     return CorpusOutcome(
-        seed = generated.seed,
-        documentBytes = encodedBytes(generated.document),
-        analysisDiagnostics = analysis.diagnostics.map { renderDiagnostic(it) },
-        codegenDiagnostics = result.diagnostics.map { renderDiagnostic(it) },
+        seed = seed,
+        documentBytes = encodedBytes(document),
+        analysisDiagnostics = reported,
+        codegenDiagnostics = result.diagnostics.drop(analysis.diagnostics.size).map { renderDiagnostic(it) },
         files = result.files.files.map { CorpusFile(it.path, it.content) },
         planned = plan.files,
     )
@@ -333,29 +370,30 @@ private fun importViolations(file: CorpusFile, imports: List<String>, declaredPa
 /**
  * Every number in one file that D1's canonical form could not have written.
  *
- * ### Why this is in this file and not only in the golden
+ * ### What this row can and cannot reach
  *
  * PLAN §5.4's canonical formatter assembles a number's text from a scaled integer and never
  * reaches `Float.toString()` or `Double.toString()`, and `CanonicalNumbers.kt` says exactly why:
  * the JVM delegates to `java.lang.Double.toString`, whose algorithm JDK 19 changed, and
  * Kotlin/Native, JS and Wasm each carry their own. A document format cannot rest on that.
  *
- * The emitter is the other end of the same rule, and this check is what asks whether it honours
- * it. `LiteralPrinter.floatText` builds a number's text by calling `Double.toString()` and
- * appending `".0"` when the result has no fractional part, so the canonical formatter is reached
- * from the model and **not** from codegen — `:engine:codegen` cannot reach it, because
- * `canonicalText` is `internal` to `:engine:model`.
+ * `LiteralPrinter.floatText` used to be the other end of that rule and to break it: it spelled a
+ * number with `Double.toString()` and appended `".0"` when the result had no fractional part, so
+ * a `Value.Dp(0.0001f)` emitted `1.0E-4.dp` — a `Double` literal, where `.dp` is declared on
+ * `Float` and `Int`, so the file did not compile in the consumer's tree — and a `Value.Dp(0.1f)`
+ * emitted `0.10000000149011612.dp`, the widened spelling §18 refuses to write. It now goes
+ * through `fixedDecimalText` and trims to the last non-zero digit, so codegen reaches the same
+ * canonical arithmetic the model does.
  *
- * Two cases are illegal on any platform and one is illegal on some:
+ * **So the three spellings this row hunts are no longer reachable from a `LiteralPrinter`
+ * literal**: an exponent, more than four fractional digits, and a magnitude below `10^-3` are all
+ * things a scaled integer cannot produce. What is left is the narrower claim this row can still
+ * make, and it is worth making — a number some *other* part of codegen wrote for itself, such as
+ * the `1` in `backStack.size > 1`, or an emitter added later that bypasses the printer. It is the
+ * only row in either suite that looks at the digits rather than at an agreement between two runs.
  *
- *  * an exponent (`1.0E-4.dp`), which is a `Double` literal and so has no `.dp` — a generated
- *    file that does not compile in the consumer's tree;
- *  * more than four fractional digits, which is the widened spelling of a value that has four;
- *  * a magnitude below `10^-3` at all, which is where a JVM's `Double.toString` chooses
- *    scientific notation. The generator's numbers are half-integers from `0.0` upwards, so this
- *    corpus never reaches any of the three — **which is the point of saying so here**: the check
- *    is what a future corpus or a widened generator would trip, and the gap in it is a coverage
- *    limit, not a pass.
+ * The generator's numbers are half-integers from `0.0` upwards, so this corpus does not reach even
+ * that much. That is a coverage limit to state, not a pass to bank.
  *
  * String literals are blanked before the scan. A document may legitimately carry the text
  * `"1.00000"` inside a string, and a number check that cannot tell a string from a literal is a
