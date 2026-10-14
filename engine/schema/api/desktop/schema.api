@@ -1041,6 +1041,7 @@ public final class dev/rotalex/lutter/schema/migration/SpecMigration {
 
 public final class dev/rotalex/lutter/schema/migration/SpecMigrationRegistry {
 	public fun <init> (Ljava/util/List;)V
+	public final fun latest-4IcfEaE (Ljava/lang/String;)Ljava/lang/Integer;
 	public final fun migrate (Ldev/rotalex/lutter/model/doc/Node;II)Ldev/rotalex/lutter/model/doc/Node;
 	public final fun plan-4sAO-_g (Ljava/lang/String;II)Ljava/util/List;
 }

@@ -42,6 +42,31 @@ public class SpecMigrationRegistry(migrations: List<SpecMigration>) {
         }
 
     /**
+     * The version [type] is at once every known step has been applied, or `null` when none is.
+     *
+     * §19.3's pass needs this as its destination, and [plan] cannot supply it: it takes `to` as
+     * an argument precisely because this class has no opinion about where a component is *now*.
+     * §19.1 puts that with the component author, and the steps below are only ever as new as
+     * their author made them.
+     *
+     * **Derived from the steps, never stored.** The answer is one past the highest `from` this
+     * registry holds for [type], and that is the only definition that stays true as migrations
+     * are released: §19.2's rule is that a released migration is immutable, so the registry
+     * grows and nothing in it is rewritten. A field recording "the current version" would be a
+     * second source of truth that a step added without it would silently contradict.
+     *
+     * **`null` means "no steps known", not "version zero".** A component that has never changed
+     * its contract has no entries here, and its current version is whatever the schema says it
+     * is. A caller that wants a total map folds the schema's own versions in for the nulls —
+     * see `SpecMigrationPass`'s KDoc for why the pass takes that map rather than a registry.
+     */
+    public fun latest(type: ComponentType): Int? =
+        steps.keys.asSequence()
+            .filter { it.first == type }
+            .map { it.second + 1 }
+            .maxOrNull()
+
+    /**
      * The steps carrying [type] from [from] to [to], in order. Empty when already there.
      * Refuses backwards gaps and uncovered steps: a silent skip would leave nodes behind.
      */

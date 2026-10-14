@@ -9,6 +9,8 @@ import dev.rotalex.lutter.model.value.Value
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -112,5 +114,46 @@ class SpecMigrationTest {
         assertFailsWith<NoSuchElementException> {
             registry.migrate(node(ComponentType("core.Column")), from = 1, to = 2)
         }
+    }
+
+    /**
+     * `latest` is the question §19.3's pass cannot answer for itself, so it is asked here.
+     *
+     * The three cases are the three answers there are: a chain has a destination, a lone step
+     * has one, and a type with no steps at all has **no** version rather than version one. The
+     * last is the one worth pinning, because a `latest` that answered `1` would send a caller
+     * looking for a migration of a component that never changed.
+     */
+    @Test
+    fun `latest is one past the highest step, and absent for a type with no steps`() {
+        val registry = SpecMigrationRegistry(
+            listOf(
+                renameLabel(from = 1),
+                renameLabel(from = 2),
+                SpecMigration(ComponentType("core.Column"), 1, 2) { it },
+            ),
+        )
+
+        assertEquals(3, registry.latest(textType))
+        assertEquals(2, registry.latest(ComponentType("core.Column")))
+        assertNull(registry.latest(ComponentType("m3.Button")))
+    }
+
+    /**
+     * `latest` is derived, so the chain that `plan` would walk ends exactly where it reports.
+     *
+     * Asserted as the plan rather than as a number alone: `latest = 3` is only right if
+     * `plan(1, latest)` is the two steps the registry actually holds, and that is the property a
+     * caller builds its targets map on.
+     */
+    @Test
+    fun `latest is the version a full plan from one reaches`() {
+        val registry = SpecMigrationRegistry(listOf(renameLabel(from = 1), renameLabel(from = 2)))
+
+        val destination = assertNotNull(registry.latest(textType))
+        val steps = registry.plan(textType, from = 1, to = destination)
+
+        assertEquals(listOf(1, 2), steps.map { it.from })
+        assertEquals(destination, steps.last().to)
     }
 }

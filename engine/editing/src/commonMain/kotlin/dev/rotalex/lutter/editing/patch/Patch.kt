@@ -81,12 +81,12 @@ public data class Patch(
      * A [PatchOp.PutRecord] contributes nothing, and that is a fact about the type rather than
      * an oversight: it addresses a declaration, and a declaration is not a `NodeId`. Editing a
      * page's route does not touch a node — it changes what the page *is*. [PatchOp.SetTheme]
-     * contributes nothing for the same reason and one step further out: it addresses the
-     * document's own pointer at a declaration, so there is no node in the address at all, and
-     * the rule this set already follows is that an op contributes the `NodeId`s it names.
-     * Inventing a sentinel node id for it would put a value in the set that names nothing a
-     * document holds, and every consumer of this set would then have to know which ids are
-     * real.
+     * and [PatchOp.SetComponentVersion] contribute nothing for the same reason and one step
+     * further out: each addresses one field of the document itself, so there is no node in the
+     * address at all, and the rule this set already follows is that an op contributes the
+     * `NodeId`s it names. Inventing a sentinel node id for them would put a value in the set
+     * that names nothing a document holds, and every consumer of this set would then have to
+     * know which ids are real.
      *
      * Built in op order into a `LinkedHashSet`, so two equal patches iterate in the same order
      * on every target. `Set` equality is order-independent (§6.2) and iteration is not, and
@@ -123,6 +123,13 @@ public data class Patch(
                     // its declarations, so there is nothing to add. See the KDoc.
                     is PatchOp.SetTheme -> {
                         // The document's selection, and a selection is not a node.
+                    }
+
+                    is PatchOp.SetComponentVersion -> {
+                        // The document's record of what it was written against, and a number
+                        // in `DocumentMeta` is not a node either. A §19.3 upgrade patch is
+                        // entirely made of node ops *plus* these, so "this patch touches no
+                        // nodes" and "this patch changes nothing" are not the same answer.
                     }
                 }
             }

@@ -120,7 +120,8 @@ public object PatchApplier {
      * Exhaustive with no `else`, which is the point: an op added to [PatchOp] does not compile
      * until it has been given a behaviour here, and `when`-completeness is a much weaker prompt
      * than a compiler error at the one place the op has to mean something. D31's tenth op,
-     * [PatchOp.SetTheme], is the tenth such error this switch has raised.
+     * [PatchOp.SetTheme], and §19.3's twelfth, [PatchOp.SetComponentVersion], are the tenth and
+     * the twelfth such errors this switch has raised.
      */
     private fun applyOne(op: PatchOp, document: UiDocument): UiDocument = when (op) {
         is PatchOp.InsertNodes -> applyInsert(op, document)
@@ -133,6 +134,7 @@ public object PatchApplier {
         is PatchOp.SetNodeName -> applySetNodeName(op, document)
         is PatchOp.PutRecord -> applyPutRecord(op, document)
         is PatchOp.SetTheme -> applySetTheme(op, document)
+        is PatchOp.SetComponentVersion -> applySetComponentVersion(op, document)
     }
 
     // -----------------------------------------------------------------------------------
@@ -585,6 +587,30 @@ public object PatchApplier {
      */
     private fun applySetTheme(op: PatchOp.SetTheme, document: UiDocument): UiDocument =
         document.copy(theme = op.new)
+
+    /**
+     * [PatchOp.SetComponentVersion]: `DocumentMeta.componentVersions` records [PatchOp.SetComponentVersion.new]
+     * for [PatchOp.SetComponentVersion.component].
+     *
+     * **A `copy` all the way down, and nothing checked**, for the same reason [applySetProp]
+     * checks nothing: [PatchOp.SetComponentVersion.old] is the inverter's business, and an op is
+     * a claim about both sides. What *is* checked here is the one thing the map makes worth
+     * checking, and it is not checked — a `new` of `1` for a component whose current version is
+     * `3` is written, because §19.1 makes those numbers the component author's business and a
+     * patch that refused one would be refusing to *describe* a document. §27.2's
+     * `plugin.version_mismatch` is where a document whose versions do not match the loaded
+     * plugins is reported.
+     *
+     * The `null` arm is a **removal of the entry**, not a write of a null version: the field is a
+     * `Map`, and §5.5 gives it an empty-map default, so a document that has never recorded a
+     * component has no key for it rather than a key holding nothing. See that op's KDoc.
+     */
+    private fun applySetComponentVersion(op: PatchOp.SetComponentVersion, document: UiDocument): UiDocument {
+        val recorded = document.meta.componentVersions
+        val replacement: Int? = op.new
+        val updated = if (replacement == null) recorded - op.component else recorded + (op.component to replacement)
+        return document.copy(meta = document.meta.copy(componentVersions = updated))
+    }
 
     // -----------------------------------------------------------------------------------
     // Reading a payload out of the record union
