@@ -604,8 +604,9 @@ internal object SourceRules {
      * All four were one opener in a doc comment, and in every case the only evidence was a **count**:
      * eight openers against seven closers.
      *
-     * A comment's own opener is not reported — `/**` on a declaration is how the rest of this file's
-     * documentation is written, and a rule that flagged its own convention would be unusable.
+     * A comment's own opener is not reported, and that exclusion is why this rule can be written at
+     * all: a declaration's doc comment opens with a slash and two asterisks, which is every KDoc in
+     * this file, and a rule that flagged its own convention would be unusable.
      */
     fun nestedBlockCommentOccurrences(text: String): List<String> {
         val violations = mutableListOf<String>()
