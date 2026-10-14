@@ -66,26 +66,65 @@ import dev.rotalex.lutter.model.ids.SlotName
  *
  * ### The one canonicalisation, and why §26.2's property needs it
  *
- * **An op that empties a slot removes that slot's key.** `{"content":[]}` becomes `{}`.
+ * **A removal that empties a slot drops that slot's key — but only when the op says the key
+* was not there to begin with.** That is
+ * [PatchOp.RemoveSubtree.slotExisted] and [PatchOp.InsertNodes.slotExisted], the two fields
+ * D33 added to a pair §26.2 fixed down to fields with nowhere to put this fact.
  *
- * It is here because the alternative is a broken inverse, and the case is short. Insert a
- * child into a slot the node does not have, and the node's `slots` goes from `{}` to
- * `{"content":["n_f"]}`. Undo it, and the only thing `PatchOp.RemoveSubtree` knows about the
- * slot is that it held one child at index 0 — the parent's `slots` map as it was *before* the
- * insertion is not in the op, is not in `RemovedSubtree`, and cannot be: §26.2 fixes
- * `InsertNodes(parent, slot, index, nodes)` and `RemoveSubtree(root, captured)` down to those
- * fields, and there is nowhere in either to record "this slot key was not there". Leaving the
- * empty list behind restores `{"content":[]}`, which is not the document that was edited, and
- * §26.2's property fails on the one case a user hits immediately — dropping the last child out
- * of a component that has just been given one.
+ * The case is short. Insert a child into a slot the node does not have, and the node's `slots`
+ * goes from `{}` to `{"content":["n_f"]}`. Undo it, and the removal has to decide what that map
+ * looked like *before* — `{"content":[]}` and `{}` are both legal documents, every reader
+ * treats them the same, and they differ in nothing §17.1 reports. Undoing an insertion into an
+ * absent slot therefore has to prune the key that insertion created, undoing one into
+ * `{"content":[]}` has to leave it alone, and the op that met the document is the only thing
+ * that can tell those two apart.
  *
- * So the applier picks the branch that round-trips, and pays for it with an honest limit:
- * **a document that already spelled the empty slot comes back without it.** `Node.slots` is
- * `Map<SlotName, List<NodeId>>` and every reader treats a missing key and an empty list
- * identically — §15.4 walks the list, and an empty list renders nothing — so the two documents
- * mean the same thing and differ only in bytes. `PatchRoundTripTest` asserts the limit rather
- * than leaving it to be discovered, and this is the only place in this file that changes a
- * document beyond what an op names.
+ * **This used to be a choice the applier made, and the limit it bought was named rather than left
+ * to be discovered: undoing an insertion into a slot that already spelled itself empty came back
+ * without it.**
+ *
+ * **A thousand generated documents found that limit, because §26.2's property does not permit
+ * one.** The document that came back was not the document that was edited, and no check in the
+ * engine can tell those two apart, because every row is still present and every slot still names
+ * real nodes. So the applier no longer picks a branch at all — what it reads now is
+ * [PatchOp.RemoveSubtree.slotExisted], which whoever planned the op set from the document it ran
+ * against, and there is no longer a case this file has an opinion about. It remains the only
+ * place here that changes a document beyond what an op names.
+ *
+ * **The uniform spelling was rejected, and the reason is a pass rather than a preference.**
+ * Writing `{"content":[]}` where the parent had `{}` would give every undone insertion a key,
+ * and for a parent that never had one that key is the only thing between the inserted node and
+ * §17.1's structural pass reporting it as `struct.orphan` — the node sits in no slot, so no root
+ * reaches it. Choosing which of two spellings a document uses is an operation's job, and an
+ * operation is the only thing that met the document.
+ *
+ * ### Why a move is not in it, and what limit is left
+ *
+ * A move has **two** slots in play, and a canonical form has to be consistent on both of them.
+ * The two halves of a move cannot be: `attach` has to write a key, because the node is in that
+ * slot now, while `detach` could only prune one. Write-and-prune is not an involution, so a
+ * move whose *destination* slot is empty at the moment the node arrives into it loses that
+ * key when it is undone — and the document that comes back is not the document that was
+ * edited. `PatchRoundTripTest` has a row for it, and the row is a cross-parent move for the
+ * reason that a same-parent one and a same-slot one both hide it.
+ *
+ * So **a move decides nothing about slot keys**: each half writes back the key it was handed.
+ * The source's provably existed, because [detach]'s own placement check can only succeed
+ * against a list that holds the node; the destination's is written by [attach] and restored by
+ * the inverse's [detach] rather than chosen.
+ *
+ * **What D33 did not reach is a destination the parent never had, and that limit is still
+ * here.** A `Placement` is a slot and an index, and neither of those can say whether the key
+ * existed; the field `InsertNodes` now has would have to be repeated on a third op whose two
+ * placements are each other's negation. So moving a node into a slot the parent does not spell
+ * comes back as `{"content":[]}` rather than as `{}`, and `PatchRoundTripTest` pins that rather
+ * than leaving it to be rediscovered.
+ *
+ * **It is the one limit left in this file, and a thousand generated documents did not reach it**
+ * — which is a statement about the corpus rather than about the defect. Those documents spell
+ * every slot their components declare, so a move's destination is always a key that was already
+ * there, and the write-on-write rule above covers it. That same discipline is what made the
+ * *insertion* limit above reachable: it needed a slot the document had spelled and left empty.
  *
  * @see PatchOp for the vocabulary, and for the three gaps in it this function cannot paper
  *   over.
@@ -153,6 +192,11 @@ public object PatchApplier {
      * `index` may be `siblings.size`, which appends. That is the one bound that is not simply
      * "in range": it is the position a freshly built list has, so an append does not have to
      * know the length first.
+     *
+     * **[op]'s `slotExisted` is passed straight down and changes nothing here.** The list it
+     * builds holds [PatchOp.InsertNodes.nodes]' first element, so it is never empty and
+     * [withSlot] cannot take either branch on it. The flag is about what the *removal* that
+     * undoes this op has to decide, which is why it is read there rather than here.
      */
     private fun applyInsert(op: PatchOp.InsertNodes, document: UiDocument): UiDocument {
         val root = op.nodes.firstOrNull()?.id
@@ -173,7 +217,7 @@ public object PatchApplier {
         }
 
         val extended: List<NodeId> = siblings.toMutableList().also { it.add(op.index, root) }
-        return withChildren(document, table, op.parent, op.slot, extended)
+        return withChildren(document, table, op.parent, op.slot, extended, op.slotExisted)
     }
 
     /**
@@ -224,8 +268,16 @@ public object PatchApplier {
      * corruption into an error that names both ids.
      *
      * **A capture with no position is [PatchOp.PutNodes]'s inverse** and does strictly less:
-     * the rows are dropped and no slot is touched, because there was no slot. See
-     * [RemovedSubtree] for how absence is spelled and why.
+     * the rows are dropped and no slot is touched, because there was no slot — and
+     * [PatchOp.RemoveSubtree.slotExisted] is not read on that path either, since there is no
+     * slot key for it to have an opinion about. See [RemovedSubtree] for how absence is spelled
+     * and why.
+     *
+     * **The one canonicalisation is this function's third act**, and it is the whole of
+     * [withSlot] on a removal: the key survives an emptied slot when
+     * [PatchOp.RemoveSubtree.slotExisted] says it was already there, and is dropped when it says
+     * the op created it. That is the only place this file changes a document beyond what an op
+     * names, and it is the case D33's field exists to answer.
      *
      * A removal that drops rows something still references is *not* refused here. Nothing in
      * this file can see reachability without walking the whole table, §17.1's structural pass
@@ -248,7 +300,7 @@ public object PatchApplier {
         }
 
         val remaining: List<NodeId> = siblings.toMutableList().also { it.removeAt(from.index) }
-        return withChildren(document, table, from.parent, from.slot, remaining)
+        return withChildren(document, table, from.parent, from.slot, remaining, op.slotExisted)
     }
 
     /**
@@ -272,13 +324,39 @@ public object PatchApplier {
      * Across different parents or different slots the two lists are independent and no rule is
      * needed; the rule only bites when `from` and `to` name the same slot, and in that case
      * the detached list is simply the shorter one.
+     *
+     * **Slot keys are the second rule, and it is the one that is not an index.** A move writes
+     * each slot key back rather than deciding it — neither half calls [withSlot], so neither
+     * half can drop a key the document happened to be spelling. That is what makes this op its
+     * own inverse over *every* pair of slots, including a destination that is spelled and
+     * empty: pruning on the way out and writing on the way back in are not the same operation
+     * undone. See the class KDoc for the one case this cannot fix, which is a destination the
+     * parent does not have at all.
      */
     private fun applyMove(op: PatchOp.MoveNode, document: UiDocument): UiDocument {
         val detached = detach(op.id, op.from, document.nodes)
         return document.copy(nodes = attach(op.id, op.to, detached))
     }
 
-    /** Removes [id] from the position [from] names, returning the table with that done. */
+    /**
+     * Removes [id] from the position [from] names, returning the table with that done.
+     *
+     * **The slot key is written back even when `remaining` is empty, and that is the whole of
+     * this function's disagreement with [withSlot].** The key provably existed a moment ago:
+     * the check below can only pass against a list that holds [id], so a non-empty list, so a
+     * key. A move therefore has no business deciding whether that key survives — and if it
+     * decided, it would be deciding the *destination's* key too, because [attach] has to write
+     * one whether or not it had been there. Prune one side and write the other and the pair is
+     * not an involution: the document that comes back spells one slot key fewer than the one
+     * that was edited, whichever side the empty slot was on.
+     *
+     * This is the argument [applyRemove] cannot accept, and the check below is what separates
+     * them. A move's two placements are each other's negation, so neither half has to choose.
+     * A removal's capture is the negation of an *insertion*, and an insertion may be what
+     * created the key — so that pair has to decide, and since D33 the answer arrives as
+     * [PatchOp.RemoveSubtree.slotExisted] rather than as a choice made here. A move has no such
+     * field on either placement, which is why it writes both keys back instead.
+     */
     private fun detach(id: NodeId, from: Placement, table: NodeTable): NodeTable {
         val parent = table.require(from.parent)
         val siblings = parent.slots[from.slot].orEmpty()
@@ -288,10 +366,17 @@ public object PatchApplier {
         }
 
         val remaining: List<NodeId> = siblings.toMutableList().also { it.removeAt(from.index) }
-        return table.with(parent.copy(slots = withSlot(parent.slots, from.slot, remaining)))
+        return table.with(parent.copy(slots = parent.slots + (from.slot to remaining)))
     }
 
-    /** Puts [id] at [to], returning the table with that done. */
+    /**
+     * Puts [id] at [to], returning the table with that done.
+     *
+     * **A plain write rather than [withSlot], for the reason [detach] gives.** The list is
+     * never empty — it has just been given [id] — so the two spell the same thing here, and
+     * spelling it the same way is what keeps a reader from re-introducing the asymmetry on one
+     * half only.
+     */
     private fun attach(id: NodeId, to: Placement, table: NodeTable): NodeTable {
         val parent = table.require(to.parent)
         val siblings = parent.slots[to.slot].orEmpty()
@@ -301,23 +386,35 @@ public object PatchApplier {
         }
 
         val extended: List<NodeId> = siblings.toMutableList().also { it.add(to.index, id) }
-        return table.with(parent.copy(slots = withSlot(parent.slots, to.slot, extended)))
+        return table.with(parent.copy(slots = parent.slots + (to.slot to extended)))
     }
 
     /**
      * [slots] with [slot] holding exactly [children], or with [slot] gone when [children] is
-     * empty. See the class KDoc: this is the applier's one canonicalisation and it is load
-     * bearing for §26.2's property.
+     * empty **and** [slotExisted] says the key was not there to begin with.
+     *
+     * This is the applier's one canonicalisation and it is load bearing for §26.2's property.
+     * Both halves of it are needed and neither is enough on its own: pruning whenever a slot
+     * empties loses a key the document had spelled, and never pruning invents one it had not.
+     * [slotExisted] is what tells them apart, and it reaches this function from both callers —
+     * [applyInsert] passes [PatchOp.InsertNodes.slotExisted] and never takes the pruning branch,
+     * because an inserted list is never empty, while [applyRemove] passes
+     * [PatchOp.RemoveSubtree.slotExisted] and is the only place the branch is reachable.
+     *
+     * A move writes its slot keys back rather than calling this: see the class KDoc for why a
+     * canonical form cannot be consistent across a move's two halves.
      */
     private fun withSlot(
         slots: Map<SlotName, List<NodeId>>,
         slot: SlotName,
         children: List<NodeId>,
+        slotExisted: Boolean,
     ): Map<SlotName, List<NodeId>> =
-        if (children.isEmpty()) slots - slot else slots + (slot to children)
+        if (children.isEmpty() && !slotExisted) slots - slot else slots + (slot to children)
 
     /**
-     * [table] with [parent]'s [slot] holding exactly [children].
+     * [table] with [parent]'s [slot] holding exactly [children], and the key surviving an
+     * emptied slot exactly when [slotExisted] says it was there before the op ran.
      *
      * The parent is re-read from the table rather than taken from the caller's document,
      * because the ops above have already rewritten it: an insert into a node that a previous
@@ -330,9 +427,11 @@ public object PatchApplier {
         parent: NodeId,
         slot: SlotName,
         children: List<NodeId>,
+        slotExisted: Boolean,
     ): UiDocument {
         val node = table.require(parent)
-        return document.copy(nodes = table.with(node.copy(slots = withSlot(node.slots, slot, children))))
+        val slots = withSlot(node.slots, slot, children, slotExisted)
+        return document.copy(nodes = table.with(node.copy(slots = slots)))
     }
 
     // -----------------------------------------------------------------------------------

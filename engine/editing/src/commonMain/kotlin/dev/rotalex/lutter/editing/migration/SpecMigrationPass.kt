@@ -331,7 +331,15 @@ internal class NodePatchScope {
         }
 
         if (previous.slots != next.slots) {
-            collected += PatchOp.RemoveSubtree(previous.id, RemovedSubtree.unplaced(listOf(previous)))
+            // Unplaced, and `slotExisted = true` because an unplaced removal touches no slot and
+            // so can lose no slot key. The replacement row carries the slot map wholesale, which
+            // is why this pair never asks D33's question: it rewrites the whole parent rather
+            // than splicing one slot.
+            collected += PatchOp.RemoveSubtree(
+                root = previous.id,
+                captured = RemovedSubtree.unplaced(listOf(previous)),
+                slotExisted = true,
+            )
             collected += PatchOp.PutNodes(listOf(next))
             return
         }

@@ -84,6 +84,15 @@ internal fun planInsertNode(
     }
 
     val siblings: List<NodeId> = parent.slots[command.slot].orEmpty()
+
+    // Whether the parent spells this slot at all, read from the document rather than defaulted.
+    // `PatchApplier` drops a slot key that this insertion empties only when this is `false`, so
+    // it is the difference between undoing an insertion into `{}` and undoing one into
+    // `{"content":[]}` — two documents no other check in the engine can tell apart, and D33's
+    // field is the only place either one is written down. A parent whose component declares the
+    // slot and whose row has never spelled it is the ordinary case here, not an exotic one.
+    val slotExisted: Boolean = parent.slots.containsKey(command.slot)
+
     if (command.index !in 0..siblings.size) {
         reasons.add(
             EditCodes.IndexOutOfRange,
@@ -119,7 +128,17 @@ internal fun planInsertNode(
     )
     if (!reasons.isEmpty) return reasons.result(emptyList())
 
-    return reasons.result(listOf(PatchOp.InsertNodes(parent.id, command.slot, command.index, subtree)))
+    return reasons.result(
+        listOf(
+            PatchOp.InsertNodes(
+                parent = parent.id,
+                slot = command.slot,
+                index = command.index,
+                nodes = subtree,
+                slotExisted = slotExisted,
+            ),
+        ),
+    )
 }
 
 /**
@@ -224,5 +243,21 @@ internal fun planDuplicateNode(
 
     // `from.index + 1` is the position the original node is pushed to by the insertion, which
     // is what the slot holds when the op runs.
-    return reasons.result(listOf(PatchOp.InsertNodes(from.parentId, from.slot, from.index + 1, copy.nodes)))
+    //
+    // `slotExisted` is read rather than assumed, and it reads `true`: `DocumentIndex.parentOf`
+    // found the original node *in this slot*, so the list is non-empty and the key is there. It
+    // is still the document's answer rather than a literal, because the copy is placed beside a
+    // live sibling and never invents a slot the way an insertion into a declared-but-unspelled
+    // one does.
+    return reasons.result(
+        listOf(
+            PatchOp.InsertNodes(
+                parent = from.parentId,
+                slot = from.slot,
+                index = from.index + 1,
+                nodes = copy.nodes,
+                slotExisted = parent.slots.containsKey(from.slot),
+            ),
+        ),
+    )
 }

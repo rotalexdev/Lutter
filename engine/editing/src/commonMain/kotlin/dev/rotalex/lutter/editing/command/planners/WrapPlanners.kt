@@ -50,9 +50,23 @@ import dev.rotalex.lutter.schema.registry.Registry
  *    index it held *in the node*, which — because the children were lifted from the back —
  *    is still the index it has room for.
  *
- * The removal's capture is the node **as it stands once the children have left**, so its
- * slots are empty. That is not a convenient rewrite of the capture: it is what the applier
- * will find, and §26.2's property is about the state an op actually met.
+ * The removal's capture is the node **as it stands once the children have left**, so every
+ * slot it spelled now holds nothing. That is not a convenient rewrite of the capture: it is
+ * what the applier will find, and §26.2's property is about the state an op actually met.
+ *
+ * **Every slot, and every key — a capture of `slots = {}` is a different row.** §5.5 gives
+ * `Node.slots` an empty-map default, so `{}` and `{"footer":[]}` are two spellings of the same
+ * node that every reader treats alike, and the applier cannot recover the one the capture threw
+ * away: `InsertNodes` writes `captured.nodes` back verbatim, so a key missing from the capture
+ * is a key the undo does not restore.
+ *
+ * **A slot the lifts emptied hides it, and a slot the node left empty shows it.** A slot the
+ * unwrap fills is written again by the inverse's own `MoveNode`, whose `attach` always writes the
+ * key it is handed — so a capture of `{}` survives every unwrap whose children cover its slots.
+ * What does not survive is a slot the node spelled and held **nothing** in, because no inverse
+ * move ever names it and the capture was its only witness.
+ * `CommandPlannerRoundTripTest` holds that row now, and it is the shape the Phase 9 rows never
+ * built: both of them refill every key the node they dissolved held.
  *
  * Children of several slots are lifted in slot-name order, which is a determinism choice and
  * not a claim about intent — `Node.slots` is a map, and two runs disagreeing about which of
@@ -136,11 +150,17 @@ internal fun planWrapNode(
         listOf(
             // The wrapper arrives empty and at the position the node held, so the node is at
             // `from.index + 1` by the time the move runs.
+            //
+            // `slotExisted` reads the parent, and it reads `true` for the same reason the
+            // duplicate's does: the node being wrapped is in this slot right now, so the key is.
+            // A wrap never creates a slot key — the wrapper's own empty `content` arrives with
+            // the move, which writes its keys back rather than choosing.
             PatchOp.InsertNodes(
                 parent = from.parentId,
                 slot = from.slot,
                 index = from.index,
                 nodes = listOf(Node(id = wrapperId, type = command.wrapper)),
+                slotExisted = parent.slots.containsKey(from.slot),
             ),
             PatchOp.MoveNode(
                 id = command.id,
@@ -267,6 +287,13 @@ internal fun planUnwrapNode(
             to = Placement(from.parentId, from.slot, from.index),
         )
     }
+
+    // The row as the lifts above leave it: every slot the node spelled, each holding nothing.
+    // The keys are the whole of this line — `emptyMap()` would describe a node with no slots at
+    // all, which is a different row, and the inverse would put that row back rather than this
+    // one. See the file KDoc for why only a slot the node left empty ever showed it.
+    val dissolved: Map<SlotName, List<NodeId>> = node.slots.mapValues { emptyList() }
+
     return reasons.result(
         lifts + listOf(
             PatchOp.RemoveSubtree(
@@ -275,8 +302,13 @@ internal fun planUnwrapNode(
                     parent = from.parentId,
                     slot = from.slot,
                     index = from.index + children.size,
-                    nodes = listOf(node.copy(slots = emptyMap())),
+                    nodes = listOf(node.copy(slots = dissolved)),
                 ),
+                // The node being dissolved is in this slot when the patch runs, so the key was
+                // there before it — and the slot holds the children it is lifting, so it holds
+                // more afterwards. Undoing this removal restores the node rather than deleting a
+                // key, which is the one thing a `false` here would get wrong.
+                slotExisted = true,
             ),
         ),
     )

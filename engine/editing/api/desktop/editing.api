@@ -358,18 +358,20 @@ public final class dev/rotalex/lutter/editing/patch/PatchOp$Companion {
 
 public final class dev/rotalex/lutter/editing/patch/PatchOp$InsertNodes : dev/rotalex/lutter/editing/patch/PatchOp {
 	public static final field Companion Ldev/rotalex/lutter/editing/patch/PatchOp$InsertNodes$Companion;
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/util/List;ZLkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1-qw1I0Vk ()Ljava/lang/String;
 	public final fun component2-P6TfaEA ()Ljava/lang/String;
 	public final fun component3 ()I
 	public final fun component4 ()Ljava/util/List;
-	public final fun copy-zEvMDMM (Ljava/lang/String;Ljava/lang/String;ILjava/util/List;)Ldev/rotalex/lutter/editing/patch/PatchOp$InsertNodes;
-	public static synthetic fun copy-zEvMDMM$default (Ldev/rotalex/lutter/editing/patch/PatchOp$InsertNodes;Ljava/lang/String;Ljava/lang/String;ILjava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/PatchOp$InsertNodes;
+	public final fun component5 ()Z
+	public final fun copy-_G5Ww3I (Ljava/lang/String;Ljava/lang/String;ILjava/util/List;Z)Ldev/rotalex/lutter/editing/patch/PatchOp$InsertNodes;
+	public static synthetic fun copy-_G5Ww3I$default (Ldev/rotalex/lutter/editing/patch/PatchOp$InsertNodes;Ljava/lang/String;Ljava/lang/String;ILjava/util/List;ZILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/PatchOp$InsertNodes;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getIndex ()I
 	public final fun getNodes ()Ljava/util/List;
 	public final fun getParent-qw1I0Vk ()Ljava/lang/String;
 	public final fun getSlot-P6TfaEA ()Ljava/lang/String;
+	public final fun getSlotExisted ()Z
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -480,14 +482,16 @@ public final class dev/rotalex/lutter/editing/patch/PatchOp$PutRecord$Companion 
 
 public final class dev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree : dev/rotalex/lutter/editing/patch/PatchOp {
 	public static final field Companion Ldev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree$Companion;
-	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/RemovedSubtree;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/RemovedSubtree;ZLkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1-qw1I0Vk ()Ljava/lang/String;
 	public final fun component2 ()Ldev/rotalex/lutter/editing/patch/RemovedSubtree;
-	public final fun copy-owchrTU (Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/RemovedSubtree;)Ldev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree;
-	public static synthetic fun copy-owchrTU$default (Ldev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree;Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/RemovedSubtree;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree;
+	public final fun component3 ()Z
+	public final fun copy-JRZvf1E (Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/RemovedSubtree;Z)Ldev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree;
+	public static synthetic fun copy-JRZvf1E$default (Ldev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree;Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/RemovedSubtree;ZILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getCaptured ()Ldev/rotalex/lutter/editing/patch/RemovedSubtree;
 	public final fun getRoot-qw1I0Vk ()Ljava/lang/String;
+	public final fun getSlotExisted ()Z
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
