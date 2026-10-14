@@ -149,11 +149,11 @@ public object DocumentDiff {
      * position at all, which is exactly why `PatchApplier` checks nothing for it, and the
      * whole of §5.6's new slot list is written in one op.
      *
-     * The second reason is the canonicalisation. `PatchApplier` deletes a slot's key when an op
-     * empties it, so an op-by-op diff of a document that spelled an empty slot would not
-     * reproduce it. Rewriting writes `new`'s row verbatim, so the result is `new`'s row
-     * rather than a slot list this file re-derived — and that is also why the per-field ops
-     * are skipped for a rewritten row: the row that lands is the whole of it.
+     * The second reason is the canonicalisation. `PatchApplier` deletes a slot's key when an
+     * insertion or a removal empties it, so an op-by-op diff of a document that spelled an
+     * empty slot would not reproduce it. Rewriting writes `new`'s row verbatim, so the result
+     * is `new`'s row rather than a slot list this file re-derived — and that is also why the
+     * per-field ops are skipped for a rewritten row: the row that lands is the whole of it.
      *
      * ### The total function it is and is not
      *

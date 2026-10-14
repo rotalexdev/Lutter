@@ -393,6 +393,11 @@ class PatchRoundTripTest {
      * `{"content":[]}` and `{}` converge — they mean the same thing to every reader, and they
      * differ only in bytes, so the two documents were already interchangeable and now they
      * *are* interchangeable rather than merely equivalent.
+     *
+     * **This limit is an insertion's and a removal's, and a move's is the mirror of it.** The
+     * applier does not canonicalise a move, because choosing a spelling on one half of a move
+     * and writing one on the other is not an involution; the two move rows above are about
+     * that, and the test below pins where a move's own version of this limit lands.
      */
     @Test
     fun `an emptied slot is dropped from the parent rather than left holding an empty list`() {
@@ -413,6 +418,47 @@ class PatchRoundTripTest {
         val undoneSpelled = PatchApplier.apply(patch.inverse(), PatchApplier.apply(patch, spelled))
 
         assertEquals(absent, undoneSpelled, "the canonicalisation does not converge as documented")
+    }
+
+    /**
+     * A move's own limit, which is the same absent field seen from the other end, and which the
+     * test above cannot reach because its subject is an insertion.
+     *
+     * `PatchApplier` canonicalises insertions and removals and deliberately does **not**
+     * canonicalise a move — a move writes each slot key back rather than choosing between the
+     * two spellings, because choosing on one half and writing on the other is not an
+     * involution. That fixes a move into a slot the parent spells, which is what the two move
+     * rows above are about, and it cannot fix a move into a slot the parent **never had**:
+     * §26.2 fixes `MoveNode(id, from, to)`, and none of those three fields can say whether the
+     * destination key was there. So the destination comes back spelled rather than absent.
+     *
+     * **This asserts the limit, and the last assertion makes it a tripwire.** A test that
+     * documents a defect by passing is easy to leave behind after the defect is fixed, so if
+     * this ever holds the round trip fails and the message says what to do about it.
+     */
+    @Test
+    fun `a move into a slot the parent never had is the one spelling a move cannot restore`() {
+        val absent = document()
+        val patch = Patch(listOf(PatchOp.MoveNode(BETA, Placement(ROOT, CHILDREN, 1), Placement(GAMMA, CONTENT, 0))))
+        val undone = PatchApplier.apply(patch.inverse(), PatchApplier.apply(patch, absent))
+
+        assertEquals(
+            listOf(ALPHA, BETA, GAMMA),
+            undone.nodes.require(ROOT).slots[CHILDREN],
+            "the node itself did not come back to where it was",
+        )
+        assertEquals(
+            mapOf(CONTENT to emptyList<NodeId>()),
+            undone.nodes.require(GAMMA).slots,
+            "the destination slot came back spelled rather than absent, which is the documented " +
+                "limit for a move into a slot the parent never had",
+        )
+        assertTrue(
+            absent != undone,
+            "a move into an absent slot is the one case §26.2's fields cannot express. If this " +
+                "now holds then PatchApplier has found the missing field, and this test and the " +
+                "limit it names are both out of date.",
+        )
     }
 
     // -----------------------------------------------------------------------------------
@@ -669,6 +715,34 @@ private fun deltaRow(): Node = Node(
 
 private fun echoRow(): Node = Node(id = ECHO, type = ComponentType("m3.Text"))
 
+/**
+ * `n_c` with a `content` slot that **exists and holds [children]** — empty by default.
+ *
+ * The point is the key, not the list. `gammaRow()` above is a row with no slots at all, and
+ * the difference between the two is the whole of what the two move rows are about: a document
+ * may spell a slot it has never filled, and a move into it has to come back with that key
+ * still spelled. §5.5 gives `Node.slots` an empty-map default rather than a map of empty
+ * lists, so both spellings are legal documents and only one of them round-trips through a move.
+ */
+private fun spelledEmptyContent(children: List<NodeId> = emptyList()): Node = Node(
+    id = GAMMA,
+    type = ComponentType("m3.Text"),
+    slots = mapOf(CONTENT to children),
+)
+
+/**
+ * `n_c` as a two-slot host whose slots differ in fullness: `children` holds two, `content` none.
+ *
+ * §6.2 gives every node one parent, so the row that uses this also takes `n_a` and `n_b` out of
+ * `n_root`'s own `children`. A host that claimed them as well would be a document with two
+ * parents for one row, and a row here is not worth what that would cost.
+ */
+private fun twoSlotHost(): Node = Node(
+    id = GAMMA,
+    type = ComponentType("core.Box"),
+    slots = mapOf(CHILDREN to listOf(ALPHA, BETA), CONTENT to emptyList()),
+)
+
 private fun homePage(): Page = Page(id = HOME, name = "HomeScreen", route = "/home", root = ROOT)
 private fun detailPage(): Page = Page(id = DETAIL, name = "DetailScreen", route = "/detail", root = ROOT)
 
@@ -827,6 +901,51 @@ private val CASES: List<PatchCase> = listOf(
         before = document(),
         op = PatchOp.MoveNode(ALPHA, Placement(ROOT, CHILDREN, 0), Placement(BETA, CONTENT, 1)),
         after = document(rootChildren = listOf(BETA, GAMMA), betaContent = listOf(LEAF, ALPHA)),
+    ),
+    PatchCase(
+        // The row above and this one differ in exactly one fact, and that fact is the whole
+        // defect. **There, `n_b`'s `content` slot holds one child; here it holds none.**
+        //
+        // "The two slots differ in fullness" is true of *both* rows and it is not the
+        // property: three children against one is already a difference in fullness, and the row
+        // above's destination is never empty in either direction, so neither of its two
+        // detaches ever reaches the branch where a slot key could be dropped. Here the
+        // destination is spelled and empty, the node arrives into an empty list, and it is the
+        // *inverse's* detach that empties it again.
+        //
+        // The source is `n_root.children` at index 1 of 3 and keeps two children, so the
+        // forward detach is not the one under test either. Only the undo half can fail, which
+        // is what makes this a statement about undo and about nothing else — and why
+        // `PatchInversePropertyTest` failed on exactly this shape at seed 0, with the single
+        // differing row being `n_c`'s `content` key and nothing else in the document.
+        name = "move into a slot the parent has and holds nothing in",
+        before = document(gamma = spelledEmptyContent()),
+        op = PatchOp.MoveNode(BETA, Placement(ROOT, CHILDREN, 1), Placement(GAMMA, CONTENT, 0)),
+        after = document(
+            rootChildren = listOf(ALPHA, GAMMA),
+            gamma = spelledEmptyContent(listOf(BETA)),
+        ),
+    ),
+    PatchCase(
+        // The same mechanism one level in: the two placements name **one** parent and two
+        // different slots, so nothing about the parent relationship can be blamed for it.
+        //
+        // This is the case worth pinning separately because the two move rows above leave it
+        // alone for opposite reasons — the first is cross-parent and the second is cross-slot —
+        // and a future change to either half could reintroduce the defect in the shape no row
+        // covers. `children` holds two and `content` holds none, so `content` is the empty one
+        // in the same direction as the row above.
+        name = "move between two slots of one parent, into the empty one",
+        before = document(rootChildren = listOf(GAMMA), gamma = twoSlotHost()),
+        op = PatchOp.MoveNode(ALPHA, Placement(GAMMA, CHILDREN, 0), Placement(GAMMA, CONTENT, 0)),
+        after = document(
+            rootChildren = listOf(GAMMA),
+            gamma = Node(
+                id = GAMMA,
+                type = ComponentType("core.Box"),
+                slots = mapOf(CHILDREN to listOf(BETA), CONTENT to listOf(ALPHA)),
+            ),
+        ),
     ),
     PatchCase(
         name = "set a property",
