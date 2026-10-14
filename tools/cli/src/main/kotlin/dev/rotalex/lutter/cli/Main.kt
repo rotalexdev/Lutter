@@ -1,113 +1,130 @@
 package dev.rotalex.lutter.cli
 
-import dev.rotalex.lutter.analysis.AnalysisResult
-import dev.rotalex.lutter.analysis.Analyzer
-import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
-import dev.rotalex.lutter.builtins.registerBuiltinActions
-import dev.rotalex.lutter.builtins.registerBuiltinEnums
-import dev.rotalex.lutter.builtins.registerBuiltinFunctions
-import dev.rotalex.lutter.builtins.registerBuiltinModifiers
-import dev.rotalex.lutter.builtins.registerBuiltinSpecs
-import dev.rotalex.lutter.codegen.CodegenOptions
-import dev.rotalex.lutter.codegen.CodegenResult
-import dev.rotalex.lutter.codegen.KotlinGenerator
-import dev.rotalex.lutter.model.diagnostic.Diagnostic
-import dev.rotalex.lutter.model.diagnostic.Severity
-import dev.rotalex.lutter.model.doc.UiDocument
-import dev.rotalex.lutter.schema.Schema
-import dev.rotalex.lutter.schema.action.ActionSpec
-import dev.rotalex.lutter.schema.component.ComponentSpec
-import dev.rotalex.lutter.schema.function.FunctionSpec
-import dev.rotalex.lutter.schema.modifier.ModifierSpec
-import dev.rotalex.lutter.schema.types.TypeSpec
-import dev.rotalex.lutter.serialization.JsonDocumentCodec
-import java.io.File
 import kotlin.system.exitProcess
 
 /**
- * The `forge` command: `generate` runs decode, validation and generation over a file.
- * The other subcommands stay stubs until their units land.
+ * Every command, in the order the usage prints them.
+ *
+ * This list is the single registration point: `dispatch` resolves against it and [usage] is
+ * rendered from it, so a command that exists and a command that is advertised cannot come
+ * apart. The usage text used to name four commands and implement one — `validate`, `diff` and
+ * `migrate` were advertised and refused — and the refusal was `unknown command`, which is the
+ * worst possible answer to a user who read the help.
  */
-public fun main(args: Array<String>) {
-    if (args.isEmpty() || args[0] != "generate") {
-        printUsage()
-        exitProcess(if (args.isEmpty()) 0 else 1)
-    }
-    runGenerate(args.drop(1))
-}
-
-private fun printUsage(): Unit = println(
-    """
-    forge — Forge Engine CLI
-
-      forge generate <document.json> [--out <dir>] [--package <pkg>]   emit Kotlin/Compose
-      forge validate <document.json>   diagnose a document     (later unit)
-      forge diff <a.json> <b.json>      structural difference   (later unit)
-      forge migrate <document.json>    upgrade to the current  (Phase 10)
-    """.trimIndent(),
+internal val COMMANDS: List<CommandSpec> = listOf(
+    GenerateCommand.spec,
+    CheckCommand.spec,
 )
 
-// Decodes, validates, generates, writes: each stage refuses before the next one runs.
-private fun runGenerate(args: List<String>): Unit {
-    val input: String? = args.firstOrNull { !it.startsWith("--") }
-    if (input == null) {
-        System.err.println("forge generate: missing <document.json>")
-        exitProcess(2)
-    }
-    val outDir = File(optionValue(args, "--out") ?: "generated")
-    // `TypeSpec` in the last slot, `FunctionSpec` in the fourth and `ActionSpec` in the third,
-    // or the three registrars cannot apply. The action slot is the one slot where nothing has to
-    // name a spec yet: no pass reads it, so binding it changes no document's fate today.
-    val schema: Schema<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec> =
-        Schema.build<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec> {
-            registerBuiltinSpecs()
-            registerBuiltinModifiers()
-            registerBuiltinEnums()
-            registerBuiltinFunctions()
-            registerBuiltinActions()
-        }
-    val document: UiDocument = decode(File(input))
-    val analysis: AnalysisResult = Analyzer(schema).analyze(document)
-    for (diagnostic in analysis.diagnostics) {
-        System.err.println(describe(diagnostic))
-    }
-    if (analysis.hasErrors) exitProcess(1)
-    val resolved: ResolvedDocument = checkNotNull(analysis.resolved) {
-        "Analysis passed but resolved nothing"
-    }
-    val options = CodegenOptions(optionValue(args, "--package") ?: document.app.packageName)
-    val result: CodegenResult =
-        KotlinGenerator(schema, options).generate(resolved, analysis.diagnostics)
-    for (diagnostic in result.diagnostics) {
-        if (diagnostic !in analysis.diagnostics) System.err.println(describe(diagnostic))
-    }
-    if (result.diagnostics.any { it.severity == Severity.Error }) exitProcess(1)
-    val written: List<File> = FileSink.write(outDir, result.files)
-    println("forge generate: wrote ${written.size} files to '${outDir.path}'")
+/**
+ * The `forge` entry point.
+ *
+ * The body is one statement because everything else is in [execute]: [exitProcess] is called
+ * exactly once, here, and nowhere else in the module. Both are deliberate. One place that exits
+ * means no command body can decide its own fate by terminating the JVM, which is what lets
+ * [execute] be called straight from a test and still be the code a user runs; and a `main` this
+ * short is one that can be read to confirm nothing happens before [dispatch] decides anything.
+ */
+public fun main(args: Array<String>) {
+    exitProcess(execute(args.toList(), System.out, System.err))
 }
 
-private fun decode(file: File): UiDocument {
-    if (!file.isFile) {
-        System.err.println("forge generate: no such file '${file.path}'")
-        exitProcess(2)
-    }
-    return try {
-        JsonDocumentCodec.decode(file.readBytes()).document
-    } catch (failure: Exception) {
-        System.err.println("forge generate: cannot decode '${file.path}': ${failure.message}")
-        exitProcess(2)
-    }
+/**
+ * The whole of `forge`, as a value rather than a process.
+ *
+ * ### Why the exit code is a return value
+ *
+ * `main` cannot be tested — calling it terminates the test JVM — and the exit code is the part
+ * of this CLI a script depends on most. Returning it makes the one contract that matters
+ * assertable, and it costs one function: every command body already returns an [ExitCode]
+ * rather than exiting.
+ *
+ * **Named `execute` rather than `run`.** `run` is `kotlin.run`, and a top-level `run` in a
+ * package every test file also lives in is one that a reader has to resolve against the
+ * standard library before they can read the call. The one place that would not matter — `main`
+ * — is the one place a shorter name would have been nice.
+ *
+ * ### The two catches, and why each is here
+ *
+ * [CliFailure] is every failure that was anticipated: the code it carries is the one [ExitCode]
+ * states for it, and every site that throws one has already said which of the two it is.
+ *
+ * `Exception` is everything else, and it is [ExitCode.EngineFailure] rather than
+ * [ExitCode.Rejected] because [ExitCode.Rejected] is a claim about the *document*: the engine
+ * has to be the one making it. Printing the exception and carrying on to the caller's handler
+ * is the right answer rather than letting a stack trace reach a build log, which says the same
+ * thing in a form nobody reads. Nothing here catches [Throwable]: an `OutOfMemoryError` is a
+ * fact about the process, not a verdict about a document.
+ */
+internal fun execute(args: List<String>, out: Appendable, err: Appendable): Int = try {
+    dispatch(args, out, err)
+} catch (failure: CliFailure) {
+    err.appendLine("forge: ${failure.message}")
+    failure.code
+} catch (failure: Exception) {
+    err.appendLine("forge: the engine failed: ${failure::class.simpleName}: ${failure.message}")
+    ExitCode.EngineFailure
 }
 
-private fun describe(diagnostic: Diagnostic): String {
-    val where = diagnostic.location.nodeId?.toString()
-        ?: diagnostic.location.pageId?.toString()
-        ?: "document"
-    return "${diagnostic.severity} ${diagnostic.code} at $where: ${diagnostic.message}"
+/**
+ * The command lookup and the three ways not to need one.
+ *
+ * **No arguments is [ExitCode.Unusable], not [ExitCode.Ok].** It used to be zero, and that was
+ * the defect: an invocation that named no command printed the help and reported success, so a
+ * pipeline whose first step was `forge` passed forever without ever checking a document. The
+ * distinction this draws is between *asking for the help* and *running nothing*: the first is a
+ * request and is answered on stdout with [ExitCode.Ok], the second is a mistake and is
+ * answered on stderr with [ExitCode.Unusable]. A build tool that runs `forge --help` to prove
+ * the binary works keeps working; a build step that runs bare `forge` now fails, which is the
+ * whole point.
+ */
+private fun dispatch(args: List<String>, out: Appendable, err: Appendable): Int {
+    val command = args.firstOrNull()
+    if (command == null) {
+        err.appendLine(usage())
+        return ExitCode.Unusable
+    }
+    if (command == HELP || command == HELP_SHORT) {
+        out.appendLine(usage())
+        return ExitCode.Ok
+    }
+
+    val spec = COMMANDS.firstOrNull { it.name == command }
+        ?: throw CliFailure(
+            ExitCode.Unusable,
+            "unknown command '$command'; known: ${COMMANDS.joinToString(", ") { it.name }}. " +
+                "Run 'forge --help'.",
+        )
+
+    val line = CommandLine.parse(spec, args.drop(1))
+    if (line.helpRequested) {
+        out.appendLine(usage())
+        return ExitCode.Ok
+    }
+    return spec.run(line, out, err)
 }
 
-private fun optionValue(args: List<String>, flag: String): String? {
-    val index: Int = args.indexOf(flag)
-    if (index < 0 || index + 1 >= args.size) return null
-    return args[index + 1]
+/**
+ * The help text, rendered from [COMMANDS].
+ *
+ * Generated rather than written because a hand-written copy is a promise, and this one already
+ * broke: it advertised three commands that did not exist. Every line naming a command comes
+ * from that command's own [CommandSpec], so a signature and the signature in its error messages
+ * are the same string.
+ */
+private fun usage(): String = buildString {
+    appendLine("forge — Forge Engine CLI")
+    appendLine()
+    for (spec in COMMANDS) {
+        appendLine("  forge ${spec.signature}")
+        appendLine("      ${spec.summary}")
+    }
+    appendLine("  forge $HELP")
+    appendLine("      this text")
+    appendLine()
+    appendLine("Exit codes:")
+    appendLine("  ${ExitCode.Ok}  the command ran and the document is accepted")
+    appendLine("  ${ExitCode.Rejected}  the command ran and the document has an Error diagnostic")
+    appendLine("  ${ExitCode.Unusable}  the command did not run: usage, a missing or undecodable file")
+    appendLine("  ${ExitCode.EngineFailure}  the engine failed on input this CLI had accepted")
 }

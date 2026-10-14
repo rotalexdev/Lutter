@@ -27,10 +27,48 @@ application {
 }
 
 dependencies {
+    // `ModuleGraphRules.ALLOWED`'s row for this module, and no other. PLAN §23.2 tabulates the
+    // engine rows only; `:tools:cli` has no table row and is enforced by §23.4's checker
+    // instead, and this list is that row. `verifyModuleGraph` fails the build on an edge that is
+    // not in it — which is why `:engine:editing` is absent below, and why adding it is a
+    // decision for the module graph rather than for a CLI.
+    //
+    // The order is the engine's own dependency order rather than anything meaningful.
     implementation(project(":engine:model"))
     implementation(project(":engine:schema"))
     implementation(project(":engine:serialization"))
     implementation(project(":engine:analysis"))
     implementation(project(":engine:codegen"))
     implementation(project(":engine:builtins"))
+
+    // PLAN §36.3 is a claim about exit codes as much as about diagnostics, and a claim a test
+    // cannot make is a claim nothing checks: `main` calls `exitProcess`, which would take the
+    // test JVM with it. Every command body therefore returns its exit code, and `execute` in
+    // `Main.kt` is what the tests call, so what is asserted below is the code a shell sees.
+    //
+    // No `project(":engine:test-support")` here, deliberately. `ALLOWED_IN_TESTS` has no line
+    // for this module, so a test-scoped edge to the harness would fail `verifyModuleGraph` — and
+    // a CLI whose tests reached for a seeded document generator would be asserting against
+    // fixtures this module does not own. The two documents the tests need are JSON, and JSON is
+    // what a user hands the CLI.
+    //
+    // JUnit is the same coordinate `:tools:architecture-tests` uses, from `libs` — the
+    // gap-filler catalog — because the shared `rootLibs` carries no entry for it. No
+    // coordinate is new to the repository, and there is still no argument-parsing library:
+    // PLAN §4.3's row C6 wrote a Kotlin IR and printer rather than take KotlinPoet, and an
+    // argument parser would be the same mistake one layer up.
+    testImplementation(platform(libs.junit.jupiter))
+    testImplementation(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+
+    // What Gradle uses to talk to the JUnit Platform. Runtime only: putting it on the compile
+    // classpath would be a lie about what the tests need.
+    testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+// The `jvm.library` convention applies the Kotlin JVM plugin, so `src/test/kotlin` exists
+// whether or not this block does. This is the half it does not do: it does not tell Gradle
+// that the tests run on the JUnit Platform.
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }

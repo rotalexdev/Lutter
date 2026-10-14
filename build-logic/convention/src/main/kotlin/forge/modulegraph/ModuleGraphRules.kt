@@ -161,6 +161,11 @@ object ModuleGraphRules {
             ":engine:builtins",
             ":engine:builtins-compose",
         ),
+        // `:engine:editing` is here for `forge diff`, and the reason it belongs is §36's claim
+        // that the architecture does not require a visual editor. Phase 9 built that layer
+        // editor-agnostic on purpose, and an embedder that cannot reach it has not demonstrated
+        // anything: without this edge §36's row is proven for generation and not for editing.
+        // D34 records the decision, including the two routes around it and why both are worse.
         ":tools:cli" to setOf(
             ":engine:model",
             ":engine:schema",
@@ -168,6 +173,7 @@ object ModuleGraphRules {
             ":engine:analysis",
             ":engine:codegen",
             ":engine:builtins",
+            ":engine:editing",
         ),
         ":tools:architecture-tests" to emptySet(),
         ":integration:generated-compile" to setOf(
