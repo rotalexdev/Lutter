@@ -21,6 +21,7 @@ import dev.rotalex.lutter.schema.component.ChildFilter
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.EventArgSpec
 import dev.rotalex.lutter.schema.component.SlotSpec
+import dev.rotalex.lutter.schema.component.component
 import dev.rotalex.lutter.schema.component.componentSpec
 import dev.rotalex.lutter.schema.component.prop
 import dev.rotalex.lutter.schema.function.FunctionSpec
@@ -107,6 +108,20 @@ public fun generatorSchema(): Schema<ComponentSpec, ModifierSpec, ActionSpec, Fu
 /**
  * The three components this module adds. Split from [generatorSchema] so the registration block
  * reads as "the builtins, then ours".
+ *
+ * ### Why `component(spec)` needs an import and `component(type, spec)` does not
+ *
+ * Both shapes carry the same name and only one of them is a member. `SchemaBuilder.component(type,
+ * spec)` is a member of the class; the one-argument `component(spec)` that files a spec under its
+ * own type is a **top-level extension** in `dev.rotalex.lutter.schema.component`, so it is only
+ * in scope with an import. Without that import the call still resolves — to the member — and the
+ * diagnostic names the member's first parameter rather than the missing import, which is the part
+ * worth knowing the next time it happens.
+ *
+ * The one-argument shape is the one used here because it is what `Builtins.kt` uses for the nine
+ * builtin specs, and because spelling the type twice would make a reader check that the two
+ * spellings agree. The two-argument member is the fallback if the import ever goes missing, and
+ * it is the only one of the two that is visible without an import.
  */
 private fun SchemaBuilder<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec>
     .generatorVocabulary(): Unit {
