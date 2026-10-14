@@ -3,6 +3,7 @@ package dev.rotalex.lutter.editing.patch
 import dev.rotalex.lutter.model.doc.ComponentDecl
 import dev.rotalex.lutter.model.doc.DataModelDecl
 import dev.rotalex.lutter.model.doc.EnumTypeDecl
+import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.NodeTable
 import dev.rotalex.lutter.model.doc.Page
 import dev.rotalex.lutter.model.doc.ResourceDecl
@@ -116,9 +117,10 @@ public object PatchApplier {
     /**
      * One op against one document.
      *
-     * Exhaustive with no `else`, which is the point: a ninth op added to [PatchOp] does not
-     * compile until it has been given a behaviour here, and `when`-completeness is a much
-     * weaker prompt than a compiler error at the one place the op has to mean something.
+     * Exhaustive with no `else`, which is the point: an op added to [PatchOp] does not compile
+     * until it has been given a behaviour here, and `when`-completeness is a much weaker prompt
+     * than a compiler error at the one place the op has to mean something. D31's tenth op,
+     * [PatchOp.SetTheme], is the tenth such error this switch has raised.
      */
     private fun applyOne(op: PatchOp, document: UiDocument): UiDocument = when (op) {
         is PatchOp.InsertNodes -> applyInsert(op, document)
@@ -130,6 +132,7 @@ public object PatchApplier {
         is PatchOp.SetHandler -> applySetHandler(op, document)
         is PatchOp.SetNodeName -> applySetNodeName(op, document)
         is PatchOp.PutRecord -> applyPutRecord(op, document)
+        is PatchOp.SetTheme -> applySetTheme(op, document)
     }
 
     // -----------------------------------------------------------------------------------
@@ -379,7 +382,7 @@ public object PatchApplier {
      *
      * Switched on the [RecordRef] rather than on the record, because the ref is the address
      * and the record is the payload: a removal has no record to switch on at all, and a
-     * `Record` carries no position for the one container that needs one. Seven arms, one per
+     * `Record` carries no position for the two containers that need one. Eight arms, one per
      * container, and `RecordRef` is sealed — so a declaration added to `UiDocument` without a
      * reference here does not compile.
      *
@@ -423,10 +426,12 @@ public object PatchApplier {
                 document.copy(enums = put(document.enums, ref.id, value, value?.id?.value))
             }
 
-            // The seventh container is the only list, and it is the only arm that has to
-            // remember *where*. See `RecordRef.State` and `putState` for why the index is in
-            // the address rather than nowhere.
+            // The two containers that are lists, and the only two arms that have to remember
+            // *where*. See `RecordRef.State` and `putAt` for why the index is in the address
+            // rather than nowhere, and why both of them share one implementation.
             is RecordRef.State -> document.copy(appState = putState(op.new, ref, document.appState))
+            is RecordRef.HostFunction ->
+                document.copy(hostFunctions = putHostFunction(op.new, ref, document.hostFunctions))
         }
     }
 
@@ -458,50 +463,138 @@ public object PatchApplier {
     /**
      * `appState` with the declaration [ref] names written or removed at [ref]'s index.
      *
+     * A one-line wrapper over [putAt], because `appState` and `hostFunctions` are the same
+     * container shape and this arm is where the two of them meet. What differs is only how a
+     * declaration is named — a `StateId` against §11.6's plain `String` — and [putAt]'s `idOf`
+     * is what carries that difference, so the index protocol below is written once.
+     */
+    private fun putState(record: Record?, ref: RecordRef.State, declared: List<StateDecl>): List<StateDecl> =
+        putAt(
+            address = "RecordRef.State('${ref.id}') of appState",
+            id = ref.id.value,
+            index = ref.index,
+            declared = declared,
+            replacement = stateOf(record),
+            idOf = { it.id.value },
+        )
+
+    /**
+     * `hostFunctions` with the declaration [ref] names written or removed at [ref]'s index.
+     *
+     * The same protocol as [putState] and for the same reason: §11.6's declarations are a
+     * `List`, a position is part of the address, and an inverse that appended instead of
+     * restoring would leave a document holding the same declarations in a different order.
+     */
+    private fun putHostFunction(
+        record: Record?,
+        ref: RecordRef.HostFunction,
+        declared: List<HostFunctionDecl>,
+    ): List<HostFunctionDecl> =
+        putAt(
+            address = "RecordRef.HostFunction('${ref.id}') of hostFunctions",
+            id = ref.id,
+            index = ref.index,
+            declared = declared,
+            replacement = hostFunctionOf(record),
+            idOf = { it.name },
+        )
+
+    /**
+     * [declared] with the declaration [id] names written or removed at [index].
+     *
      * Write, remove and replace are all one function because they are one operation with
      * three shapes, and splitting them would mean three functions each re-deriving where the
-     * declaration currently sits — which is the only interesting fact here.
+     * declaration currently sits — which is the only interesting fact here. [putState] and
+     * [putHostFunction] are the same argument once more, one level out: two list containers
+     * means two copies of a position protocol, and the second copy is the one nobody
+     * cross-checks.
      *
      * An index one past the end is a legal insertion, as it is for a slot: it is the position
      * an appended declaration will have. Any other out-of-range index is a patch built for
      * another document.
+     *
+     * **A removal is checked against the occupant and a write is not**, which is the asymmetry
+     * the whole of the protocol rests on. A write at `i` replaces whatever is there, so the
+     * only thing that can disagree is the record's own id against [id]; a removal at `i`
+     * deletes whatever is there, so it also has to check that the thing there is the thing
+     * being removed. A caller that removes by a position something else has already shifted
+     * gets the wrong declaration deleted, and §6.2's "ids are never reused" means nothing
+     * would ever report it.
+     *
+     * [idOf] is how a declaration names itself, and it is a parameter rather than a comparison
+     * written here because the two containers disagree about what a name is: `appState` keys a
+     * checked `StateId` and `hostFunctions` holds §11.6's `name`, which §11.6 never made a
+     * checked id. Both are read here as the string a comparison can make and a message can
+     * print.
+     *
+     * [address] is what a message knows about the reference and [id] is what a comparison knows,
+     * and they are separate parameters rather than one assembled string on purpose: building the
+     * text here would mean this function knew which `RecordRef` variant it had been called for,
+     * which is the switch's job above and would put the two containers' naming in the one place
+     * that serves both.
      */
-    private fun putState(record: Record?, ref: RecordRef.State, declared: List<StateDecl>): List<StateDecl> {
+    private fun <D> putAt(
+        address: String,
+        id: String,
+        index: Int,
+        declared: List<D>,
+        replacement: D?,
+        idOf: (D) -> String,
+    ): List<D> {
         val updated = declared.toMutableList()
-        require(ref.index in 0..updated.size) {
-            "RecordRef.State('${ref.id}') addresses position ${ref.index} of appState, which " +
-                "holds ${updated.size} declaration(s)"
+        require(index in 0..updated.size) {
+            "$address addresses position $index, which holds ${updated.size} declaration(s)"
         }
 
-        val occupant = updated.getOrNull(ref.index)
-        val replacement = stateOf(record)
+        val occupant = updated.getOrNull(index)
 
         if (replacement == null) {
-            require(occupant?.id == ref.id) {
-                "RecordRef.State('${ref.id}') removes position ${ref.index}, which holds " +
-                    "'${occupant?.id}'"
+            require(occupant != null && idOf(occupant) == id) {
+                "$address removes position $index, which holds '${occupant?.let(idOf)}'"
             }
-            updated.removeAt(ref.index)
+            updated.removeAt(index)
             return updated
         }
 
-        require(replacement.id == ref.id) {
-            "RecordRef.State('${ref.id}') cannot carry a state declaration whose id is " +
-                "'${replacement.id}'"
+        require(idOf(replacement) == id) {
+            "$address cannot carry a declaration whose id is '${idOf(replacement)}'"
         }
-        if (occupant == null) updated.add(ref.index, replacement) else updated[ref.index] = replacement
+        if (occupant == null) updated.add(index, replacement) else updated[index] = replacement
         return updated
     }
+
+    // -----------------------------------------------------------------------------------
+    // The document's own fields
+    // -----------------------------------------------------------------------------------
+
+    /**
+     * [PatchOp.SetTheme]: the document selects [PatchOp.SetTheme.new].
+     *
+     * **A `copy`, and no check at all**, which is the same shape [applySetProp] has and for
+     * the same reason: [PatchOp.SetTheme.old] is the inverter's business and not this one's,
+     * so nothing here reads it — an op is a claim, and a claim about the previous state is
+     * checked by nothing in this file for the same reason it is not applied.
+     *
+     * **The selection is not checked against `themes`, and that is §14.2's total function
+     * rather than a gap here.** A document selecting a theme it does not declare is a document
+     * §17 reports, and a patch that refused to carry it would be refusing the *edit* — a user
+     * picking a theme that is being created in the same transaction is the ordinary case, and
+     * the ops for it are independent. Refusing here would also make the op's success depend on
+     * the order the caller chose, which is the one thing about a patch this file refuses to
+     * have an opinion on.
+     */
+    private fun applySetTheme(op: PatchOp.SetTheme, document: UiDocument): UiDocument =
+        document.copy(theme = op.new)
 
     // -----------------------------------------------------------------------------------
     // Reading a payload out of the record union
     // -----------------------------------------------------------------------------------
 
     /**
-     * The seven functions below are the cost of pairing two sealed hierarchies.
+     * The eight functions below are the cost of pairing two sealed hierarchies.
      *
-     * A single `when` over [Record] in each of `applyPutRecord`'s seven arms would need its
-     * own exhaustiveness check seven times, and an `else` in each of those would throw away
+     * A single `when` over [Record] in each of `applyPutRecord`'s eight arms would need its
+     * own exhaustiveness check eight times, and an `else` in each of those would throw away
      * the check for the case that matters: that the record is the kind its reference named.
      * These keep the check. Each throws a message that names the reference rather than
      * reporting a bare class, because the question a caller has is never "what class is this"
@@ -547,5 +640,13 @@ public object PatchApplier {
         null -> null
         is Record.State -> record.value
         else -> throw IllegalArgumentException("a RecordRef.State carries a state declaration and nothing else")
+    }
+
+    private fun hostFunctionOf(record: Record?): HostFunctionDecl? = when (record) {
+        null -> null
+        is Record.HostFunction -> record.value
+        else -> throw IllegalArgumentException(
+            "a RecordRef.HostFunction carries a host function declaration and nothing else",
+        )
     }
 }

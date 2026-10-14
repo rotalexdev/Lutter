@@ -80,7 +80,13 @@ public data class Patch(
      *
      * A [PatchOp.PutRecord] contributes nothing, and that is a fact about the type rather than
      * an oversight: it addresses a declaration, and a declaration is not a `NodeId`. Editing a
-     * page's route does not touch a node — it changes what the page *is*.
+     * page's route does not touch a node — it changes what the page *is*. [PatchOp.SetTheme]
+     * contributes nothing for the same reason and one step further out: it addresses the
+     * document's own pointer at a declaration, so there is no node in the address at all, and
+     * the rule this set already follows is that an op contributes the `NodeId`s it names.
+     * Inventing a sentinel node id for it would put a value in the set that names nothing a
+     * document holds, and every consumer of this set would then have to know which ids are
+     * real.
      *
      * Built in op order into a `LinkedHashSet`, so two equal patches iterate in the same order
      * on every target. `Set` equality is order-independent (§6.2) and iteration is not, and
@@ -111,6 +117,12 @@ public data class Patch(
 
                     is PatchOp.PutRecord -> {
                         // Addresses a declaration, and a declaration is not a `NodeId`.
+                    }
+
+                    // Names no node at all: this op is the document's own pointer at one of
+                    // its declarations, so there is nothing to add. See the KDoc.
+                    is PatchOp.SetTheme -> {
+                        // The document's selection, and a selection is not a node.
                     }
                 }
             }

@@ -16,6 +16,7 @@ import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.doc.ComponentDecl
 import dev.rotalex.lutter.model.doc.DataModelDecl
 import dev.rotalex.lutter.model.doc.EnumTypeDecl
+import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.ModifierEntry
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.ResourceDecl
@@ -41,12 +42,12 @@ import kotlinx.serialization.json.JsonClassDiscriminator
  * The closed vocabulary of edits a command may produce, and the whole of it.
  *
  * PLAN §26.2 declares eight, and this file declares those eight with the plan's names and the
- * plan's field names, in the plan's order, plus the ninth that D30 added. Nothing else is
- * added, because every addition here is paid for twice: `PatchApplier` grows a branch and
- * `PatchInverter` grows a branch, and an op that only one of the two remembered is a patch
- * whose inverse is silently wrong.
+ * plan's field names, in the plan's order, plus the ninth that D30 added and the tenth that D31
+ * added. Nothing else is added, because every addition here is paid for twice: `PatchApplier`
+ * grows a branch and `PatchInverter` grows a branch, and an op that only one of the two
+ * remembered is a patch whose inverse is silently wrong.
  *
- * ### Why these nine, and what the set is for
+ * ### Why these ten, and what the set is for
  *
  * They are not "every change the engine can make". They are the changes §26.1 chose for a
  * command to produce — *"Command → forward/inverse Patch"*, chosen over a snapshot per step
@@ -60,9 +61,16 @@ import kotlinx.serialization.json.JsonClassDiscriminator
  * pointer into the table precisely so a page holds no nodes), and nothing in the original eight
  * could put a row there. See its own KDoc for what it does and does not check.
  *
+ * The tenth is [SetTheme], and it exists for the same kind of reason with the opposite shape:
+ * the gap was **on the addressing side** rather than in the op set. [RecordRef.Theme] names a
+ * `ThemeDecl`, so the document's *pointer at one* — a nullable id, where `null` is §14.2's
+ * rule and not an absence — had nothing that could name it. D31 settled that by adding the op
+ * rather than by bending a reference that already had a job, and its KDoc says why [RecordRef]
+ * is the wrong place to fix it.
+ *
  * ### Every op carries its own `old`, and that is the property being bought
  *
- * Six of the nine have a field literally named `old`; [InsertNodes], [PutNodes] and
+ * Six of the ten have a field literally named `old`; [InsertNodes], [PutNodes] and
  * [RemoveSubtree] carry the whole subtree they wrote or captured instead, which is the same
  * information with a different shape. The consequence is the one §26.2 draws out immediately
  * after the declaration: **inverting a patch needs no document.** There is no lookup, no index, no
@@ -106,19 +114,22 @@ import kotlinx.serialization.json.JsonClassDiscriminator
  *
  * ### What this vocabulary does not cover, stated rather than left to be discovered
  *
- *  * **`UiDocument.meta`, `UiDocument.app` and `UiDocument.theme` have no op.** The first two
- *    are fixed for the life of a document, and the third is the *selection* of a theme rather
- *    than a theme — §14.2's nullable id with a default, which no `PutRecord` can express,
- *    because [RecordRef.Theme] addresses a `ThemeDecl` and not the document's pointer at one.
- *    A theme switch is a gap in §26.2's set, and it is a real one; the fix is a tenth op, and
- *    a tenth op is a decision for whoever owns the plan rather than a guess for this one.
- *    D30 answered one such question and did not answer this one, which is the difference
- *    between the two: a command in §25.3 had no way to express itself, while a theme switch has
- *    no command yet.
- *  * **`UiDocument.hostFunctions` has no [RecordRef].** §26.2's own comment enumerates what
- *    `PutRecord` covers — *"pages, decls, themes, resources, state, models"* — and host
- *    functions are not in it. Adding a variant the comment does not sanction would be a
- *    decision made by transcription rather than by reading.
+ * D31 closed three of the four gaps the first nine carried. What is left is worth as much
+ * prose as what was closed, because a caller has to know which set they are in.
+ *
+ *  * **`UiDocument.meta` and `UiDocument.app` have no op, and that is the design rather than
+ *    an omission.** They are a document's identity and its [dev.rotalex.lutter.model.doc.AppSpec],
+ *    fixed for the life of the document: there is no edit that changes a document's package or
+ *    the page it opens on, and a patch that could express one would describe a document that is
+ *    not the one that was edited. A diff refuses a pair that disagrees on them rather than
+ *    emitting a patch that reproduces every other field and leaves these two behind — see
+ *    [dev.rotalex.lutter.editing.diff.DocumentDiff.compute].
+ *  * **`Node.type` has no op.** A row's component type is not one of the four per-field ops
+ *    and is not addressed by any reference in this file, so a diff that meets two documents
+ *    whose rows differ only in type has nothing to say. The same argument as `meta` and `app`
+ *    does not apply — a component type *is* edited, by pasting from a palette — and so the
+ *    refusal is the honest answer for now and the eleventh op is the real one. See
+ *    [dev.rotalex.lutter.editing.diff.DocumentDiff.compute].
  *  * **Page- and component-scoped state is not addressed by [RecordRef.State].** §12.1 puts
  *    state at three scopes and two of them live *inside* a `Page` or a `ComponentDecl`, so
  *    changing one is a `PutRecord` of the record that owns the list. See that type's KDoc.
@@ -423,6 +434,61 @@ public sealed interface PatchOp {
         /** The declaration after, or `null` to remove it. */
         public val new: Record?,
     ) : PatchOp
+
+    // -----------------------------------------------------------------------------------
+    // The document's own fields
+    // -----------------------------------------------------------------------------------
+
+    /**
+     * Which of `UiDocument.themes` the document selects.
+     *
+     * The tenth op, added by D31, and the only one that edits a document rather than anything
+     * *in* it. Every other op names a row, a declaration, or a field of one of the two; this
+     * one names the document's own pointer at one of its declarations.
+     *
+     * ### Why it exists rather than a [RecordRef], because the same hole had two answers
+     *
+     * [RecordRef.Theme] addresses a `ThemeDecl` by id, and a diff was asked to say "this
+     * document selects `t_dark` now" and could not: it has nowhere to put a *nullable* id,
+     * because every reference in this hierarchy names something that exists. **The null is the
+     * whole difficulty** — §14.2 makes `null` a real selection (one theme and no selection is
+     * that theme; several themes and no selection falls back to Material's base), so it is a
+     * value rather than an absence, and `new = null` on a `PutRecord` would mean *remove this
+     * theme declaration* rather than *stop selecting one*.
+     *
+     * The alternatives were rejected for different reasons and are named here so the choice
+     * reads as a choice:
+     *
+     *  * **Abuse [RecordRef.Theme].** It would have to mean two things by whether the record
+     *    was null, and `PutRecord`'s own contract already gives null a meaning — a removal.
+     *    One op would then carry two unrelated edits, and [PatchInverter] would have to know
+     *    which.
+     *  * **A `PutRecord` against a synthetic "selection" declaration.** A declaration that is
+     *    not in `UiDocument.themes` has no key, and §26.2's whole addressing scheme assumes a
+     *    reference names something a map holds.
+     *
+     * ### The shape is [SetProp]'s, and it is invertible for the same reason
+     *
+     * `old` and `new`, both nullable, both present. `old` is what makes the inverse a field
+     * copy, which is what makes undo work without a document — the property the whole set is
+     * chosen to buy. An op carrying only `new` would be invertible only against the document,
+     * and §26.1's rejected snapshot-per-step would be back through the side door.
+     *
+     * **A patch that sets the same id on both sides is legal and is a no-op**, exactly as
+     * [SetProp] with equal values is. Nothing here validates that the selection names a
+     * declared theme: §14.2's resolution is a total function of this id plus `themes`, and a
+     * document that selects a theme it does not declare is a document §17 reports, not a patch
+     * this file refuses.
+     */
+    @Serializable
+    @SerialName("setTheme")
+    public data class SetTheme(
+        /** The selection before, or `null` when §14.2's rule was in force. */
+        public val old: ThemeId?,
+
+        /** The selection after, or `null` to fall back to §14.2's rule. */
+        public val new: ThemeId?,
+    ) : PatchOp
 }
 
 /**
@@ -553,19 +619,25 @@ public data class RemovedSubtree(
  * The alternative is one address string per declaration and a `when` over its first character.
  * It would be shorter and it would lose the two things this type exists to keep: the id is a
  * checked `PageId` or a checked `StateId` rather than a string nothing validates, and the
- * compiler refuses an applier that has forgotten a container. Seven arms, one per declaration,
- * and a sixth container added later is a compile error at the two places that switch on it —
- * which is the same argument `TypeRef` makes for keeping its variants abstract on the
+ * compiler refuses an applier that has forgotten a container. Nine arms, one per declaration
+ * container, and a ninth container added later is a compile error at the two places that switch
+ * on it — which is the same argument `TypeRef` makes for keeping its variants abstract on the
  * interface.
  *
- * ### Six of the seven carry nothing but an id, and the seventh carries a position too
+ * ### Six of the eight carry nothing but an id, and the other two carry a position too
  *
- * `UiDocument.appState` is a `List<StateDecl>` and every other declaration container is a map
- * keyed by id. For a map the id *is* the address; for a list it is not, because an id says
- * which declaration and a position says where — and a document that removed its third state
- * declaration and appended a new one at the end is not the document it started as, even though
- * it holds the same declarations. [State] therefore carries an index, for the same reason
- * [Placement] does.
+ * `UiDocument.appState` and `UiDocument.hostFunctions` are `List`s and every other declaration
+ * container is a map keyed by id. For a map the id *is* the address; for a list it is not,
+ * because an id says which declaration and a position says where — and a document that removed
+ * its third state declaration and appended a new one at the end is not the document it started
+ * as, even though it holds the same declarations. [State] and [HostFunction] therefore carry
+ * an index, for the same reason [Placement] does.
+ *
+ * Without the index an inverse would restore the right declarations in the wrong order, which
+ * is a patch that undoes cleanly and leaves a document that is not the one the edit started
+ * from — and a list order that means nothing is still an order. `PatchApplier` is where the
+ * index is read; `DocumentDiff` is where the two-phase order it has to be issued in is
+ * described.
  *
  * ### What a reference does not reach
  *
@@ -575,9 +647,11 @@ public data class RemovedSubtree(
  * alternative — three state scopes inside [RecordRef] — would make the reference carry a
  * triple of ids to express what one record copy already says.
  *
- * `UiDocument.theme` is the one thing this type deliberately cannot address: it is the
- * *selection* of a theme rather than a theme, and §26.2's op set has nothing for it. See
- * [PatchOp]'s KDoc.
+ * `UiDocument.theme` is the other thing this type deliberately cannot address, and for the
+ * other reason: it is the *selection* of a theme rather than a theme, and a selection is
+ * nullable. Every reference here names something that exists, so there is nothing to point a
+ * `null` at; [PatchOp.SetTheme] carries it instead. See that op's KDoc for why the fix was an
+ * op rather than a reference.
  */
 @Serializable
 @JsonClassDiscriminator("type")
@@ -624,6 +698,34 @@ public sealed interface RecordRef {
     @Serializable
     @SerialName("enum")
     public data class EnumType(public val id: TypeId) : RecordRef
+
+    /**
+     * One entry of `UiDocument.hostFunctions`, at [index].
+     *
+     * D31's addition, and the one reference in this hierarchy whose id is **not** a typed
+     * identifier. That is not an inconsistency to be tidied away later — §11.6 declares
+     * `HostFunctionDecl(name, params, returns, suspend)` and types the *arguments*, never the
+     * callee, so `name` is a plain `String` in `:engine:model` and there is no checked id to
+     * narrow it to here.
+     *
+     * `FunctionId` was the obvious candidate and is the wrong one for two reasons: it validates
+     * a **namespaced** name (`list.isNotEmpty`), which would refuse the ordinary document-local
+     * `submit`; and it keys the schema's *function registry*, which is a different namespace
+     * entirely — §11.6's host functions are implemented by the embedding application and
+     * declared by the document, not resolved through a registry. The consequence of taking a
+     * `String` is the one every other variant in this hierarchy exists to prevent, so it is
+     * named rather than left implicit: **a `PutRecord` here whose [id] and whose carried
+     * declaration disagree on the name is refused by `PatchApplier`**, exactly as the typed
+     * variants are refused for the same reason.
+     *
+     * [index] for the reason [State] carries one, and it is not optional: `hostFunctions` is a
+     * list, a removal is checked against the declaration the position actually holds, and an
+     * inverse that appended instead of restoring would produce a document holding the same
+     * declarations in a different order.
+     */
+    @Serializable
+    @SerialName("hostFunction")
+    public data class HostFunction(public val id: String, public val index: Int) : RecordRef
 }
 
 /**
@@ -685,4 +787,15 @@ public sealed interface Record {
     @Serializable
     @SerialName("enum")
     public data class EnumType(public val value: EnumTypeDecl) : Record
+
+    /**
+     * A function the embedding application implements: `UiDocument.hostFunctions`.
+     *
+     * The eighth variant, added with [RecordRef.HostFunction] by D31, and it holds the
+     * declaration itself rather than a copy for the reason every variant here does: there is
+     * one definition of what a `HostFunctionDecl` is, and it is in `:engine:model`.
+     */
+    @Serializable
+    @SerialName("hostFunction")
+    public data class HostFunction(public val value: HostFunctionDecl) : Record
 }

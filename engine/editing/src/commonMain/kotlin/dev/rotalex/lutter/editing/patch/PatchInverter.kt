@@ -9,8 +9,8 @@ package dev.rotalex.lutter.editing.patch
  * reason the op set looks the way it does. Read [PatchOp] op by op: every one of them carries
  * the state it is about to replace.
  *
- *  * [PatchOp.SetProp], [PatchOp.SetModifiers], [PatchOp.SetHandler] and
- *    [PatchOp.SetNodeName] have a field named `old`.
+ *  * [PatchOp.SetProp], [PatchOp.SetModifiers], [PatchOp.SetHandler],
+ *    [PatchOp.SetNodeName] and [PatchOp.SetTheme] have a field named `old`.
  *  * [PatchOp.PutRecord] has one too, and it is a whole declaration.
  *  * [PatchOp.MoveNode] has [PatchOp.MoveNode.from], and the two placements are each other's
  *    negation.
@@ -56,9 +56,9 @@ public object PatchInverter {
      * [patch] with every op replaced by its inverse, and the ops in reverse order.
      *
      * Total: there is no op for which no inverse can be written, which is the property the
-     * closed set of eight was chosen to buy. A ninth op that could not carry its own `old`
-     * would have to add a case here that throws, and a `when` that throws is the shape of a
-     * design that did not hold.
+     * closed set was chosen to buy. An op that could not carry its own `old` would have to add
+     * a case here that throws, and a `when` that throws is the shape of a design that did not
+     * hold.
      */
     public fun invert(patch: Patch): Patch = Patch(patch.ops.asReversed().map { inverseOf(it) })
 
@@ -121,5 +121,11 @@ public object PatchInverter {
         is PatchOp.SetNodeName -> PatchOp.SetNodeName(op.node, old = op.new, new = op.old)
 
         is PatchOp.PutRecord -> PatchOp.PutRecord(op.ref, old = op.new, new = op.old)
+
+        // The two nullable ids swap, which is the whole of it and the reason this op is in the
+        // set at all. An inverter that read `new` for both sides would turn an undo into a
+        // re-application: `SetTheme(t_dark, null)` — the user dropping their theme — would
+        // become `SetTheme(null, null)` and leave the document exactly as wrong as it was.
+        is PatchOp.SetTheme -> PatchOp.SetTheme(old = op.new, new = op.old)
     }
 }
