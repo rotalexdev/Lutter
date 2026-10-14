@@ -8,6 +8,7 @@ import dev.rotalex.lutter.model.doc.TokenName
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.type.TokenKind
 import dev.rotalex.lutter.model.value.Value
+import dev.rotalex.lutter.model.value.fixedDecimalText
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 
 /**
@@ -19,6 +20,9 @@ import dev.rotalex.lutter.schema.component.KotlinSymbol
 internal data class EmittedLiteral(val text: String, val symbols: List<KotlinSymbol>)
 
 /** Values to Kotlin text. Returns null where the skeleton has no valid spelling. */
+/** §5.4's four fractional digits — the same width [textOf] writes and the same this prints. */
+private const val MAX_FRACTIONAL_DIGITS: Int = 4
+
 internal object LiteralPrinter {
     private val ComposeColor: KotlinSymbol = KotlinSymbol("androidx.compose.ui.graphics", "Color")
     private val DpUnit: KotlinSymbol = KotlinSymbol("androidx.compose.ui.unit", "dp")
@@ -225,11 +229,28 @@ internal object LiteralPrinter {
         else -> null
     }
 
-    // Canonical magnitudes never print in scientific notation, so this only pins `.0`.
+    /**
+     * A `Double` written the way §5.4 writes it.
+     *
+     * **Not `value.toString()`.** That is the one call §10.6's hazard row exists about, and the
+     * old version of this function called it — while its own comment claimed canonical magnitudes
+     * never print in scientific notation, which `Double.toString()` has done since forever:
+     * it switches below `1e-3`. `Value.Dp(0.0001f)` is a legal document value and was emitting
+     * `1.0E-4.dp` — a `Double` literal, where `.dp` is declared on `Float` and `Int`, so the
+     * generated file did not compile in the consumer's tree. `Value.Dp(0.1f)` emitted
+     * `0.10000000149011612.dp`: equal in value, non-canonical, and the widened spelling §18
+     * refuses to write.
+     *
+     * [fixedDecimalText] is public where [dev.rotalex.lutter.model.value.canonicalText] is
+     * `internal`, and it is total where `canonicalText` refuses a value it cannot scale — which is
+     * what a formatter emitting a literal needs. It answers a width the caller asked for rather
+     * than trimming to the last non-zero digit, so the trim is done here, exactly as
+     * `CanonicalNumbers.textOf` does it: at [MAX_FRACTIONAL_DIGITS] places, then trailing zeros
+     * cut, then a bare integer given back its `.0` so it is still a floating-point literal.
+     */
     private fun floatText(value: Double): String {
-        val text: String = value.toString()
-        if (text.contains('.') || text.contains('E') || text.contains('e')) return text
-        return text + ".0"
+        val text: String = fixedDecimalText(value, MAX_FRACTIONAL_DIGITS).trimEnd('0').trimEnd('.')
+        return if ('.' in text) text else text + ".0"
     }
 
     // Kotlin escaping: quotes, backslashes, control chars and `$` (template Marker).
