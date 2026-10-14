@@ -1,14 +1,18 @@
 package dev.rotalex.lutter.samples.desktoppreview
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.model.doc.UiDocument
-import dev.rotalex.lutter.runtime.BackStackNavigator
-import dev.rotalex.lutter.runtime.RuntimeEnvironment
-import dev.rotalex.lutter.runtime.UiApp
 import dev.rotalex.lutter.serialization.JsonDocumentCodec
+import dev.rotalex.lutter.serialization.storage.FileDocumentStorage
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /**
  * The document the window opens on when it is given no path.
@@ -74,27 +78,65 @@ private object BundledDocument {
 }
 
 /**
- * The window: the document's own start page, rendered by the interpreter and by nothing else.
+ * The window: the document's own start page, rendered by the interpreter and by nothing else,
+ * and re-rendered when the file behind it changes.
  *
- * [RuntimeEnvironment] is all this document asks for — no host function, no state, no editor
+ * A `RuntimeEnvironment` is all this document asks for — no host function, no state, no editor
  * hooks, so every one of those seams stays at its default. `:integration:generated-compile`
  * proves the generated path draws the same pixels as this one, so a second window here would show
  * what CI already asserts rather than what only a human can check.
+ *
+ * This is the composition root and stays one: it decides *what* is watched and hands the window
+ * two values to read. What it watches with is [DocumentReloader], and what the window does with
+ * a change is [PreviewContent]; neither belongs here, because both are answers to questions this
+ * function does not ask.
+ *
+ * A file is watched only when the path given resolves to one. That is the packaged case the
+ * fallback above exists for: with nothing on disk, a poller would read a location that never
+ * exists and report it every tick, and the window would say it could not read a file the user
+ * never named.
  */
 public fun main(args: Array<String>): Unit {
     val schema = BuiltinEngine.schema()
-    // Read twice over, once each: the start page is a document fact that lowering drops, so it is
-    // taken from what was decoded rather than from the resolved form that no longer carries it.
-    val decoded = readDocument(args.firstOrNull() ?: DEFAULT_DOCUMENT)
-    val document = BuiltinEngine.resolve(schema, decoded)
-    // Built here rather than in the window's content: construction is what runs §4.5's coverage
-    // check, and that content recomposes on every navigation.
-    val runtime = BuiltinEngine.runtime(schema)
-    val navigator = BackStackNavigator(decoded.app.startPage)
+    val path = args.firstOrNull() ?: DEFAULT_DOCUMENT
+    val watched: String? = path.takeIf { File(it).isFile }
 
-    application {
-        Window(onCloseRequest = ::exitApplication, title = "Lutter desktop preview") {
-            UiApp(runtime, document, RuntimeEnvironment(navigator = navigator))
+    // The document, in both forms, held together because the window needs one and the other: the
+    // start page is a document fact that lowering drops, so it is taken from what was decoded
+    // rather than from the resolved form that no longer carries it. A reload produces the same
+    // pair, which is what `LoadedDocument` is.
+    val decoded = readDocument(path)
+    val loaded = mutableStateOf(LoadedDocument(decoded, BuiltinEngine.resolve(schema, decoded)))
+    val status = mutableStateOf(
+        watched?.let { PreviewStatus.Watching(it) } ?: PreviewStatus.Bundled,
+    )
+    // Built here rather than in the window's content: construction is what runs §4.5's coverage
+    // check, and that content recomposes on every navigation. It survives a reload unchanged,
+    // because it is assembled from the schema and a document carries no schema.
+    val runtime = BuiltinEngine.runtime(schema)
+
+    val polling = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    try {
+        if (watched != null) {
+            polling.launch {
+                DocumentReloader(
+                    storage = FileDocumentStorage(),
+                    location = watched,
+                    schema = schema,
+                    onLoaded = { loaded.value = it },
+                    onStatus = { status.value = it },
+                ).run()
+            }
         }
+
+        application {
+            Window(onCloseRequest = ::exitApplication, title = "Lutter desktop preview") {
+                PreviewContent(runtime, loaded, status)
+            }
+        }
+    } finally {
+        // The last window is closed, so there is nothing left to report to. `application` returns
+        // here, and a loop still running would keep reading a file for a process on its way out.
+        polling.cancel()
     }
 }
