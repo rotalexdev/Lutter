@@ -27,6 +27,20 @@ dependencies {
     // `uiTestJUnit4` carries the test API and not the rendering backend, so `currentOs` comes too.
     desktopTestImplementation(compose.desktop.uiTestJUnit4)
     desktopTestImplementation(compose.desktop.currentOs)
+    // What the reload loop imports, declared because it is imported. It is on this module's
+    // compile classpath already — Compose's runtime carries it as `api` and `:engine:runtime`
+    // re-exports that edge — but reaching a coordinate through two other modules and a
+    // publisher's POM is not a declaration, it is an accident that survives until a version bump.
+    // Same coordinate `engine/serialization/build.gradle.kts` uses for its own `runBlocking`.
+    desktopMainImplementation(rootLibs.kotlinx.coroutines.core)
+    // For `FileDocumentStorage()` alone, and the reason is a default argument rather than a use.
+    // `:engine:serialization` holds kotlinx-io as `implementation`, so `kotlinx.io.files.FileSystem`
+    // is not on this module's compile classpath — but it is the type of that constructor's only
+    // parameter, and the Kotlin compiler reads a caller's classpath for the types of the
+    // parameters it may have to fill. Omitting the argument is not enough to make the type
+    // unnecessary; the error is `Cannot access class 'kotlinx.io.files.FileSystem'`, at compile
+    // time, for a call that passes nothing. Same coordinate `:engine:serialization` uses.
+    desktopMainImplementation(rootLibs.kotlinx.io.core)
 }
 
 compose.desktop {
