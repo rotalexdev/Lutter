@@ -314,8 +314,9 @@ private val CASES: List<PlanCase> = listOf(
     PlanCase(
         // The ordering is the subject of this row: children lifted last-first, so the forward
         // result keeps their order and the inverted moves still land at the index each child
-        // held. And the capture is empty, because that is what the applier finds once they
-        // have all left.
+        // held. And the capture's slots are empty, because that is what the applier finds once
+        // they have all left — empty, but still spelled: the key survives because the inverse's
+        // own moves refill it, which is exactly what the row below is about and this one is not.
         name = "unwrap a node and lift its children into its place",
         before = BASE,
         command = Command.UnwrapNode(BETA),
@@ -325,7 +326,7 @@ private val CASES: List<PlanCase> = listOf(
             PatchOp.MoveNode(DELTA, Placement(BETA, CHILDREN, 0), Placement(ROOT, CHILDREN, 1)),
             PatchOp.RemoveSubtree(
                 BETA,
-                RemovedSubtree(ROOT, CHILDREN, 3, listOf(betaNode().copy(slots = emptyMap()))),
+                RemovedSubtree(ROOT, CHILDREN, 3, listOf(betaNode().copy(slots = mapOf(CHILDREN to emptyList())))),
                 slotExisted = true,
             ),
         ),
@@ -357,13 +358,71 @@ private val CASES: List<PlanCase> = listOf(
             PatchOp.MoveNode(DELTA, Placement(BETA, CONTENT, 0), Placement(ROOT, CHILDREN, 0)),
             PatchOp.RemoveSubtree(
                 BETA,
-                RemovedSubtree(ROOT, CHILDREN, 3, listOf(Node(id = BETA, type = COLUMN))),
+                RemovedSubtree(
+                    ROOT,
+                    CHILDREN,
+                    3,
+                    listOf(
+                        Node(
+                            id = BETA,
+                            type = COLUMN,
+                            slots = mapOf(CONTENT to emptyList(), TOP_BAR to emptyList()),
+                        ),
+                    ),
+                ),
                 slotExisted = true,
             ),
         ),
         after = plannerDocument(
             rootChildren = listOf(DELTA, ECHO, HOTEL, GAMMA),
             rows = listOf(gammaNode(), deltaNode(), echoNode(), hotelNode()),
+        ),
+    ),
+    PlanCase(
+        // The shape a thousand generated documents reached and neither row above builds: the
+        // node spells a slot it leaves **empty**, so no inverse move ever names that key and the
+        // capture is the only thing that can carry it. Both rows above refill every key the node
+        // held, which is why a capture of `emptyMap()` passed them — the applier writes
+        // `captured.nodes` back verbatim and an inverse move only ever rewrites the slot it
+        // lands in, so a dropped key is a key the undo does not restore.
+        //
+        // `footer` is the empty one, and `core.Column.footer` is `Many` with no negative filter
+        // to break, so a `Column` spelling it and holding nothing is a legal row rather than a
+        // contrived one. This is the shape that failed at seed 109 of the corpus, where a
+        // document component instance spelled `actions` and had nothing to put in it.
+        name = "unwrap a node that spells a slot it leaves empty",
+        before = plannerDocument(
+            rows = BASE_ROWS - betaNode() +
+                Node(
+                    id = BETA,
+                    type = COLUMN,
+                    slots = mapOf(CHILDREN to listOf(DELTA), FOOTER to emptyList()),
+                ),
+        ),
+        command = Command.UnwrapNode(BETA),
+        ids = ::freshIds,
+        ops = listOf(
+            PatchOp.MoveNode(DELTA, Placement(BETA, CHILDREN, 0), Placement(ROOT, CHILDREN, 1)),
+            PatchOp.RemoveSubtree(
+                BETA,
+                RemovedSubtree(
+                    ROOT,
+                    CHILDREN,
+                    2,
+                    listOf(
+                        Node(
+                            id = BETA,
+                            type = COLUMN,
+                            slots = mapOf(CHILDREN to emptyList(), FOOTER to emptyList()),
+                        ),
+                    ),
+                ),
+                slotExisted = true,
+            ),
+        ),
+        after = plannerDocument(
+            rootChildren = listOf(ALPHA, DELTA, GAMMA, FOXTROT, GOLF),
+            rows = BASE_ROWS - betaNode(),
         ),
     ),
     PlanCase(

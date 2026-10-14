@@ -184,6 +184,13 @@ class RoundTripPropertyTest {
      * that enumerated the twelve types by hand would keep passing over a thirteenth that no
      * generated document ever placed.
      *
+     * **The component-type row is a subset check, and it has to be.** `plan.componentUsage`
+     * counts the `doc.*` instances along with the registered types — its own KDoc says so, and
+     * most documents in this corpus declare a component and place one — so the set it produces
+     * is a strict superset of the registry's on any corpus that does. Equality here would have
+     * been asserting a second claim, "the corpus places nothing the registry does not declare",
+     * which is false for a reason no amount of widening `PROPERTY_SEED_COUNT` would fix.
+     *
      * The node counts are asserted as a *spread* rather than as a number. A corpus whose
      * documents were all the same size would satisfy every coverage claim above and would be
      * testing one document a thousand times; a spread is what makes the count mean anything,
@@ -217,10 +224,19 @@ class RoundTripPropertyTest {
             "nodes $smallest to $largest, ${total / PROPERTY_SEED_COUNT} on average; " +
             "${withInstances} documents carrying a document-component instance"
 
-        assertEquals(
-            propertySchema.components.all().map { it.type }.toSet(),
-            placed,
-            "the corpus never placed one of the registered component types.\n" +
+        // A subset check and not an equality, and the difference is the whole of the assertion:
+        // `GenerationPlan.componentUsage` counts the `doc.*` instances as well as the registered
+        // types, which is what its own KDoc says it does, so a document that declares a
+        // component and places one adds a type no static registry holds. The claim this file
+        // actually makes is that every registered type is reached, and that is what is checked —
+        // the same check `DocumentGeneratorCoverageTest` makes from the other side, off the same
+        // registry rather than off a list written here.
+        val registered: Set<ComponentType> = propertySchema.components.all().map { it.type }.toSet()
+        val neverPlaced: List<ComponentType> = registered.filterNot { it in placed }
+        assertTrue(
+            neverPlaced.isEmpty(),
+            "${neverPlaced.size} registered component type(s) the corpus never placed: " +
+                "${neverPlaced.joinToString(", ")}.\n" +
                 "Widen PROPERTY_SEED_COUNT, or ask why DocumentGenerator cannot reach it.\n" +
                 census,
         )
