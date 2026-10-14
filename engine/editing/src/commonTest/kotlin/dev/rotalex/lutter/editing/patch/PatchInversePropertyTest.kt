@@ -163,7 +163,7 @@ class PatchInversePropertyTest {
             val document = DocumentGenerator(propertySchema, seed).generate().document
             val index = DocumentIndex(document)
             val registry = componentsOf(document)
-            val ids = TestIds(seed)
+            val ids = TestIds(seed.toString())
             val random = Random(seed.toInt())
             documents += 1
 
@@ -264,7 +264,7 @@ class PatchInversePropertyTest {
             val first = DocumentGenerator(propertySchema, seed).generate().document
             val index = DocumentIndex(first)
             val registry = componentsOf(first)
-            val ids = TestIds(seed)
+            val ids = TestIds(seed.toString())
             val random = Random(seed.toInt())
             documents += 1
 
