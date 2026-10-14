@@ -61,10 +61,10 @@ internal sealed class PreviewStatus {
      * explaining that it is working, and the screenshot this module publishes is a picture of
      * the document rather than of the preview.
      */
-    val message: String?
+    abstract val message: String?
 
     /** Whether [message] is a refusal rather than a note about what the preview is doing. */
-    val isFailure: Boolean
+    abstract val isFailure: Boolean
 
     /** A file is being watched and its bytes are the ones on screen. */
     data class Watching(val location: String) : PreviewStatus {
