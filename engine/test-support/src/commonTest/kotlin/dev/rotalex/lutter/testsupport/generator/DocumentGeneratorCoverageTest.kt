@@ -173,7 +173,7 @@ class DocumentGeneratorCoverageTest {
     }
 
     @Test
-    fun `every theme arrangement §14.2 has occurs, and the document agrees with the plan`() {
+    fun `every theme arrangement of section 14 2 occurs, and the document agrees with the plan`() {
         val modes = mutableSetOf<ThemeSelection>()
         val offenders = mutableListOf<String>()
 
