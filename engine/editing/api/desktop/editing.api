@@ -304,6 +304,11 @@ public final class dev/rotalex/lutter/editing/history/Transaction {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/editing/migration/SpecMigrationPass {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/migration/SpecMigrationPass;
+	public final fun plan (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/schema/migration/SpecMigrationRegistry;Ljava/util/Map;)Ldev/rotalex/lutter/editing/patch/Patch;
+}
+
 public final class dev/rotalex/lutter/editing/patch/Patch {
 	public static final field Companion Ldev/rotalex/lutter/editing/patch/Patch$Companion;
 	public fun <init> (Ljava/util/List;)V
@@ -499,6 +504,37 @@ public final synthetic class dev/rotalex/lutter/editing/patch/PatchOp$RemoveSubt
 }
 
 public final class dev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion : dev/rotalex/lutter/editing/patch/PatchOp {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-RCZ7MqM ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/Integer;
+	public final fun component3 ()Ljava/lang/Integer;
+	public final fun copy-4sAO-_g (Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion;
+	public static synthetic fun copy-4sAO-_g$default (Ldev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNew ()Ljava/lang/Integer;
+	public final fun getOld ()Ljava/lang/Integer;
+	public final fun getType-RCZ7MqM ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
