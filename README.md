@@ -362,8 +362,9 @@ depends on a value that only exists at runtime.
 shipped compile classpath is a production type one import away, and it would be invisible in
 review because the edge reads like any other one. So the harness is reachable from a
 `commonTest*` edge and nowhere else, through `ALLOWED_IN_TESTS` rather than `ALLOWED`, and
-`selfTestModuleGraph` proves both halves on every build. `:engine:serialization` is the one
-consumer today.
+`selfTestModuleGraph` proves both halves on every build. `:engine:serialization` and
+`:engine:editing` are the two consumers today — the first for Phase 3's golden JSON, the second
+for PLAN §36.2's property tests over generated documents.
 
 Three module classes, per PLAN §21.1:
 

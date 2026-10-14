@@ -206,16 +206,26 @@ object ModuleGraphRules {
      *    not be main-scope *because* it is the harness, it is test-scope because a test
      *    source set is the only place a harness belongs. A `commonMainImplementation` edge to
      *    it is rejected, and `selfTestModuleGraph` proves it on every build.
-     *  * **Nothing else is here.** One entry, for one consumer. Every module that later
-     *    needs the harness — the conformance fixtures of PLAN §36.2, the codegen goldens, the
-     *    render tests — adds its own line in the commit that needs it, and the map stays a
-     *    list of consumers rather than a second blanket permission.
+     *  * **Only consumers are here.** Every module that needs the harness — the conformance
+     *    fixtures of PLAN §36.2, the codegen goldens, the render tests — adds its own line in
+     *    the commit that needs it, and the map stays a list of consumers rather than a second
+     *    blanket permission.
      */
     val ALLOWED_IN_TESTS: Map<String, Set<String>> = mapOf(
         // Phase 3's acceptance, "golden JSON files identical on every target", needs the
         // canonical writer's output compared against a committed file, and the comparison
         // lives in this module. PLAN §32 lists it as a serialization test.
         ":engine:serialization" to setOf(":engine:test-support"),
+
+        // PLAN §36.2's `apply(patch.inverse(), apply(patch, d)) == d` for all commands over
+        // a thousand generated documents. The input is a generated document and the code under
+        // test is this module's own `CommandPlanner` and `PatchApplier`, so the harness has to
+        // be reachable from *here* rather than from the module that happens to own the
+        // generator. Test scope for the same reason the line above is: a document generator is
+        // a fixture builder, and §36's corpus is fixtures. `ModuleGraphRules` is what keeps
+        // this honest — a `commonMainImplementation` edge from this module to the harness is
+        // still refused, and `selfTestModuleGraph` proves it on every build.
+        ":engine:editing" to setOf(":engine:test-support"),
     )
 
     // ---------------------------------------------------------------------------------------

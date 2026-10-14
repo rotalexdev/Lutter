@@ -20,6 +20,17 @@ dependencies {
     // the schema and nothing else. No `project(...)` is added here without a reason recorded
     // in this file.
 
+    // PLAN §36.2's `apply(patch.inverse(), apply(patch, d)) == d` for all commands over a
+    // thousand generated documents. The documents come from `:engine:test-support`, the
+    // harness §36 calls the keystone of the phase, and the code under test is this module's
+    // own `CommandPlanner` and `PatchApplier` — so the edge has to be declared here and the
+    // harness cannot be reached from `commonMain` without failing `verifyModuleGraph`.
+    // `ModuleGraphRules.ALLOWED_IN_TESTS` carries the second half of that argument, and the
+    // task-graph shape is the same one `:engine:serialization` documents in full: this is
+    // Gradle's `testFixtures` shape, where a module's tests depend on a helper that depends on
+    // the module's main code, and nothing waits for itself.
+    commonTestImplementation(project(":engine:test-support"))
+
     // `DocumentController.state` and `changes` are PLAN §25.2's `StateFlow<DocumentState>` and
     // `SharedFlow<DocumentChange>`, and those are types from kotlinx-coroutines, so the
     // dependency follows the declaration the way every other one above does. `Api` rather than
