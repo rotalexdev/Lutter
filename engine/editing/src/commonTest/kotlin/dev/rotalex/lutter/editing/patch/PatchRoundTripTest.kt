@@ -3,25 +3,36 @@ package dev.rotalex.lutter.editing.patch
 import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
 import dev.rotalex.lutter.model.doc.AppSpec
+import dev.rotalex.lutter.model.doc.ComponentDecl
+import dev.rotalex.lutter.model.doc.DataModelDecl
 import dev.rotalex.lutter.model.doc.DocumentMeta
+import dev.rotalex.lutter.model.doc.EnumEntryDecl
+import dev.rotalex.lutter.model.doc.EnumTypeDecl
+import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.ModifierEntry
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.NodeTable
 import dev.rotalex.lutter.model.doc.Page
+import dev.rotalex.lutter.model.doc.ResourceDecl
+import dev.rotalex.lutter.model.doc.ResourceKind
 import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.doc.ThemeDecl
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.ActionId
+import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.ComponentType
+import dev.rotalex.lutter.model.ids.DataModelId
 import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.ModifierType
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.ResourceId
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.ids.StateId
 import dev.rotalex.lutter.model.ids.ThemeId
+import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
 import kotlin.test.Test
@@ -68,8 +79,8 @@ import kotlin.test.assertTrue
  *
  * Hand-built, for the reason `UiDocumentTest` builds its own rather than using the DSL: an
  * expected document that is derived from the same helpers the base document came from is
- * legible, and a helper with seventeen parameters would not be. Five nodes, two pages, two
- * app-scoped state declarations, and one node in each position a move can start or end at.
+ * legible, and a helper with seventeen parameters would not be. Five nodes, every declaration
+ * container, and one node in each position a move can start or end at.
  */
 class PatchRoundTripTest {
 
@@ -100,15 +111,56 @@ class PatchRoundTripTest {
     /**
      * The table is only worth what it covers, and a row that was forgotten leaves no trace.
      *
-     * Nine distinct op classes is the whole of the set — §26.2's eight plus D30's `PutNodes` —
-     * so anything less than nine means an op nobody round-tripped and the test above passed
-     * anyway.
+     * Ten distinct op classes is the whole of the set — §26.2's eight, plus D30's `PutNodes`
+     * and D31's `SetTheme` — so anything less than ten means an op nobody round-tripped and the
+     * test above passed anyway.
+     *
+     * Counting classes and not ops is deliberate: [PatchOp.PutRecord] is one class with eight
+     * payloads, and a table could satisfy a count of ten while every one of its eight references
+     * went untested. The rows for the two list containers and for the selection are therefore
+     * checked by name as well — see the next test.
      */
     @Test
     fun `the table names every op in the closed set`() {
         val covered = CASES.mapTo(mutableSetOf()) { it.op::class }
 
-        assertEquals(9, covered.size, "the table covers ${covered.size} of the set's nine ops")
+        assertEquals(10, covered.size, "the table covers ${covered.size} of the set's ten ops")
+    }
+
+    /**
+     * Every `RecordRef` variant the table reaches, named rather than counted.
+     *
+     * [RecordRef] is sealed and `PatchApplier.applyPutRecord` switches on it, so a variant with
+     * no row here is a container this table has never written or removed — and the count above
+     * cannot see it, because every one of those ops is a `PutRecord` and they all share a class.
+     *
+     * The list is written out rather than derived from the hierarchy on purpose. A row is the
+     * only thing that proves a container round-trips, and a list derived from the hierarchy would
+     * grow by itself whenever `RecordRef` did — which is the opposite of what this test is for.
+     * [RecordRef.HostFunction] is the variant D31 added, and it is why the table needed more
+     * than the count to change: it is the second list container, so it is the second
+     * implementation of a position protocol.
+     */
+    @Test
+    fun `the table writes every declaration container, including the two lists`() {
+        val covered: Set<RecordRef> = CASES.mapNotNullTo(mutableSetOf<RecordRef>()) { case ->
+            (case.op as? PatchOp.PutRecord)?.ref
+        }
+
+        assertEquals(
+            setOf(
+                RecordRef.Page(DETAIL),
+                RecordRef.Component(CARD_COMPONENT),
+                RecordRef.Theme(BASE_THEME),
+                RecordRef.Resource(LOGO),
+                RecordRef.DataModel(USER),
+                RecordRef.EnumType(ROLE),
+                RecordRef.State(USER_NAME.id, 1),
+                RecordRef.HostFunction(SUBMIT, 0),
+            ),
+            covered,
+            "the table writes only these containers",
+        )
     }
 
     // -----------------------------------------------------------------------------------
@@ -281,6 +333,16 @@ class PatchRoundTripTest {
             "a record op addresses a declaration, not a node",
         )
 
+        // The tenth op names no node at all, and the rule it follows is the one two lines
+        // above rather than a second convention: an op contributes the `NodeId`s it names, and
+        // this one names a field of the document. A sentinel id would put a value in this set
+        // that names nothing a document holds, and every consumer would then have to know which
+        // ids are real.
+        assertTrue(
+            Patch(listOf(PatchOp.SetTheme(BASE_THEME, DARK_THEME))).touchedNodes.isEmpty(),
+            "the theme selection is a field of the document, not a node",
+        )
+
         // `PutNodes` names every row it writes, exactly as `InsertNodes` does, and a removal
         // with no position still names its root.
         assertEquals(
@@ -382,6 +444,33 @@ class PatchRoundTripTest {
             appliedTo(PatchOp.PutRecord(RecordRef.State(StateId("s_count"), 1), null, null))
         }
 
+        // The same three refusals on the second list container, which is a second implementation
+        // of the position protocol and would otherwise be the copy nobody ran.
+        val withFunctions = document(hostFunctions = listOf(SUBMIT_DECL))
+        assertFailsWith<IllegalArgumentException>(message = "a removal one past the end") {
+            appliedTo(PatchOp.PutRecord(RecordRef.HostFunction(SUBMIT, 1), null, null), base = withFunctions)
+        }
+        assertFailsWith<IllegalArgumentException>(message = "a removal at another declaration's position") {
+            appliedTo(
+                PatchOp.PutRecord(RecordRef.HostFunction("refresh", 0), null, null),
+                base = withFunctions,
+            )
+        }
+        assertFailsWith<IllegalArgumentException>(message = "a reference and a record that disagree") {
+            appliedTo(
+                PatchOp.PutRecord(
+                    RecordRef.HostFunction(SUBMIT, 0),
+                    null,
+                    Record.HostFunction(HostFunctionDecl("refresh", emptyList(), TypeRef.Str)),
+                ),
+            )
+        }
+        assertFailsWith<IllegalArgumentException>(message = "a reference and a record of two kinds") {
+            appliedTo(PatchOp.PutRecord(RecordRef.HostFunction(SUBMIT, 0), null, Record.State(COUNT)))
+        }
+
+        // A selection naming a theme the document does not declare is *not* one of these, and
+        // there is a test of its own below rather than an exception here.
         // Writing a row the table already holds, twice over: `NodeTable.with` *replaces*, so
         // neither of these would fail loudly on its own — the first would delete a live node
         // and the second would silently drop a row the op claimed to carry.
@@ -405,8 +494,49 @@ class PatchRoundTripTest {
         }
     }
 
-    /** [op] applied to a fresh base document, for the refusal assertions above. */
-    private fun appliedTo(op: PatchOp): UiDocument = PatchApplier.apply(Patch(listOf(op)), document())
+    /**
+     * A selection naming a theme the document does not declare is applied, not refused.
+     *
+     * **The absence of a check, asserted**, because an absent check is the one thing this file
+     * cannot leave to a comment: every other op in the set is guarded by something, and a
+     * well-meaning "fix" that made this one refuse would look like tightening rather than like a
+     * change of meaning. It would break the ordinary case too — a document that adds a theme and
+     * selects it in one patch — and it would make whether the patch applied depend on the order
+     * the caller chose, which is the one property of a patch this file refuses to give up.
+     *
+     * §14.2 makes the resolution a total function of the id and `themes` together, and §17's
+     * passes are where "this pairing is nonsense" is reported. An applier that reported it would
+     * be a validator, and this object is not one.
+     */
+    @Test
+    fun `a selection naming an undeclared theme is applied rather than refused`() {
+        val before = document(themes = mapOf(BASE_THEME to BASE_THEME_DECL), theme = BASE_THEME)
+        val op = PatchOp.SetTheme(BASE_THEME, ThemeId("t_absent"))
+        val applied = PatchApplier.apply(Patch(listOf(op)), before)
+
+        assertEquals(BASE_THEME, before.theme, "the fixture starts on the theme it declares")
+        assertEquals(ThemeId("t_absent"), applied.theme, "the selection was not applied")
+
+        // And the inverse restores it, which is the reason `old` is on the op at all: an undo of
+        // "I picked a theme this document has not declared" has to put the old selection back
+        // rather than leave the document on the theme the user just rejected.
+        assertEquals(
+            PatchOp.SetTheme(ThemeId("t_absent"), BASE_THEME),
+            Patch(listOf(op)).inverse().ops.single(),
+            "the inverse did not swap the two selections",
+        )
+        assertEquals(before.theme, PatchApplier.apply(Patch(listOf(op)).inverse(), applied).theme)
+    }
+
+    /**
+     * [op] applied to [base], for the refusal assertions above.
+     *
+     * The parameter is `base` rather than `document` because the default has to name the
+     * top-level `document()` fixture, and a parameter called `document` would shadow it — in its
+     * own default expression, of all places, where a reader cannot see which one resolved.
+     */
+    private fun appliedTo(op: PatchOp, base: UiDocument = document()): UiDocument =
+        PatchApplier.apply(Patch(listOf(op)), base)
 }
 
 /**
@@ -524,7 +654,7 @@ private fun detailPage(): Page = Page(id = DETAIL, name = "DetailScreen", route 
 /**
  * The base document, and the only place the table's "before" and "after" states come from.
  *
- * Every defaulted parameter is a field one of the eight ops writes, so a row of the table names
+ * Every defaulted parameter is a field one of the ten ops writes, so a row of the table names
  * the one thing it changes and nothing else has to be repeated. A `null` node removes a row
  * from the table rather than blanking a field, because `RemoveSubtree` is about rows and a row
  * that is present but unreferenced would not be testing the same thing.
@@ -536,6 +666,10 @@ private fun detailPage(): Page = Page(id = DETAIL, name = "DetailScreen", route 
  * the "move between two parents" row silently expressed an expectation the fixture then threw
  * away. A fixture parameter that no row can affect is worse than no parameter, because the row
  * reads as though it said something.
+ *
+ * The declaration containers were added for the same reason in the same order: D31 grew the
+ * hierarchy by a container and a selection, and a table that cannot name them would keep
+ * reporting ten ops covered while three of the arms below were never executed.
  */
 private fun document(
     alpha: Node? = alphaRow(),
@@ -546,8 +680,14 @@ private fun document(
     rootChildren: List<NodeId> = listOf(ALPHA, BETA, GAMMA),
     extra: List<Node> = emptyList(),
     pages: Map<PageId, Page> = mapOf(HOME to homePage()),
-    appState: List<StateDecl> = listOf(COUNT, USER_NAME),
+    components: Map<ComponentDeclId, ComponentDecl> = emptyMap(),
     themes: Map<ThemeId, ThemeDecl> = emptyMap(),
+    theme: ThemeId? = null,
+    resources: Map<ResourceId, ResourceDecl> = emptyMap(),
+    dataModels: Map<DataModelId, DataModelDecl> = emptyMap(),
+    enums: Map<TypeId, EnumTypeDecl> = emptyMap(),
+    appState: List<StateDecl> = listOf(COUNT, USER_NAME),
+    hostFunctions: List<HostFunctionDecl> = emptyList(),
 ): UiDocument {
     var table = NodeTable.EMPTY.with(
         Node(id = ROOT, type = ComponentType("core.Column"), slots = mapOf(CHILDREN to rootChildren)),
@@ -560,14 +700,46 @@ private fun document(
         meta = DocumentMeta("Demo"),
         app = AppSpec("com.example.demo", HOME),
         pages = pages,
-        components = emptyMap(),
+        components = components,
         nodes = table,
         appState = appState,
+        dataModels = dataModels,
+        enums = enums,
+        hostFunctions = hostFunctions,
         themes = themes,
+        theme = theme,
+        resources = resources,
     )
 }
 
 private val BASE_THEME_DECL = ThemeDecl(BASE_THEME, "Base")
+
+/** A second theme, so "select one of two" is a choice and §14.2's single-theme rule is not. */
+private val DARK_THEME_DECL = ThemeDecl(DARK_THEME, "Dark")
+
+private val CARD_COMPONENT = ComponentDeclId("c_card")
+
+/** A component whose body starts at [ROOT], which the table already holds. */
+private val CARD_COMPONENT_DECL = ComponentDecl(
+    id = CARD_COMPONENT,
+    name = "Card",
+    params = emptyList(),
+    slots = emptyList(),
+    root = ROOT,
+)
+
+private val LOGO = ResourceId("r_logo")
+private val LOGO_DECL = ResourceDecl(id = LOGO, name = "Logo", kind = ResourceKind.Image, variants = emptyList())
+
+private val USER = DataModelId("d_user")
+private val USER_DECL = DataModelDecl(id = USER, name = "User")
+
+private val ROLE = TypeId("t_role")
+private val ROLE_DECL = EnumTypeDecl(id = ROLE, name = "Role", entries = listOf(EnumEntryDecl("Admin")))
+
+/** §11.6's unit, as a table row would declare it: a name, no parameters, and a return. */
+private val SUBMIT = "submit"
+private val SUBMIT_DECL = HostFunctionDecl(name = SUBMIT, params = emptyList(), returns = TypeRef.Str)
 
 private val CASES: List<PatchCase> = listOf(
     PatchCase(
@@ -691,5 +863,65 @@ private val CASES: List<PatchCase> = listOf(
         before = document(),
         op = PatchOp.PutRecord(RecordRef.Page(DETAIL), null, Record.Page(detailPage())),
         after = document(pages = mapOf(HOME to homePage(), DETAIL to detailPage())),
+    ),
+    PatchCase(
+        name = "declare a document component",
+        before = document(),
+        op = PatchOp.PutRecord(
+            RecordRef.Component(CARD_COMPONENT),
+            null,
+            Record.Component(CARD_COMPONENT_DECL),
+        ),
+        after = document(components = mapOf(CARD_COMPONENT to CARD_COMPONENT_DECL)),
+    ),
+    PatchCase(
+        name = "declare a resource",
+        before = document(),
+        op = PatchOp.PutRecord(RecordRef.Resource(LOGO), null, Record.Resource(LOGO_DECL)),
+        after = document(resources = mapOf(LOGO to LOGO_DECL)),
+    ),
+    PatchCase(
+        name = "declare a data model",
+        before = document(),
+        op = PatchOp.PutRecord(RecordRef.DataModel(USER), null, Record.DataModel(USER_DECL)),
+        after = document(dataModels = mapOf(USER to USER_DECL)),
+    ),
+    PatchCase(
+        name = "declare an enum type",
+        before = document(),
+        op = PatchOp.PutRecord(RecordRef.EnumType(ROLE), null, Record.EnumType(ROLE_DECL)),
+        after = document(enums = mapOf(ROLE to ROLE_DECL)),
+    ),
+    PatchCase(
+        // D31's second list container. The row exists for the *position* rather than for the
+        // declaration: writing at index 0 over nothing is an append, and its inverse has to
+        // remove index 0 again rather than restore the list by appending.
+        name = "declare a host function at the front of the list",
+        before = document(),
+        op = PatchOp.PutRecord(RecordRef.HostFunction(SUBMIT, 0), null, Record.HostFunction(SUBMIT_DECL)),
+        after = document(hostFunctions = listOf(SUBMIT_DECL)),
+    ),
+    // -----------------------------------------------------------------------------------
+    // D31's tenth op: the document's own pointer at one of its themes
+    // -----------------------------------------------------------------------------------
+
+    PatchCase(
+        // §14.2's rule is a *selection*, so a null on either side is a value rather than an
+        // absence — which is the whole reason this op exists instead of a `PutRecord`. The two
+        // rows are separate rather than one row with both directions because an op with equal
+        // values on both sides is a no-op and would prove nothing.
+        name = "select one of the document's themes",
+        before = document(themes = mapOf(BASE_THEME to BASE_THEME_DECL, DARK_THEME to DARK_THEME_DECL)),
+        op = PatchOp.SetTheme(null, DARK_THEME),
+        after = document(
+            themes = mapOf(BASE_THEME to BASE_THEME_DECL, DARK_THEME to DARK_THEME_DECL),
+            theme = DARK_THEME,
+        ),
+    ),
+    PatchCase(
+        name = "stop selecting a theme",
+        before = document(themes = mapOf(BASE_THEME to BASE_THEME_DECL), theme = BASE_THEME),
+        op = PatchOp.SetTheme(BASE_THEME, null),
+        after = document(themes = mapOf(BASE_THEME to BASE_THEME_DECL)),
     ),
 )

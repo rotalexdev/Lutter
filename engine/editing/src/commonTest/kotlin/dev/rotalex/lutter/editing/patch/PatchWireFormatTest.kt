@@ -2,6 +2,7 @@ package dev.rotalex.lutter.editing.patch
 
 import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
+import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.ModifierEntry
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.Page
@@ -133,13 +134,29 @@ class PatchWireFormatTest {
             "putRecord",
             tagOf<PatchOp>(PatchOp.PutRecord(RecordRef.Theme(ThemeId("t_base")), null, null)),
         )
+        // D31's tenth op, and the one whose fields are both nullable: a null here is §14.2's
+        // selection rather than an absent value, so a serializer that dropped nulls would turn
+        // "stop selecting a theme" into "select nothing was written" and the two would decode to
+        // the same op. The round-trip test below is where that is pinned end to end.
+        assertEquals("setTheme", tagOf<PatchOp>(PatchOp.SetTheme(null, null)))
 
         // The two inner hierarchies are the same argument one level down, and they guard the
         // same failure: a `PutRecord` whose `ref` and whose record disagree about what they are
-        // would decode as a reference to one thing carrying another. These two already named
-        // their hierarchy, which is what the eight above had to be taught to do.
+        // would decode as a reference to one thing carrying another. These already named their
+        // hierarchy, which is what the ten above had to be taught to do. `hostFunction` is the
+        // inner tag D31 added, and it is here because a new container is precisely the moment
+        // the pairing above is most likely to be missed on one side only — a reference that can
+        // be written and a record that cannot is a gap nothing else in this file would notice.
         assertEquals("theme", tagOf<RecordRef>(RecordRef.Theme(ThemeId("t_base"))))
+        assertEquals(
+            "hostFunction",
+            tagOf<RecordRef>(RecordRef.HostFunction("submit", 0)),
+        )
         assertEquals("page", tagOf<Record>(Record.Page(Page(PageId("p_home"), "Home", "/home", root = root))))
+        assertEquals(
+            "hostFunction",
+            tagOf<Record>(Record.HostFunction(HostFunctionDecl("submit", emptyList(), TypeRef.Str))),
+        )
     }
 
     /**
@@ -151,9 +168,9 @@ class PatchWireFormatTest {
      * is serialized. It has none, so the object on the wire is `{"ops":[…]}` and nothing else —
      * asserted as a key list rather than as a substring, so that a *renamed* field fails too.
      *
-     * The nine are the eight of §26.2 plus D30's `PutNodes`, and `PutNodes` is here rather than
-     * in a second test because the count is the assertion: nine ops, nine entries, and a tenth
-     * variant added without this list failing is the failure.
+     * The ten are §26.2's eight, plus D30's `PutNodes` and D31's `SetTheme`, and both of the
+     * latter are here rather than in a second test because the count is the assertion: ten ops,
+     * ten entries, and a variant added without this list failing is the failure.
      */
     @Test
     fun `a patch holding every op round trips and writes only its ops`() {
@@ -179,6 +196,10 @@ class PatchWireFormatTest {
                     Record.State(StateDecl(id = StateId("s_count"), name = "count", type = TypeRef.Str)),
                     null,
                 ),
+                // A selection to something and then to nothing. §14.2 makes that null a value, so
+                // the op is asserted to write two nulls rather than to omit either key — the
+                // same reason the unplaced capture below writes three.
+                PatchOp.SetTheme(ThemeId("t_dark"), null),
             ),
         )
 
@@ -187,7 +208,7 @@ class PatchWireFormatTest {
         val ops = parsed.jsonObject.getValue("ops").jsonArray
 
         assertEquals(listOf("ops"), parsed.jsonObject.keys.toList(), "the patch grew a wire field")
-        assertEquals(9, ops.size)
+        assertEquals(10, ops.size)
         assertEquals(patch, Json.decodeFromString<Patch>(text), "the round trip changed the patch")
 
         // And the two levels of union nesting survive, which is `NodeTest`'s argument applied to
@@ -198,12 +219,21 @@ class PatchWireFormatTest {
         assertEquals("state", putRecord.getValue("ref").jsonObject.tag(), "the reference lost its tag")
         assertEquals("state", putRecord.getValue("old").jsonObject.tag(), "the record lost its tag")
         assertEquals("null", putRecord.getValue("new").jsonPrimitive.content, "an explicit null was dropped")
+
+        // The tenth op, on the wire, with the null that means something spelled as a null rather
+        // than as an absent key. `SetProp` gets the same treatment above and for the same reason;
+        // it is stated again here because a dropped null on *this* op is not a dropped null, it
+        // is a document whose theme selection silently changed meaning.
+        val setTheme = ops[9].jsonObject
+        assertEquals("setTheme", setTheme.tag())
+        assertEquals("t_dark", setTheme.getValue("old").jsonPrimitive.content)
+        assertEquals("null", setTheme.getValue("new").jsonPrimitive.content, "a deselection was dropped")
     }
 
     /**
      * The set really is closed.
      *
-     * A ninth op that some plugin contributed would decode as this one, and §26.2's whole
+     * An op that some plugin contributed would decode as this one, and §26.2's whole
      * argument — that an inverse can be written for every op without a document — rests on
      * knowing the whole list. So the refusal is asserted rather than assumed; it is the same
      * refusal `Value` gets for an unknown tag, and for the same reason.
