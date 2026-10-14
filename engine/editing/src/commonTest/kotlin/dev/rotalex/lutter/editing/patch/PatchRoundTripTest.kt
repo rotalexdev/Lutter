@@ -192,8 +192,12 @@ class PatchRoundTripTest {
     fun `the ops interact on one tree and the inverse undoes them in reverse order`() {
         val before = document()
 
-        val insert = PatchOp.InsertNodes(ROOT, CHILDREN, 0, listOf(falconRow()))
-        val remove = PatchOp.RemoveSubtree(ALPHA, RemovedSubtree(ROOT, CHILDREN, 1, listOf(alphaRow())))
+        val insert = PatchOp.InsertNodes(ROOT, CHILDREN, 0, listOf(falconRow()), slotExisted = true)
+        val remove = PatchOp.RemoveSubtree(
+            ALPHA,
+            RemovedSubtree(ROOT, CHILDREN, 1, listOf(alphaRow())),
+            slotExisted = true,
+        )
         val move = PatchOp.MoveNode(GAMMA, Placement(ROOT, CHILDREN, 2), Placement(ROOT, CHILDREN, 0))
         val patch = Patch(listOf(insert, remove, move))
 
@@ -242,8 +246,8 @@ class PatchRoundTripTest {
         val before = document()
         val patch = Patch(
             listOf(
-                PatchOp.InsertNodes(ROOT, CHILDREN, 0, listOf(falconRow())),
-                PatchOp.RemoveSubtree(ALPHA, RemovedSubtree(ROOT, CHILDREN, 1, listOf(alphaRow()))),
+                PatchOp.InsertNodes(ROOT, CHILDREN, 0, listOf(falconRow()), slotExisted = true),
+                PatchOp.RemoveSubtree(ALPHA, RemovedSubtree(ROOT, CHILDREN, 1, listOf(alphaRow())), slotExisted = true),
                 PatchOp.MoveNode(GAMMA, Placement(ROOT, CHILDREN, 2), Placement(ROOT, CHILDREN, 0)),
             ),
         )
@@ -251,8 +255,8 @@ class PatchRoundTripTest {
 
         val reversed = patch.inverse().ops
         val inPlace = listOf(
-            PatchOp.RemoveSubtree(FALCON, RemovedSubtree(ROOT, CHILDREN, 0, listOf(falconRow()))),
-            PatchOp.InsertNodes(ROOT, CHILDREN, 1, listOf(alphaRow())),
+            PatchOp.RemoveSubtree(FALCON, RemovedSubtree(ROOT, CHILDREN, 0, listOf(falconRow())), slotExisted = true),
+            PatchOp.InsertNodes(ROOT, CHILDREN, 1, listOf(alphaRow()), slotExisted = true),
             PatchOp.MoveNode(GAMMA, Placement(ROOT, CHILDREN, 0), Placement(ROOT, CHILDREN, 2)),
         )
 
@@ -271,8 +275,8 @@ class PatchRoundTripTest {
     fun `the inverse of each op is its own negation and the list is reversed`() {
         val patch = Patch(
             listOf(
-                PatchOp.InsertNodes(ROOT, CHILDREN, 0, listOf(falconRow())),
-                PatchOp.RemoveSubtree(ALPHA, RemovedSubtree(ROOT, CHILDREN, 1, listOf(alphaRow()))),
+                PatchOp.InsertNodes(ROOT, CHILDREN, 0, listOf(falconRow()), slotExisted = true),
+                PatchOp.RemoveSubtree(ALPHA, RemovedSubtree(ROOT, CHILDREN, 1, listOf(alphaRow())), slotExisted = true),
                 PatchOp.MoveNode(GAMMA, Placement(ROOT, CHILDREN, 2), Placement(ROOT, CHILDREN, 0)),
             ),
         )
@@ -282,9 +286,13 @@ class PatchRoundTripTest {
                 // The move swaps its two placements, and nothing else.
                 PatchOp.MoveNode(GAMMA, Placement(ROOT, CHILDREN, 0), Placement(ROOT, CHILDREN, 2)),
                 // The removal becomes an insertion of the captured subtree at the captured index.
-                PatchOp.InsertNodes(ROOT, CHILDREN, 1, listOf(alphaRow())),
+                PatchOp.InsertNodes(ROOT, CHILDREN, 1, listOf(alphaRow()), slotExisted = true),
                 // The insertion becomes a removal whose root is the subtree's first element.
-                PatchOp.RemoveSubtree(FALCON, RemovedSubtree(ROOT, CHILDREN, 0, listOf(falconRow()))),
+                PatchOp.RemoveSubtree(
+                    FALCON,
+                    RemovedSubtree(ROOT, CHILDREN, 0, listOf(falconRow())),
+                    slotExisted = true,
+                ),
             ),
             patch.inverse().ops,
         )
@@ -314,8 +322,8 @@ class PatchRoundTripTest {
     fun `touched nodes are the ids the ops name, in op order`() {
         val patch = Patch(
             listOf(
-                PatchOp.InsertNodes(ROOT, CHILDREN, 0, listOf(falconRow())),
-                PatchOp.RemoveSubtree(ALPHA, RemovedSubtree(ROOT, CHILDREN, 1, listOf(alphaRow()))),
+                PatchOp.InsertNodes(ROOT, CHILDREN, 0, listOf(falconRow()), slotExisted = true),
+                PatchOp.RemoveSubtree(ALPHA, RemovedSubtree(ROOT, CHILDREN, 1, listOf(alphaRow())), slotExisted = true),
                 PatchOp.MoveNode(GAMMA, Placement(ROOT, CHILDREN, 2), Placement(ROOT, CHILDREN, 0)),
             ),
         )
@@ -331,7 +339,7 @@ class PatchRoundTripTest {
         // written into the table and are as new as the root is.
         assertEquals(
             setOf(DELTA, ECHO),
-            Patch(listOf(PatchOp.InsertNodes(ROOT, CHILDREN, 0, listOf(deltaRow(), echoRow()))))
+            Patch(listOf(PatchOp.InsertNodes(ROOT, CHILDREN, 0, listOf(deltaRow(), echoRow()), slotExisted = true)))
                 .touchedNodes,
         )
 
@@ -369,7 +377,11 @@ class PatchRoundTripTest {
         )
         assertEquals(
             setOf(FALCON),
-            Patch(listOf(PatchOp.RemoveSubtree(FALCON, RemovedSubtree.unplaced(listOf(falconRow())))))
+            Patch(
+                listOf(
+                    PatchOp.RemoveSubtree(FALCON, RemovedSubtree.unplaced(listOf(falconRow())), slotExisted = true),
+                ),
+            )
                 .touchedNodes,
         )
     }
@@ -379,60 +391,76 @@ class PatchRoundTripTest {
     // -----------------------------------------------------------------------------------
 
     /**
-     * Undoing an insert into a slot the node did not have comes back to *no slot*, not to an
-     * empty one — and a document that spelled the empty slot comes back without it.
+     * An insert is undone into the spelling the parent used, and which spelling that is belongs
+     * to the op rather than to the applier.
      *
-     * This is `PatchApplier`'s documented canonicalisation, asserted here because a limit that
-     * is only prose is a limit the next reader re-discovers as a bug. See the applier's class
-     * KDoc for why there is no alternative: §26.2 fixes `InsertNodes(parent, slot, index,
-     * nodes)`, so no op can record that the slot key was absent, and the applier has to pick
-     * one spelling of "this slot holds nothing".
+     * Both halves of D33 in one test, because the two halves are what make it work: the same
+     * insertion into `n_c`'s `content` slot, planned against a document that spelled the key and
+     * one that did not, and each undo has to return the document it was planned against.
+     * `Node.slots` is a map with an empty-map default, every reader treats a missing key and an
+     * empty list identically, and no §17 pass reports a difference — so before this field the
+     * two cases could not both hold, and an applier that pruned every emptied slot lost the
+     * second one silently. A thousand generated documents found it at seed 7.
      *
-     * It picks the one that round-trips, because a node whose only child was just deleted is
-     * the common case and it must come back exactly as it was. The price is that
-     * `{"content":[]}` and `{}` converge — they mean the same thing to every reader, and they
-     * differ only in bytes, so the two documents were already interchangeable and now they
-     * *are* interchangeable rather than merely equivalent.
-     *
-     * **This limit is an insertion's and a removal's, and a move's is the mirror of it.** The
-     * applier does not canonicalise a move, because choosing a spelling on one half of a move
-     * and writing one on the other is not an involution; the two move rows above are about
-     * that, and the test below pins where a move's own version of this limit lands.
+     * **The third assertion is why the field is not a default.** The same op carrying the wrong
+     * answer comes back as a document that is not the one it was planned against, and the whole
+     * difference is one key of one row. Whoever plans the insertion is the only thing that met
+     * the document, so that is where the answer is read.
      */
     @Test
-    fun `an emptied slot is dropped from the parent rather than left holding an empty list`() {
+    fun `an insert is undone into the spelling the parent used`() {
         val absent = document()
-        val spelled = document(
-            gamma = Node(id = GAMMA, type = ComponentType("m3.Text"), slots = mapOf(CONTENT to emptyList())),
+        val spelled = document(gamma = spelledEmptyContent())
+        val row = listOf(falconRow())
+
+        val intoAbsent = Patch(listOf(PatchOp.InsertNodes(GAMMA, CONTENT, 0, row, slotExisted = false)))
+        val intoSpelled = Patch(listOf(PatchOp.InsertNodes(GAMMA, CONTENT, 0, row, slotExisted = true)))
+
+        val undoneAbsent = PatchApplier.apply(intoAbsent.inverse(), PatchApplier.apply(intoAbsent, absent))
+        val undoneSpelled = PatchApplier.apply(intoSpelled.inverse(), PatchApplier.apply(intoSpelled, spelled))
+
+        assertEquals(absent, undoneAbsent, "undoing an insert into an absent slot kept the key it created")
+        assertEquals(emptyMap(), undoneAbsent.nodes.require(GAMMA).slots, "an emptied slot key survived")
+        assertEquals(spelled, undoneSpelled, "undoing an insert into a spelled-empty slot dropped the key")
+        assertEquals(
+            mapOf(CONTENT to emptyList<NodeId>()),
+            undoneSpelled.nodes.require(GAMMA).slots,
+            "the slot the document had spelled came back without it",
         )
-        val patch = Patch(listOf(PatchOp.InsertNodes(GAMMA, CONTENT, 0, listOf(falconRow()))))
 
-        // The round trip that §26.2's property requires: the slot was absent, and it is
-        // absent again rather than present-and-empty.
-        val undone = PatchApplier.apply(patch.inverse(), PatchApplier.apply(patch, absent))
+        // The same op against the other spelling, which is what a planner that guessed the flag
+        // produces. The two fixtures differ by one key of one row, so the wrong answer lands in
+        // the *other* document exactly — which is what makes this worth asserting rather than
+        // leaving out: nothing downstream of here can tell the two apart, so the wrong one would
+        // look like a successful undo.
+        val mislabelled = PatchApplier.apply(intoSpelled.inverse(), PatchApplier.apply(intoSpelled, absent))
 
-        assertEquals(absent, undone, "undoing an insert into an absent slot did not restore the document")
-        assertEquals(emptyMap(), undone.nodes.require(GAMMA).slots, "an emptied slot key survived")
-
-        // And the limit, stated as a fact rather than as a hope: the two spellings converge.
-        val undoneSpelled = PatchApplier.apply(patch.inverse(), PatchApplier.apply(patch, spelled))
-
-        assertEquals(absent, undoneSpelled, "the canonicalisation does not converge as documented")
+        assertEquals(
+            spelled,
+            mislabelled,
+            "the right op against the other spelling restores that spelling instead, which is why " +
+                "slotExisted is read from the document rather than defaulted",
+        )
     }
 
     /**
-     * A move's own limit, which is the same absent field seen from the other end, and which the
-     * test above cannot reach because its subject is an insertion.
+     * A move's own limit, which the test above cannot reach because its subject is an insertion,
+     * and which **D33 did not close**.
      *
      * `PatchApplier` canonicalises insertions and removals and deliberately does **not**
      * canonicalise a move — a move writes each slot key back rather than choosing between the
      * two spellings, because choosing on one half and writing on the other is not an
      * involution. That fixes a move into a slot the parent spells, which is what the two move
-     * rows above are about, and it cannot fix a move into a slot the parent **never had**:
-     * §26.2 fixes `MoveNode(id, from, to)`, and none of those three fields can say whether the
-     * destination key was there. So the destination comes back spelled rather than absent.
+     * rows above are about, and it cannot fix a move into a slot the parent **never had**.
      *
-     * **This asserts the limit, and the last assertion makes it a tripwire.** A test that
+     * The missing field is the same one, and the reason it is still missing is a shape rather
+     * than an oversight: `InsertNodes` and `RemoveSubtree` each gained a `slotExisted` because
+     * each is *one* operation with *one* slot, while a move has two and they are each other's
+     * negation, so the field would have to be duplicated onto both halves of a record whose
+     * whole property is that its two placements swap. §4.6's row records the decision as it
+     * stands; nothing here claims the alternative was not available.
+     *
+     * **This asserts the limit, and the last assertion is what keeps it honest.** A test that
      * documents a defect by passing is easy to leave behind after the defect is fixed, so if
      * this ever holds the round trip fails and the message says what to do about it.
      */
@@ -455,9 +483,10 @@ class PatchRoundTripTest {
         )
         assertTrue(
             absent != undone,
-            "a move into an absent slot is the one case §26.2's fields cannot express. If this " +
-                "now holds then PatchApplier has found the missing field, and this test and the " +
-                "limit it names are both out of date.",
+            "a move into an absent slot is still the one case §26.2's fields cannot express: D33 " +
+                "gave the field to the insertion and its removal, and a Placement did not get one. " +
+                "If this now holds then the move has found its missing field, and this test and " +
+                "the limit it names are both out of date.",
         )
     }
 
@@ -477,15 +506,21 @@ class PatchRoundTripTest {
     @Test
     fun `an op that does not fit the document is refused`() {
         assertFailsWith<IllegalArgumentException> {
-            appliedTo(PatchOp.InsertNodes(ROOT, CHILDREN, 9, listOf(falconRow())))
+            appliedTo(PatchOp.InsertNodes(ROOT, CHILDREN, 9, listOf(falconRow()), slotExisted = true))
         }
         assertFailsWith<IllegalArgumentException> {
-            appliedTo(PatchOp.InsertNodes(ROOT, CHILDREN, 0, emptyList()))
+            appliedTo(PatchOp.InsertNodes(ROOT, CHILDREN, 0, emptyList(), slotExisted = true))
         }
 
         // The capture says `n_b` was at index 0. It is at index 1.
         assertFailsWith<IllegalArgumentException> {
-            appliedTo(PatchOp.RemoveSubtree(BETA, RemovedSubtree(ROOT, CHILDREN, 0, listOf(betaRow(emptyList())))))
+            appliedTo(
+                PatchOp.RemoveSubtree(
+                    BETA,
+                    RemovedSubtree(ROOT, CHILDREN, 0, listOf(betaRow(emptyList()))),
+                    slotExisted = true,
+                ),
+            )
         }
 
         // The move says `n_c` is at index 0. It is at index 2.
@@ -841,7 +876,7 @@ private val CASES: List<PatchCase> = listOf(
     PatchCase(
         name = "insert a leaf at the front",
         before = document(),
-        op = PatchOp.InsertNodes(ROOT, CHILDREN, 0, listOf(falconRow())),
+        op = PatchOp.InsertNodes(ROOT, CHILDREN, 0, listOf(falconRow()), slotExisted = true),
         after = document(rootChildren = listOf(FALCON, ALPHA, BETA, GAMMA), extra = listOf(falconRow())),
     ),
     PatchCase(
@@ -856,22 +891,34 @@ private val CASES: List<PatchCase> = listOf(
     PatchCase(
         name = "insert a whole subtree, root first",
         before = document(),
-        op = PatchOp.InsertNodes(ROOT, CHILDREN, 1, listOf(deltaRow(), echoRow())),
+        op = PatchOp.InsertNodes(ROOT, CHILDREN, 1, listOf(deltaRow(), echoRow()), slotExisted = true),
         after = document(
             rootChildren = listOf(ALPHA, DELTA, BETA, GAMMA),
             extra = listOf(deltaRow(), echoRow()),
         ),
     ),
     PatchCase(
+        // D33's two spellings, and this row and the next differ in exactly two things: the
+        // document's `n_c` and the flag. `gammaRow()` has no slots at all, so `content` has to be
+        // *created*, and the inverse has to take the key away again — `slotExisted = false`, which
+        // is what tells `PatchApplier` that an emptied key is one this op made up.
         name = "insert into a slot that does not exist yet",
         before = document(),
-        op = PatchOp.InsertNodes(GAMMA, CONTENT, 0, listOf(falconRow())),
+        op = PatchOp.InsertNodes(GAMMA, CONTENT, 0, listOf(falconRow()), slotExisted = false),
+        after = document(gamma = spelledEmptyContent(listOf(FALCON)), extra = listOf(falconRow())),
+    ),
+    PatchCase(
+        // **The other half of the pair above, and the row D33's seed-7 finding belongs to.**
+        // `spelledEmptyContent()` is `n_c` with a `content` key and nothing in it, so the
+        // insertion lands in a slot that already existed and the inverse has to leave the key
+        // spelled. An applier that pruned every emptied slot answered these two rows identically
+        // and failed this one — and the failure is invisible in `treeOf`'s output and in
+        // `NodeTable.toString()` alike, which is why a generated document had to find it.
+        name = "insert into a slot the parent already spelled empty",
+        before = document(gamma = spelledEmptyContent()),
+        op = PatchOp.InsertNodes(GAMMA, CONTENT, 0, listOf(falconRow()), slotExisted = true),
         after = document(
-            gamma = Node(
-                id = GAMMA,
-                type = ComponentType("m3.Text"),
-                slots = mapOf(CONTENT to listOf(FALCON)),
-            ),
+            gamma = spelledEmptyContent(listOf(FALCON)),
             extra = listOf(falconRow()),
         ),
     ),
@@ -881,13 +928,14 @@ private val CASES: List<PatchCase> = listOf(
         op = PatchOp.RemoveSubtree(
             BETA,
             RemovedSubtree(ROOT, CHILDREN, 1, listOf(betaRow(listOf(LEAF)), leafRow())),
+            slotExisted = true,
         ),
         after = document(beta = null, leaf = null, rootChildren = listOf(ALPHA, GAMMA)),
     ),
     PatchCase(
         name = "remove rows that were in no slot",
         before = document(extra = listOf(falconRow())),
-        op = PatchOp.RemoveSubtree(FALCON, RemovedSubtree.unplaced(listOf(falconRow()))),
+        op = PatchOp.RemoveSubtree(FALCON, RemovedSubtree.unplaced(listOf(falconRow())), slotExisted = true),
         after = document(),
     ),
     PatchCase(

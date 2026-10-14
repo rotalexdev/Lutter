@@ -149,10 +149,11 @@ public object DocumentDiff {
      * position at all, which is exactly why `PatchApplier` checks nothing for it, and the
      * whole of §5.6's new slot list is written in one op.
      *
-     * The second reason is the canonicalisation. `PatchApplier` deletes a slot's key when an
-     * insertion or a removal empties it, so an op-by-op diff of a document that spelled an
-     * empty slot would not reproduce it. Rewriting writes `new`'s row verbatim, so the result
-     * is `new`'s row rather than a slot list this file re-derived — and that is also why the
+     * The second reason is that nothing this file can reach is uniform about slot keys.
+     * `PatchApplier` drops a key only when the op says that op created it — D33's `slotExisted`
+     * — so whether a splice would preserve one document's spelling and lose the other's depends
+     * on ops this file does not build. Rewriting writes `new`'s row verbatim, so the result is
+     * `new`'s row rather than a slot list this file re-derived — and that is also why the
      * per-field ops are skipped for a rewritten row: the row that lands is the whole of it.
      *
      * ### The total function it is and is not
@@ -249,7 +250,8 @@ public object DocumentDiff {
      * check — that the node an op claims at a position is the node actually there — exists
      * because a wrong-order document is invisible to every existence check in the engine.
      * Step 3 below replaces the parent row with `new`'s, and the parent's slot list goes with
-     * it, so there is nothing for this step to get wrong about.
+     * it, so there is nothing for this step to get wrong about. `slotExisted = true` for the
+     * same reason: there is no slot here, so there is no slot key this op can lose.
      */
     private fun removedNodes(old: UiDocument, new: UiDocument): List<PatchOp> {
         val gone: Set<NodeId> = old.nodes.ids().filterNot { it in new.nodes }.toSet()
@@ -261,7 +263,7 @@ public object DocumentDiff {
             if (id !in gone || id in captured) continue
             val rows: List<Node> = subtreeRows(old, id).filter { it.id in gone }
             captured += rows.map { it.id }
-            ops += PatchOp.RemoveSubtree(id, RemovedSubtree.unplaced(rows))
+            ops += PatchOp.RemoveSubtree(id, RemovedSubtree.unplaced(rows), slotExisted = true)
         }
         return ops
     }
@@ -327,6 +329,12 @@ public object DocumentDiff {
      * every other group boundary is free, because the ops in different groups touch disjoint
      * ids, containers and positions. Read as a unit the pair says: this row's content is now
      * that.
+     *
+     * **The whole slot map travels in the replacement row, so D33's question never arises here.**
+     * A diff rewrites the parent rather than splicing one slot of it, which means a move, an
+     * insert and a removal inside one slot are all the same single fact — "`before`'s `slots`
+     * and `after`'s `slots` differ" — and the spelling each side used comes across inside the
+     * two rows. `slotExisted = true` because the removal is unplaced and can lose no key.
      */
     private fun rewrittenRows(old: UiDocument, new: UiDocument): List<PatchOp> {
         val ops: MutableList<PatchOp> = mutableListOf()
@@ -337,7 +345,7 @@ public object DocumentDiff {
             val after: Node = new.nodes.require(id)
             if (before.slots == after.slots) continue
 
-            ops += PatchOp.RemoveSubtree(id, RemovedSubtree.unplaced(listOf(before)))
+            ops += PatchOp.RemoveSubtree(id, RemovedSubtree.unplaced(listOf(before)), slotExisted = true)
             ops += PatchOp.PutNodes(listOf(after))
         }
         return ops

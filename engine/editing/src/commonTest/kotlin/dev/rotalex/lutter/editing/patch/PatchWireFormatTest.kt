@@ -91,11 +91,16 @@ class PatchWireFormatTest {
      */
     @Test
     fun `every op spells its own tag on the wire`() {
-        assertEquals("insertNodes", tagOf<PatchOp>(PatchOp.InsertNodes(root, children, 0, listOf(childRow))))
+        assertEquals(
+            "insertNodes",
+            tagOf<PatchOp>(PatchOp.InsertNodes(root, children, 0, listOf(childRow), slotExisted = true)),
+        )
         assertEquals("putNodes", tagOf<PatchOp>(PatchOp.PutNodes(listOf(childRow))))
         assertEquals(
             "removeSubtree",
-            tagOf<PatchOp>(PatchOp.RemoveSubtree(child, RemovedSubtree(root, children, 0, listOf(childRow)))),
+            tagOf<PatchOp>(
+                PatchOp.RemoveSubtree(child, RemovedSubtree(root, children, 0, listOf(childRow)), slotExisted = true),
+            ),
         )
         assertEquals(
             "moveNode",
@@ -186,9 +191,17 @@ class PatchWireFormatTest {
     fun `a patch holding every op round trips and writes only its ops`() {
         val patch = Patch(
             listOf(
-                PatchOp.InsertNodes(root, children, 0, listOf(childRow)),
+                // D33's field, `false` here and `true` on the removal below. Both
+                // values go through the round trip on purpose: a list that only ever encoded
+                // `true` would leave `false` untested on the wire, and `false` is the value every
+                // undo of an insertion that *created* a slot key depends on.
+                PatchOp.InsertNodes(root, children, 0, listOf(childRow), slotExisted = false),
                 PatchOp.PutNodes(listOf(childRow)),
-                PatchOp.RemoveSubtree(child, RemovedSubtree(root, children, 0, listOf(childRow))),
+                PatchOp.RemoveSubtree(
+                    child,
+                    RemovedSubtree(root, children, 0, listOf(childRow)),
+                    slotExisted = true,
+                ),
                 PatchOp.MoveNode(child, Placement(root, children, 0), Placement(root, content, 0)),
                 PatchOp.SetProp(child, PropertyKey("text"), null, PropertyValue.Const(Value.Str("hello"))),
                 PatchOp.SetModifiers(child, emptyList(), listOf(ModifierEntry(ModifierType("layout.padding")))),
@@ -272,6 +285,24 @@ class PatchWireFormatTest {
             setComponentVersion.keys.toList(),
             "the op's wire keys changed: `type` is the discriminator and may not also be a field",
         )
+
+        // **The same argument for D33's field, which is a *rename* rather than a collision.**
+        // `slotExisted` is the only thing that records which of two spellings of "this slot holds
+        // nothing" the document used, so a stored patch written under a different name decodes
+        // into an op that says nothing at all — and the failure is an undo that leaves a
+        // document nobody can tell is wrong. The list is asserted on both ops that carry it,
+        // because the flag travels from one to the other in the inverse and a field that
+        // existed on only one of them would be the bug this file is for.
+        assertEquals(
+            listOf("type", "parent", "slot", "index", "nodes", "slotExisted"),
+            ops[0].jsonObject.keys.toList(),
+            "insertNodes gained, lost or renamed a field",
+        )
+        assertEquals(
+            listOf("type", "root", "captured", "slotExisted"),
+            ops[2].jsonObject.keys.toList(),
+            "removeSubtree gained, lost or renamed a field",
+        )
     }
 
     /**
@@ -311,11 +342,11 @@ class PatchWireFormatTest {
         assertEquals(RemovedSubtree(null, null, null, listOf(childRow)), unplaced)
 
         val encoded = Json.encodeToString<PatchOp>(
-            PatchOp.RemoveSubtree(child, unplaced),
+            PatchOp.RemoveSubtree(child, unplaced, slotExisted = true),
         )
         val decoded = Json.decodeFromString<PatchOp>(encoded)
 
-        assertEquals(PatchOp.RemoveSubtree(child, unplaced), decoded)
+        assertEquals(PatchOp.RemoveSubtree(child, unplaced, slotExisted = true), decoded)
 
         val captured = Json.parseToJsonElement(encoded).jsonObject.getValue("captured").jsonObject
         assertEquals("null", captured.getValue("parent").jsonPrimitive.content)
@@ -326,8 +357,10 @@ class PatchWireFormatTest {
         val placed = RemovedSubtree(root, children, 0, listOf(childRow))
         assertEquals(Placement(root, children, 0), placed.placement)
         assertEquals(
-            PatchOp.RemoveSubtree(child, placed),
-            Json.decodeFromString<PatchOp>(Json.encodeToString<PatchOp>(PatchOp.RemoveSubtree(child, placed))),
+            PatchOp.RemoveSubtree(child, placed, slotExisted = true),
+            Json.decodeFromString<PatchOp>(
+                Json.encodeToString<PatchOp>(PatchOp.RemoveSubtree(child, placed, slotExisted = true)),
+            ),
         )
     }
 

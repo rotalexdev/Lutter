@@ -136,11 +136,17 @@ internal fun planWrapNode(
         listOf(
             // The wrapper arrives empty and at the position the node held, so the node is at
             // `from.index + 1` by the time the move runs.
+            //
+            // `slotExisted` reads the parent, and it reads `true` for the same reason the
+            // duplicate's does: the node being wrapped is in this slot right now, so the key is.
+            // A wrap never creates a slot key — the wrapper's own empty `content` arrives with
+            // the move, which writes its keys back rather than choosing.
             PatchOp.InsertNodes(
                 parent = from.parentId,
                 slot = from.slot,
                 index = from.index,
                 nodes = listOf(Node(id = wrapperId, type = command.wrapper)),
+                slotExisted = parent.slots.containsKey(from.slot),
             ),
             PatchOp.MoveNode(
                 id = command.id,
@@ -277,6 +283,11 @@ internal fun planUnwrapNode(
                     index = from.index + children.size,
                     nodes = listOf(node.copy(slots = emptyMap())),
                 ),
+                // The node being dissolved is in this slot when the patch runs, so the key was
+                // there before it — and the slot holds the children it is lifting, so it holds
+                // more afterwards. Undoing this removal restores the node rather than deleting a
+                // key, which is the one thing a `false` here would get wrong.
+                slotExisted = true,
             ),
         ),
     )

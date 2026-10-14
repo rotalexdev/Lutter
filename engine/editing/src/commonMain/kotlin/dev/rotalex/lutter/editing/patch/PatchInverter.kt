@@ -22,6 +22,12 @@ package dev.rotalex.lutter.editing.patch
  *    new state and the place it went to, and the two facts about the document it leaves behind
  *    — which nodes, where — are exactly what [PatchOp.RemoveSubtree] needs.
  *
+ *  * [PatchOp.InsertNodes] and [PatchOp.RemoveSubtree] each carry a `slotExisted`, and the two
+ *    arms below move it across without looking at it. It is the hardest case of the same
+ *    property, because the document's answer to it is not a value anywhere: `Node.slots` spells
+ *    an absent key and an empty list identically to every reader, so "was the key there" has to
+ *    be captured at the moment the op met the document or not at all.
+ *
  * So an inverse is a function of the op alone. There is no lookup, no parent index, no
  * "where was this node before", and — the consequence that matters for undo — **no way to
  * compute an inverse against a document that has moved on.** An editor applies a patch, the
@@ -71,26 +77,42 @@ public object PatchInverter {
      */
     private fun inverseOf(op: PatchOp): PatchOp = when (op) {
         // The pair is exact rather than reconstructed: a capture already holds the subtree and
-        // the position in the shape an insertion takes, so the inverse is four fields moved
-        // from one record to the other. The `root` is `nodes.first()` for the same reason
-        // `InsertNodes` has no root field of its own.
+        // the position in the shape an insertion takes, so the inverse is four fields moved from
+        // one record to the other. The `root` is `nodes.first()` for the same reason `InsertNodes`
+        // has no root field of its own, and `slotExisted` moves across unchanged for the same
+        // reason `old` does on `SetProp`: it is a fact about the document *before* the op, and
+        // deciding it here would make an inverse depend on a document that has moved on since —
+        // which is the one thing this file exists to make impossible.
         is PatchOp.InsertNodes -> PatchOp.RemoveSubtree(
             root = op.nodes.first().id,
             captured = RemovedSubtree(op.parent, op.slot, op.index, op.nodes),
+            slotExisted = op.slotExisted,
         )
 
         // The other half of the same pair, with the position it never had. `unplaced` is what
         // makes this a two-line inversion rather than a reconstruction: the rows are the whole
         // capture, and their absence from a slot is the one fact that has to be invented.
+        //
+        // `slotExisted = true` because an unplaced removal touches no slot and so can lose no
+        // slot key — which is what the field says once the capture has no `slot` to be about.
+        // It is never read (see `PatchApplier.applyRemove`, which returns before it does), and
+        // it is not defaulted, because §6.2 writes a patch that fills in its own values out of
+        // the wire format.
         is PatchOp.PutNodes -> PatchOp.RemoveSubtree(
             root = op.nodes.first().id,
             captured = RemovedSubtree.unplaced(op.nodes),
+            slotExisted = true,
         )
 
         // The unplaced arm is not a fallback for a malformed capture. A capture is either
         // placed or unplaced and the two never interleave: `placement` is null unless all
         // three position fields agree, so anything else is an unplaced removal — which is the
         // form D30 added, and the one `PutNodes` above produces.
+        //
+        // `slotExisted` crosses back the way it came. That is the whole of D33's inverse: the
+        // flag says which spelling of "this slot holds nothing" the document had, it is the
+        // insertion's to state and the removal's to act on, and nothing here has to know which
+        // of the two it is.
         is PatchOp.RemoveSubtree -> {
             val from: Placement? = op.captured.placement
             if (from == null) {
@@ -101,6 +123,7 @@ public object PatchInverter {
                     slot = from.slot,
                     index = from.index,
                     nodes = op.captured.nodes,
+                    slotExisted = op.slotExisted,
                 )
             }
         }

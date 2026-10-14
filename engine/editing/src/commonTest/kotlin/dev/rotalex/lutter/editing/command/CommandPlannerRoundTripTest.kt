@@ -177,7 +177,7 @@ private val CASES: List<PlanCase> = listOf(
         before = BASE,
         command = Command.InsertNode(ROOT, CHILDREN, 0, NodeTemplate(listOf(freeText()))),
         ids = ::freshIds,
-        ops = listOf(PatchOp.InsertNodes(ROOT, CHILDREN, 0, listOf(freeText()))),
+        ops = listOf(PatchOp.InsertNodes(ROOT, CHILDREN, 0, listOf(freeText()), slotExisted = true)),
         after = plannerDocument(
             rootChildren = listOf(MINTED_ONE, ALPHA, BETA, GAMMA, FOXTROT, GOLF),
             rows = BASE_ROWS + freeText(),
@@ -188,10 +188,39 @@ private val CASES: List<PlanCase> = listOf(
         before = BASE,
         command = Command.InsertNode(ROOT, CHILDREN, 1, NodeTemplate(listOf(nestNode(), nestLeaf()))),
         ids = ::freshIds,
-        ops = listOf(PatchOp.InsertNodes(ROOT, CHILDREN, 1, listOf(nestNode(), nestLeaf()))),
+        ops = listOf(PatchOp.InsertNodes(ROOT, CHILDREN, 1, listOf(nestNode(), nestLeaf()), slotExisted = true)),
         after = plannerDocument(
             rootChildren = listOf(ALPHA, MINTED_ONE, BETA, GAMMA, FOXTROT, GOLF),
             rows = BASE_ROWS + nestNode() + nestLeaf(),
+        ),
+    ),
+    PlanCase(
+        // **D33's row, and the only one in this table whose `slotExisted` is `false`.** `core.Column`
+        // declares `footer` and this document's root has never spelled it, so the insertion
+        // *creates* the key and undoing it has to take the key away again rather than leave
+        // `{"footer":[]}` behind. The planner reads that out of the parent's slot map rather than
+        // assuming a spelling, which is the one thing this row adds over the insertion rows above
+        // it — and the thing a planner that hard-coded either value would fail here and nowhere
+        // else in this table.
+        name = "insert into a slot the parent declares and has never spelled",
+        before = BASE,
+        command = Command.InsertNode(ROOT, FOOTER, 0, NodeTemplate(listOf(nestNode(), nestLeaf()))),
+        ids = ::freshIds,
+        ops = listOf(
+            PatchOp.InsertNodes(ROOT, FOOTER, 0, listOf(nestNode(), nestLeaf()), slotExisted = false),
+        ),
+        after = plannerDocument(
+            // The root row is rewritten rather than added, which is the case [PlanCase]'s rule is
+            // about: this edit changes that row's own content. `NodeTable.with` replaces, so naming
+            // ROOT in `rows` is how a second spelling of it is expressed at all.
+            rows = BASE_ROWS + Node(
+                id = ROOT,
+                type = COLUMN,
+                slots = mapOf(
+                    CHILDREN to listOf(ALPHA, BETA, GAMMA, FOXTROT, GOLF),
+                    FOOTER to listOf(MINTED_ONE),
+                ),
+            ) + nestNode() + nestLeaf(),
         ),
     ),
     PlanCase(
@@ -203,6 +232,7 @@ private val CASES: List<PlanCase> = listOf(
             PatchOp.RemoveSubtree(
                 BETA,
                 RemovedSubtree(ROOT, CHILDREN, 1, listOf(betaNode(), deltaNode(), echoNode())),
+                slotExisted = true,
             ),
         ),
         after = plannerDocument(
@@ -253,6 +283,7 @@ private val CASES: List<PlanCase> = listOf(
                     Node(id = MINTED_TWO, type = TEXT),
                     Node(id = MINTED_THREE, type = TEXT),
                 ),
+                slotExisted = true,
             ),
         ),
         after = plannerDocument(
@@ -272,7 +303,7 @@ private val CASES: List<PlanCase> = listOf(
         command = Command.WrapNode(GAMMA, CARD, CONTENT),
         ids = ::freshIds,
         ops = listOf(
-            PatchOp.InsertNodes(ROOT, CHILDREN, 2, listOf(Node(id = MINTED_ONE, type = CARD))),
+            PatchOp.InsertNodes(ROOT, CHILDREN, 2, listOf(Node(id = MINTED_ONE, type = CARD)), slotExisted = true),
             PatchOp.MoveNode(GAMMA, Placement(ROOT, CHILDREN, 3), Placement(MINTED_ONE, CONTENT, 0)),
         ),
         after = plannerDocument(
@@ -295,6 +326,7 @@ private val CASES: List<PlanCase> = listOf(
             PatchOp.RemoveSubtree(
                 BETA,
                 RemovedSubtree(ROOT, CHILDREN, 3, listOf(betaNode().copy(slots = emptyMap()))),
+                slotExisted = true,
             ),
         ),
         after = plannerDocument(
@@ -326,6 +358,7 @@ private val CASES: List<PlanCase> = listOf(
             PatchOp.RemoveSubtree(
                 BETA,
                 RemovedSubtree(ROOT, CHILDREN, 3, listOf(Node(id = BETA, type = COLUMN))),
+                slotExisted = true,
             ),
         ),
         after = plannerDocument(

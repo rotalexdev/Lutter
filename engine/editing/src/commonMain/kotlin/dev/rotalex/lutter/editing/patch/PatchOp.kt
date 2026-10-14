@@ -79,7 +79,10 @@ import kotlinx.serialization.json.JsonClassDiscriminator
  *
  * Seven of the twelve have a field literally named `old`; [InsertNodes], [PutNodes] and
  * [RemoveSubtree] carry the whole subtree they wrote or captured instead, which is the same
- * information with a different shape. The consequence is the one §26.2 draws out immediately
+ * information with a different shape; and [InsertNodes] and [RemoveSubtree] each carry a
+ * `slotExisted`, which is the same property asked of a map key rather than of a value — the
+ * only field here that answers a question about a document rather than naming something in one.
+ * The consequence is the one §26.2 draws out immediately
  * after the declaration: **inverting a patch needs no document.** There is no lookup, no index, no
  * "where was this node before", and therefore no way for an inverse to be computed against a
  * document that has moved on since the command ran. `PatchInverter` is the file that spells
@@ -182,6 +185,30 @@ public sealed interface PatchOp {
      * from a subtree that has left the table; an insertion is holding the subtree in the op
      * itself, so its first element *is* its root.
      *
+     * ### [slotExisted] is the field §26.2's four had nowhere to put, and D33 added
+     *
+     * Whether the parent's `slots` map spelled this key **before this op ran** — which is a
+     * different fact from whether the slot holds anything, and the only fact the applier's one
+     * canonicalisation has to choose with. `Node.slots` is a map with an empty-map default, so
+     * `{}` and `{"content":[]}` are both legal spellings of "this node has no content child" and
+     * every reader treats them the same. An undo that picks the wrong one does not produce a
+     * wrong *tree* — it produces a different *document*, which §26.2's property fails on and
+     * nothing else in the engine can see, because the nodes are all still there and every
+     * existence check still passes.
+     *
+     * **D33 settled it by letting the op say which spelling the document used, rather than by
+     * making the applier pick one.** The uniform alternative is the one this file rejects: never
+     * pruning hands back `{"content":[]}` for a slot the parent never had, and a node reached
+     * through no slot at all is what §17.1's structural pass reports as `struct.orphan`. Choosing
+     * which of two spellings a document uses is an operation's job, and the operation is the only
+     * thing that met the document.
+     *
+     * **Read by the removal that undoes this op, never by this one.** An insertion's child list
+     * is never empty — it has just been given [nodes]' first — so which spelling the parent used
+     * cannot change what this op writes. It changes what [PatchApplier] does on the way back,
+     * which is why [RemoveSubtree] carries the same field under the same name: the inverter moves
+     * it rather than deciding it, exactly as it moves a capture rather than rebuilding one.
+     *
      * @throws IllegalArgumentException at apply time, never here: an empty [nodes] list has
      *   no root to place. Construction stays total so a patch can be built and inspected
      *   before anybody has a document to apply it to. [PutNodes] is the exception and says why
@@ -201,6 +228,16 @@ public sealed interface PatchOp {
 
         /** The whole subtree, root first. Never empty. */
         public val nodes: List<Node>,
+
+        /**
+         * Whether the parent's `slots` map held [slot] immediately before this op ran.
+         *
+         * `false` means the key was absent and this op creates it, which is the fact an undo has
+         * to be able to restore: `PatchApplier` prunes an emptied key only when this is `false`.
+         * Decided by whoever plans the op against the document it will run on — never defaulted,
+         * because a default would be the applier choosing a spelling again by another name.
+         */
+        public val slotExisted: Boolean,
     ) : PatchOp
 
     /**
@@ -276,6 +313,24 @@ public sealed interface PatchOp {
      * there, just in the wrong order, which for a `Column` is a different layout rather than a
      * smaller one.
      *
+     * ### [slotExisted] is the same fact [InsertNodes] carries, one step earlier
+     *
+     * Whether the parent's `slots` map held [RemovedSubtree.slot] immediately before this op ran,
+     * read only when [captured] names a position. It is the same claim under the same name
+     * because it is the same claim: both ops exist to change one key of one slot map, and undoing
+     * either has to put that map back exactly as it was, including whether the key was there.
+     *
+     * **A removal this engine plans always says `true`, and provably so.** The applier checks that
+     * the position it names holds [root], which can only succeed against a list holding a node,
+     * which can only come from a key that exists. The one `false` in circulation is the one
+     * [PatchInverter] moves across when it turns an [InsertNodes] that created the key into the
+     * removal that takes it away again — which is the pair the field exists for, and the reason
+     * it is carried rather than assumed by [PatchApplier]: the op that has to prune is this one
+     * and the op that knows is the insertion, and they are two records apart.
+     *
+     * **For the unplaced capture there is no slot, and nothing is read.** [PutNodes]'s inverse
+     * touches no slot and so can lose no slot key, which is what `true` says.
+     *
      * **All three position fields may be `null`**, and all three together, which is the form
      * [PutNodes]'s inverse takes. See [RemovedSubtree] for why absence is spelled as null
      * rather than as a reserved id.
@@ -288,6 +343,15 @@ public sealed interface PatchOp {
 
         /** The removed rows and the position they were lifted from, for the inverse. */
         public val captured: RemovedSubtree,
+
+        /**
+         * Whether the captured slot's key existed immediately before this op ran.
+         *
+         * Read only when [captured] has a placement. `false` is what tells `PatchApplier` that
+         * this removal empties a slot it must then drop the key of — the case that exists only
+         * because the removal is undoing an [InsertNodes] that created the key.
+         */
+        public val slotExisted: Boolean,
     ) : PatchOp
 
     /**
@@ -610,7 +674,11 @@ public data class Placement(
  * first three fields are not a design so much as the observation that its placed inverse,
  * [PatchOp.InsertNodes], takes exactly those three; writing them as two records with the same
  * shape is what lets `PatchInverter` invert a removal with a field copy, and what lets a
- * command capture a subtree once and build either op from it.
+ * command capture a subtree once and build either op from it. **The fourth fact an inversion
+ * needs — whether the slot key was there — is deliberately not here**: it is an answer about
+ * the document the op ran against rather than about the rows, so it sits on
+ * [PatchOp.RemoveSubtree.slotExisted] and [PatchOp.InsertNodes.slotExisted] instead, one on
+ * each of the two ops that have to decide with it.
  *
  * [nodes] follows [PatchOp.InsertNodes]'s convention: the whole subtree, flattened, root
  * first. The root is spelled separately because §26.2's `RemoveSubtree` names it, and because

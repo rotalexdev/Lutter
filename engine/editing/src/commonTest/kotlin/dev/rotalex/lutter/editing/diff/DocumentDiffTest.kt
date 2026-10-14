@@ -749,8 +749,8 @@ private fun afterRows(): List<Node> = listOf(
     columnRow(GAMMA, listOf(GAMMA_CHILD, ADDED_CHILD)),
     Node(id = FOXTROT, type = CARD, slots = mapOf(CONTENT to listOf(HOTEL))),
     // The emptied slot is spelled as an empty list on purpose: a rewrite writes `new`'s row
-    // verbatim, so this is the one case where the applier's "drop an emptied slot key"
-    // canonicalisation does *not* apply, and the round trip depends on that.
+    // verbatim, so no op here is asked whether the key existed, and the round trip depends on
+    // that rather than on the applier having an opinion about it.
     Node(id = GOLF, type = BANNER, slots = mapOf(TOP_BAR to emptyList())),
     textRow(DELTA),
     textRow(HOTEL, modifiers = listOf(PADDING, BACKGROUND)),

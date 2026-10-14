@@ -63,6 +63,16 @@ internal fun planRemoveNode(
 
     val rows: List<Node> = subtreeRows(document, command.id)
     return reasons.result(
-        listOf(PatchOp.RemoveSubtree(command.id, RemovedSubtree(from.parentId, from.slot, from.index, rows))),
+        listOf(
+            PatchOp.RemoveSubtree(
+                root = command.id,
+                captured = RemovedSubtree(from.parentId, from.slot, from.index, rows),
+                // `DocumentIndex.parentOf` found the node *in this slot*, so the list holds it
+                // and the key was there. Removing the last child of a slot keeps the key rather
+                // than pruning it, and that is the difference between this command and the
+                // inverse of an insertion that created the key in the first place.
+                slotExisted = true,
+            ),
+        ),
     )
 }
