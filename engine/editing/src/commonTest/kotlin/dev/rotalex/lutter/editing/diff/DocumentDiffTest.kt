@@ -310,6 +310,13 @@ class DocumentDiffTest {
      * everything else, so `name` and `plugins` are what is left — and a rule that had narrowed
      * to `name` alone would have let a pair disagreeing about which plugins a document was
      * authored against through as a patch that reproduces every other field.
+     *
+     * **`forge.material3` and not a bare `m3`, because `PluginId` validates its own syntax.** A
+     * namespaced id is two or more dotted segments (`IdSyntax.NAMESPACED`) — one segment is "a
+     * simple id wearing a dot" — so a single-segment plugin id throws from its own constructor,
+     * *before* this test's `assertFailsWith` is ever entered, and the failure looks like a broken
+     * assertion rather than a fixture that could not be built. It is the same rule that makes
+     * `ComponentType("m3.Text")` legal and `ComponentType("m3")` not.
      */
     @Test
     fun `a pair that disagrees on meta's identity or on app is refused and names both`() {
@@ -317,7 +324,7 @@ class DocumentDiffTest {
         val diverged = listOf(
             "meta.name" to base.copy(meta = DocumentMeta("Other")),
             "meta.plugins" to base.copy(
-                meta = base.meta.copy(plugins = listOf(PluginRequirement(PluginId("m3"), "1.0"))),
+                meta = base.meta.copy(plugins = listOf(PluginRequirement(PluginId("forge.material3"), "1.0"))),
             ),
             "app" to base.copy(app = AppSpec("com.example.other", HOME)),
         )
@@ -350,6 +357,13 @@ class DocumentDiffTest {
      * All four directions are in the fixture because `componentVersions` is a `Map` and the two
      * nulls are two different claims: an entry that moved, one that was added, one that was
      * dropped, and one that did not move at all.
+     *
+     * **The order is `core.Column`, `m3.Banner`, `m3.Text`, and that is the type's string form
+     * rather than anything about its role.** `BANNER` is `m3.Banner`, not `core.Banner`: the
+     * planner fixtures give it an `m3` namespace like every other Material component, so `c` of
+     * `core` sorts before `m` of `m3` and the column comes first. Writing the expectation from
+     * the fixture's *role* rather than its *value* is how this row got written backwards the
+     * first time, with a comment to match that named a `core.Banner` no fixture declares.
      */
     @Test
     fun `a pair that differs only in componentVersions is one op per entry, in both null directions`() {
@@ -360,9 +374,9 @@ class DocumentDiffTest {
 
         assertEquals(
             listOf(
-                // Ascending by the type's string form: "core.Banner" < "core.Column" < "m3.Text".
-                PatchOp.SetComponentVersion(BANNER, old = null, new = 1),
+                // Ascending by the type's string form: "core.Column" < "m3.Banner" < "m3.Text".
                 PatchOp.SetComponentVersion(COLUMN, old = 1, new = null),
+                PatchOp.SetComponentVersion(BANNER, old = null, new = 1),
                 PatchOp.SetComponentVersion(TEXT, old = 1, new = 2),
             ),
             patch.ops,
@@ -481,10 +495,10 @@ class DocumentDiffTest {
      * The absence assertions are the other half and they are load-bearing too: `InsertNodes` and
      * `MoveNode` are not missing from this file by accident, they are structurally unreachable
      * from a diff, and an assertion is what stops somebody reading "eight of ten ops covered"
-     * as a gap to close. `SetComponentVersion` is the eleventh and it is here for the opposite
+     * as a gap to close. `SetComponentVersion` is the twelfth and it is here for the opposite
      * reason: §19.3's upgrade writes one, so a diff that could not see it would report two
      * documents that are the same tree and a different answer to "what was this written
-     * against".
+     * against" — and the *same tree* is what makes it worth asserting rather than assuming.
      */
     @Test
     fun `the pair exercises every op a diff can emit and every declaration container`() {

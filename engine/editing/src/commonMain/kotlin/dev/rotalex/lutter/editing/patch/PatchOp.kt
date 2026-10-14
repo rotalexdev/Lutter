@@ -549,8 +549,25 @@ public sealed interface PatchOp {
     @Serializable
     @SerialName("setComponentVersion")
     public data class SetComponentVersion(
-        /** Which component's recorded contract version changes. */
-        public val type: ComponentType,
+        /**
+         * Which component's recorded contract version changes.
+         *
+         * **`component`, and not `type`, and the discriminator is the whole reason.**
+         * [PatchOp] pins its `@JsonClassDiscriminator` to `type`, and kotlinx.serialization
+         * **fails schema construction** when a property of a polymorphic variant collides with
+         * that key. `:engine:model` states that rule twice — in
+         * [dev.rotalex.lutter.model.expr.Expr] ("no property may be called `type`") and in
+         * [dev.rotalex.lutter.model.doc.Node], which gets away with a `type` field *only*
+         * because it is not a variant of anything. `Expr.Call` came closest to this same trap
+         * and calls its field `function`; this is the same choice for the same reason.
+         *
+         * The failure is invisible until something encodes: the module compiles, the ABI records
+         * a clean signature, and every applier, inverter and diff test passes because none of
+         * them serializes. The first serializer to touch this variant is where it surfaces, so
+         * the whole cost lands on `PatchWireFormatTest` and on nothing else — which is why the
+         * name is argued here rather than left as a detail somebody would pick again later.
+         */
+        public val component: ComponentType,
 
         /** The version recorded before, or `null` when the map had no entry for it. */
         public val old: Int?,

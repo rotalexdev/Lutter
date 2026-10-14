@@ -253,6 +253,25 @@ class PatchWireFormatTest {
         assertEquals("setComponentVersion", setComponentVersion.tag())
         assertEquals("null", setComponentVersion.getValue("old").jsonPrimitive.content)
         assertEquals("2", setComponentVersion.getValue("new").jsonPrimitive.content)
+
+        // **The key list, and this is the assertion that would have caught the field's name.**
+        // `NoImplicitSerialNameTest` in `:tools:architecture-tests` is a *text* scanner: it can
+        // require the `@SerialName` annotation to be present, and only a test can require that a
+        // **field** name means something. It matters here because the field was once called
+        // `type`, which is this hierarchy's discriminator key, and kotlinx.serialization fails
+        // schema construction when a property of a polymorphic variant collides with it — so the
+        // module compiled, the ABI recorded a clean signature, and every applier, inverter and
+        // diff test passed, because **none of them serializes**. Only this file did.
+        //
+        // The list is asserted rather than a substring, so a *rename* fails too. A field name is a
+        // wire key for exactly the reason a `@SerialName` is: a rename without this repoints every
+        // stored patch at a key nothing reads, and the failure arrives as an unreadable file
+        // rather than as an error a person reads.
+        assertEquals(
+            listOf("type", "component", "old", "new"),
+            setComponentVersion.keys.toList(),
+            "the op's wire keys changed: `type` is the discriminator and may not also be a field",
+        )
     }
 
     /**

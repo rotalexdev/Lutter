@@ -133,8 +133,8 @@ public object PatchInverter {
         // this file to exist as much as it needs the op: a document that has stopped recording
         // a component (`old = 2, new = null`) inverts to one that records it again at v2, which
         // is the only shape that restores "this document was written against m3.Text v2" rather
-        // than leaving the upgrade half-undone. `type` is not swapped because it is the key on
-        // both sides, exactly as it is the address on [PatchOp.SetProp.node].
-        is PatchOp.SetComponentVersion -> PatchOp.SetComponentVersion(op.type, old = op.new, new = op.old)
+        // than leaving the upgrade half-undone. `component` is not swapped because it is the
+        // key on both sides, exactly as it is the address on [PatchOp.SetProp.node].
+        is PatchOp.SetComponentVersion -> PatchOp.SetComponentVersion(op.component, old = op.new, new = op.old)
     }
 }

@@ -531,5 +531,5 @@ private fun describe(op: PatchOp): String = when (op) {
     is PatchOp.SetNodeName -> "${op.node}:setNodeName"
     is PatchOp.PutRecord -> "${op.ref}:putRecord"
     is PatchOp.SetTheme -> "theme:setTheme"
-    is PatchOp.SetComponentVersion -> "${op.type}:setComponentVersion"
+    is PatchOp.SetComponentVersion -> "${op.component}:setComponentVersion"
 }

@@ -111,20 +111,28 @@ class PatchRoundTripTest {
     /**
      * The table is only worth what it covers, and a row that was forgotten leaves no trace.
      *
-     * Ten distinct op classes is the whole of the set — §26.2's eight, plus D30's `PutNodes`
-     * and D31's `SetTheme` — so anything less than ten means an op nobody round-tripped and the
-     * test above passed anyway.
+     * Eleven distinct op classes is the whole of the set — §26.2's eight, plus D30's `PutNodes`,
+     * D31's `SetTheme` and §19.3's `SetComponentVersion` — so anything less than eleven means an
+     * op nobody round-tripped and the test above passed anyway.
+     *
+     * **This count is a floor, not a ceiling, and it did not catch the twelfth op on its own.**
+     * `SetComponentVersion` was added to [PatchOp] with no row here, and this test kept passing:
+     * `covered.size` was still ten, because the table was still covering ten ops — the same ten.
+     * A count answers "is the table as big as the set", never "does the table hold the set", and
+     * those are different questions whenever the new op is one the table has not heard of. The
+     * rows below are the real coverage; this number is the thing that notices when one is
+     * dropped again.
      *
      * Counting classes and not ops is deliberate: [PatchOp.PutRecord] is one class with eight
-     * payloads, and a table could satisfy a count of ten while every one of its eight references
-     * went untested. The rows for the two list containers and for the selection are therefore
-     * checked by name as well — see the next test.
+     * payloads, and a table could satisfy a count of eleven while every one of its eight
+     * references went untested. The rows for the two list containers and for the selection are
+     * therefore checked by name as well — see the next test.
      */
     @Test
     fun `the table names every op in the closed set`() {
         val covered = CASES.mapTo(mutableSetOf()) { it.op::class }
 
-        assertEquals(10, covered.size, "the table covers ${covered.size} of the set's ten ops")
+        assertEquals(11, covered.size, "the table covers ${covered.size} of the set's eleven ops")
     }
 
     /**
@@ -341,6 +349,16 @@ class PatchRoundTripTest {
         assertTrue(
             Patch(listOf(PatchOp.SetTheme(BASE_THEME, DARK_THEME))).touchedNodes.isEmpty(),
             "the theme selection is a field of the document, not a node",
+        )
+
+        // The twelfth op follows the same rule and for the same reason, and stating it here is
+        // what keeps "an op contributes the ids it names" a single rule rather than one rule per
+        // document-level field. It matters more for this one than for `SetTheme`: a §19.3
+        // upgrade patch is node ops *plus* these, so an editor asking "which nodes does this
+        // change reach?" must still get the right answer, and the answer is not "none".
+        assertTrue(
+            Patch(listOf(PatchOp.SetComponentVersion(TEXT_TYPE, old = 1, new = 2))).touchedNodes.isEmpty(),
+            "a recorded contract version is a field of the document, not a node",
         )
 
         // `PutNodes` names every row it writes, exactly as `InsertNodes` does, and a removal
@@ -609,6 +627,9 @@ private val DETAIL = PageId("p_detail")
 private val BASE_THEME = ThemeId("t_base")
 private val DARK_THEME = ThemeId("t_dark")
 
+/** The component the twelfth op's rows move a version for. Named so the rows can say `component`. */
+private val TEXT_TYPE: ComponentType = ComponentType("m3.Text")
+
 private val COUNT = StateDecl(id = StateId("s_count"), name = "count", type = TypeRef.Str)
 private val USER_NAME = StateDecl(id = StateId("s_name"), name = "userName", type = TypeRef.Str)
 
@@ -654,7 +675,7 @@ private fun detailPage(): Page = Page(id = DETAIL, name = "DetailScreen", route 
 /**
  * The base document, and the only place the table's "before" and "after" states come from.
  *
- * Every defaulted parameter is a field one of the ten ops writes, so a row of the table names
+ * Every defaulted parameter is a field one of the eleven ops writes, so a row of the table names
  * the one thing it changes and nothing else has to be repeated. A `null` node removes a row
  * from the table rather than blanking a field, because `RemoveSubtree` is about rows and a row
  * that is present but unreferenced would not be testing the same thing.
@@ -669,7 +690,7 @@ private fun detailPage(): Page = Page(id = DETAIL, name = "DetailScreen", route 
  *
  * The declaration containers were added for the same reason in the same order: D31 grew the
  * hierarchy by a container and a selection, and a table that cannot name them would keep
- * reporting ten ops covered while three of the arms below were never executed.
+ * reporting eleven ops covered while three of the arms below were never executed.
  */
 private fun document(
     alpha: Node? = alphaRow(),
@@ -688,6 +709,7 @@ private fun document(
     enums: Map<TypeId, EnumTypeDecl> = emptyMap(),
     appState: List<StateDecl> = listOf(COUNT, USER_NAME),
     hostFunctions: List<HostFunctionDecl> = emptyList(),
+    componentVersions: Map<ComponentType, Int> = emptyMap(),
 ): UiDocument {
     var table = NodeTable.EMPTY.with(
         Node(id = ROOT, type = ComponentType("core.Column"), slots = mapOf(CHILDREN to rootChildren)),
@@ -697,7 +719,7 @@ private fun document(
     }
 
     return UiDocument(
-        meta = DocumentMeta("Demo"),
+        meta = DocumentMeta("Demo", componentVersions = componentVersions),
         app = AppSpec("com.example.demo", HOME),
         pages = pages,
         components = components,
@@ -923,5 +945,38 @@ private val CASES: List<PatchCase> = listOf(
         before = document(themes = mapOf(BASE_THEME to BASE_THEME_DECL), theme = BASE_THEME),
         op = PatchOp.SetTheme(BASE_THEME, null),
         after = document(themes = mapOf(BASE_THEME to BASE_THEME_DECL)),
+    ),
+    // -----------------------------------------------------------------------------------
+    // §19.3's twelfth op: the document's own record of what it was written against
+    // -----------------------------------------------------------------------------------
+
+    PatchCase(
+        // **The node tree and the declarations are identical on both sides, and that is what
+        // this row is for.** `SetTheme`'s two rows above are the other document-level ops and
+        // they are in the same position: the only thing separating their `before` from their
+        // `after` is one field of `UiDocument` that neither `treeOf` nor `NodeTable.toString()`
+        // prints. `treeOf` emits ids, types and slots; `NodeTable` emits a size. A difference
+        // confined to `meta` is invisible to both, so a failure here prints two identical trees
+        // and a whole-document diff pointing at a field no renderer mentions — the exact shape
+        // of failure this file's KDoc says cost two rounds of review, reached from a third
+        // direction.
+        //
+        // `assertEquals(case.after, applied)` on the whole document is what actually carries
+        // this row, and the `treeOf` assertions on either side are the part that proves the node
+        // table really was untouched rather than merely unreported.
+        name = "record a component's contract version as advanced",
+        before = document(componentVersions = mapOf(TEXT_TYPE to 1)),
+        op = PatchOp.SetComponentVersion(TEXT_TYPE, old = 1, new = 2),
+        after = document(componentVersions = mapOf(TEXT_TYPE to 2)),
+    ),
+    PatchCase(
+        // The other direction, and a separate row for the reason `SetTheme`'s two are: the
+        // `null` here is **the removal of a map entry**, not a version of zero, and the inverse
+        // of that removal has to put the entry back at v2 rather than appending it somewhere
+        // else. A row with both directions in one op would be a no-op and would prove nothing.
+        name = "stop recording a component's contract version",
+        before = document(componentVersions = mapOf(TEXT_TYPE to 2)),
+        op = PatchOp.SetComponentVersion(TEXT_TYPE, old = 2, new = null),
+        after = document(),
     ),
 )

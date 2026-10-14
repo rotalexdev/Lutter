@@ -590,7 +590,7 @@ public object PatchApplier {
 
     /**
      * [PatchOp.SetComponentVersion]: `DocumentMeta.componentVersions` records [PatchOp.SetComponentVersion.new]
-     * for [PatchOp.SetComponentVersion.type].
+     * for [PatchOp.SetComponentVersion.component].
      *
      * **A `copy` all the way down, and nothing checked**, for the same reason [applySetProp]
      * checks nothing: [PatchOp.SetComponentVersion.old] is the inverter's business, and an op is
@@ -608,7 +608,7 @@ public object PatchApplier {
     private fun applySetComponentVersion(op: PatchOp.SetComponentVersion, document: UiDocument): UiDocument {
         val recorded = document.meta.componentVersions
         val replacement: Int? = op.new
-        val updated = if (replacement == null) recorded - op.type else recorded + (op.type to replacement)
+        val updated = if (replacement == null) recorded - op.component else recorded + (op.component to replacement)
         return document.copy(meta = document.meta.copy(componentVersions = updated))
     }
 
