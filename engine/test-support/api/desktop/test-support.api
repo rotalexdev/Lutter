@@ -13,3 +13,96 @@ public abstract interface class dev/rotalex/lutter/testsupport/GoldenSource {
 	public abstract fun read (Ljava/lang/String;)Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/testsupport/generator/DocumentGenerator {
+	public fun <init> (Ldev/rotalex/lutter/schema/SchemaView;J)V
+	public final fun generate ()Ldev/rotalex/lutter/testsupport/generator/GeneratedDocument;
+	public final fun getSeed ()J
+}
+
+public final class dev/rotalex/lutter/testsupport/generator/FilledSlot {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2-RCZ7MqM ()Ljava/lang/String;
+	public final fun component3-P6TfaEA ()Ljava/lang/String;
+	public final fun component4 ()I
+	public final fun copy-8_Ps-z4 (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)Ldev/rotalex/lutter/testsupport/generator/FilledSlot;
+	public static synthetic fun copy-8_Ps-z4$default (Ldev/rotalex/lutter/testsupport/generator/FilledSlot;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)Ldev/rotalex/lutter/testsupport/generator/FilledSlot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getChildren ()I
+	public final fun getNode-qw1I0Vk ()Ljava/lang/String;
+	public final fun getOwner-RCZ7MqM ()Ljava/lang/String;
+	public final fun getSlot-P6TfaEA ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/testsupport/generator/GeneratedDocument {
+	public fun <init> (JLdev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/testsupport/generator/GenerationPlan;)V
+	public final fun getDocument ()Ldev/rotalex/lutter/model/doc/UiDocument;
+	public final fun getPlan ()Ldev/rotalex/lutter/testsupport/generator/GenerationPlan;
+	public final fun getSeed ()J
+}
+
+public final class dev/rotalex/lutter/testsupport/generator/GenerationPlan {
+	public fun <init> (Ljava/util/Map;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/testsupport/generator/ThemeSelection;ILjava/util/List;IILjava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
+	public final fun getActions ()Ljava/util/List;
+	public final fun getBranchedActions ()Ljava/util/List;
+	public final fun getComponentUsage ()Ljava/util/Map;
+	public final fun getComputedProperties ()I
+	public final fun getDeclaredComponents ()Ljava/util/List;
+	public final fun getDerivedStates ()Ljava/util/List;
+	public final fun getFilledSlots ()Ljava/util/List;
+	public final fun getHandlers ()I
+	public final fun getHostCalls ()Ljava/util/List;
+	public final fun getInstantiatedComponents ()Ljava/util/List;
+	public final fun getModifiers ()Ljava/util/List;
+	public final fun getNavigations ()Ljava/util/List;
+	public final fun getSlotShapes ()Ljava/util/List;
+	public final fun getStateDeclarations ()I
+	public final fun getTheme ()Ldev/rotalex/lutter/testsupport/generator/ThemeSelection;
+}
+
+public final class dev/rotalex/lutter/testsupport/generator/GenerationPlanKt {
+	public static final fun describe (Ldev/rotalex/lutter/testsupport/generator/GenerationPlan;)Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/testsupport/generator/GeneratorSchemaKt {
+	public static final field PROBE_EVENT Ljava/lang/String;
+	public static final field PROBE_EVENT_ARG Ljava/lang/String;
+	public static final field PROBE_ICON_SET Ljava/lang/String;
+	public static final fun generatorSchema ()Ldev/rotalex/lutter/schema/Schema;
+	public static final fun getBANNER ()Ljava/lang/String;
+	public static final fun getPROBE ()Ljava/lang/String;
+	public static final fun getPROBE_GRADE ()Ljava/lang/String;
+	public static final fun getPROBE_MODEL ()Ljava/lang/String;
+	public static final fun getSINGLE_PANEL ()Ljava/lang/String;
+	public static final fun getSPACER ()Ljava/lang/String;
+	public static final fun getTEXT ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/testsupport/generator/SlotShape {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/schema/component/Cardinality;Ldev/rotalex/lutter/schema/component/ChildFilter;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-RCZ7MqM ()Ljava/lang/String;
+	public final fun component2-P6TfaEA ()Ljava/lang/String;
+	public final fun component3 ()Ldev/rotalex/lutter/schema/component/Cardinality;
+	public final fun component4 ()Ldev/rotalex/lutter/schema/component/ChildFilter;
+	public final fun copy-LUXRPQ8 (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/schema/component/Cardinality;Ldev/rotalex/lutter/schema/component/ChildFilter;)Ldev/rotalex/lutter/testsupport/generator/SlotShape;
+	public static synthetic fun copy-LUXRPQ8$default (Ldev/rotalex/lutter/testsupport/generator/SlotShape;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/schema/component/Cardinality;Ldev/rotalex/lutter/schema/component/ChildFilter;ILjava/lang/Object;)Ldev/rotalex/lutter/testsupport/generator/SlotShape;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCardinality ()Ldev/rotalex/lutter/schema/component/Cardinality;
+	public final fun getFilter ()Ldev/rotalex/lutter/schema/component/ChildFilter;
+	public final fun getOwner-RCZ7MqM ()Ljava/lang/String;
+	public final fun getSlot-P6TfaEA ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/testsupport/generator/ThemeSelection : java/lang/Enum {
+	public static final field Declared Ldev/rotalex/lutter/testsupport/generator/ThemeSelection;
+	public static final field None Ldev/rotalex/lutter/testsupport/generator/ThemeSelection;
+	public static final field Selected Ldev/rotalex/lutter/testsupport/generator/ThemeSelection;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/testsupport/generator/ThemeSelection;
+	public static fun values ()[Ldev/rotalex/lutter/testsupport/generator/ThemeSelection;
+}
+
