@@ -113,6 +113,14 @@ import kotlin.random.Random
  * document both times, and that is not an accident of how [reset] happens to be written — see
  * the two lines at the top of the method.
  *
+ * The stronger half of that promise is **the only random source this class reads is the one it
+ * constructs from [seed]**. Everything in the stdlib that picks an element for you —
+ * `randomOrNull()`, `random()`, `shuffled()` — reaches `Random.Default` instead, which is seeded
+ * by the platform, and a document that consulted one would still look deterministic to a test
+ * that builds it once or that reuses one generator. `DocumentGeneratorDeterminismTest`'s
+ * isolation case is the test that holds it: it disturbs the platform generator between two builds
+ * of the same seed and requires the documents to be unchanged.
+ *
  * ### The one thing it will not do
  *
  * A node's `type` is written from the registry and from the document's own `doc.*` names, and
@@ -1167,7 +1175,7 @@ public class DocumentGenerator(
             )
         }
 
-        val destination = parameterlessPages.randomOrNull()
+        val destination = drawFrom(parameterlessPages)
         if (destination != null) {
             options += ActionStep(
                 action = NAVIGATE,
@@ -1275,6 +1283,30 @@ public class DocumentGenerator(
 
     /** A half-integer in `0.0..999.5` — D1's four-fractional-digit rule has nothing to round. */
     private fun smallUnit(): Float = random.nextInt(2000) / 2f
+
+    /**
+     * An element of [pool] drawn off this generator's seeded stream, or null when it is empty.
+     *
+     * ### Why this is written out rather than `pool.randomOrNull()`
+     *
+     * Because the stdlib's no-argument `Collection.random()`, `randomOrNull()` and `shuffled()`
+     * read **`kotlin.random.Random.Default`** — the platform's global generator — and not any
+     * source the caller supplies. There are overloads that take a `Random` precisely because the
+     * no-argument ones do not, and a `List.randomOrNull()` reads exactly like one of them at a
+     * call site.
+     *
+     * The cost is invisible in every test that builds one document and invisible in any test that
+     * reuses one generator instance, because `Random.Default` advances in step with both. It shows
+     * up only where §36 wants it: two generators built from the *same* seed, which differ in one
+     * `nav.navigate` step's `page` argument and agree everywhere else, because that was the only
+     * draw in this class not taken from [random].
+     *
+     * Every other collection choice in this file is already an explicit `pool[random.nextInt(...)]`
+     * for the same reason, and this helper is the one place that pattern is named — so the next
+     * reader has one thing to grep for rather than forty call sites to remember.
+     */
+    private fun <T> drawFrom(pool: List<T>): T? =
+        if (pool.isEmpty()) null else pool[random.nextInt(pool.size)]
 
     /** A page the generator decided to declare, before its tree exists. */
     private class PagePlan(

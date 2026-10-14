@@ -55,6 +55,86 @@ internal fun seeds(count: Int): List<Long> = (0L until count.toLong()).toList()
 internal fun encodedBytes(document: UiDocument): ByteArray = JsonDocumentCodec.encode(document)
 
 /**
+ * The first place two documents differ, as an address, or null when they are equal.
+ *
+ * ### Why this exists rather than an `assertEquals` over the documents
+ *
+ * Because `assertEquals` over two `UiDocument`s answers "different" and nothing else. §6.2 makes
+ * `NodeTable.equals` order-independent, `NodeTable.toString()` is `NodeTable(size=13)`, and the
+ * node table is where almost everything a generator varies lives — so a failure prints two
+ * renderings that are byte-identical and the reader has to re-derive the difference by hand.
+ *
+ * That is not hypothetical: this module's first determinism failure was exactly that, and the
+ * report said only "two byte strings differ" over a hundred-line dump of one of them.
+ *
+ * So the walk below is field by field, in the order the reader would think of, and each branch
+ * names its own address: `meta`, `app.startPage`, `pages['p_abc']`, `nodes['n_x'].slots`, and for
+ * a node the two whole rows, because `Node` is a data class and its generated `toString` already
+ * covers all seven fields — a hand-listed renderer would go stale the day a field is added, and
+ * would go stale silently, which is worse than no renderer at all.
+ *
+ * `app.navigation` is the one field never compared. `NavigationSpec` equals by class and keeps
+ * the identity `toString`, so reading it would manufacture a difference that is not there — the
+ * same omission [renderGenerated] documents and that `renderDocument` in `:engine:editing`
+ * documents at greater length.
+ */
+internal fun firstDifference(left: UiDocument, right: UiDocument): String? {
+    if (left.meta != right.meta) return "meta:\n  left  = ${left.meta}\n  right = ${right.meta}"
+    if (left.app.packageName != right.app.packageName) {
+        return "app.packageName:\n  left  = '${left.app.packageName}'" +
+            "\n  right = '${right.app.packageName}'"
+    }
+    if (left.app.startPage != right.app.startPage) {
+        return "app.startPage:\n  left  = '${left.app.startPage}'\n  right = '${right.app.startPage}'"
+    }
+    if (left.appState != right.appState) return "appState:\n  left  = ${left.appState}\n  right = ${right.appState}"
+    if (left.dataModels != right.dataModels) {
+        return "dataModels:\n  left  = ${left.dataModels}\n  right = ${right.dataModels}"
+    }
+    if (left.enums != right.enums) return "enums:\n  left  = ${left.enums}\n  right = ${right.enums}"
+    if (left.hostFunctions != right.hostFunctions) {
+        return "hostFunctions:\n  left  = ${left.hostFunctions}\n  right = ${right.hostFunctions}"
+    }
+    if (left.themes != right.themes) return "themes:\n  left  = ${left.themes}\n  right = ${right.themes}"
+    if (left.theme != right.theme) return "theme:\n  left  = ${left.theme}\n  right = ${right.theme}"
+    if (left.resources != right.resources) {
+        return "resources:\n  left  = ${left.resources}\n  right = ${right.resources}"
+    }
+
+    for (key in left.pages.keys + right.pages.keys) {
+        val found = left.pages[key]
+        val other = right.pages[key]
+        if (found == other) continue
+        return "pages['$key']:\n  left  = $found\n  right = $other"
+    }
+    for (key in left.components.keys + right.components.keys) {
+        val found = left.components[key]
+        val other = right.components[key]
+        if (found == other) continue
+        return "components['$key']:\n  left  = $found\n  right = $other"
+    }
+
+    // Ids before nodes: a missing or extra node is a difference in its own right, and reporting
+    // it as "node 'n_x' is absent from one side" says more than reporting the first node whose
+    // row happens not to line up.
+    val leftIds = left.nodes.ids().toList()
+    val rightIds = right.nodes.ids().toList()
+    if (leftIds != rightIds) {
+        val onlyLeft = leftIds.filterNot { it in rightIds }
+        val onlyRight = rightIds.filterNot { it in leftIds }
+        return "node ids differ:\n  only in left  = $onlyLeft\n  only in right = $onlyRight" +
+            "\n  left order  = $leftIds\n  right order = $rightIds"
+    }
+    for (id in leftIds) {
+        val found = left.nodes[id]
+        val other = right.nodes[id]
+        if (found == other) continue
+        return "nodes['$id']:\n  left  = $found\n  right = $other"
+    }
+    return null
+}
+
+/**
  * The whole document and its plan as text, for a failure message.
  *
  * Rows in ascending id order so two renderings line up for reading, and every field of every row
