@@ -46,6 +46,7 @@ import dev.rotalex.lutter.model.doc.ModifierEntry
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.NodeTable
 import dev.rotalex.lutter.model.doc.Page
+import dev.rotalex.lutter.model.doc.PluginRequirement
 import dev.rotalex.lutter.model.doc.ResourceDecl
 import dev.rotalex.lutter.model.doc.ResourceKind
 import dev.rotalex.lutter.model.doc.StateDecl
@@ -58,6 +59,7 @@ import dev.rotalex.lutter.model.ids.DataModelId
 import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
+import dev.rotalex.lutter.model.ids.PluginId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.ResourceId
 import dev.rotalex.lutter.model.ids.SlotName
@@ -253,6 +255,10 @@ class DocumentDiffTest {
             hostFunctions = listOf(hostFunction(REFRESH), hostFunction(SUBMIT), hostFunction(PING)),
             rootChildren = listOf(ALPHA, BETA, GAMMA, FOXTROT, GOLF),
             rows = beforeRows(),
+            // Reversed for the same reason as the maps above: `componentVersions` is a map, and
+            // a two-entry one built in a different order is the group most likely to be walked
+            // in hash order by something added later.
+            componentVersions = linkedMapOf(COLUMN to 1, TEXT to 1),
         )
         val afterReordered = isolated(
             pages = linkedMapOf(DETAIL to page(DETAIL, DETAIL_ROOT), HOME to page(HOME)),
@@ -266,6 +272,7 @@ class DocumentDiffTest {
             hostFunctions = listOf(hostFunction(SUBMIT), hostFunction(SYNC)),
             rootChildren = listOf(ALPHA, BETA, FOXTROT, GOLF, GAMMA),
             rows = afterRows(),
+            componentVersions = linkedMapOf(TEXT to 2, COLUMN to 2),
         )
 
         assertEquals(BEFORE, beforeReordered, "the two orders did not hold the same content")
@@ -283,31 +290,41 @@ class DocumentDiffTest {
     // -----------------------------------------------------------------------------------
 
     /**
-     * A pair that disagrees on `meta` or on `app` is refused, and the message names both.
+     * A pair that disagrees on `meta`'s identity or on `app` is refused, and the message names
+     * both.
      *
-     * Both fields in every message, deliberately: the refusal is about the *pair* and the two
-     * fields are the two things no op can carry, so a message that named only the field that
-     * happened to differ would send a reader looking for one difference when there are two more
-     * to find. The assertion is on the message rather than on the exception type alone, because a
-     * message that does not say which fields is a message that has to be re-derived from the
-     * source.
+     * Both fields in every message, deliberately: the refusal is about the *pair*, and naming
+     * only the field that happened to differ would send a reader looking for one difference when
+     * there are two more to find. The assertion is on the message rather than on the exception
+     * type alone, because a message that does not say which fields is a message that has to be
+     * re-derived from the source.
      *
      * `app` is compared on its package and start page rather than on the whole [AppSpec]:
      * `NavigationSpec` has `equals(other) = other is NavigationSpec` and a constant `hashCode`,
      * so two documents built by two separate calls are equal while their `toString` differs, and
      * printing one would put an identity hash in the message and a phantom difference in front
      * of whoever reads it.
+     *
+     * **`plugins` is a second `meta` case and not an accident of the fixture.** The refusal is
+     * now `identityOf(old) == identityOf(new)`, which blanks `componentVersions` and compares
+     * everything else, so `name` and `plugins` are what is left — and a rule that had narrowed
+     * to `name` alone would have let a pair disagreeing about which plugins a document was
+     * authored against through as a patch that reproduces every other field.
      */
     @Test
-    fun `a pair that disagrees on meta or app is refused and the message names both`() {
+    fun `a pair that disagrees on meta's identity or on app is refused and names both`() {
+        val base = isolated()
         val diverged = listOf(
-            "meta" to isolated().copy(meta = DocumentMeta("Other")),
-            "app" to isolated().copy(app = AppSpec("com.example.other", HOME)),
+            "meta.name" to base.copy(meta = DocumentMeta("Other")),
+            "meta.plugins" to base.copy(
+                meta = base.meta.copy(plugins = listOf(PluginRequirement(PluginId("m3"), "1.0"))),
+            ),
+            "app" to base.copy(app = AppSpec("com.example.other", HOME)),
         )
 
         for ((field, other) in diverged) {
             val failure = assertFailsWith<IllegalArgumentException>(message = "$field was not refused") {
-                DocumentDiff.compute(isolated(), other)
+                DocumentDiff.compute(base, other)
             }
             val message = failure.message.orEmpty()
 
@@ -317,7 +334,42 @@ class DocumentDiffTest {
 
         // And the pair that agrees is not refused, which is the other half: a refusal that
         // fired on every pair would pass the loop above.
-        assertEquals(Patch(emptyList()), DocumentDiff.compute(isolated(), isolated()))
+        assertEquals(Patch(emptyList()), DocumentDiff.compute(base, base))
+    }
+
+    /**
+     * A pair that differs only in `componentVersions` is no longer refused, and is one op per
+     * moved entry.
+     *
+     * This is the half of D31's rule that §19.3's op narrowed. The record of what a document was
+     * written against is not that document's identity — it is stale the moment a plugin ships —
+     * so a diff that refused to compare it would refuse to describe the difference between a
+     * document and the same document after an upgrade, which is the one pair a collaboration
+     * round trip has to be able to describe.
+     *
+     * All four directions are in the fixture because `componentVersions` is a `Map` and the two
+     * nulls are two different claims: an entry that moved, one that was added, one that was
+     * dropped, and one that did not move at all.
+     */
+    @Test
+    fun `a pair that differs only in componentVersions is one op per entry, in both null directions`() {
+        val before = isolated(componentVersions = mapOf(TEXT to 1, COLUMN to 1))
+        val after = isolated(componentVersions = mapOf(TEXT to 2, BANNER to 1))
+
+        val patch = DocumentDiff.compute(before, after)
+
+        assertEquals(
+            listOf(
+                // Ascending by the type's string form: "core.Banner" < "core.Column" < "m3.Text".
+                PatchOp.SetComponentVersion(BANNER, old = null, new = 1),
+                PatchOp.SetComponentVersion(COLUMN, old = 1, new = null),
+                PatchOp.SetComponentVersion(TEXT, old = 1, new = 2),
+            ),
+            patch.ops,
+            "the recorded versions did not come out as one op per moved entry",
+        )
+        assertSameDocument(after, PatchApplier.apply(patch, before), "the round trip for the record")
+        assertSameDocument(before, PatchApplier.apply(patch.inverse(), after), "and its inverse")
     }
 
     // -----------------------------------------------------------------------------------
@@ -395,6 +447,7 @@ class DocumentDiffTest {
             "rewrites" to ops.indexOfFirst { it is PatchOp.RemoveSubtree && it.root == ROOT },
             "field edits" to ops.indexOfFirst { it is PatchOp.SetProp && it.node == ALPHA },
             "records" to ops.indexOfFirst { it is PatchOp.PutRecord && it.ref is RecordRef.Component },
+            "component versions" to ops.indexOfFirst { it is PatchOp.SetComponentVersion },
             "the theme selection" to ops.indexOfFirst { it is PatchOp.SetTheme },
         )
 
@@ -428,7 +481,10 @@ class DocumentDiffTest {
      * The absence assertions are the other half and they are load-bearing too: `InsertNodes` and
      * `MoveNode` are not missing from this file by accident, they are structurally unreachable
      * from a diff, and an assertion is what stops somebody reading "eight of ten ops covered"
-     * as a gap to close.
+     * as a gap to close. `SetComponentVersion` is the eleventh and it is here for the opposite
+     * reason: §19.3's upgrade writes one, so a diff that could not see it would report two
+     * documents that are the same tree and a different answer to "what was this written
+     * against".
      */
     @Test
     fun `the pair exercises every op a diff can emit and every declaration container`() {
@@ -444,6 +500,7 @@ class DocumentDiffTest {
             PatchOp.SetHandler::class,
             PatchOp.PutRecord::class,
             PatchOp.SetTheme::class,
+            PatchOp.SetComponentVersion::class,
         )) {
             assertTrue(emitted in classes, "the pair never emits a ${emitted.simpleName}")
         }
@@ -523,6 +580,7 @@ private fun isolated(
     hostFunctions: List<HostFunctionDecl> = emptyList(),
     rootChildren: List<NodeId> = listOf(ALPHA, BETA),
     rows: List<Node> = listOf(textRow(ALPHA), textRow(BETA)),
+    componentVersions: Map<ComponentType, Int> = emptyMap(),
 ): UiDocument {
     var table: NodeTable = NodeTable.EMPTY.with(
         Node(id = ROOT, type = COLUMN, slots = mapOf(CHILDREN to rootChildren)),
@@ -532,7 +590,7 @@ private fun isolated(
     }
 
     return UiDocument(
-        meta = DocumentMeta("Demo"),
+        meta = DocumentMeta("Demo", componentVersions = componentVersions),
         app = AppSpec("com.example.demo", HOME),
         pages = pages,
         components = components,
@@ -704,6 +762,10 @@ private val BEFORE: UiDocument = isolated(
     hostFunctions = listOf(hostFunction(REFRESH), hostFunction(SUBMIT), hostFunction(PING)),
     rootChildren = listOf(ALPHA, BETA, GAMMA, FOXTROT, GOLF),
     rows = beforeRows(),
+    // The one pair of documents in this file that differ on `meta`, and they differ on exactly
+    // the one field of it a `PatchOp` can edit — which is what §19.3's upgrade produces and what
+    // `SpecMigrationPassTest` pins the patch for.
+    componentVersions = mapOf(TEXT to 1, COLUMN to 1),
 )
 
 private val AFTER: UiDocument = isolated(
@@ -718,6 +780,7 @@ private val AFTER: UiDocument = isolated(
     hostFunctions = listOf(hostFunction(SUBMIT), hostFunction(SYNC)),
     rootChildren = listOf(ALPHA, BETA, FOXTROT, GOLF, GAMMA),
     rows = afterRows(),
+    componentVersions = mapOf(COLUMN to 2, TEXT to 2),
 )
 
 /** The reparent pair, named once because two tests and the table below all need it. */

@@ -139,6 +139,15 @@ class PatchWireFormatTest {
         // "stop selecting a theme" into "select nothing was written" and the two would decode to
         // the same op. The round-trip test below is where that is pinned end to end.
         assertEquals("setTheme", tagOf<PatchOp>(PatchOp.SetTheme(null, null)))
+        // The twelfth op, and the second in this file whose nullable pair means something rather
+        // than nothing: a `null` here is "this document never recorded that component", which is
+        // a real shape with §5.5's empty-map default behind it, not a version of zero. A
+        // serializer that dropped nulls would turn "the upgrade stopped recording m3.Text" into
+        // "the upgrade recorded nothing" and the two would decode to the same op.
+        assertEquals(
+            "setComponentVersion",
+            tagOf<PatchOp>(PatchOp.SetComponentVersion(ComponentType("m3.Text"), null, null)),
+        )
 
         // The two inner hierarchies are the same argument one level down, and they guard the
         // same failure: a `PutRecord` whose `ref` and whose record disagree about what they are
@@ -168,9 +177,10 @@ class PatchWireFormatTest {
      * is serialized. It has none, so the object on the wire is `{"ops":[…]}` and nothing else —
      * asserted as a key list rather than as a substring, so that a *renamed* field fails too.
      *
-     * The ten are §26.2's eight, plus D30's `PutNodes` and D31's `SetTheme`, and both of the
-     * latter are here rather than in a second test because the count is the assertion: ten ops,
-     * ten entries, and a variant added without this list failing is the failure.
+     * The eleven are §26.2's eight, plus D30's `PutNodes`, D31's `SetTheme` and §19.3's
+     * `SetComponentVersion`, and all three of the latter are here rather than in a second test
+     * because the count is the assertion: eleven ops, eleven entries, and a variant added
+     * without this list failing is the failure.
      */
     @Test
     fun `a patch holding every op round trips and writes only its ops`() {
@@ -200,6 +210,11 @@ class PatchWireFormatTest {
                 // the op is asserted to write two nulls rather than to omit either key — the
                 // same reason the unplaced capture below writes three.
                 PatchOp.SetTheme(ThemeId("t_dark"), null),
+                // A component the document never recorded, moved to a version it now claims to
+                // be written against. The same nullable pair as `SetTheme` and the same reason:
+                // a dropped null on this op is not a dropped null, it is a document whose
+                // recorded contract versions changed meaning.
+                PatchOp.SetComponentVersion(ComponentType("m3.Text"), null, 2),
             ),
         )
 
@@ -208,7 +223,7 @@ class PatchWireFormatTest {
         val ops = parsed.jsonObject.getValue("ops").jsonArray
 
         assertEquals(listOf("ops"), parsed.jsonObject.keys.toList(), "the patch grew a wire field")
-        assertEquals(10, ops.size)
+        assertEquals(11, ops.size)
         assertEquals(patch, Json.decodeFromString<Patch>(text), "the round trip changed the patch")
 
         // And the two levels of union nesting survive, which is `NodeTest`'s argument applied to
@@ -228,6 +243,16 @@ class PatchWireFormatTest {
         assertEquals("setTheme", setTheme.tag())
         assertEquals("t_dark", setTheme.getValue("old").jsonPrimitive.content)
         assertEquals("null", setTheme.getValue("new").jsonPrimitive.content, "a deselection was dropped")
+
+        // The eleventh op, on the wire, with the null that means "never recorded" spelled as a
+        // null rather than as an absent key. This is the one case in the file where a dropped
+        // null is *silently* lossy in a way a reader could not see: `old = null, new = 2` and
+        // `old = 2, new = null` are the two halves of an upgrade and its undo, and a serializer
+        // that dropped both nulls would decode either into an op with no sides at all.
+        val setComponentVersion = ops[10].jsonObject
+        assertEquals("setComponentVersion", setComponentVersion.tag())
+        assertEquals("null", setComponentVersion.getValue("old").jsonPrimitive.content)
+        assertEquals("2", setComponentVersion.getValue("new").jsonPrimitive.content)
     }
 
     /**

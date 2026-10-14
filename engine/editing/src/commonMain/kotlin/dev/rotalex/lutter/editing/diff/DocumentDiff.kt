@@ -6,6 +6,7 @@ import dev.rotalex.lutter.editing.patch.Record
 import dev.rotalex.lutter.editing.patch.RecordRef
 import dev.rotalex.lutter.editing.patch.RemovedSubtree
 import dev.rotalex.lutter.editing.template.subtreeRows
+import dev.rotalex.lutter.model.doc.DocumentMeta
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.NodeId
@@ -30,20 +31,32 @@ import dev.rotalex.lutter.model.ids.StateId
  * user-facing summary gets the same answer the engine gets, because there is no second
  * comparison anywhere.
  *
- * ### The two fields this refuses, and why refusing is better than approximating
+ * ### The fields this refuses, and why refusing is better than approximating
  *
- * **[UiDocument.meta] and [UiDocument.app] have no op, so a pair that disagrees on either is
- * refused.** §26.2 gives them none and `PatchOp`'s KDoc gives the reason: they are fixed for
- * the life of a document — its package and the page it opens on — so a difference between them
- * is not an edit and not a patch. [compute] throws rather than emitting a patch that reproduces
- * every other field and quietly leaves these two behind, because a caller that received such a
- * patch would apply it, see no error, and hold a document that is neither side. The failure this
- * replaces is the one `PatchApplier`'s guards exist for, in the one place nothing downstream can
- * catch it: nothing in the engine compares a document's identity, and §17's passes walk nodes.
+ * **[UiDocument.meta]'s identity and [UiDocument.app] have no op, so a pair that disagrees on
+ * either is refused.** §26.2 gives them none and `PatchOp`'s KDoc gives the reason: they are
+ * fixed for the life of a document — its name, its plugin requirements, its package and the page
+ * it opens on — so a difference between them is not an edit and not a patch. [compute] throws
+ * rather than emitting a patch that reproduces every other field and quietly leaves these two
+ * behind, because a caller that received such a patch would apply it, see no error, and hold a
+ * document that is neither side. The failure this replaces is the one `PatchApplier`'s guards
+ * exist for, in the one place nothing downstream can catch it: nothing in the engine compares a
+ * document's identity, and §17's passes walk nodes.
  *
  * The alternative — assuming them equal, as this file did before D31 — is not a smaller promise.
  * It is a *silent* one: the patch looks complete and is not, and the difference it dropped is the
  * difference between two different applications.
+ *
+ * **`DocumentMeta.componentVersions` is the one field of `meta` this file no longer refuses,
+ * because an op for it exists.** [PatchOp.SetComponentVersion] is the twelfth op, added with
+ * §19.3's migration pass, and D31's blanket rule could not survive it — not because the rule was
+ * wrong but because it was stated wider than its own reasoning. It was reasoned from *"a
+ * document's identity is fixed for its life"*, which is true of `name` and of `plugins` and is
+ * **not** true of a record of what the document was written against: that record is stale the
+ * moment a plugin ships, and §19.3 moves it in the same patch that moves the nodes it describes.
+ * So [compute] compares `meta` with that one field blanked, and diffs it as a group of its own.
+ * **The refusal is narrowed, not weakened**: a pair that disagrees on anything else about `meta`
+ * is still refused, and the message still names both fields.
  *
  * ### What is now covered that was not, and what still is not
  *
@@ -56,10 +69,12 @@ import dev.rotalex.lutter.model.ids.StateId
  *
  * **What is left is a kept row whose [dev.rotalex.lutter.model.doc.Node.type] changed.** There is
  * no op for it, `PatchApplier` has no branch for it, and so this file says nothing: the row comes
- * back with the type it had. That is a real gap and `PatchOp`'s KDoc names it as the eleventh op
- * rather than as something to work around here — a component type *is* edited, by pasting from a
- * palette, and a diff that quietly kept the old type would report a document that is neither
- * side. It is stated here so that a caller knows which pairs the identity below does not hold for.
+ * back with the type it had. That is a real gap and `PatchOp`'s KDoc names it as the op that
+ * would close it rather than as something to work around here — a component type *is* edited, by
+ * pasting from a palette, and a diff that quietly kept the old type would report a document that
+ * is neither side. §19.3 did not close it and did not need to: a component contract migration
+ * rewrites the *body* of a node of that type, never its type. It is stated here so that a caller
+ * knows which pairs the identity below does not hold for.
  *
  * ### Determinism
  *
@@ -78,9 +93,9 @@ public object DocumentDiff {
      * ### The ordering rule, which is the part a caller has to know
      *
      * A patch is a list because the ops can see each other's effects, so the order below is
-     * not a presentation choice — every one of these six groups relies on the ones before it
-     * having run. The rule is **removals, then additions, then structural rewrites, then field
-     * edits, then records, then the theme selection**:
+     * not a presentation choice — every one of these groups relies on the ones before it having
+     * run. The rule is **removals, then additions, then structural rewrites, then field edits,
+     * then records, then the component versions, then the theme selection**:
      *
      *  1. **Removals.** Every row [old] holds and [new] does not, as one unplaced
      *     `RemoveSubtree` per maximal gone subtree, ascending by id. Unplaced on purpose: the
@@ -106,10 +121,17 @@ public object DocumentDiff {
      *     `SetModifiers`, then `SetHandler` per key in ascending key order.
      *  5. **Records.** The six maps in a fixed order, then `appState` and `hostFunctions`,
      *     whose own two-phase order is described on [listOps].
-     *  6. **The theme selection**, last and unconditionally within its group. Its position is
-     *     the only free one in the rule, and it is free for a reason worth stating: the op
-     *     addresses one field of the document, names no node, no position and no declaration
-     *     container, and no other group's validity can depend on it. It goes last because its
+     *  6. **The component versions**, ascending by type. The boundary between this group and
+     *     the next is the one place in the rule where nothing forces a choice — an op that moves
+     *     a number in `DocumentMeta.componentVersions` touches nothing a [PatchOp.SetTheme] reads,
+     *     and nothing a `SetTheme` writes can affect it — so the group sits here because the
+     *     theme selection was already last and keeping it there leaves [compute]'s documented
+     *     claim ("the theme selection is emitted last") true rather than editing it a second
+     *     time. Read it as a tie broken for stability, not as a dependency.
+     *  7. **The theme selection**, last and unconditionally within its group. Its position is
+     *     free for a reason worth stating: the op addresses one field of the document, names no
+     *     node, no position and no declaration container, and no other group's validity can
+     *     depend on it. It goes last because its
      *     subject is a declaration, and a patch that adds the theme and then selects it never
      *     passes through a document whose selection names something it does not hold. The
      *     reverse pairing cannot be had — a document that *removes* the theme it had selected
@@ -135,12 +157,13 @@ public object DocumentDiff {
      *
      * ### The total function it is and is not
      *
-     * On a pair of documents that agree on `meta` and `app`, the identity above holds: every
-     * row of the result is `new`'s row, every declaration of the result is `new`'s declaration,
-     * the selection is `new`'s selection, and the two refused fields are equal by assumption.
-     * The one exception the class KDoc names is a kept row whose `type` changed, for which no
-     * op exists; everything else is produced by an op, which is what makes the claim checkable
-     * one row at a time.
+     * On a pair of documents that agree on `app` and on everything in `meta` except
+     * `componentVersions`, the identity above holds: every row of the result is `new`'s row,
+     * every declaration of the result is `new`'s declaration, the selection is `new`'s selection,
+     * the recorded versions are `new`'s recorded versions, and the two refused fields are equal
+     * by assumption. The one exception the class KDoc names is a kept row whose `type` changed,
+     * for which no op exists; everything else is produced by an op, which is what makes the claim
+     * checkable one row at a time.
      *
      * ### What it assumes about the documents themselves
      *
@@ -153,17 +176,20 @@ public object DocumentDiff {
      * @param new the document it produces.
      * @return the ops, in the order above; an empty list when the two documents are equal,
      *   which is a legal patch and not a degenerate one.
-     * @throws IllegalArgumentException if [old] and [new] disagree on [UiDocument.meta] or
-     *   [UiDocument.app], which no op can carry. The patch would otherwise be a description of
-     *   a third document, and this is a property of the *pair* rather than of one op, which is
-     *   why it is the only refusal here and why it is an `IllegalArgumentException` rather than
-     *   the `IllegalStateException` [dev.rotalex.lutter.model.doc.NodeTable.require] throws for
-     *   a row that is not in the table.
+     * @throws IllegalArgumentException if [old] and [new] disagree on [UiDocument.app], or on
+     *   any field of [UiDocument.meta] other than `componentVersions`, because no op can carry
+     *   those. The patch would otherwise be a description of a third document, and this is a
+     *   property of the *pair* rather than of one op, which is why it is the only refusal here
+     *   and why it is an `IllegalArgumentException` rather than the `IllegalStateException`
+     *   [dev.rotalex.lutter.model.doc.NodeTable.require] throws for a row that is not in the
+     *   table.
      */
     public fun compute(old: UiDocument, new: UiDocument): Patch {
-        require(old.meta == new.meta && old.app == new.app) {
-            "a diff needs UiDocument.meta and UiDocument.app to be equal, because no PatchOp " +
-                "edits either: meta is ${old.meta} against ${new.meta}, and app is " +
+        require(identityOf(old) == identityOf(new) && old.app == new.app) {
+            "a diff needs UiDocument.meta's identity and UiDocument.app to be equal, because no " +
+                "PatchOp edits either — componentVersions is the one field of meta a PatchOp does " +
+                "edit, so it is compared separately: meta is ${identityOf(old)} against " +
+                "${identityOf(new)}, and app is " +
                 "'${old.app.packageName}'/'${old.app.startPage}' against " +
                 "'${new.app.packageName}'/'${new.app.startPage}'"
         }
@@ -175,10 +201,25 @@ public object DocumentDiff {
         ops += rewrittenRows(old, new)
         ops += editedFields(old, new)
         ops += recordOps(old, new)
+        ops += componentVersionOps(old, new)
         ops += themeOps(old, new)
 
         return Patch(ops)
     }
+
+    /**
+     * [document]'s `meta` with `componentVersions` blanked out: the part of it a diff refuses
+     * to compare because a difference in it is not an edit.
+     *
+     * **A `copy` rather than two comparisons of `name` and `plugins`**, because the rule is
+     * about *which fields* are editable and a field-by-field spelling of it is one more place to
+     * forget to update when a field is added. `DocumentMeta` is a data class, so blanking one
+     * field and comparing is the whole of "compare everything else", and the message at
+     * [compute] prints the blanked form — which is what makes the refusal readable: it names the
+     * two records as they would have to be equal, with the one movable field already gone.
+     */
+    private fun identityOf(document: UiDocument): DocumentMeta =
+        document.meta.copy(componentVersions = emptyMap())
 
     // -----------------------------------------------------------------------------------
     // The node table
@@ -501,6 +542,37 @@ public object DocumentDiff {
                 record(removed),
                 null,
             )
+        }
+        return ops
+    }
+
+    /**
+     * The [PatchOp.SetComponentVersion]s that turn one recorded version map into another.
+     *
+     * Written like [mapOps] and for the same reason: one op per key that differs, ascending by
+     * the type's string form, so that "which components moved" is a single readable list and
+     * two engines walk a pair in the same order. `null` on one side is an entry added or dropped,
+     * which is how the two are told apart without a flag and what
+     * [dev.rotalex.lutter.editing.patch.PatchApplier]'s `null` arm already means.
+     *
+     * **This is the group §19.3's migration patch is read against.** The pass does not use this
+     * file — it builds its ops from the registry's steps, one node at a time, and that is the
+     * more reviewable shape for an upgrade because each step's contribution is legible on its
+     * own. What this group buys is the other direction: two documents where one has been
+     * upgraded diff to a patch that says *only* what the upgrade changed to the record, which is
+     * the question "did this document get migrated, and what did the engine think about it?"
+     * and the one a collaboration round trip has to be able to answer.
+     */
+    private fun componentVersionOps(old: UiDocument, new: UiDocument): List<PatchOp> {
+        val before = old.meta.componentVersions
+        val after = new.meta.componentVersions
+        val ops: MutableList<PatchOp> = mutableListOf()
+
+        for (type in (before.keys + after.keys).sortedBy { it.value }) {
+            val previous = before[type]
+            val replacement = after[type]
+            if (previous == replacement) continue
+            ops += PatchOp.SetComponentVersion(type, previous, replacement)
         }
         return ops
     }

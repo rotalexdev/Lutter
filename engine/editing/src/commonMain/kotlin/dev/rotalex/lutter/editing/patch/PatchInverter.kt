@@ -10,7 +10,8 @@ package dev.rotalex.lutter.editing.patch
  * the state it is about to replace.
  *
  *  * [PatchOp.SetProp], [PatchOp.SetModifiers], [PatchOp.SetHandler],
- *    [PatchOp.SetNodeName] and [PatchOp.SetTheme] have a field named `old`.
+ *    [PatchOp.SetNodeName], [PatchOp.SetTheme] and [PatchOp.SetComponentVersion] have a field
+ *    named `old`.
  *  * [PatchOp.PutRecord] has one too, and it is a whole declaration.
  *  * [PatchOp.MoveNode] has [PatchOp.MoveNode.from], and the two placements are each other's
  *    negation.
@@ -127,5 +128,13 @@ public object PatchInverter {
         // re-application: `SetTheme(t_dark, null)` — the user dropping their theme — would
         // become `SetTheme(null, null)` and leave the document exactly as wrong as it was.
         is PatchOp.SetTheme -> PatchOp.SetTheme(old = op.new, new = op.old)
+
+        // The same swap over the same nullable pair, and the reason §19.3's undo story needs
+        // this file to exist as much as it needs the op: a document that has stopped recording
+        // a component (`old = 2, new = null`) inverts to one that records it again at v2, which
+        // is the only shape that restores "this document was written against m3.Text v2" rather
+        // than leaving the upgrade half-undone. `type` is not swapped because it is the key on
+        // both sides, exactly as it is the address on [PatchOp.SetProp.node].
+        is PatchOp.SetComponentVersion -> PatchOp.SetComponentVersion(op.type, old = op.new, new = op.old)
     }
 }

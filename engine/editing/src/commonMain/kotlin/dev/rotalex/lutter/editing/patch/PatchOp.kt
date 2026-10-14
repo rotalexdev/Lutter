@@ -24,6 +24,7 @@ import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.doc.ThemeDecl
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.ComponentDeclId
+import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.DataModelId
 import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.NodeId
@@ -42,12 +43,18 @@ import kotlinx.serialization.json.JsonClassDiscriminator
  * The closed vocabulary of edits a command may produce, and the whole of it.
  *
  * PLAN §26.2 declares eight, and this file declares those eight with the plan's names and the
- * plan's field names, in the plan's order, plus the ninth that D30 added and the tenth that D31
- * added. Nothing else is added, because every addition here is paid for twice: `PatchApplier`
- * grows a branch and `PatchInverter` grows a branch, and an op that only one of the two
- * remembered is a patch whose inverse is silently wrong.
+ * plan's field names, in the plan's order, plus the ninth that D30 added, the tenth that D31
+ * added and the twelfth that §19.3's migration pass added. Nothing else is added, because
+ * every addition here is paid for twice: `PatchApplier` grows a branch and `PatchInverter`
+ * grows a branch, and an op that only one of the two remembered is a patch whose inverse is
+ * silently wrong.
  *
- * ### Why these ten, and what the set is for
+ * **The eleventh is still missing and is still [PatchOp]'s to lose.** D31 left the gap that a
+ * kept row's component type has no op, and [SetComponentVersion] arrived at twelve rather than
+ * filling it — see that op's KDoc, which says why §19.3's need and `Node.type`'s are two
+ * different holes and why the one that was filled is the one that was smaller.
+ *
+ * ### Why these twelve, and what the set is for
  *
  * They are not "every change the engine can make". They are the changes §26.1 chose for a
  * command to produce — *"Command → forward/inverse Patch"*, chosen over a snapshot per step
@@ -70,7 +77,7 @@ import kotlinx.serialization.json.JsonClassDiscriminator
  *
  * ### Every op carries its own `old`, and that is the property being bought
  *
- * Six of the ten have a field literally named `old`; [InsertNodes], [PutNodes] and
+ * Seven of the twelve have a field literally named `old`; [InsertNodes], [PutNodes] and
  * [RemoveSubtree] carry the whole subtree they wrote or captured instead, which is the same
  * information with a different shape. The consequence is the one §26.2 draws out immediately
  * after the declaration: **inverting a patch needs no document.** There is no lookup, no index, no
@@ -117,19 +124,29 @@ import kotlinx.serialization.json.JsonClassDiscriminator
  * D31 closed three of the four gaps the first nine carried. What is left is worth as much
  * prose as what was closed, because a caller has to know which set they are in.
  *
- *  * **`UiDocument.meta` and `UiDocument.app` have no op, and that is the design rather than
- *    an omission.** They are a document's identity and its [dev.rotalex.lutter.model.doc.AppSpec],
- *    fixed for the life of the document: there is no edit that changes a document's package or
- *    the page it opens on, and a patch that could express one would describe a document that is
- *    not the one that was edited. A diff refuses a pair that disagrees on them rather than
- *    emitting a patch that reproduces every other field and leaves these two behind — see
+ *  * **`UiDocument.meta`'s identity and `UiDocument.app` have no op, and that is the design
+ *    rather than an omission.** They are a document's identity and its
+ *    [dev.rotalex.lutter.model.doc.AppSpec], fixed for the life of the document: there is no
+ *    edit that changes a document's name, its plugin requirements, its package or the page it
+ *    opens on, and a patch that could express one would describe a document that is not the one
+ *    that was edited. A diff refuses a pair that disagrees on them rather than emitting a patch
+ *    that reproduces every other field and leaves these two behind — see
  *    [dev.rotalex.lutter.editing.diff.DocumentDiff.compute].
+ *  * **`DocumentMeta.componentVersions` is the one field of `meta` that moves, and
+ *    [SetComponentVersion] is why the bullet above is narrower than "no op edits `meta`".** The
+ *    distinction is not cosmetic: a document's *name* is what it is, and a document's
+ *    *recorded contract versions* are what an older engine believes it was written against —
+ *    a record that is stale by definition the moment a plugin ships, and that §19.3 requires to
+ *    move in the same patch that moves the nodes it describes. One is identity and one is a
+ *    note about identity, and conflating them is what would have made §19.3 unimplementable.
  *  * **`Node.type` has no op.** A row's component type is not one of the four per-field ops
  *    and is not addressed by any reference in this file, so a diff that meets two documents
  *    whose rows differ only in type has nothing to say. The same argument as `meta` and `app`
  *    does not apply — a component type *is* edited, by pasting from a palette — and so the
- *    refusal is the honest answer for now and the eleventh op is the real one. See
- *    [dev.rotalex.lutter.editing.diff.DocumentDiff.compute].
+ *    refusal is the honest answer for now and the op that fixes it is the real answer. It is
+ *    still unwritten, and §19.3 did not need it: a component contract migration rewrites the
+ *    *body* of a node of that type, and §19.1's "type changes" is a column's `TypeRef` rather
+ *    than `Node.type`. See [dev.rotalex.lutter.editing.diff.DocumentDiff.compute].
  *  * **Page- and component-scoped state is not addressed by [RecordRef.State].** §12.1 puts
  *    state at three scopes and two of them live *inside* a `Page` or a `ComponentDecl`, so
  *    changing one is a `PutRecord` of the record that owns the list. See that type's KDoc.
@@ -488,6 +505,58 @@ public sealed interface PatchOp {
 
         /** The selection after, or `null` to fall back to §14.2's rule. */
         public val new: ThemeId?,
+    ) : PatchOp
+
+    /**
+     * One entry of `DocumentMeta.componentVersions` set or cleared.
+     *
+     * The twelfth op, and the one that narrows what this file used to say about `meta` — from
+     * *no op edits it* to *no op edits its identity*. See the class KDoc's second bullet for
+     * the distinction this rests on: a document's **name** is its identity and is fixed for its
+     * life, while its **recorded contract versions** are a note about what it was written
+     * against, which is stale the moment a plugin ships.
+     *
+     * ### Why §19.3 could not have been done without it
+     *
+     * §19.3 says the migration pass produces a patch so that the upgrade *"can be undone by the
+     * editor as a single 'upgrade' transaction"*. A pass that rewrote the nodes and left
+     * `componentVersions` where it found them would satisfy the first half of that sentence and
+     * break the second in a way nothing reports: undo would restore every node's old shape while
+     * the document still claimed to be written against the new contract, so the next load would
+     * skip the migration and render a document whose rows speak two versions of the same
+     * component. **The record and the nodes it describes are one edit or the undo is a lie.**
+     *
+     * And it cannot be waved through as a smaller deal than `Node.type`'s op. That one rewrites
+     * the content of a row an editor changed on purpose; this one rewrites a number no user ever
+     * typed, and there is exactly one caller for it. The asymmetry is why §19.3's need was filled
+     * and `Node.type`'s is still open.
+     *
+     * ### The shape is [SetProp]'s, one entry at a time
+     *
+     * One [dev.rotalex.lutter.model.ids.ComponentType] and one nullable `Int` on each side, which
+     * is [SetProp] over `Node.props` rather than [SetTheme] over the selection. The reason is
+     * that this field is a **map**: `DocumentMeta.componentVersions` is
+     * `Map<ComponentType, Int>`, an absent key and a key holding `null` are different facts, and
+     * `old = null` therefore means "this component was not recorded at all" — which is a real
+     * shape a real document has, since §5.5 gives the field an empty-map default — rather than a
+     * version of zero.
+     *
+     * **A patch that sets the same version on both sides is legal and is a no-op**, exactly as
+     * [SetProp] with equal values is. Nothing here validates that the version names a released
+     * component: §19.1 makes the versions the component author's business, and a patch that
+     * refuses one would be refusing to describe a document rather than describing it.
+     */
+    @Serializable
+    @SerialName("setComponentVersion")
+    public data class SetComponentVersion(
+        /** Which component's recorded contract version changes. */
+        public val type: ComponentType,
+
+        /** The version recorded before, or `null` when the map had no entry for it. */
+        public val old: Int?,
+
+        /** The version recorded after, or `null` to drop the entry. */
+        public val new: Int?,
     ) : PatchOp
 }
 
