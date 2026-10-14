@@ -67,13 +67,13 @@ internal sealed class PreviewStatus {
     abstract val isFailure: Boolean
 
     /** A file is being watched and its bytes are the ones on screen. */
-    data class Watching(val location: String) : PreviewStatus {
+    data class Watching(val location: String) : PreviewStatus() {
         override val message: String? = null
         override val isFailure: Boolean = false
     }
 
     /** Nothing on disk was named, so the copy bundled in the jar is what is on screen. */
-    data object Bundled : PreviewStatus {
+    data object Bundled : PreviewStatus() {
         override val message: String =
             "Showing the document bundled in the jar: no file is being watched. " +
                 "Pass one to watch it: LutterPreview <document.json>"
@@ -85,13 +85,13 @@ internal sealed class PreviewStatus {
      *
      * Not a refusal: nothing was read, so there is nothing wrong with what *was* on disk.
      */
-    data class Unreadable(val location: String, val reason: String) : PreviewStatus {
+    data class Unreadable(val location: String, val reason: String) : PreviewStatus() {
         override val message: String = "Cannot read '$location': $reason"
         override val isFailure: Boolean = true
     }
 
     /** The bytes on disk are not a document this engine renders. The last one stays on screen. */
-    data class Rejected(val reason: String) : PreviewStatus {
+    data class Rejected(val reason: String) : PreviewStatus() {
         override val message: String = "The document on disk was refused: $reason"
         override val isFailure: Boolean = true
     }
