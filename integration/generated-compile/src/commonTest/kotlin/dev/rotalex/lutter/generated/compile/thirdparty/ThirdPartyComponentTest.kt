@@ -302,11 +302,15 @@ class ThirdPartyComponentTest {
             }
             page(name = "Home", route = "home", id = HOME) {
                 node("core.Column") {
-                    node("doc.c_strip") { prop("label", Value.Str("x")) }
-                    node(StatusBadgeSpec.TYPE) {
+                    // Both children go into `children`, in that order, because the assertion below
+                    // reads the second position and because an unslotted node is an orphan — the
+                    // same reason the shared fixture writes its `slot` call explicitly.
+                    val strip: NodeId = node("doc.c_strip") { prop("label", Value.Str("x")) }
+                    val badgeNode: NodeId = node(StatusBadgeSpec.TYPE) {
                         prop("label", Value.Str("Inbox"))
                         prop("unread", Value.Int32(3))
                     }
+                    slot(CHILDREN, listOf(strip, badgeNode))
                 }
             }
         }
@@ -540,7 +544,14 @@ class ThirdPartyComponentTest {
     ): UiDocument = buildDocument("ThirdPartyBadge") {
         page(name = "Home", route = "home", id = HOME) {
             node("core.Column") {
-                node(StatusBadgeSpec.TYPE) {
+                // The `slot` call is what puts the badge in the tree. `PageScope.node` records a
+                // top-level node and `NodeScope.node` returns an id; neither links one, and
+                // `StructuralPass.checkOrphans` walks from the page root through slot edges only.
+                // A badge no slot names is in the table and in no tree, which every row that
+                // analyzes this document then reads as `struct.orphan` and nothing else — pass 1
+                // is blocking, so passes 3 to 7 never run and the check each row is about is
+                // never reached.
+                val badgeNode: NodeId = node(StatusBadgeSpec.TYPE) {
                     for ((key, value) in badgeProps) prop(key, value)
                     if (badgeModifiers) {
                         modifier("layout.padding", mapOf(PADDING to PropertyValue.Const(Value.Dp(8f))))
@@ -554,6 +565,7 @@ class ThirdPartyComponentTest {
                         )
                     }
                 }
+                slot(CHILDREN, listOf(badgeNode))
             }
         }
     }

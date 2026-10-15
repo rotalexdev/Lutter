@@ -16,8 +16,10 @@ import dev.rotalex.lutter.interpreter.env.Navigator
 import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.dsl.buildDocument
+import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.ParamName
+import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.type.TokenKind
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.runtime.RuntimeEnvironment
@@ -122,7 +124,10 @@ class ThirdPartyRenderTest {
     ): UiDocument = buildDocument("ThirdPartyBadge") {
         page(name = "Home", route = "home", id = HOME) {
             node("core.Column") {
-                node(StatusBadgeSpec.TYPE) {
+                // `slot` is what links the badge to the tree: an id nothing slots is an orphan,
+                // and `resolve` below refuses a document carrying one. Same fixture as
+                // `ThirdPartyComponentTest`, so the same shape.
+                val badgeNode: NodeId = node(StatusBadgeSpec.TYPE) {
                     prop("label", Value.Str("Inbox"))
                     prop(
                         "accent",
@@ -137,6 +142,7 @@ class ThirdPartyRenderTest {
                         slot("content", listOf(node("m3.Text") { prop("text", Value.Str("body")) }))
                     }
                 }
+                slot(CHILDREN, listOf(badgeNode))
             }
         }
     }
@@ -199,6 +205,7 @@ class ThirdPartyRenderTest {
 
     private companion object {
         val HOME: PageId = PageId("p_home")
+        val CHILDREN: SlotName = SlotName("children")
     }
 }
 
