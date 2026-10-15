@@ -1,9 +1,13 @@
 package dev.rotalex.lutter.testsupport.generator
 
 import dev.rotalex.lutter.analysis.Analyzer
+import dev.rotalex.lutter.builtins.SlotOutletSpec
 import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.Severity
+import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.ModifierType
+import dev.rotalex.lutter.model.ids.SlotName
+import dev.rotalex.lutter.model.value.Value
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -153,6 +157,49 @@ class DocumentGeneratorValidityTest {
         assertTrue(
             failures.isEmpty(),
             "${failures.size} root(s) carrying a modifier with no enclosing scope to read through.\n" +
+                failures.joinToString("\n\n"),
+        )
+    }
+
+    /**
+     * Every outlet writes a name codegen can turn into a slot.
+     *
+     * Analysis cannot see this: `SlotOutletSpec.slot` is a `TypeRef.Str`, so `gen-19134` is a
+     * legal string to every pass and only codegen's `SlotName(named.v)` refuses it. Asserting
+     * that construction rather than restating `IdSyntax`, which is `internal` to `:engine:model`
+     * and could drift. That the name resolves to a slot the declaration actually has is NOT
+     * asserted: nothing in the corpus can break it, and a row claiming it would claim more than
+     * it proves.
+     */
+    @Test
+    fun `a slot outlet writes a name codegen can turn into a slot`() {
+        val outlet = SlotOutletSpec.spec.type
+        val slotKey = SlotOutletSpec.slot.key
+        val failures = mutableListOf<String>()
+        var checked = 0
+
+        for (seed in seeds(VALIDITY_SEED_COUNT)) {
+            val document = generatedDocument(seed).document
+            for (id in document.nodes.ids()) {
+                val node = document.nodes.require(id)
+                if (node.type != outlet) continue
+                checked += 1
+                val written = node.props[slotKey]
+                val named = ((written as? PropertyValue.Const)?.value as? Value.Str)?.v
+                if (named != null && runCatching { SlotName(named) }.isSuccess) continue
+                failures += "seed $seed: node $id carries slot $written"
+                if (failures.size >= REPORT_LIMIT) break
+            }
+            if (failures.size >= REPORT_LIMIT) break
+        }
+
+        assertTrue(
+            checked > 0,
+            "no generated document placed a slot outlet, so the row above it had nothing to check",
+        )
+        assertTrue(
+            failures.isEmpty(),
+            "${failures.size} slot outlet(s) name a slot codegen cannot spell.\n" +
                 failures.joinToString("\n\n"),
         )
     }
