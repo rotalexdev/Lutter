@@ -79,7 +79,7 @@ private const val MIN_REPEATS: Int = 20
 private const val MAX_REPEATS: Int = 200
 
 /** The system property naming the mode. */
-private const val MODE_PROPERTY: String = "forge.benchmark"
+private const val MODE_PROPERTY: String = "forge.benchmark"  // a system property, not a PropertyKey
 
 /** What `-Dforge.benchmark=` asked for. */
 private enum class Mode { Off, Measure, Record, Assert }

@@ -132,8 +132,10 @@ internal class BenchmarkWorkload(composed: ComposedDocument) {
      * the node exists and nothing else — the key is not consulted against the component's spec,
      * because §25.3 names two policies and both of them are about slots.
      *
-     * The key is namespaced, `forge.benchmark`, and it is **not** a property any registered
-     * component declares. Re-analysing the edited document would therefore report it as
+     * The key is `benchmarkTouched`, and it is **not** a property any registered component
+     * declares. It cannot be namespaced: `PropertyKey` validates against a **simple** grammar,
+     * `^[A-Za-z0-9_]{1,64}$`, so a dot in it is a construction failure rather than an
+     * undeclared property. Re-analysing the edited document would therefore report it as
      * `prop.unknown`, and nothing here re-analyses, so that finding is never produced. A
      * benchmark editing a *real* property would take a different planner path — one that
      * consults the spec — so the cheaper path is what is timed, and saying so is worth more
@@ -141,7 +143,7 @@ internal class BenchmarkWorkload(composed: ComposedDocument) {
      */
     val edit: Command = Command.SetProperty(
         node = document.nodes.ids().first(),
-        key = PropertyKey("forge.benchmark"),
+        key = PropertyKey("benchmarkTouched"),
         value = PropertyValue.Const(Value.Str("touched")),
     )
 }
