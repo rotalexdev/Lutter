@@ -1090,20 +1090,52 @@ public class DocumentGenerator(
     /**
      * One modifier's arguments.
      *
-     * Only required parameters are guaranteed, and that is the whole of what
-     * `SchemaPass.checkModifierArgs` insists on beyond the keys being declared. The optional
-     * ones — `layout.padding`'s three shapes — are drawn or not independently, which is what
-     * makes all four of its `EmitCase` arms reachable, including the one where `all` wins.
+     * A spec declaring `emit.cases` draws its arguments from one case rather than independently:
+     * `KotlinGenerator.emitModifier` takes the first case whose `whenPresent` is a subset of the
+     * keys written, so drawing each optional argument on its own reaches every arm and also
+     * reaches the one set no arm covers — the empty entry, whenever no optional is drawn and none
+     * is required — which is `codegen.strategy_unsupported`. Writing a case's own keys keeps every
+     * arm reachable and makes the match true by construction rather than by luck.
+     *
+     * The rejected alternative is keeping the independent draw and special-casing the empty set:
+     * it repairs one symptom and leaves the correspondence between the draw and the spec implicit,
+     * for the next case-bearing spec to break.
+     *
+     * A spec with no cases is unchanged: an unconditional call takes whatever optional arguments
+     * are drawn, and codegen's `emit.cases.isEmpty()` branch reads every key it is given.
      */
     private fun buildArgs(spec: ModifierSpec): Map<PropertyKey, PropertyValue> {
         val args = linkedMapOf<PropertyKey, PropertyValue>()
+        val cases = spec.emit.cases
+
+        if (cases.isEmpty()) {
+            for (param in spec.params) {
+                if (!param.required && random.nextInt(100) >= OPTIONAL_ARGUMENT_PERCENT) continue
+                val value = constantFor(param.type, NO_SCOPE)
+                // An optional argument with no value is left out; a required one cannot be, and
+                // the entry it left behind would be `prop.required_missing`.
+                if (value == null && param.required) unwritable(spec, param)
+                if (value != null) args[param.key] = PropertyValue.Const(value)
+            }
+            return args
+        }
+
+        val chosen = cases[random.nextInt(cases.size)].whenPresent
         for (param in spec.params) {
-            if (!param.required && random.nextInt(100) >= OPTIONAL_ARGUMENT_PERCENT) continue
-            val value = constantFor(param.type, NO_SCOPE) ?: continue
-            args[param.key] = PropertyValue.Const(value)
+            if (param.key !in chosen && !param.required) continue
+            args[param.key] = PropertyValue.Const(constantFor(param.type, NO_SCOPE) ?: unwritable(spec, param))
         }
         return args
     }
+
+    /**
+     * The failure for a parameter the spec requires, or the chosen case names, over a type this
+     * generator writes nothing for — `constantFor`'s two null arms, `TypeRef.Dimension` and a
+     * resource reference. A schema fault rather than a document to build without: an entry missing
+     * that key refuses under `codegen.strategy_unsupported` or `prop.required_missing`.
+     */
+    private fun unwritable(spec: ModifierSpec, param: PropertySpec<*>): Nothing =
+        error("Modifier '${spec.type}' declares '${param.key.value}' over a type this generator cannot write")
 
     // -------------------------------------------------------------------------------------
     // Events

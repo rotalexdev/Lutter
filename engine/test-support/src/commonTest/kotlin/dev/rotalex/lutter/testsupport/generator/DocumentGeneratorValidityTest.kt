@@ -8,6 +8,7 @@ import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.ModifierType
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.value.Value
+import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -200,6 +201,57 @@ class DocumentGeneratorValidityTest {
         assertTrue(
             failures.isEmpty(),
             "${failures.size} slot outlet(s) name a slot codegen cannot spell.\n" +
+                failures.joinToString("\n\n"),
+        )
+    }
+
+    /**
+     * Every modifier entry with declared emission cases matches one of them.
+     *
+     * The analysis rows read `ModifierSpec.params`, so a `layout.padding` written with no argument
+     * at all satisfied every pass there, and the root row reads the other half of `emit` again —
+     * `scopeEntries`. `KotlinGenerator.emitModifier` matches a case by *subset*, taking the first
+     * whose `whenPresent` the entry carries, and refuses the entry when none matches, so this is
+     * the only row standing between the corpus and a wholesale `codegen.strategy_unsupported`.
+     *
+     * The predicate below is deliberately codegen's: nothing in the schema exposes it —
+     * `EmitCase` carries `whenPresent`, `pattern` and imports, and no matcher — so a second
+     * reading of it would pass over a corpus codegen still refuses, and this one moves with
+     * codegen's rather than ahead of it.
+     */
+    @Test
+    fun `every modifier entry matches a declared emission case`() {
+        val specs: Map<ModifierType, ModifierSpec> = generatorTestSchema.modifiers.all()
+            .associateBy { it.type }
+        val failures = mutableListOf<String>()
+        var checked = 0
+
+        for (seed in seeds(VALIDITY_SEED_COUNT)) {
+            val document = generatedDocument(seed).document
+            for (id in document.nodes.ids()) {
+                for (entry in document.nodes.require(id).modifiers) {
+                    val cases = specs[entry.type]?.emit?.cases.orEmpty()
+                    if (cases.isEmpty()) continue
+                    checked += 1
+                    val keys = entry.args.keys
+                    if (cases.any { cased -> cased.whenPresent.all { it in keys } }) continue
+                    failures += "seed $seed: node $id carries '${entry.type}' with $keys, " +
+                        "which no declared emission case matches"
+                    if (failures.size >= REPORT_LIMIT) break
+                }
+                if (failures.size >= REPORT_LIMIT) break
+            }
+            if (failures.size >= REPORT_LIMIT) break
+        }
+
+        assertTrue(
+            checked > 0,
+            "no generated document carried a modifier declaring emission cases, so this row " +
+                "and the fix behind it had nothing to check",
+        )
+        assertTrue(
+            failures.isEmpty(),
+            "${failures.size} modifier entry(s) no declared emission case matches.\n" +
                 failures.joinToString("\n\n"),
         )
     }
