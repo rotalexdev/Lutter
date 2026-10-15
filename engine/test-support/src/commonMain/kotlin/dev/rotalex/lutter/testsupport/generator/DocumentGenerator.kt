@@ -530,7 +530,7 @@ public class DocumentGenerator(
             fillSlot(declared, scope, MAX_DEPTH, children, instances)
             slots[declared.name] = children
         }
-        return emit(COLUMN, scope, emptySet(), slots, buildProps(spec, scope, slots.keys))
+        return emit(COLUMN, scope, emptySet(), slots, buildProps(spec, scope, slots.keys), atRoot = true)
     }
 
     /** A component body: a `core.Column` with one `core.SlotOutlet` per declared slot. */
@@ -543,7 +543,7 @@ public class DocumentGenerator(
             children += outlet(scope, slotNames)
             slots[declared.name] = children
         }
-        return emit(COLUMN, scope, emptySet(), slots, buildProps(spec, scope, slots.keys))
+        return emit(COLUMN, scope, emptySet(), slots, buildProps(spec, scope, slots.keys), atRoot = true)
     }
 
     /** One `core.SlotOutlet` naming one of the declaration's slots. */
@@ -701,6 +701,9 @@ public class DocumentGenerator(
      *
      * [extraShapes] exists for one caller: a `doc.*` instance has no static `ComponentSpec`, so
      * the shapes it was written against are handed in from the synthesis rules rather than read.
+     *
+     * [atRoot] names the two roots and nothing else: a node with no ancestor slot above it has no
+     * scope for a spec's `emit.scopeEntries` to be read through.
      */
     private fun emit(
         type: ComponentType,
@@ -709,6 +712,7 @@ public class DocumentGenerator(
         slots: Map<SlotName, List<NodeId>>,
         props: Map<PropertyKey, PropertyValue>,
         extraShapes: List<SlotSpec> = emptyList(),
+        atRoot: Boolean = false,
     ): NodeId {
         val spec = view.components[type]
         for (declared in spec?.slots.orEmpty() + extraShapes) recordShape(type, declared)
@@ -723,7 +727,7 @@ public class DocumentGenerator(
             type = type,
             name = if (random.nextInt(3) == 0) "gen-" + smallInt(100000) else null,
             props = props,
-            modifiers = buildModifiers(available),
+            modifiers = buildModifiers(available, atRoot),
             slots = slots,
             events = buildEvents(spec, scope),
         )
@@ -1053,9 +1057,17 @@ public class DocumentGenerator(
      * is always a subset of what the node will end up with, and a modifier applied against it can
      * never be `modifier.scope_missing`. Losing the outer scopes costs coverage of modifiers
      * nested three levels down and buys a chain that is correct by construction at every depth.
+     *
+     * [atRoot] closes a second, independent gate: `SchemaPass` enforces only `requiresScope`,
+     * while `KotlinGenerator.emitModifier` refuses any spec with a non-empty `emit.scopeEntries`
+     * outside a scope it declares, and a root has no ancestor to open one. Gating on
+     * `available.isEmpty()` instead would delete live coverage, because an outlet and an instance
+     * also pass an empty set and both sit inside the root Column's `children`.
      */
-    private fun buildModifiers(available: Set<ScopeId>): List<ModifierEntry> {
-        val usable = modifierSpecs.filter { spec -> spec.requiresScope.all { it in available } }
+    private fun buildModifiers(available: Set<ScopeId>, atRoot: Boolean): List<ModifierEntry> {
+        val usable = modifierSpecs.filter { spec ->
+            spec.requiresScope.all { it in available } && (!atRoot || spec.emit.scopeEntries.isEmpty())
+        }
         if (usable.isEmpty() || random.nextInt(100) >= MODIFIER_PERCENT) return emptyList()
         val entries = mutableListOf<ModifierEntry>()
         repeat(1 + random.nextInt(2)) {

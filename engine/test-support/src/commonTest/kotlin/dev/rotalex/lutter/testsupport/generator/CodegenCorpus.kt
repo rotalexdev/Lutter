@@ -512,11 +512,15 @@ private fun importViolations(file: CorpusFile, imports: List<String>, declaredPa
  * String literals are blanked before the scan. A document may legitimately carry the text
  * `"1.00000"` inside a string, and a number check that cannot tell a string from a literal is a
  * check that reports noise.
+ *
+ * Hex literals are blanked for the same reason, and `LiteralPrinter`'s `Color(0x…)` is the shape
+ * that requires it: eight hex digits spell `0E375` or `37E594` often enough that `EXPONENT` reads
+ * the colour as scientific notation, and a colour is not a decimal.
  */
 internal fun nonCanonicalNumbers(outcome: CorpusOutcome): List<String> {
     val violations = mutableListOf<String>()
     for (file in outcome.files) {
-        val code = file.content.replace(STRING_LITERAL, "\"\"")
+        val code = file.content.replace(STRING_LITERAL, "\"\"").replace(HEX_LITERAL, "")
         for (match in EXPONENT.findAll(code)) {
             violations += "'${file.path}' writes '${match.value}', which is scientific notation"
         }
@@ -593,6 +597,9 @@ private const val CONTEXT_BYTES: Int = 16
  * inside itself; the escaped form is the same pattern with nothing about it to misread.
  */
 private val STRING_LITERAL = Regex("\"(?:[^\"\\\\]|\\\\.)*\"")
+
+/** `Color(0x0E375A4C)`: hex digits spell `0E375`, which `EXPONENT` reads as an exponent. */
+private val HEX_LITERAL = Regex("""\b0[xX][0-9a-fA-F]+\b""")
 
 /** `1.0E-4`: a magnitude a JVM's `Double.toString` spells in scientific notation. */
 private val EXPONENT = Regex("""\d+(?:\.\d+)?[eE][+-]?\d+""")

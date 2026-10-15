@@ -3,6 +3,7 @@ package dev.rotalex.lutter.testsupport.generator
 import dev.rotalex.lutter.analysis.Analyzer
 import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.Severity
+import dev.rotalex.lutter.model.ids.ModifierType
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -118,6 +119,40 @@ class DocumentGeneratorValidityTest {
         assertTrue(
             failures.isEmpty(),
             "${failures.size} documents with a doc.* instance failed analysis.\n" +
+                failures.joinToString("\n\n"),
+        )
+    }
+
+    @Test
+    fun `a root carries no modifier the codegen stage refuses`() {
+        // Analysis enforces `ModifierSpec.requiresScope` and nothing else, so the row above cannot
+        // see this: a root satisfies `requiresScope` for `layout.align` and is still refused by
+        // `KotlinGenerator.emitModifier`, which reads `emit.scopeEntries` and finds no enclosing
+        // scope. The cost is honest and small — a root stops carrying `layout.align`, and since
+        // every document that did was refused wholesale, nothing emittable is lost.
+        val scoped: Set<ModifierType> = generatorTestSchema.modifiers.all()
+            .filter { it.emit.scopeEntries.isNotEmpty() }
+            .map { it.type }
+            .toSet()
+        val failures = mutableListOf<String>()
+
+        for (seed in seeds(VALIDITY_SEED_COUNT)) {
+            val document = generatedDocument(seed).document
+            val roots = document.pages.values.map { "page '${it.id}'" to it.root } +
+                document.components.values.map { "component '${it.id}'" to it.root }
+            for ((label, root) in roots) {
+                for (entry in document.nodes.require(root).modifiers) {
+                    if (entry.type !in scoped) continue
+                    failures += "seed $seed: the $label root carries '${entry.type}'."
+                }
+                if (failures.size >= REPORT_LIMIT) break
+            }
+            if (failures.size >= REPORT_LIMIT) break
+        }
+
+        assertTrue(
+            failures.isEmpty(),
+            "${failures.size} root(s) carrying a modifier with no enclosing scope to read through.\n" +
                 failures.joinToString("\n\n"),
         )
     }
