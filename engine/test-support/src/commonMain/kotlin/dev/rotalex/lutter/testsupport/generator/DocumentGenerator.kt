@@ -672,8 +672,17 @@ public class DocumentGenerator(
     private fun pickChild(filter: ChildFilter, depth: Int): ComponentSpec {
         val admissible = components.filter { admits(filter, it.type) }
         if (admissible.isEmpty()) error("No registered component satisfies the filter '$filter'")
-        val leaves = admissible.filter { it.slots.isEmpty() }
-        val pool = if (depth <= 0 && leaves.isNotEmpty()) leaves else admissible
+
+        /**
+         * An outlet names a slot of the declaration its body sits in, and a page tree or a
+         * `doc.*` instance has none: the only name a draw could write is `constantFor`'s
+         * free-form `gen-…`, which is no `SlotName`. Rewriting it into one emits `slot0()` —
+         * a call to a parameter the generated signature does not declare.
+         */
+        val drawable = admissible.filter { it.type != SLOT_OUTLET }
+        if (drawable.isEmpty()) error("Only '$SLOT_OUTLET' satisfies '$filter', and an outlet cannot be drawn here")
+        val leaves = drawable.filter { it.slots.isEmpty() }
+        val pool = if (depth <= 0 && leaves.isNotEmpty()) leaves else drawable
         return pool[random.nextInt(pool.size)]
     }
 
