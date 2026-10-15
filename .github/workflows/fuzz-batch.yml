@@ -1,4 +1,4 @@
-name: nightly
+name: fuzz-batch
 
 # PLAN §28.5 / §36: a batch of random valid documents, compiled for real.
 #
@@ -6,17 +6,23 @@ name: nightly
 # eleven documents were all chosen by somebody, so a defect that only one generated document in two
 # hundred has is invisible to it. This generates them.
 #
-# `workflow_dispatch` so the maintainer can ask for a run on a branch without pushing to it, which
-# is what makes the count below tunable from a real measurement rather than from a guess.
+# `push`, not `schedule`. GitHub runs a scheduled event from the default branch and from nowhere
+# else, and this repository's default branch is `main` — four files, no build, 55 commits behind
+# `dev`, which is where every line of this job lives. A `schedule:` here would never fire. A push
+# runs from the ref that was pushed, so this fires where the code is, and fires on every merge
+# rather than once a night: a defect lands on the integration line sooner, which is the whole point
+# of a detector that eleven hand-written documents cannot see.
+#
+# `workflow_dispatch` stays for when `main` catches up, and until then it answers HTTP 404 because
+# dispatch carries the same default-branch restriction as `schedule`. It is written down here so the
+# next reader does not spend an afternoon finding that out again.
 on:
-  schedule:
-    # Off the hour: GitHub delays top-of-the-hour runs, so a cron at :00 queues behind every other
-    # repository's and this job would report a start time nothing else in CI reports.
-    - cron: '23 3 * * *'
+  push:
+    branches: [ dev ]
   workflow_dispatch:
 
 concurrency:
-  group: nightly-${{ github.workflow }}-${{ github.ref }}
+  group: fuzz-batch-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:

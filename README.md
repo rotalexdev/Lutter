@@ -415,18 +415,19 @@ convention, and those modules are not KMP libraries.
 
 ## CI
 
-Three required checks on `dev` and `main`, plus one workflow that is deliberately not one.
+Three required checks on `dev` and `main`, plus two workflows that are deliberately not ones.
 
 | Workflow | Required | Triggers | What it actually runs |
 |---|---|---|---|
 | `check` | yes | push to `dev`, any PR into `dev` or `main` | The convention plugins' own `:convention:check`; then `gradle check verifyModuleGraph checkKotlinAbi`; then `selfTestModuleGraph`, which runs even on an already-failing run so the checker is never only proven on green. On failure it regenerates and commits missing ABI reference dumps, and refuses to auto-commit from a fork. |
 | `conformance` | yes | push to `dev`, any PR into `dev` or `main` | `:integration:generated-compile:desktopTest`: the CLI generates Kotlin from eight fixture documents, it compiles, and the rendered result is compared against the runtime — including a click-navigation case and an expression corpus. The job itself has existed since Phase 0 so that a job discovered to be misconfigured would be discovered before it had real work to report a false problem about. |
 | `branch-policy` | yes | any PR into `dev` or `main` | That the branch name is `<type>/<slug>` with no version in it, and that the PR title is a strict conventional commit, at most 100 characters, not ending in a period. |
+| `fuzz-batch` | **no** | push to `dev`, on demand once `main` catches up | PLAN §28.5's batch: 200 seeded documents generated with `DocumentGenerator` against the real builtin schema, written one directory and one package each, and compiled for real by `:integration:generated-compile:compileKotlinDesktop`. It is red at 41 of 200 and that is the report — the 159 are three `:engine:codegen` gaps that predate the job, not regressions. It runs on push rather than on a schedule because GitHub fires `schedule:` only from the default branch, and this repository's default branch is `main`, which holds no build. |
 | `preview-artifacts` | **no** | only when a path that can change a pixel or a binary changes, on a PR into `dev` or `main`, on push to `dev`, or on demand | `:samples:desktop-preview:desktopTest` and `:samples:desktop-preview:packageDistributionForCurrentOS`, on both `ubuntu-latest` and `windows-latest`. It uploads the rendered screenshots and the packaged binary per OS. |
 
-`preview-artifacts` is not a gate and should not be made one. `check` answers "is this branch
-sound?", and discards everything it builds; this one answers a question a green tick cannot —
-*what does it draw, and can I run it?* — by leaving the answer as a downloadable artifact.
+`preview-artifacts` and `fuzz-batch` are not gates and should not be made one. `check` answers "is this branch
+sound?", and discards everything it builds; those two answer questions a green tick cannot, and
+neither answers them by blocking — one leaves a downloadable artifact, the other a count.
 Required status checks are branch-protection settings on GitHub's side rather than anything the
 repository declares, so this workflow becoming merge-blocking would take a deliberate change
 there. What it can do is cost minutes, which is what its `paths:` filter is for: it skips any
