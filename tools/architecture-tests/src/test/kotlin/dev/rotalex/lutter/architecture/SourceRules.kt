@@ -588,4 +588,53 @@ internal object SourceRules {
 
         return ""
     }
+
+    /**
+     * A block-comment opener inside a comment body, which Kotlin reads as a nested comment opening.
+     *
+     * Kotlin's block comments **nest**, so a doc comment that mentions a glob — an api dump, or a path under a source
+     * set — is not prose after that point. Everything to the end of the file is
+     * comment, and the compiler reports the loss at EOF as *"Unclosed comment"* against a line that
+     * does not exist, naming no cause.
+     *
+     * **This cost four compile cycles across two phases.** Each was reported as a different error and
+     * none pointed at the character: the first swallowed a file body, the second produced twelve
+     * *"Unresolved reference"* cascades for functions that were declared in the file the parser had
+     * stopped reading, the third orphaned a KDoc, and the fourth made four fixtures unresolvable.
+     * All four were one opener in a doc comment, and in every case the only evidence was a **count**:
+     * eight openers against seven closers.
+     *
+     * A comment's own opener is not reported, and that exclusion is why this rule can be written at
+     * all: a declaration's doc comment opens with a slash and two asterisks, which is every KDoc in
+     * this file, and a rule that flagged its own convention would be unusable.
+     */
+    fun nestedBlockCommentOccurrences(text: String): List<String> {
+        val violations = mutableListOf<String>()
+        var depth = 0
+        var openerLine = 0
+        for ((index, line) in text.lines().withIndex()) {
+            var column = 0
+            while (column < line.length - 1) {
+                val pair = line.substring(column, column + 2)
+                when {
+                    pair == "/*" -> {
+                        // The comment's own opener, or one nested at a position that is prose.
+                        val isOwnOpener = column + 1 == line.length || line.startsWith("/**", column)
+                        if (depth == 0 || !isOwnOpener) {
+                            if (depth == 0) openerLine = index + 1
+                            depth += 1
+                            if (!isOwnOpener) {
+                                violations += "line ${index + 1} column ${column + 1}: a block-comment opener inside a comment opens a nested block"
+                            }
+                        } else {
+                            depth += 1
+                        }
+                    }
+                    pair == "*/" && depth > 0 -> depth -= 1
+                }
+                column += 2
+            }
+        }
+        return violations
+    }
 }
