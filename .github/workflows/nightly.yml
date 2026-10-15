@@ -1,0 +1,79 @@
+name: nightly
+
+# PLAN §28.5 / §36: a batch of random valid documents, compiled for real.
+#
+# Not a required check and not a gate. What it answers is a question `conformance` cannot: its
+# eleven documents were all chosen by somebody, so a defect that only one generated document in two
+# hundred has is invisible to it. This generates them.
+#
+# `workflow_dispatch` so the maintainer can ask for a run on a branch without pushing to it, which
+# is what makes the count below tunable from a real measurement rather than from a guess.
+on:
+  schedule:
+    # Off the hour: GitHub delays top-of-the-hour runs, so a cron at :00 queues behind every other
+    # repository's and this job would report a start time nothing else in CI reports.
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: Fuzz batch of generated documents
+    runs-on: ubuntu-latest
+    # Above conformance's 45 because this compiles two hundred documents where conformance
+    # compiles eleven, and neither the per-document cost nor the runner's is knowable from the
+    # repository. The elapsed time the step below reports is what tunes it.
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Apply the CI-only Gradle properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.5.0'
+
+      # `compileKotlinDesktop` and not `desktopTest`: the UI tests pull Compose's test API and
+      # Skiko's native library, so a render failing on a headless runner would be indistinguishable
+      # from a compile failing. The claim is that the code compiles, and only a compile asserts it.
+      #
+      # The count is echoed with the seed range and the elapsed time because it is a starting
+      # point and not a measured one: nobody can time two hundred generated documents from this
+      # repository. Read the first run's line, then set the count so the job fills the timeout
+      # without approaching it.
+      #
+      # `if` rather than a bare command because GitHub runs bash with `-e`: a failing `gradle`
+      # would abort the step and the echo below would never print, which is the one line this job
+      # exists to produce.
+      - name: Generate and compile the fuzz batch
+        run: |
+          count=200
+          start=$(date +%s)
+          if gradle -Pforge.fuzzBatch=true -Pforge.fuzzCount="$count" :integration:generated-compile:compileKotlinDesktop; then status=0; else status=$?; fi
+          echo "fuzz batch: documents=$count seeds=1-$count elapsed=$(( $(date +%s) - start ))s"
+          exit $status
+
+      # Nothing here runs a test, so this upload is usually empty and `if-no-files-found: ignore`
+      # is what keeps it that way rather than a red run over a directory nobody created. It is
+      # here for the shape every other workflow in this repository shares.
+      - name: Upload the test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/build/test-results/**/*.xml'
+          if-no-files-found: ignore
+          retention-days: 14

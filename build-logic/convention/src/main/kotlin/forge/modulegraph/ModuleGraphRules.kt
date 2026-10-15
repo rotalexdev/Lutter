@@ -232,6 +232,15 @@ object ModuleGraphRules {
         // this honest — a `commonMainImplementation` edge from this module to the harness is
         // still refused, and `selfTestModuleGraph` proves it on every build.
         ":engine:editing" to setOf(":engine:test-support"),
+
+        // PLAN §36's nightly fuzz batch compiles two hundred random documents against the real
+        // builtin schema, and `BuiltinSchemaTest` asserts the precondition that makes the batch
+        // mean anything: the seeded generator reads a schema no engine module had to be taught.
+        // The generator is the harness and `check` is where a module asserts a precondition, so
+        // this edge is test scope on the same argument as the two lines above — and the batch's
+        // own build-time classpath cannot carry this module's compiled output, because the
+        // batch's sources are wired into that module's `commonMain`.
+        ":integration:generated-compile" to setOf(":engine:test-support"),
     )
 
     // ---------------------------------------------------------------------------------------
