@@ -5,9 +5,11 @@ import dev.rotalex.lutter.codegen.KotlinGenerator
 import dev.rotalex.lutter.codegen.planDocument
 import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.Severity
+import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.serialization.JsonDocumentCodec
 import dev.rotalex.lutter.testsupport.Golden
 import dev.rotalex.lutter.testsupport.classpathGoldenSource
+import dev.rotalex.lutter.testsupport.generator.CorpusExclusion
 import dev.rotalex.lutter.testsupport.generator.codegenCorpusView
 import dev.rotalex.lutter.testsupport.generator.firstByteDifference
 import dev.rotalex.lutter.testsupport.generator.firstDifference
@@ -74,6 +76,20 @@ private val composed: ComposedDocument by lazy { composeLargeDocument() }
 /** The workload over [composed], built once. Analysis and encoding are not free at this size. */
 private val workload: BenchmarkWorkload by lazy { BenchmarkWorkload(composed) }
 
+/**
+ * The largest one-copy subtree the composition is still allowed to have.
+ *
+ * A bound and not an equality, because the base document is whatever seed [BENCHMARK_BASE_SEED]
+ * draws and the point is the **order of magnitude**, not the draw. At the §29 target this admits
+ * anything from a thousand pages upward, which is the claim `LargeDocuments.kt` and `refusalOf`
+ * make in prose; the "~330 copies" that prose used to assert would need a copy of about thirty
+ * nodes and is excluded outright.
+ *
+ * Widen it only alongside the prose it backs, and only with the reason — a bound that drifts
+ * upward without a reason is how the next reader learns to skip it.
+ */
+private const val MAX_NODES_PER_COPY: Int = 10
+
 class LargeDocumentTest {
 
     /**
@@ -127,6 +143,56 @@ class LargeDocumentTest {
     }
 
     /**
+     * The corpus is the schema minus exactly the components codegen cannot spell.
+     *
+     * ### What this row is really for
+     *
+     * Three of the four exclusions are named in `CodegenCorpus.kt` and cannot surprise anybody.
+     * The fourth is chosen by a **rule** — a component whose spec declares an event its
+     * `CodegenBinding.ComposeCall` does not bind — and a rule is free to widen on its own the
+     * next time the schema gains a component. That is what it is for, and it is also how a
+     * benchmark goes quietly blind: eight components become seven, the corpus gets a little
+     * easier, and the table keeps its shape and its milliseconds.
+     *
+     * So the rule is not allowed to be silent. This row is the whole of its accountability, and
+     * it is worth being blunt about what a failure means: **a fifth exclusion is not a defect in
+     * the filter, it is information about `:engine:codegen`** — another component whose event
+     * nothing can spell. The right response is to report it, in whatever row it deserves, and
+     * then to write its name down here. Excluding a component because codegen cannot emit it is
+     * correct once and corrosive twice; a pile of them is a corpus that stopped testing anything
+     * while continuing to produce numbers.
+     *
+     * ### What §29's codegen row means with this component absent
+     *
+     * `codegen < 300 ms` is now a real measurement — before this exclusion the generator refused
+     * the whole composed document and emitted nothing, so the row was timing a refusal — and it
+     * is a measurement over **eight** components, not over the schema. It covers value params,
+     * `ValueEmit.Cases` arrivals, trailing slot lambdas, the intrinsic slot outlet, `doc.*`
+     * instances, the modifier set and the six actions. It does **not** cover a handler receiving
+     * a declared event argument: both components that declared one are excluded here, and
+     * `m3.Button`'s `onClick` declares none, so nothing in this corpus reads `RefTarget.EventArg`.
+     * A reader must not take the number as a claim about the whole schema.
+     */
+    @Test
+    fun `the corpus excludes exactly the components codegen cannot spell`() {
+        assertEquals(
+            mapOf(
+                ComponentType("gen.SinglePanel") to CorpusExclusion.IntrinsicWithoutEmitter,
+                ComponentType("gen.Banner") to CorpusExclusion.IntrinsicWithoutEmitter,
+                ComponentType("gen.Probe") to CorpusExclusion.IntrinsicWithoutEmitter,
+                ComponentType("m3.TextField") to CorpusExclusion.EventWithoutBinding,
+            ),
+            codegenCorpusView.exclusions,
+            "the corpus no longer filters exactly the components CodegenCorpus names.\nIt filters:" +
+                codegenCorpusView.exclusions.entries.joinToString(separator = "\n") { entry ->
+                    "\n  ${entry.key} — ${entry.value.name}: ${entry.value.reason}"
+                } +
+                "\n\nA component that appeared here was excluded because codegen cannot spell it, " +
+                "which is a finding about :engine:codegen to report rather than a filter to widen.",
+        )
+    }
+
+    /**
      * A document of §29's size is built, and the building is the composition this suite claims.
      *
      * The assertion that fails is the finding, if it ever stops being true.
@@ -141,6 +207,18 @@ class LargeDocumentTest {
             composed.addedPages > 0,
             "the base document for seed $BENCHMARK_BASE_SEED already holds ${composed.nodes} node(s), " +
                 "so no page was copied and §29's workload is one generated page rather than a composition",
+        )
+        // The page count is not a number anybody chose: it is §29's target divided by the size of
+        // the subtree one copy contributes, and that subtree is a screen and whatever is under it.
+        // Asserting the divisor is what keeps the prose that explains the page count from rotting
+        // into a second guess — `refusalOf`'s KDoc below estimated three hundred copies once, and
+        // was wrong by more than an order of magnitude, with nothing in the build to say so.
+        assertTrue(
+            composed.nodesPerCopy in 1..MAX_NODES_PER_COPY,
+            "each of the ${composed.addedPages} copies contributed ${composed.nodesPerCopy} node(s) " +
+                "to a ${composed.baseNodes}-node base, and 'a handful of nodes per copy' — which " +
+                "is what makes §29's ${BENCHMARK_TARGET_NODES} nodes a document of thousands of " +
+                "pages rather than hundreds — is no longer what the composer does",
         )
         assertEquals(
             composed.nodes,
@@ -259,9 +337,13 @@ class LargeDocumentTest {
  * findings are not what refused. `CodegenCorpus` drops the same prefix for the same reason.
  *
  * One example per code rather than one per finding, because the composer copies a single page
- * until the table holds ten thousand rows — a refusal that page already carried arrives three
- * hundred times over, and a message is not a dump. The per-code count beside each example is what
- * keeps a one-example line from reading as a single occurrence.
+ * until the table holds ten thousand rows, and one copy is a screen and whatever is under it — a
+ * handful of nodes, so the loop runs **over a thousand times** and a refusal that page already
+ * carried arrives once per copy. This comment said "three hundred", which was wrong by more than
+ * an order of magnitude and which nothing in the build was able to contradict; `the composition
+ * reaches the node count and was a composition` now asserts the divisor that decides it. A
+ * message is not a dump either way. The per-code count beside each example is what keeps a
+ * one-example line from reading as a single occurrence.
  */
 private fun refusalOf(diagnostics: List<Diagnostic>, incoming: Int): String {
     val errors: List<Diagnostic> = diagnostics.drop(incoming).filter { it.severity == Severity.Error }

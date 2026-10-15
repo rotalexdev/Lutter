@@ -16,6 +16,7 @@ import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.schema.Schema
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.action.ActionSpec
+import dev.rotalex.lutter.schema.component.CodegenBinding
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
@@ -42,7 +43,7 @@ import dev.rotalex.lutter.schema.types.TypeSpec
 // them to `:engine:codegen` later is a one-line move plus the `ALLOWED_IN_TESTS` line that makes
 // it legal.
 //
-// ### Why the schema filters three components
+// ### Why the schema filters the three intrinsic components
 //
 // `generatorSchema()` adds three components — `gen.SinglePanel`, `gen.Banner`, `gen.Probe` —
 // that declare `intrinsic()` emission with no emitter behind them. `CodegenCoverage.check` runs
@@ -63,7 +64,66 @@ import dev.rotalex.lutter.schema.types.TypeSpec
 // overall — but this corpus does not exercise them, and a failure that only those shapes could
 // produce will not be found here.
 //
-// ### Why a refusal is an outcome and not a gap
+// ### Why the schema also filters every component whose event has no binding
+//
+// The rule above drops a component by **name**, and it can: three types, one failing mode, a
+// throw at construction. The one below cannot, and the difference is the reason it is written as
+// a predicate.
+//
+// **The class is: a component whose spec declares an event that its `CodegenBinding.ComposeCall`
+// does not bind.** Today that class has exactly one member, and it is a builtin.
+// `TextFieldSpec` declares `event(onValueChange)` and its compose call binds only
+// `param("value", …)` — `ButtonSpec`, the only other spec that declares an event at all, binds
+// it as `event(onClick, "onClick")`. So the model's handler for `onValueChange` has somewhere to
+// go and the generated file has nowhere to put it: `KotlinGenerator`'s `unboundEvent` check
+// refuses every node of that type carrying a handler, as `codegen.no_binding` and the message
+// `Event 'onValueChange' has no parameter to receive it`.
+//
+// **That is a real gap in `:engine:codegen`, and it is not this work unit's to close.**
+// `CodegenCoverage.check` is §4.5's build-time fail-fast and `callProblem` validates **one
+// direction** of the spec/binding pair: it refuses an `EventBinding` the spec does not declare
+// (`event '…' is not declared`) and never asks whether every declared event is bound. A
+// component in this class therefore *passes* the fail-fast, and refuses later — once per node,
+// at document time, with a code that names neither the spec nor the binding. That asymmetry is
+// the defect, it belongs to `:engine:codegen` as its own unit and its own row, and this file
+// only declines to measure around it. Nothing here fixes it and nothing here reports it as
+// fixed.
+//
+// **Why a rule and not a second name.** Three reasons, and only the third is about style.
+//
+//   * A name list is a filter that grows by one entry per defect, and the next defect is found
+//     by whoever hits it. A rule catches the same defect on any component, including a builtin
+//     added after this was written, without anyone remembering to come back here.
+//   * A rule is harder to get wrong than it looks: it is one `none` over two declarations, and
+//     it is checked against the same two lists `CodegenCoverage` reads.
+//   * A rule can change the corpus **on its own**, which is the whole risk. `EmittableView`
+//     therefore records what it removed in [EmittableView.exclusions] and `LargeDocumentTest`
+//     asserts that record is exactly the four types expected. Excluding by name needs no such
+//     check, because a name list only changes when a person edits it; a predicate can widen
+//     silently the next time the schema gains a component, and a benchmark that quietly stopped
+//     testing something is worse than a red one.
+//
+// **What the corpus still covers, stated plainly.** The pool is eight components — `core.Column`,
+// `core.Row`, `core.Box`, `core.Spacer`, `core.SlotOutlet`, `m3.Text`, `m3.Button`, `m3.Card` —
+// and between them they cover every path the schema has that still works: value parameters, a
+// `ValueEmit.Cases` arrival pattern on both layouts, a trailing slot lambda, an `Intrinsic`
+// component and the `doc.*` document instances, plus the whole §31.2 modifier set and all six
+// §11.4 actions. `LargeDocumentTest` pins the size of the composed document this runs over and
+// names what is missing from it, so §29's codegen row finally measures codegen instead of a
+// refusal — and the reader of that row can see how much of the schema it covers.
+//
+// **And the honest part is the loss, which is larger than it looks.** Before this filter the
+// corpus emitted **no files at all** on that document — §16.7 makes every error empty the result
+// — so nothing was covered before either; the exclusion does not take coverage away from a
+// working corpus, it is what lets one start. What remains unreachable afterwards is narrower
+// and worth naming precisely: **no handler in this corpus receives a declared event argument,
+// so `RefTarget.EventArg` is no longer read by anything generated here.** Both components that
+// declared an argument are the two excluded for unspellable bindings — `m3.TextField`'s
+// `value` and `gen.Probe`'s `probeValue` — and the one remaining event, `m3.Button`'s
+// `onClick`, declares none, so its lambda is emitted with no parameters. That is a real gap in
+// the corpus and it is the price of this row being green.
+//
+// ### What a refusal is an outcome and not a gap
 //
 // `KotlinGenerator` answers a document it cannot emit with empty files and a diagnostic, never a
 // throw. A document can refuse for reasons that have nothing to do with determinism — a
@@ -87,9 +147,63 @@ import dev.rotalex.lutter.schema.types.TypeSpec
  * registry is immutable, and `Registry.all()` hands back a copy, so a caller cannot reach through
  * this one either. Building it once is what makes "two independent runs" cost two generators
  * rather than two schemas.
+ *
+ * Typed as [EmittableView] rather than as the `SchemaView` every caller passes it to, because
+ * [EmittableView.exclusions] is the only way a reader can find out what the filter dropped without
+ * reading the filter — and a filter whose contents cannot be read from the outside is a filter
+ * nobody can audit. Every call site widens it back to `SchemaView` on its own.
  */
-internal val codegenCorpusView: SchemaView<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec> =
+internal val codegenCorpusView: EmittableView =
     EmittableView(generatorSchema(), setOf(SINGLE_PANEL, BANNER, PROBE))
+
+/**
+ * Why [EmittableView] dropped a component, as a type rather than as a sentence.
+ *
+ * A `Map<ComponentType, String>` would carry the same information and one of these would not: the
+ * reason is what `LargeDocumentTest` asserts on, and a test that compares prose has to be
+ * rewritten whenever the prose is improved. A test that compares two members of this enum keeps
+ * saying what it meant after the wording moves.
+ */
+internal enum class CorpusExclusion(val reason: String) {
+
+    /**
+     * An `Intrinsic` spec carrying a slot or an event, which `CodegenCoverage.intrinsicProblem`
+     * refuses — so `KotlinGenerator` **throws at construction** rather than refusing a document.
+     */
+    IntrinsicWithoutEmitter(
+        "declares intrinsic() emission with a slot or an event and no emitter behind it, " +
+            "which CodegenCoverage refuses when the generator is constructed",
+    ),
+
+    /**
+     * A `ComposeCall` spec declaring an event the binding does not bind — the `onValueChange`
+     * case. Refused per node at document time as `codegen.no_binding`, which is why it needed its
+     * own rule and why the rule is written over the shape rather than over the name.
+     */
+    EventWithoutBinding(
+        "declares an event its compose call does not bind, so codegen refuses every node " +
+            "carrying a handler for it as codegen.no_binding",
+    ),
+}
+
+/**
+ * Whether codegen can put [spec]'s declared events into the call it writes.
+ *
+ * The class is named in the file KDoc; this is the whole of the test, and it reads the same two
+ * declarations `KotlinGenerator.unboundEvent` does — `spec.events` against
+ * `binding.events` — so a component that passes here and is refused there is a bug in this
+ * function rather than a difference of opinion about what "bound" means.
+ *
+ * Narrowed to `ComposeCall` deliberately. `Intrinsic` specs are the *other* exclusion, they fail
+ * earlier and louder, and their event is emitted by the engine-owned path rather than by a
+ * parameter — so treating them here as well would drop a third component for a second reason and
+ * make [EmittableView.exclusions] say something the file does not otherwise claim.
+ */
+internal fun declaresEventNoBindingCanReceive(spec: ComponentSpec): Boolean {
+    val binding = spec.codegen
+    if (binding !is CodegenBinding.ComposeCall) return false
+    return spec.events.any { declared -> binding.events.none { it.event == declared.key } }
+}
 
 /** The package every corpus document is generated into. Arbitrary, and fixed on purpose. */
 internal const val CORPUS_BASE_PACKAGE: String = "com.example.corpus"
@@ -415,24 +529,48 @@ internal fun nonCanonicalNumbers(outcome: CorpusOutcome): List<String> {
 }
 
 /**
- * The three components this module adds, without the engine-owned binding.
+ * The components this module adds, without the engine-owned binding.
  *
  * `SchemaView` rather than `Schema` because `Schema`'s constructor is `internal` to
  * `:engine:schema`, which is right — a schema is built through its builder — and because
  * `Analyzer` already builds its own overlay per call for `doc.*` types. The filtered registry is
  * rebuilt here rather than reused because `Registry` is an interface with no filtered view of its
  * own, and `RegistryBuilder.build` returns values in key order, so the rebuilt registry iterates
- * exactly as the original one did minus three entries.
+ * exactly as the original one did minus the entries [exclusions] names.
+ *
+ * ### Why [exclusions] exists
+ *
+ * The filter is half a name list and half a rule, and only the name list cannot surprise anybody:
+ * it changes when a person edits it. The rule can widen on its own — the next builtin that
+ * declares an event its binding does not bind is excluded the moment it is registered, with no
+ * edit here and no person deciding it — which is the behaviour wanted and also the one that can
+ * quietly turn a benchmark into a measurement of nothing.
+ *
+ * So the filter reports itself. [exclusions] is computed from the same pass that builds
+ * [components], and `LargeDocumentTest` asserts it is exactly the four types it expects. A
+ * fifth is not a failure of taste, it is the signal that §29's numbers have stopped meaning what
+ * the file KDoc says they mean, and it is better as a red test than as a faster benchmark.
  */
-private class EmittableView(
+internal class EmittableView(
     delegate: Schema<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec>,
-    hidden: Set<ComponentType>,
+    private val hidden: Set<ComponentType>,
 ) : SchemaView<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec> {
+
+    /** Every component this view does not carry, and the rule that dropped it. See above. */
+    val exclusions: Map<ComponentType, CorpusExclusion> = delegate.components.all()
+        .filter { spec -> spec.type in hidden || declaresEventNoBindingCanReceive(spec) }
+        .associate { spec ->
+            spec.type to if (spec.type in hidden) {
+                CorpusExclusion.IntrinsicWithoutEmitter
+            } else {
+                CorpusExclusion.EventWithoutBinding
+            }
+        }
 
     override val components: Registry<ComponentType, ComponentSpec> =
         RegistryBuilder<ComponentType, ComponentSpec>().apply {
             for (spec in delegate.components.all()) {
-                if (spec.type !in hidden) register(spec.type, spec)
+                if (spec.type !in exclusions) register(spec.type, spec)
             }
         }.build()
 

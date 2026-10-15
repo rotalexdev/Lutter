@@ -104,7 +104,7 @@ internal const val BENCHMARK_BASE_PACKAGE: String = "com.example.benchmark"
 /**
  * A composed document and how it was put together.
  *
- * The two counts are the workload's identity. A benchmark that does not record what it
+ * The counts are the workload's identity. A benchmark that does not record what it
  * measured cannot be compared with anything, and "ten thousand nodes" is not an identity: two
  * runs of this function agree on [nodes] and [pages] to the last, which is what lets a
  * regression report name a difference in the engine rather than a difference in the fixture.
@@ -113,6 +113,9 @@ internal class ComposedDocument(
 
     /** The document. */
     val document: UiDocument,
+
+    /** How many nodes the **generated** document held before a single page was copied. */
+    val baseNodes: Int,
 
     /** How many pages were added to reach the target. Zero when the base document was big enough. */
     val addedPages: Int,
@@ -127,10 +130,30 @@ internal class ComposedDocument(
     /** How many screens the document has, copied and original. */
     val pages: Int get() = document.pages.size
 
+    /**
+     * How many nodes one copy contributed, or zero when nothing was copied.
+     *
+     * This is the divisor [addedPages] hides behind. The composer grows the document by cloning
+     * **one subtree** — the source page's tree, re-owned by a new page — so every iteration adds
+     * exactly the same number of rows and this is exact division rather than an estimate.
+     *
+     * It exists because the relationship it encodes is the entire explanation of the shape, and
+     * because nobody reads [addedPages] on its own and thinks "a thousand": a copied page is a
+     * screen and whatever sits under it, which is a handful of nodes, so reaching
+     * [BENCHMARK_TARGET_NODES] takes **a thousand pages or more** rather than the few hundred an
+     * unstated assumption of a larger subtree would give. `LargeDocumentTest` asserts the
+     * divisor, so the prose in `refusalOf` that depends on it cannot drift into a second guess —
+     * it already made one, at three hundred, with nothing in the build able to contradict it.
+     *
+     * Division by [addedPages] is guarded rather than assumed: the count is zero when the base
+     * document was already big enough, and there is no copy to divide by in that case.
+     */
+    val nodesPerCopy: Int get() = if (addedPages <= 0) 0 else (nodes - baseNodes) / addedPages
+
     /** One line for a failure message: what was built, without the ten thousand nodes in it. */
     fun describe(): String =
-        "seed $BENCHMARK_BASE_SEED, ${nodes} node(s) over ${pages} page(s), " +
-            "$addedPages copied from '$copiedFrom'"
+        "seed $BENCHMARK_BASE_SEED, ${nodes} node(s) over ${pages} page(s) from a $baseNodes-node " +
+            "base, $addedPages copies of $nodesPerCopy node(s) from '$copiedFrom'"
 }
 
 /**
@@ -185,6 +208,11 @@ internal fun composeLargeDocument(
 
     var document: UiDocument = DocumentGenerator(view, seed).generate().document
 
+    // Read before the first copy, because it is the generated document's own size and the loop
+    // below overwrites nothing that would still say so. `ComposedDocument.nodesPerCopy` needs it
+    // to turn `addedPages` back into the size of one copied page.
+    val baseNodes: Int = document.nodes.size
+
     val source: Page = document.pages.values.firstOrNull()
         ?: error("seed $seed produced a document with no page, so there is nothing to copy")
     val sourceRoot: NodeId = source.root
@@ -223,5 +251,5 @@ internal fun composeLargeDocument(
         added += 1
     }
 
-    return ComposedDocument(document, added, source.id)
+    return ComposedDocument(document, baseNodes, added, source.id)
 }
