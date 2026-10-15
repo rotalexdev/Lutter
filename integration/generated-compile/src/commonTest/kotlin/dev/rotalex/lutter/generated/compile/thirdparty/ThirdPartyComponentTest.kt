@@ -235,9 +235,14 @@ class ThirdPartyComponentTest {
 
         assertEquals(listOf(DiagnosticCodes.PropTypeMismatch), errorCodes(result))
         assertEquals(
-            "Property 'accent' expects Nullable but found Token (node '$BADGE')",
+            "Property 'accent' expects Nullable but found Token",
             onlyError(result).message,
         )
+        // The node is asserted in `args`, not in the message: `SchemaPass` puts the location in
+        // `DiagnosticLocation` and repeats the id as `args["node"]`, so a message that carried
+        // it would be the engine writing the same fact twice. Reading it from where the engine
+        // actually puts it is a stronger row than the suffix this one asserted.
+        assertEquals(BADGE, onlyError(result).args["node"])
     }
 
     @Test
