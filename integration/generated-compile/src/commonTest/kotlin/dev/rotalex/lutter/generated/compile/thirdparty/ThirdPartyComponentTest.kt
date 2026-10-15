@@ -471,10 +471,15 @@ class ThirdPartyComponentTest {
         // exactly that: `:engine:model` has never heard of it and it decodes anyway.
         val badgeNode = decoded.nodes.require(NodeId(BADGE))
         assertEquals(badge, badgeNode.type)
-        assertEquals(
-            PropertyValue.Const(Value.Token(TokenKind.Color, "md.color.primary")),
-            assertNotNull(badgeNode.props[StatusBadgeSpec.accent.key]).value,
+        // The wrapper, not the token alone. `PropertyValue` is a sealed interface of `Const` and
+        // `Computed` and has no `value` member of its own — `value` is declared on `Const` — so
+        // the token is only reachable through the arm that holds it. Comparing the wrapper also
+        // refuses the `Computed` arm for free, which is the half of "intact" worth stating.
+        val accent = assertNotNull(
+            badgeNode.props[StatusBadgeSpec.accent.key],
+            "the accent token did not survive the wire",
         )
+        assertEquals(PropertyValue.Const(Value.Token(TokenKind.Color, "md.color.primary")), accent)
     }
 
     @Test

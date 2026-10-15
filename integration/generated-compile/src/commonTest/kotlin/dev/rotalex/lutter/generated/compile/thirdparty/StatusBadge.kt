@@ -1,6 +1,7 @@
 package dev.rotalex.lutter.generated.compile.thirdparty
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
@@ -141,6 +142,15 @@ internal object StatusBadgeSpec {
  * resolved through [RenderScope.theme] rather than drawn as its raw name, which is the runtime's
  * half of §14.2's token row and is the side that makes the kind mismatch the test asserts a
  * disagreement rather than a typo.
+ *
+ * ### "Only through [RenderScope]" means values, not drawing primitives
+ *
+ * [RenderScope] exposes `props`, `theme`, `modifierFor`, `RenderSlot`, `withScope`, `Dispatch` and
+ * `instance` — and no way to draw text. So the Compose `Text` below is reached directly, exactly
+ * as `TextRenderer` in `:engine:builtins-compose` reaches it, and §7.4's own step (2) snippet is
+ * that call. What the contract withholds is the *engine's* knowledge, not Compose's: the values
+ * all arrive through the scope, and a renderer that read a document, a schema or a registry would
+ * have no way to get them.
  */
 internal object StatusBadgeRenderer : ComponentRenderer {
 
@@ -148,13 +158,17 @@ internal object StatusBadgeRenderer : ComponentRenderer {
     override fun Render(node: ResolvedNode, scope: RenderScope) {
         val props = scope.props(node)
         Column(modifier = scope.modifierFor(node)) {
-            // Positional, not `text =`: the parameter's name is Compose's, not this file's, and
-            // a named argument here would be a claim about a library rather than about the engine.
+            // Named `text =` and a never-null `style`, which is the shape `TextRenderer` calls
+            // Compose with and the only one this resolves against: Material declares a second
+            // `Text` overload over `AnnotatedString`, a nullable `style` makes the `String` one
+            // inapplicable, and the surviving candidate then reports the label's `String` against
+            // `AnnotatedString` as well. The engine's `?: LocalTextStyle.current` is load-bearing
+            // for that reason, not decoration — that parameter is a non-null `TextStyle` here.
             Text(
-                props[StatusBadgeSpec.label].orEmpty(),
-                style = props[StatusBadgeSpec.accent]?.let { scope.theme.textStyle(it) },
+                text = props[StatusBadgeSpec.label].orEmpty(),
+                style = props[StatusBadgeSpec.accent]?.let { scope.theme.textStyle(it) } ?: LocalTextStyle.current,
             )
-            Text((props[StatusBadgeSpec.unread] ?: 0).toString())
+            Text(text = (props[StatusBadgeSpec.unread] ?: 0).toString())
             scope.RenderSlot(node, StatusBadgeSpec.content)
         }
     }
