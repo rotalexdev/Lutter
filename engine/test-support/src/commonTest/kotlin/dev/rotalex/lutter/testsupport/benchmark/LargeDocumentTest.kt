@@ -3,6 +3,7 @@ package dev.rotalex.lutter.testsupport.benchmark
 import dev.rotalex.lutter.codegen.CodegenOptions
 import dev.rotalex.lutter.codegen.KotlinGenerator
 import dev.rotalex.lutter.codegen.planDocument
+import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.serialization.JsonDocumentCodec
 import dev.rotalex.lutter.testsupport.Golden
@@ -10,6 +11,7 @@ import dev.rotalex.lutter.testsupport.classpathGoldenSource
 import dev.rotalex.lutter.testsupport.generator.codegenCorpusView
 import dev.rotalex.lutter.testsupport.generator.firstByteDifference
 import dev.rotalex.lutter.testsupport.generator.firstDifference
+import dev.rotalex.lutter.testsupport.generator.renderDiagnostic
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -195,8 +197,9 @@ class LargeDocumentTest {
 
         assertTrue(
             emitted.files.files.isNotEmpty(),
-            "codegen emitted nothing for a ${composed.nodes}-node document; §29's row would be " +
-                "measuring a refusal",
+            "codegen emitted no file for a ${composed.nodes}-node document over ${composed.pages} " +
+                "page(s), so §29's codegen row would be measuring a refusal rather than codegen.\n" +
+                refusalOf(emitted.diagnostics, workload.analysis.diagnostics.size),
         )
         assertEquals(
             planned.files.size,
@@ -238,6 +241,44 @@ class LargeDocumentTest {
             } catch (failure: Throwable) {
                 fail("${body.scenario.name} ('${body.scenario.title}') failed on this target:\n$failure")
             }
+        }
+    }
+}
+
+/**
+ * Why an empty result is empty: the codes the generator refused with, and one located example each.
+ *
+ * §16.7 makes "no files" and "the generator said no" the same event, so the diagnostics are the
+ * only thing in a `CodegenResult` that tells a refusal apart from an absence — and the codegen row
+ * asserts on the files alone, which is how a refusal used to read as "emitted nothing" and cost a
+ * reader the one fact they needed. Nothing here is a count of anything the test then checks; it is
+ * the message, and it exists so the failure says what happened.
+ *
+ * [incoming] is how many diagnostics `generate` was handed, which it returns back alongside its
+ * own: the unfiltered list would name every analysis finding a second time, and the analysis
+ * findings are not what refused. `CodegenCorpus` drops the same prefix for the same reason.
+ *
+ * One example per code rather than one per finding, because the composer copies a single page
+ * until the table holds ten thousand rows — a refusal that page already carried arrives three
+ * hundred times over, and a message is not a dump. The per-code count beside each example is what
+ * keeps a one-example line from reading as a single occurrence.
+ */
+private fun refusalOf(diagnostics: List<Diagnostic>, incoming: Int): String {
+    val errors: List<Diagnostic> = diagnostics.drop(incoming).filter { it.severity == Severity.Error }
+    if (errors.isEmpty()) {
+        return "codegen recorded no error of its own and still wrote nothing; §16.7 leaves no " +
+            "other reading for an empty result than a breach in the generator"
+    }
+    val byCode: Map<String, List<Diagnostic>> = errors.groupBy { it.code.value }
+    return buildString {
+        append("codegen refused with ")
+        append(byCode.size)
+        append(" code(s) over ")
+        append(errors.size)
+        append(" finding(s):\n")
+        for ((code, found) in byCode) {
+            append("  ").append(code).append(" x").append(found.size).append('\n')
+            append("    ").append(renderDiagnostic(found.first())).append('\n')
         }
     }
 }
