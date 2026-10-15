@@ -26,10 +26,11 @@ jobs:
   fuzz:
     name: Fuzz batch of generated documents
     runs-on: ubuntu-latest
-    # Above conformance's 45 because this compiles two hundred documents where conformance
-    # compiles eleven, and neither the per-document cost nor the runner's is knowable from the
-    # repository. The elapsed time the step below reports is what tunes it.
-    timeout-minutes: 90
+    # Measured, not guessed: the batch itself is 693 ms for two hundred documents and the whole
+    # job is 142 s cold on a GitHub runner, so conformance's 45 is not the right comparison and
+    # thirty is ample. The step below still echoes its elapsed time, because a runner slow enough
+    # to reach thirty is a fact worth reading rather than a fact worth timing out on.
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v7
@@ -50,10 +51,15 @@ jobs:
       # Skiko's native library, so a render failing on a headless runner would be indistinguishable
       # from a compile failing. The claim is that the code compiles, and only a compile asserts it.
       #
-      # The count is echoed with the seed range and the elapsed time because it is a starting
-      # point and not a measured one: nobody can time two hundred generated documents from this
-      # repository. Read the first run's line, then set the count so the job fills the timeout
-      # without approaching it.
+      # The count is echoed with the seed range and the elapsed time on both the passing and the
+      # failing path, because a job that reports nothing about its own size is a job whose budget
+      # nobody can retune.
+      #
+      # The batch fails at 41 of 200 and that is the report, not a broken gate: `m3.TextField`
+      # declares an event its binding cannot receive, `m3.Button` declares one it has no handler
+      # for, and the printer refuses six `Value` variants it does not spell yet. All three are
+      # gaps in `:engine:codegen` and all three predate this job. The count stays green when the
+      # codegen gap closes and not one commit sooner.
       #
       # `if` rather than a bare command because GitHub runs bash with `-e`: a failing `gradle`
       # would abort the step and the echo below would never print, which is the one line this job
