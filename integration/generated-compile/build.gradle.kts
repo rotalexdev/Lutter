@@ -34,6 +34,12 @@ dependencies {
     // Skiko's native library, or every `runComposeUiTest` dies in `LibraryLoadException` on a
     // headless runner. uiTestJUnit4 pulls the test API, not the rendering backend.
     desktopTestImplementation(compose.desktop.currentOs)
+    // The generator behind PLAN §36's nightly fuzz batch. `BuiltinSchemaTest` asserts the
+    // precondition that makes the batch meaningful — the seeded generator reads a schema no
+    // engine module had to be taught — and the nightly then compiles what it produces. Test
+    // scope for the reason `ModuleGraphRules.ALLOWED_IN_TESTS` gives: the harness is fixtures,
+    // and nothing that ships may reach it.
+    commonTestImplementation(project(":engine:test-support"))
 }
 
 // Build-time edge to :tools:cli, not a code dependency: this configuration is outside the
@@ -45,6 +51,21 @@ val cliRuntime by configurations.creating {
 
 dependencies {
     add(cliRuntime.name, project(":tools:cli"))
+}
+
+// The same shape for PLAN §28.5's fuzz batch: a resolvable classpath for a forked JVM. Outside
+// the module-graph scanner the way `cliRuntime` above is, and deliberately: it is a build-time
+// edge and not a claim about what this module's code may reach. A source set's own classpath
+// cannot serve it either, because the batch's output is wired into this module's `commonMain`, so
+// a classpath carrying this module's compiled output would make the task depend on the
+// compilation it feeds.
+val fuzzRuntime by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
+dependencies {
+    add(fuzzRuntime.name, project(":engine:test-support"))
 }
 
 // PLAN §28.4's fixture task: runs the CLI over a fixtures directory, then emits the document
@@ -159,10 +180,67 @@ val generateNavigatingFixtures by tasks.register<GenerateFixtures>("generateNavi
     emitsRegistry.set(false)
 }
 
+// PLAN §28.5's nightly batch. `GenerateFixtures` forks once per hand-written document; this forks
+// once over the whole seed range, because a fork per seed would spend the count in process
+// start-ups alone. Its exit code is the verdict: recounting what it wrote here would be a second
+// answer to a question the entry point already answered, and the one that could disagree with it.
+abstract class GenerateFuzzBatch : DefaultTask() {
+    @get:Input
+    abstract val documentCount: Property<Int>
+
+    /** What each document's own subpackage hangs off; see `FuzzBatch.kt` for why it is per document. */
+    @get:Input
+    abstract val basePackage: Property<String>
+
+    @get:OutputDirectory
+    abstract val generated: DirectoryProperty
+
+    @get:Classpath
+    abstract val batchClasspath: ConfigurableFileCollection
+
+    @get:Inject
+    abstract val exec: ExecOperations
+
+    @TaskAction
+    fun run() {
+        val out = generated.get().asFile
+        out.mkdirs()
+        exec.javaexec {
+            classpath = batchClasspath
+            mainClass.set("dev.rotalex.lutter.testsupport.generator.FuzzBatchKt")
+            args(out.absolutePath, documentCount.get().toString(), basePackage.get())
+        }
+    }
+}
+
+val generateFuzzBatch by tasks.register<GenerateFuzzBatch>("generateFuzzBatch") {
+    group = "build"
+    description = "Generates seeded documents for the nightly fuzz batch."
+    generated.set(layout.buildDirectory.dir("generated/fuzz"))
+    batchClasspath.from(fuzzRuntime)
+    basePackage.set("dev.rotalex.lutter.fuzz")
+    // A starting point the first nightly run measures: nobody can time this from the repository,
+    // so the count is tuned from the elapsed time that run reports rather than guessed at here.
+    documentCount.set(
+        providers.gradleProperty("forge.fuzzCount").orElse("200").map { it.toInt() },
+    )
+}
+
+// `-Pforge.fuzzBatch=true` is the whole of the wiring, and it is read at configuration time
+// because a source directory is a configuration-time fact. Configuration-cache safe for the reason
+// `forge.warningsAsErrors` is: the property read is recorded as a build input and replayed.
+val fuzzBatchRequested = providers.gradleProperty("forge.fuzzBatch").orNull.toBoolean()
+
 kotlin {
     // Passing the task wires both the directory and the dependency: compilation waits for it.
     sourceSets.named("commonMain") {
         kotlin.srcDir(generateFixtures)
         kotlin.srcDir(generateNavigatingFixtures)
+        // On request only. Every document would otherwise land in
+        // `api/desktop/generated-compile.api` and make a pull request's `checkKotlinAbi` a
+        // function of the nightly's document count.
+        if (fuzzBatchRequested) {
+            kotlin.srcDir(generateFuzzBatch)
+        }
     }
 }
