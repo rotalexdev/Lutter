@@ -108,6 +108,21 @@ internal object RepositoryRoot {
     fun engineSourceDirectories(): List<Path> = childDirectoriesOf("engine").map { it.resolve("src") }
 
     /**
+     * Every module under `engine/`, by name, to its source root.
+     *
+     * The keyed form is what lets a rule classify modules instead of listing them: a name is
+     * the thing a rule's failure message needs and the thing a classification is keyed on.
+     */
+    fun engineModules(): Map<String, Path> =
+        childDirectoriesOf("engine").associate { it.fileName.toString() to it.resolve("src") }
+
+    /** The text of [fileName] in the module directory that owns [sourceRoot], or empty. */
+    fun buildFileText(sourceRoot: Path, fileName: String): String {
+        val file = sourceRoot.parent.resolve(fileName)
+        return if (Files.isRegularFile(file)) Files.readString(file) else ""
+    }
+
+    /**
      * Every `src/commonMain` directory in the repository.
      *
      * Matching the `src/commonMain` suffix rather than a module list is the point: a new
