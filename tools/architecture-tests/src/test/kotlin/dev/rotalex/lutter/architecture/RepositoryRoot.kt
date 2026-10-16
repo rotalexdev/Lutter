@@ -8,10 +8,16 @@ import java.util.stream.Collectors
 /**
  * One Kotlin source file, as the rules see it.
  *
- * The rules need three things from a file: its name, its text, and its import list. That is
- * all this holds.
+ * The rules need its name, its text, its import list and where it lives. That is all this holds.
+ *
+ * [relativePath] is the fourth because a rule keyed on which file is carrying a declaration needs
+ * to say *which*, and two modules can hold a file of the same name.
  */
-internal class KotlinFile(val name: String, val text: String) {
+internal class KotlinFile(
+    val name: String,
+    val text: String,
+    val relativePath: String,
+) {
 
     /**
      * Every imported name, in declaration order and without duplicates.
@@ -95,9 +101,22 @@ internal object RepositoryRoot {
                 // `filter` with a negated predicate, not `filterNot`: this is a
                 // java.util.stream.Stream, and `filterNot` is a Kotlin Iterable extension
                 // that a Stream does not have.
-                .filter { !it.toString().contains("/build/") && !it.toString().contains("/.gradle/") }
+                //
+                // `.git` is here for the one rule that scans the whole repository: a walk of it
+                // is slow, and nothing under it is source.
+                .filter { file ->
+                    val asText = file.toString()
+                    !asText.contains("/build/") && !asText.contains("/.gradle/") &&
+                        !asText.contains("/.git/")
+                }
                 .sorted(compareBy { it.toString() })
-                .map { file -> KotlinFile(file.fileName.toString(), Files.readString(file)) }
+                .map { file ->
+                    KotlinFile(
+                        file.fileName.toString(),
+                        Files.readString(file),
+                        path.relativize(file).toString(),
+                    )
+                }
                 .collect(Collectors.toList())
         } finally {
             files.close()
