@@ -40,7 +40,7 @@ class DiagnosticSorterTest {
     }
 
     @Test
-    fun `each field section 17.2 names decides before every field after it`() {
+    fun `each field the plan names decides before every field after it`() {
         for (index in FIELDS_17_2.indices) {
             val decisive: String = FIELDS_17_2[index]
             val lateAt: Diagnostic = probe { it == decisive }
