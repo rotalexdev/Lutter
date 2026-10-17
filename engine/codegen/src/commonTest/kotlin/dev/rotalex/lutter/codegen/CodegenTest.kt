@@ -254,6 +254,41 @@ class CodegenTest {
         assertEquals(listOf("codegen.no_binding"), result.diagnostics.map { it.code.value })
     }
 
+    /**
+     * Two pages, one screen file.
+     *
+     * Only the name is shared: a distinct id, a distinct route and a distinct tree each, because
+     * `planDocument` spells the path from the name alone and the path is the whole of what
+     * `refuseCollisions` reads. A second id is what makes the document two pages rather than one
+     * page listed twice, and a distinct route keeps the collision from being an accident of this
+     * fixture rather than the thing it is about.
+     */
+    @Test
+    fun `two pages sharing a name refuse, because their screens are one file`() {
+        val pages = mapOf(
+            PageId("p_home") to ResolvedPage(
+                PageId("p_home"),
+                "Home",
+                "home",
+                columnNode("n_1", emptyMap(), listOf(textNode("n_2", "Hi"))),
+            ),
+            PageId("p_home_again") to ResolvedPage(
+                PageId("p_home_again"),
+                "Home",
+                "home_again",
+                columnNode("n_3", emptyMap(), listOf(textNode("n_4", "Hi"))),
+            ),
+        )
+        val result = generate(ResolvedDocument(pages, emptyMap(), indexOf(pages), ResolvedTheme(null)))
+
+        assertTrue(result.files.files.isEmpty(), "got ${result.files.files.map { it.path }}")
+        assertEquals(listOf(DiagnosticCodes.CodegenNameCollision), result.diagnostics.map { it.code })
+        // No page, node or property to point at: the collision is between two entries of the plan,
+        // and §17.2's seven fields all address something inside a document. An empty location is
+        // the finding saying so rather than blaming one of the two pages for the other.
+        assertEquals(DiagnosticLocation(), result.diagnostics.single().location)
+    }
+
     @Test
     fun `the environment a handler closed over is a parameter of the screen`() {
         val steps: List<ActionStep> = listOf(navigateStep(), snackbarStep(PropertyValue.Const(Value.Str("Saved"))))

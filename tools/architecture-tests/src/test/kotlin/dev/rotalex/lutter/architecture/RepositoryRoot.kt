@@ -163,6 +163,44 @@ internal object RepositoryRoot {
         }
     }
 
+    private const val PLAIN_TEST_SOURCE_SET: String = "test"
+    private const val TEST_SOURCE_SET_SUFFIX: String = "Test"
+
+    /**
+     * Every `src/<name>Test` directory in the repository, and every `src/test`.
+     *
+     * Matching the directory name rather than listing the source sets is the whole point:
+     * `commonTest`, `desktopTest` and the `androidHostTest` that `withHostTest {}` configures are
+     * all found by it, and so is whatever a future module adds — with nothing here to update.
+     * `test` is the JVM modules' own spelling, `tools/architecture-tests` among them, and it is
+     * matched because a rule that ignored it would report a code as untested on the strength of
+     * where its test happens to live.
+     */
+    fun testSourceDirectories(): List<Path> {
+        // java.util.stream.Stream, for the same reason as `commonMainDirectories` above.
+        val candidates = Files.walk(path)
+        return try {
+            candidates
+                .filter { Files.isDirectory(it) }
+                .filter { isTestSourceSet(it) }
+                .filter { it.parent?.fileName?.toString() == "src" }
+                .filter { !it.toString().contains("/build/") && !it.toString().contains("/.gradle/") }
+                // `.git` because this is the second rule to walk the whole repository, and the
+                // first one's note about a walk of it being slow was written before this one.
+                .filter { !it.toString().contains("/.git/") }
+                .sorted(compareBy { it.toString() })
+                .collect(Collectors.toList())
+        } finally {
+            candidates.close()
+        }
+    }
+
+    /** Whether [directory]'s own name is one this build gives to a test source set. */
+    private fun isTestSourceSet(directory: Path): Boolean {
+        val name: String = directory.fileName?.toString() ?: return false
+        return name == PLAIN_TEST_SOURCE_SET || name.endsWith(TEST_SOURCE_SET_SUFFIX)
+    }
+
     private fun childDirectoriesOf(relativeDirectory: String): List<Path> {
         val parent = path.resolve(relativeDirectory)
         if (!Files.isDirectory(parent)) return emptyList()
