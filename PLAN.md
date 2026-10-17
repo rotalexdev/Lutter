@@ -2603,8 +2603,8 @@ Tests (`commonTest`): `IdsTest`, `DecimalTest`, `ValueFactoryTest`, `NodeTableTe
 |---|---|
 | `:engine:test-support` | `Golden.kt`, `FixtureLoader.kt`, `TestSchemas.kt` (toy pack), `SampleDocuments.kt`, `FakeActionEnv.kt`, `DocumentGenerator.kt` (property-based Arb), `Assertions.kt` |
 | `:tools:cli` | `Main.kt`, `commands/ValidateCommand.kt`, `GenerateCommand.kt`, `MigrateCommand.kt`, `DiffCommand.kt`, `FileSink.kt`, `Output.kt` |
-| `:tools:architecture-tests` | `NoComposeInPureModulesTest.kt`, `NoPlatformApisInCommonMainTest.kt`, `NoJvmOnlyCollectionMembersTest.kt`, `NoImplicitSerialNameTest.kt`, `NoComponentWhenTest.kt`, `NoUntypedStringMapTest.kt`, `NoUncanonicalFloatTest.kt`, `NoMutableObjectStateTest.kt`, `NoIllegalJvmNameTest.kt`, `SourceRules.kt`, `RepositoryRoot.kt` |
-| `:integration:generated-compile` | `build.gradle.kts` (generate task), `src/commonTest/.../ConformanceTest.kt`, `ExpressionCorpusTest.kt`, `SemanticsDump.kt`, `fixtures/*.json`, `src/desktopTest/.../PixelCompareTest.kt` |
+| `:tools:architecture-tests` | `NoComposeInPureModulesTest.kt`, `NoPlatformApisInCommonMainTest.kt`, `NoJvmOnlyCollectionMembersTest.kt`, `NoImplicitSerialNameTest.kt`, `NoComponentWhenTest.kt`, `ExpectActualOnlyWhereAllowedTest.kt`, `NoUntypedStringMapTest.kt`, `NoUncanonicalFloatTest.kt`, `NoMutableObjectStateTest.kt`, `NoIllegalJvmNameTest.kt`, `SourceRules.kt`, `RepositoryRoot.kt` |
+| `:integration:generated-compile` | `build.gradle.kts` (generate + fuzz-batch tasks), `src/commonTest/.../ConformanceHarness.kt`, `FixtureValidationTest.kt`, `thirdparty/*`, `src/desktopTest/.../ConformanceTest.kt`, `ExpressionCorpusTest.kt`, `fixtures/*.json`, `fixtures-navigating/*.json` |
 | `:samples:desktop-preview` | `Main.kt` (window, file watcher, `UiScreen` host, diagnostics panel — a viewer, not an editor) |
 
 ---
@@ -2743,7 +2743,7 @@ The implementation must **not** become any of the following (each has an automat
 | Domain modules depending on Compose | Module graph + Konsist |
 | Editor owning the document | Only `DocumentController` mutates; editor holds ids |
 | String-concatenated Kotlin generation | Only `Kt*` IR + printer; `LiteralPrinter` for escapes; review rule |
-| `Map<String, Any>` as domain data | Konsist `NoRawMapAnyTest` |
+| `Map<String, Any>` as domain data | `NoUntypedStringMapTest` (a text scanner — §23.4's Konsist was removed) |
 | Platform APIs (`java.*`, `android.*`) in `commonMain` | Konsist + canary targets |
 | Duplicated runtime and codegen representations | Both consume `ResolvedDocument` only |
 | Hundreds of Gradle modules | Module list is a reviewed table (§22) |
@@ -2771,7 +2771,7 @@ The MVP is complete only when **all** items are demonstrably true (CI evidence i
 
 - [ ] A document can be created programmatically (DSL) and equals the JSON-decoded document for the same content (`DslEqualsJsonTest`).
 - [ ] Components can be registered via `SchemaContribution` + `RuntimeContribution`; a component defined **only in a test module** passes validation, rendering, codegen and serialization without any change to engine modules (`ThirdPartyComponentTest`).
-- [ ] Properties are represented in a typed manner (`Value`/`TypeRef`/`PropertySpec`); Konsist finds no `Map<String, Any>` in engine code (`NoRawMapAnyTest`).
+- [ ] Properties are represented in a typed manner (`Value`/`TypeRef`/`PropertySpec`); no `Map<String, Any>` in engine code (`NoUntypedStringMapTest`).
 - [ ] The document serializes to canonical JSON and deserializes back to an equal document; `encode(decode(encode(d))) == encode(d)` for ≥ 1,000 generated documents (`RoundTripPropertyTest`).
 - [ ] Schema migrations work: fixtures `v1`…`vCURRENT` in `resources/migrations` migrate to the golden current form; future versions are rejected with `UnsupportedFutureVersion` (`MigrationTests`).
 - [ ] The document validates through all eight passes; every code in §17.3 has a positive and a negative test; diagnostics are sorted deterministically (`DiagnosticCatalogTest`).
@@ -2783,7 +2783,7 @@ The MVP is complete only when **all** items are demonstrably true (CI evidence i
 - [ ] Generated code is byte-identical across runs, across operating systems, and across the engine targets (Desktop, Android) for all golden fixtures (`DeterminismTest`, `check`).
 - [ ] Permutation tests (different construction orders) yield identical bytes/diagnostics/generated files (`PermutationTest`).
 - [ ] Generated code **compiles** for every conformance fixture as a real Gradle module compile, and the nightly fuzz batch of ≥ 200 random valid documents compiles with zero errors (`:integration:generated-compile:desktopTest`, nightly job).
-- [ ] Runtime and generated code have the same semantics: semantics dumps equal for all conformance fixtures, interaction scripts produce equal dumps, and Desktop pixel comparison has zero difference (`ConformanceTest`, `PixelCompareTest`).
+- [ ] Runtime and generated code have the same semantics: semantics dumps equal for all conformance fixtures, interaction scripts produce equal dumps, and Desktop pixel comparison has zero difference (`ConformanceTest` — its pixel row compares raw `IntArray` bytes over every fixture).
 - [ ] The expression corpus (≥ 150 cases) passes in the interpreter and in compiled generated code (`ExpressionCorpusTest`).
 - [ ] Coverage checks pass: every `ComponentSpec` has a renderer and a valid binding; every enum entry has a runtime mapping and Kotlin symbol; every `FunctionSpec` has an impl; every `ActionSpec` has a handler and an emitter (`CoverageTests`).
 - [ ] `apply(patch.inverse(), apply(patch, d)) == d` for all commands over ≥ 1,000 generated documents (`PatchInversePropertyTest`); `apply(diff(a, b), a) == b`.
