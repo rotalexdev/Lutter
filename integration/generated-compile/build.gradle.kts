@@ -180,6 +180,214 @@ val generateNavigatingFixtures by tasks.register<GenerateFixtures>("generateNavi
     emitsRegistry.set(false)
 }
 
+// PLAN §36.1's `CodegenGoldenTest`, and the only thing that can write its goldens: this module
+// compiles what the generator emits, which proves the output is valid Kotlin and nothing about
+// whether it is the output anybody agreed to. A golden needs a writer, and the writer is a task —
+// forked over `:tools:cli` exactly as `GenerateFixtures` forks it — because the only way to learn
+// the bytes is to have the engine produce them, and running the engine by hand is not a step a
+// review can reproduce. `CodegenGoldenTest` compares against whatever this last wrote.
+//
+// Forked rather than in-process for the reason `GenerateFixtures` is: the golden has to be the
+// bytes the shipped command emits, and an in-process build script would have to re-assemble
+// decode, analyze and generate out of the engine jars — a second copy of `GenerateCommand` that
+// could agree with it today and drift from it tomorrow, and a golden that then pins the copy.
+//
+// Its output is a source-tree path, unlike anything else in this build: `classpathGoldenSource`
+// reads a golden off the classpath, and the classpath resource root Gradle already publishes is
+// `src/commonTest/resources`. The goldens are resources, so they are not wired into a source set.
+abstract class GenerateCodegenGoldens : DefaultTask() {
+    @get:InputDirectory
+    abstract val fixtures: DirectoryProperty
+
+    @get:InputDirectory
+    abstract val navigatingFixtures: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val goldens: DirectoryProperty
+
+    /**
+     * Where the CLI writes before it is read back.
+     *
+     * A real output rather than a temp directory so Gradle owns its lifetime, and emptied per
+     * fixture so a file a previous run left behind cannot be read as one this run generated.
+     */
+    @get:OutputDirectory
+    abstract val staged: DirectoryProperty
+
+    @get:Classpath
+    abstract val cliClasspath: ConfigurableFileCollection
+
+    /** The prefix `GenerateFixtures` hands the CLI; the golden is that command's output verbatim. */
+    @get:Input
+    abstract val packagePrefix: Property<String>
+
+    @get:Inject
+    abstract val exec: ExecOperations
+
+    @TaskAction
+    fun run() {
+        val goldensDir = goldens.get().asFile
+        goldensDir.mkdirs()
+        val stageRoot = staged.get().asFile
+        for ((id, document) in documents()) {
+            val out = File(stageRoot, id)
+            out.deleteRecursively()
+            out.mkdirs()
+            exec.javaexec {
+                classpath = cliClasspath
+                mainClass.set("dev.rotalex.lutter.cli.MainKt")
+                args("generate", document.absolutePath, "--out", out.absolutePath, "--package", packageName(id))
+            }
+            val files = generatedIn(out)
+            check(files.isNotEmpty()) { "Fixture '$id' generated no files, so there is nothing to pin" }
+            val golden = goldenText(files)
+            checkSanctions(id, files, golden)
+            File(goldensDir, "${id}.golden").writeText(golden, Charsets.UTF_8)
+            logger.lifecycle("generateCodegenGoldens: wrote ${id}.golden (${golden.length} characters)")
+        }
+    }
+
+    /**
+     * Every fixture on disk, from both directories, in a stable order and without a duplicate.
+     *
+     * Both directories rather than one because `GenerateFixtures` reads both and there is no
+     * directory holding all eleven: the navigating fixture is separate because its screen takes a
+     * receiver the shared registry cannot supply. Two same-named fixtures across them would have
+     * the second silently overwrite the first's golden, so the collision is refused here.
+     */
+    private fun documents(): List<Pair<String, File>> {
+        val found = jsonIn(fixtures.get().asFile) + jsonIn(navigatingFixtures.get().asFile)
+        val ids = found.map { (id, _) -> id }
+        check(ids.size == ids.toSet().size) { "The two fixture directories hold the same fixture: $ids" }
+        return found.sortedBy { (id, _) -> id }
+    }
+
+    /**
+     * `*.json` directly in [directory], and nothing below it.
+     *
+     * Non-recursive with the extension filter, which is `GenerateFixtures`' own line: the two
+     * tasks have to see the same eleven documents, and the way to guarantee that is to spell the
+     * selection the same way twice rather than to agree about it.
+     */
+    private fun jsonIn(directory: File): List<Pair<String, File>> {
+        val files: List<File> = directory.listFiles { file -> file.extension == "json" }
+            ?.sortedBy { it.name } ?: emptyList()
+        return files.map { it.nameWithoutExtension to it }
+    }
+
+    /** The same derivation `GenerateFixtures` uses, and `CodegenGoldenTest` spells without. */
+    private fun packageName(id: String): String =
+        packagePrefix.get() + id.replace(Regex("[^A-Za-z0-9_]"), "_")
+
+    /**
+     * What the CLI wrote under [root], as `path to text`, in the order `GeneratedFiles` sorts them.
+     *
+     * The paths are `/`-joined and the list is sorted on the path alone, which is exactly what
+     * `GeneratedFiles.files` does — so the golden's file order **is** that sort. `CodegenGoldenTest`
+     * says the same thing from the other side, and both say it because a change to the sort would
+     * silently reorder every golden in the repository rather than fail one.
+     */
+    private fun generatedIn(root: File, prefix: String = ""): List<Pair<String, String>> {
+        val found = mutableListOf<Pair<String, String>>()
+        val children: List<File> = root.listFiles()?.sortedBy { it.name } ?: emptyList()
+        for (child in children) {
+            val path = if (prefix.isEmpty()) child.name else "$prefix/${child.name}"
+            if (child.isDirectory) {
+                found += generatedIn(child, path)
+            } else {
+                found += path to child.readText(Charsets.UTF_8)
+            }
+        }
+        return found.sortedBy { (path, _) -> path }
+    }
+
+    /** The golden format: every file in sort order, each behind its own marker line. */
+    private fun goldenText(files: List<Pair<String, String>>): String = buildString {
+        for ((path, content) in files) {
+            appendLine(MARKER + path)
+            append(content)
+        }
+    }
+
+    /**
+     * What has to hold of every golden before it is written.
+     *
+     * `CanonicalJsonGoldenTest` keeps the committed file honest against the codec by re-reading
+     * the committed bytes; these are the same move against the generator, and every one is a
+     * property that makes the comparison mean something rather than a style rule. Its sorted-object
+     * check becomes the file order below and its canonical-number check becomes the narrower rule
+     * near the bottom — a carriage return has no counterpart there to copy, which is why this one
+     * is only shaped like the other two.
+     */
+    private fun checkSanctions(id: String, files: List<Pair<String, String>>, golden: String) {
+        val paths = files.map { (path, _) -> path }
+        check(paths == paths.sorted()) {
+            "Fixture '$id' emitted files out of path order: $paths. The golden's order IS that sort."
+        }
+        val unterminated = files.filter { (_, content) -> !content.endsWith("\n") }.map { (path, _) -> path }
+        check(unterminated.isEmpty()) {
+            "Fixture '$id' emitted $unterminated, which do not end in a newline, so the next file's " +
+                "marker would be written onto their last line"
+        }
+        // The marker cannot appear inside generated Kotlin: every line the printer breaks is a
+        // header comment, a package or import line, an annotation, a declaration that opens with
+        // `public`/`private`/`suspend`, an indented continuation, or a closing brace — and the
+        // only document-authored text that can reach output goes through `LiteralPrinter.escape`,
+        // which writes every newline as two characters, so no document string opens a line. This
+        // check is the same claim made mechanical, so a future emitter that breaks it fails where
+        // it is introduced rather than as an unreadable golden.
+        val clashing = files.filter { (_, content) -> content.lineSequence().any { it.startsWith(MARKER) } }
+        check(clashing.isEmpty()) {
+            "Fixture '$id' emitted ${clashing.map { (path, _) -> path }}, which hold a line beginning " +
+                "'$MARKER' — the marker this format frames files with"
+        }
+        check('\r' !in golden) {
+            "Golden for '$id' holds a carriage return. Golden bytes are compared verbatim, so a " +
+                "CRLF checkout would fail every row of this test for a reason no generator change explains."
+        }
+        // The canonical-number rule, not the canonical-number regex. `CanonicalJsonGoldenTest`
+        // matches `-?\d+(\.\d{1,4})?` against a whole JSON number, which generated Kotlin cannot
+        // use: a colour is `0xFF00695C` and a Long is `9007199254740993L`, and both are numbers a
+        // document legitimately writes. What §10.6 forbids is narrower and is what is checked — a
+        // widened Float, and the scientific notation `Double.toString()` reaches for. Both are the
+        // bug `LiteralPrinter.floatText` exists because it shipped.
+        val widened: List<String> = WIDENED_FLOAT.findAll(golden).map { it.value }.toList()
+        val exponents: List<String> = EXPONENT.findAll(golden).map { it.value }.toList()
+        val nonCanonical: List<String> = (widened + exponents).distinct()
+        check(nonCanonical.isEmpty()) {
+            "Golden for '$id' holds ${nonCanonical.size} non-canonical numbers: $nonCanonical"
+        }
+    }
+
+    private companion object {
+        /** Shared with `CodegenGoldenTest` by spelling, because `test-support` cannot be a build input. */
+        const val MARKER: String = "### file: "
+
+        /** More than §5.4's four fractional digits: `0.10000000149011612` and not `0.1`. */
+        val WIDENED_FLOAT: Regex = Regex("""\d+\.\d{5,}""")
+
+        /**
+         * Scientific notation, anchored on a word boundary so a hex literal is not read as one:
+         * in `0xFF00E5` only the leading `0` follows a word boundary, and what comes after it is
+         * `x`, not a digit.
+         */
+        val EXPONENT: Regex = Regex("""\b\d+\.?\d*E[+-]?\d""")
+    }
+}
+
+val generateCodegenGoldens by tasks.register<GenerateCodegenGoldens>("generateCodegenGoldens") {
+    group = "build"
+    description = "Writes the codegen goldens CodegenGoldenTest compares against, for all eleven " +
+        "fixtures. Run it and commit the result after any generator change: " +
+        "./gradlew :integration:generated-compile:generateCodegenGoldens"
+    fixtures.set(layout.projectDirectory.dir("fixtures"))
+    navigatingFixtures.set(layout.projectDirectory.dir("fixtures-navigating"))
+    goldens.set(layout.projectDirectory.dir("src/commonTest/resources/goldens"))
+    staged.set(layout.buildDirectory.dir("tmp/codegen-goldens"))
+    cliClasspath.from(cliRuntime)
+    packagePrefix.set("dev.rotalex.lutter.generated.")
+}
+
 // PLAN §28.5's nightly batch. `GenerateFixtures` forks once per hand-written document; this forks
 // once over the whole seed range, because a fork per seed would spend the count in process
 // start-ups alone. Its exit code is the verdict: recounting what it wrote here would be a second
