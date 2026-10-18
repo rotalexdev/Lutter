@@ -1248,16 +1248,51 @@ public final class dev/rotalex/lutter/model/doc/UiDocument$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class dev/rotalex/lutter/model/dsl/DataModelScope {
+	public final fun field (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;)V
+	public final fun field-GGxHel8 (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;)V
+}
+
 public final class dev/rotalex/lutter/model/dsl/DocumentBuilderKt {
-	public static final fun buildDocument-npGyZi4 (Ljava/lang/String;Ldev/rotalex/lutter/model/ids/IdGenerator;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ldev/rotalex/lutter/model/doc/UiDocument;
-	public static synthetic fun buildDocument-npGyZi4$default (Ljava/lang/String;Ldev/rotalex/lutter/model/ids/IdGenerator;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ldev/rotalex/lutter/model/doc/UiDocument;
+	public static final fun buildDocument-TM151qE (Ljava/lang/String;Ldev/rotalex/lutter/model/ids/IdGenerator;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ldev/rotalex/lutter/model/doc/UiDocument;
+	public static synthetic fun buildDocument-TM151qE$default (Ljava/lang/String;Ldev/rotalex/lutter/model/ids/IdGenerator;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ldev/rotalex/lutter/model/doc/UiDocument;
 }
 
 public final class dev/rotalex/lutter/model/dsl/DocumentScope {
+	public final fun appState (Ljava/util/List;)V
 	public final fun component-0witn48 (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;)Ljava/lang/String;
 	public static synthetic fun component-0witn48$default (Ldev/rotalex/lutter/model/dsl/DocumentScope;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/String;
+	public final fun dataModel-Qfgg8io (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/String;
+	public static synthetic fun dataModel-Qfgg8io$default (Ldev/rotalex/lutter/model/dsl/DocumentScope;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/String;
+	public final fun dataModel-ZiN4X1g (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/String;
+	public static synthetic fun dataModel-ZiN4X1g$default (Ldev/rotalex/lutter/model/dsl/DocumentScope;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/String;
+	public final fun enumType-pUNZKsA (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/String;
+	public static synthetic fun enumType-pUNZKsA$default (Ldev/rotalex/lutter/model/dsl/DocumentScope;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/String;
+	public final fun enumType-xZXY2YI (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/String;
+	public static synthetic fun enumType-xZXY2YI$default (Ldev/rotalex/lutter/model/dsl/DocumentScope;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/String;
+	public final fun hostFunction (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;ZLkotlin/jvm/functions/Function1;)V
+	public static synthetic fun hostFunction$default (Ldev/rotalex/lutter/model/dsl/DocumentScope;Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
 	public final fun page-ciVAyXI (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;)Ljava/lang/String;
 	public static synthetic fun page-ciVAyXI$default (Ldev/rotalex/lutter/model/dsl/DocumentScope;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/String;
+	public final fun resource-7Hpbir4 (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ResourceKind;Lkotlin/jvm/functions/Function1;)Ljava/lang/String;
+	public static synthetic fun resource-7Hpbir4$default (Ldev/rotalex/lutter/model/dsl/DocumentScope;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ResourceKind;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/String;
+	public final fun resource-mCDXyS0 (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ResourceKind;Lkotlin/jvm/functions/Function1;)Ljava/lang/String;
+	public static synthetic fun resource-mCDXyS0$default (Ldev/rotalex/lutter/model/dsl/DocumentScope;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ResourceKind;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/String;
+	public final fun theme-TC3JjPs (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ThemeBase;Lkotlin/jvm/functions/Function1;)Ljava/lang/String;
+	public static synthetic fun theme-TC3JjPs$default (Ldev/rotalex/lutter/model/dsl/DocumentScope;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ThemeBase;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/String;
+	public final fun theme-d3pKhsQ (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ThemeBase;Lkotlin/jvm/functions/Function1;)Ljava/lang/String;
+	public static synthetic fun theme-d3pKhsQ$default (Ldev/rotalex/lutter/model/dsl/DocumentScope;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ThemeBase;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/model/dsl/EnumTypeScope {
+	public final fun entry (Ljava/lang/String;)V
+}
+
+public final class dev/rotalex/lutter/model/dsl/HostFunctionScope {
+	public final fun param (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Z)V
+	public static synthetic fun param$default (Ldev/rotalex/lutter/model/dsl/HostFunctionScope;Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;ZILjava/lang/Object;)V
+	public final fun param-S0GDAjg (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Z)V
+	public static synthetic fun param-S0GDAjg$default (Ldev/rotalex/lutter/model/dsl/HostFunctionScope;Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;ZILjava/lang/Object;)V
 }
 
 public final class dev/rotalex/lutter/model/dsl/NodeScope {
@@ -1285,6 +1320,24 @@ public final class dev/rotalex/lutter/model/dsl/PageScope {
 	public final fun node-iBO9MYU (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/String;
 	public static synthetic fun node-iBO9MYU$default (Ldev/rotalex/lutter/model/dsl/PageScope;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ljava/lang/String;
 	public final fun root-D9n_bC4 (Ljava/lang/String;)V
+}
+
+public final class dev/rotalex/lutter/model/dsl/ResourceScope {
+	public final fun variant (Ljava/util/Set;Ldev/rotalex/lutter/model/doc/ResourceSource;)V
+}
+
+public final class dev/rotalex/lutter/model/dsl/ThemeScope {
+	public final fun color-HHGRWCg (Ljava/lang/String;ILdev/rotalex/lutter/model/value/ColorArgb;)V
+	public static synthetic fun color-HHGRWCg$default (Ldev/rotalex/lutter/model/dsl/ThemeScope;Ljava/lang/String;ILdev/rotalex/lutter/model/value/ColorArgb;ILjava/lang/Object;)V
+	public final fun color-MjRyPNE (Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ColorSpec;)V
+	public final fun custom (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value;)V
+	public final fun custom-7q2ymmk (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value;)V
+	public final fun dimension (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value$Dp;)V
+	public final fun dimension-7q2ymmk (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value$Dp;)V
+	public final fun shape (Ljava/lang/String;Ljava/util/Map;)V
+	public final fun shape-VtlJLNQ (Ljava/lang/String;Ljava/util/Map;)V
+	public final fun typography (Ljava/lang/String;Ljava/util/Map;)V
+	public final fun typography-eOWy2eI (Ljava/lang/String;Ljava/util/Map;)V
 }
 
 public final class dev/rotalex/lutter/model/expr/BinaryOp : java/lang/Enum {
