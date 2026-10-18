@@ -3,6 +3,10 @@ package dev.rotalex.lutter.serialization
 import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
 import dev.rotalex.lutter.model.doc.ParamDecl
+import dev.rotalex.lutter.model.doc.Persistence
+import dev.rotalex.lutter.model.doc.Qualifier
+import dev.rotalex.lutter.model.doc.ResourceKind
+import dev.rotalex.lutter.model.doc.ResourceSource
 import dev.rotalex.lutter.model.doc.SlotDecl
 import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.doc.UiDocument
@@ -18,7 +22,10 @@ import dev.rotalex.lutter.model.ids.ParamName
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.ids.StateId
+import dev.rotalex.lutter.model.ids.ThemeId
+import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TypeRef
+import dev.rotalex.lutter.model.value.ColorArgb
 import dev.rotalex.lutter.model.value.Value
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -52,15 +59,35 @@ import kotlinx.serialization.json.JsonObject
  * documents can be equal while a writer emits their fields in an order that depends on a hash
  * map's iteration order.
  *
- * ### What the fixture cannot hold
+ * ### What the fixture holds, and why that is not the same as holding more
  *
- * The fixture declares state on a page and not on the document, and that is a gap in the DSL
- * rather than a cut in coverage: `buildDocument` takes no parameter for any of the seven
- * document-level fields the document record declares, so a document carrying an `appState` cannot
- * be written with the builder at all. Putting one in the envelope would have failed the equality
- * by construction, or — worse — passed by reaching past the builder for `UiDocument.copy`, which
- * would leave the row asserting agreement about a shape no caller can produce. The page state
- * below is the same `StateDecl` on the same wire, reached through a parameter the builder has.
+ * The fixture carries every one of the twelve fields `UiDocument` declares, which it could not do
+ * until the aggregate calls existed: `buildDocument` took no parameter for the seven
+ * document-level fields and the scope had no call for any of them, so a document carrying an app
+ * state, a theme or a resource was unreachable through the builder at all. The alternative was
+ * reaching past it for a `UiDocument.copy`, which would have left the first row passing while
+ * asserting agreement about a shape no caller can produce — the one outcome here worth refusing.
+ *
+ * The seven are spelled out rather than assumed, field by field against each record's own
+ * declaration, because a fixture that grows a key without a record behind it is the way a
+ * coverage claim goes stale without a red test. What each one buys:
+ *
+ *  * `appState` — a `StateDecl` with `persistence` set, so the sealed union reaches the wire as
+ *    well as the list, and page state stays on the page so the two scopes are not confused.
+ *  * `dataModels` — one type with two fields and a second with none, so a defaulted `fields` and
+ *    a present one are both written; and the host function below returns a `TypeRef.Object` naming
+ *    the first, so the namespace the two type maps share is exercised by something that resolves.
+ *  * `enums` — an entry list, since `EnumTypeDecl.entries` is the only field an enum has.
+ *  * `hostFunctions` — two, one carrying `suspend` and one not, and **both with a non-null
+ *    return**: `returns` has no default, so a document that left it out would be refused, and
+ *    the canonical `Json` writes no explicit nulls, so one that set it to null would encode to a
+ *    key it cannot read back.
+ *  * `themes` — one theme filling all five token maps, with `base` left at its default so a
+ *    defaulted field is omitted rather than written.
+ *  * `theme` — the selection naming it, and the one of the seven that a parameter of `buildDocument`
+ *    carries; the six above are calls for.
+ *  * `resources` — one resource with a qualified and an unqualified variant, so both the set and
+ *    the empty set are on the wire.
  *
  * ### Why the envelope is text and the siblings' are not
  *
@@ -82,9 +109,11 @@ class DslEqualsJsonTest {
      *
      * The shape assertions come first and are not decoration. An envelope that decoded to an
      * empty or a half-empty document would make the equality below true for a reason that has
-     * nothing to do with the DSL, so the fixture's size is pinned before the comparison rather
-     * than after it: two pages, nine nodes, the component declaration, and one node's prop key
-     * read back out of the decoded table.
+     * nothing to do with the DSL, so the fixture's shape is pinned before the comparison rather
+     * than after it: two pages, nine nodes, the component declaration, one node's prop key read
+     * back out of the decoded table, and one key per declaration on each of the seven
+     * document-level fields. The last group is what this row was unable to ask before the
+     * builder had a way to write any of them, so it is the part that carries the claim.
      */
     @Test
     fun `the hand-written envelope and the DSL build the same document`() {
@@ -103,6 +132,42 @@ class DslEqualsJsonTest {
             setOf("spacing"),
             handDecoded.nodes.require(NodeId("n_home_root")).props.keys.map { it.value }.toSet(),
             "the home page root lost its prop:\n$HAND_WRITTEN_ENVELOPE",
+        )
+
+        assertEquals(
+            listOf("s_session"),
+            handDecoded.appState.map { it.id.value },
+            "the fixture lost its app state:\n$HAND_WRITTEN_ENVELOPE",
+        )
+        assertEquals(
+            setOf("d_account", "d_empty"),
+            handDecoded.dataModels.keys.map { it.value }.toSet(),
+            "the fixture lost a data model:\n$HAND_WRITTEN_ENVELOPE",
+        )
+        assertEquals(
+            setOf("Role"),
+            handDecoded.enums.keys.map { it.value }.toSet(),
+            "the fixture lost its enum type:\n$HAND_WRITTEN_ENVELOPE",
+        )
+        assertEquals(
+            listOf("fetchAccount", "logEvent"),
+            handDecoded.hostFunctions.map { it.name },
+            "the fixture lost a host function:\n$HAND_WRITTEN_ENVELOPE",
+        )
+        assertEquals(
+            setOf("t_brand"),
+            handDecoded.themes.keys.map { it.value }.toSet(),
+            "the fixture lost its theme:\n$HAND_WRITTEN_ENVELOPE",
+        )
+        assertEquals(
+            "t_brand",
+            handDecoded.theme?.value,
+            "the fixture lost its theme selection:\n$HAND_WRITTEN_ENVELOPE",
+        )
+        assertEquals(
+            setOf("r_greeting"),
+            handDecoded.resources.keys.map { it.value }.toSet(),
+            "the fixture lost its resource:\n$HAND_WRITTEN_ENVELOPE",
         )
 
         val dsl = dslBuilt()
@@ -217,6 +282,12 @@ class DslEqualsJsonTest {
         append('\n')
         append("components    ").append(document.components).append('\n')
         append("appState      ").append(document.appState).append('\n')
+        append("dataModels    ").append(document.dataModels).append('\n')
+        append("enums         ").append(document.enums).append('\n')
+        append("hostFunctions ").append(document.hostFunctions).append('\n')
+        append("themes        ").append(document.themes).append('\n')
+        append("theme         ").append(document.theme).append('\n')
+        append("resources     ").append(document.resources).append('\n')
         append("nodes\n")
         for (id in document.nodes.ids()) {
             append("  ").append(document.nodes.require(id)).append('\n')
@@ -244,11 +315,16 @@ class DslEqualsJsonTest {
      * without counting. The two are kept deliberately independent rather than shared through a
      * constant: a single source for the ids would make the two sides agree by construction, and
      * the row would stop being able to fail.
+     *
+     * The seven document-level declarations are the ones the string overloads write, because the
+     * typed overloads are what `:engine:model`'s `DslTest` compiles; between the two files every
+     * call this DSL offers is reached by a test.
      */
     private fun dslBuilt(): UiDocument = buildDocument(
         name = "HandWritten",
         packageName = "com.example.dual",
         startPage = PageId("p_home"),
+        theme = ThemeId("t_brand"),
     ) {
         page(name = "Home", route = "/home", id = PageId("p_home"), state = listOf(LABEL_STATE)) {
             node("core.Column", id = NodeId("n_home_root")) {
@@ -309,6 +385,33 @@ class DslEqualsJsonTest {
                 )
             }
         }
+        appState(listOf(SESSION_STATE))
+        dataModel("d_account", "Account") {
+            field("id", TypeRef.Str)
+            field("age", TypeRef.Nullable(TypeRef.Int32))
+        }
+        dataModel("d_empty", "Empty")
+        enumType("Role", "Role") {
+            entry("Admin")
+            entry("Guest")
+        }
+        hostFunction("fetchAccount", TypeRef.Object(TypeId("d_account"))) {
+            param("accountId", TypeRef.Str)
+        }
+        hostFunction("logEvent", TypeRef.Bool, suspend = true) {
+            param("message", TypeRef.Str)
+        }
+        theme("t_brand", "Brand") {
+            color("primary", ColorArgb.parse("#FF6200EE"), ColorArgb.parse("#FFBB86FC"))
+            typography("body", mapOf(PropertyKey("fontSize") to Value.Sp(14f)))
+            shape("small", mapOf(PropertyKey("radius") to Value.Dp(4f)))
+            dimension("md.spacing.medium", Value.Dp(16f))
+            custom("brand.accent", Value.Color(ColorArgb.parse("#FFFFBB33")))
+        }
+        resource("r_greeting", "Greeting", ResourceKind.String) {
+            variant(setOf(Qualifier.Locale("en")), ResourceSource.Text("Hello"))
+            variant(emptySet(), ResourceSource.Text("Hola"))
+        }
     }
 }
 
@@ -326,6 +429,21 @@ private val ENABLED_STATE: StateDecl = StateDecl(
     name = "enabled",
     type = TypeRef.Bool,
     initial = Value.Bool(true),
+)
+
+/**
+ * App-scoped state, and the one declaration here that carries every defaulted field a value.
+ *
+ * `persistence` is what makes this the third `StateDecl` shape on the wire rather than a third
+ * copy of the first: `Persistence` is a sealed union, so setting it writes a discriminated object
+ * where the other two declarations write nothing at all.
+ */
+private val SESSION_STATE: StateDecl = StateDecl(
+    id = StateId("s_session"),
+    name = "session",
+    type = TypeRef.Str,
+    initial = Value.Str("anon"),
+    persistence = Persistence.Saveable,
 )
 
 /** One step, so the handler's arguments carry both arms of the property union. */
@@ -357,6 +475,30 @@ private val SET_LABEL_ON_CLICK: ActionSequence = ActionSequence(
  * modifier with an argument, an event handler and page-level state: enough to reach every record
  * the builder writes, which is the point — a fixture holding only pages and props would pass the
  * first row while proving nothing about a component declaration or a state declaration.
+ *
+ * ### The seven document-level fields, and what each one had to be read for
+ *
+ * The payload keys are in the order §18.2's writer would put them, which is ascending, so a
+ * reader can check this text against the bytes the third row writes without sorting anything.
+ *
+ *  * `appState` — [StateDecl] with `persistence`, whose arm is a sealed union and therefore a
+ *    `{"type":"saveable"}` of its own rather than a bare string.
+ *  * `dataModels` — `d_account` spells its two fields and their two `TypeRef` arms; `d_empty`
+ *    omits `fields` because it is the record's default, which is the half of the rule that a
+ *    fixture holding only populated records would not exercise.
+ *  * `enums` — `entries`, the only field `EnumTypeDecl` has besides its identity.
+ *  * `hostFunctions` — both write `returns` because it has **no** default, and the second writes
+ *    `suspend` because it differs from the record's. Neither may leave `returns` null: the
+ *    canonical `Json` sets `explicitNulls = false`, so a null would be dropped on the way out and
+ *    the field would be missing on the way back in.
+ *  * `themes` — all five token maps, with `base` omitted for the same reason `d_empty` omits its
+ *    `fields`, and a colour role carrying both halves of its `ColorSpec` so the eight-digit hex
+ *    form is on the wire twice.
+ *  * `theme` — the selection, and the only one of the seven that is a parameter of `buildDocument`.
+ *  * `resources` — one qualified variant and one unqualified, so a set and the empty set are both
+ *    written; a multi-element set is deliberately absent, because §18.2's ordering of a set's own
+ *    elements is the canonical writer's to decide and asserting it here would pin a rule this
+ *    module does not own.
  */
 private val HAND_WRITTEN_ENVELOPE: String = """
     {
@@ -368,6 +510,15 @@ private val HAND_WRITTEN_ENVELOPE: String = """
           "packageName": "com.example.dual",
           "startPage": "p_home"
         },
+        "appState": [
+          {
+            "id": "s_session",
+            "name": "session",
+            "type": {"type": "str"},
+            "initial": {"type": "str", "v": "anon"},
+            "persistence": {"type": "saveable"}
+          }
+        ],
         "components": {
           "c_card": {
             "id": "c_card",
@@ -381,6 +532,37 @@ private val HAND_WRITTEN_ENVELOPE: String = """
             ]
           }
         },
+        "dataModels": {
+          "d_account": {
+            "fields": [
+              {"name": "id", "type": {"type": "str"}},
+              {"name": "age", "type": {"type": "nullable", "inner": {"type": "i32"}}}
+            ],
+            "id": "d_account",
+            "name": "Account"
+          },
+          "d_empty": {"id": "d_empty", "name": "Empty"}
+        },
+        "enums": {
+          "Role": {
+            "entries": [{"name": "Admin"}, {"name": "Guest"}],
+            "id": "Role",
+            "name": "Role"
+          }
+        },
+        "hostFunctions": [
+          {
+            "name": "fetchAccount",
+            "params": [{"name": "accountId", "type": {"type": "str"}}],
+            "returns": {"type": "object", "id": "d_account"}
+          },
+          {
+            "name": "logEvent",
+            "params": [{"name": "message", "type": {"type": "str"}}],
+            "returns": {"type": "bool"},
+            "suspend": true
+          }
+        ],
         "meta": {"name": "HandWritten"},
         "nodes": {
           "n_action": {
@@ -487,6 +669,45 @@ private val HAND_WRITTEN_ENVELOPE: String = """
                 "initial": {"type": "bool", "v": true}
               }
             ]
+          }
+        },
+        "resources": {
+          "r_greeting": {
+            "id": "r_greeting",
+            "kind": "string",
+            "name": "Greeting",
+            "variants": [
+              {
+                "qualifiers": [{"type": "locale", "tag": "en"}],
+                "source": {"type": "text", "value": "Hello"}
+              },
+              {
+                "qualifiers": [],
+                "source": {"type": "text", "value": "Hola"}
+              }
+            ]
+          }
+        },
+        "theme": "t_brand",
+        "themes": {
+          "t_brand": {
+            "colors": {
+              "primary": {"dark": "#FFBB86FC", "light": "#FF6200EE"}
+            },
+            "custom": {
+              "brand.accent": {"type": "color", "argb": "#FFFFBB33"}
+            },
+            "dimensions": {
+              "md.spacing.medium": {"v": 16}
+            },
+            "id": "t_brand",
+            "name": "Brand",
+            "shapes": {
+              "small": {"radius": {"type": "dp", "v": 4}}
+            },
+            "typography": {
+              "body": {"fontSize": {"type": "sp", "v": 14}}
+            }
           }
         }
       }
