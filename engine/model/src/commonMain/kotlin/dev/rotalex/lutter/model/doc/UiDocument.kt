@@ -11,7 +11,7 @@ import kotlinx.serialization.Serializable
 /**
  * The document: the root record everything else in the engine is written against.
  *
- * PLAN §5.5 declares fourteen fields and this class declares fourteen. Four of them are maps
+ * PLAN §5.5 declares twelve fields and this class declares twelve. Four of them are maps
  * keyed by a typed id and none of them is keyed by a name, which is §6.2's rule that ids are
  * assigned once and never derived from a position or a name — a rename touches [name] and
  * nothing else.
