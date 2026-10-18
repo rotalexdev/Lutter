@@ -21,11 +21,16 @@ import kotlinx.serialization.json.jsonPrimitive
  * field for field.
  *
  * The test that matters is the negative one. `returns` is the only field in this package with
- * no default, and the reason is a format decision rather than an oversight: a host function
- * that returns nothing has to *say* so, so a document that omits the key is refused instead of
- * being read as a unit function. A declaration that "helpfully" defaulted it to `null` would
- * let a whole class of typo decode silently, and nothing downstream would notice until the
+ * no default, and the reason is §11.6's declaration rather than an oversight: a required
+ * positional parameter is one a function that returns nothing has to *say* so, and a typo
+ * cannot quietly become one — nothing downstream would notice a defaulted `null` until the
  * generated code failed to compile.
+ *
+ * The refusal below is a fact about the `Json` this file uses and not about the format.
+ * kotlinx's default sets `explicitNulls = true` and requires the key to be present; the
+ * engine's canonical `Json` omits it for a null and reads an absent nullable back, so a
+ * document may leave the key out and be read as a unit function. `ExplicitNullsTest` in
+ * `:engine:serialization` is the row that says so against the engine's own configuration.
  */
 class HostFunctionDeclTest {
 
@@ -39,8 +44,12 @@ class HostFunctionDeclTest {
 
         val text = Json.encodeToString<HostFunctionDecl>(decl)
 
-        // `params` and `returns` have no defaults, so both are always written; `suspend`
-        // defaults to false and §6.2 encodes no defaults, so it is not.
+        // `params` is required and is written. `suspend` carries a default and `encodeDefaults`
+        // is false, so it is not. `returns` is written for neither reason: it is nullable with
+        // no default, so `encodeDefaults` has no say in it and kotlinx's default
+        // `explicitNulls = true` is what puts the null on the wire. The engine's own
+        // configuration omits that key instead and reads it back as null, so this row is not
+        // where that pair is asserted — `ExplicitNullsTest` in `:engine:serialization` is.
         assertEquals("""{"name":"submitOrder","params":[],"returns":null}""", text)
         assertEquals(decl, Json.decodeFromString<HostFunctionDecl>(text))
         assertEquals(
@@ -50,8 +59,8 @@ class HostFunctionDeclTest {
     }
 
     @Test
-    fun `an omitted return is refused rather than read as null`() {
-        // The invariant `returns` having no default exists to protect. Both fragments are
+    fun `the default json refuses an omitted return`() {
+        // What the no default buys, under this file's `Json`. Both fragments are
         // plausible typos, and both are the same mistake: leaving out the one field that says
         // what the function gives back.
         assertFailsWith<SerializationException> {

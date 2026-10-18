@@ -10,11 +10,11 @@ import kotlinx.serialization.Serializable
  * field and order for order.
  *
  * [returns] has **no default**, which is the one part of the declaration that is easy to
- * "fix" by accident. A host function that returns nothing has to write `returns = null`, and
- * a document that omits the key is refused rather than read as a unit function — the same
- * discipline §6.2 applies to the rest of the format, where an unstated default is not a
- * default. It is also not what [suspend] reads: §11.5 keys suspension off the flag, not off
- * the absence of a return type.
+ * "fix" by accident. The argument is about the call site and not about the wire: it is a
+ * required positional parameter, so a function that returns nothing has to *say* so and a typo
+ * cannot quietly become one. On the wire the canonical `Json` omits the key for a null and
+ * reads it back as null, which `ExplicitNullsTest` in `:engine:serialization` pins. Neither is
+ * what [suspend] reads: §11.5 keys suspension off the flag, not off a missing return type.
  */
 @Serializable
 public data class HostFunctionDecl(

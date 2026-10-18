@@ -268,12 +268,14 @@ public class DocumentScope internal constructor(private val ids: IdGenerator) {
     /**
      * A function the embedding application implements.
      *
-     * [returns] has no default, which is §11.6's position and not an oversight: a function that
-     * returns nothing has to say `returns = null`, and a declaration that quietly defaulted it
-     * would let a whole class of typo decode silently. Appending rather than refusing a
-     * repeated [name] is deliberate too — §11.6 declares no uniqueness rule, and §13.1 hands
-     * `Page.route`'s to analysis rather than to a builder, so inventing one here would be a
-     * second validator for a rule the plan does not state.
+     * [returns] has no default, which is §11.6's position and not an oversight, and the
+     * protection is at this call site rather than on the wire: it is a required positional
+     * parameter, so a function that returns nothing has to say `returns = null` and a typo
+     * cannot quietly become one. Under the canonical `Json` an omitted key is read back as null
+     * whether the record declares a default or not, so defaulting it would buy nothing here.
+     * Appending rather than refusing a repeated [name] is deliberate too — §11.6 declares no
+     * uniqueness rule, and §13.1 hands `Page.route`'s to analysis rather than to a builder, so
+     * inventing one here would be a second validator for a rule the plan does not state.
      */
     public fun hostFunction(
         name: String,

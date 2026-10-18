@@ -78,10 +78,13 @@ import kotlinx.serialization.json.JsonObject
  *    a present one are both written; and the host function below returns a `TypeRef.Object` naming
  *    the first, so the namespace the two type maps share is exercised by something that resolves.
  *  * `enums` — an entry list, since `EnumTypeDecl.entries` is the only field an enum has.
- *  * `hostFunctions` — two, one carrying `suspend` and one not, and **both with a non-null
- *    return**: `returns` has no default, so a document that left it out would be refused, and
- *    the canonical `Json` writes no explicit nulls, so one that set it to null would encode to a
- *    key it cannot read back.
+ *  * `hostFunctions` — two, one carrying `suspend` and one not, and **one with a null return**,
+ *    so the fixture holds the two states `returns` can be on the wire rather than the one that
+ *    is easier to spell. `returns` has no default; the canonical configuration omits the key
+ *    when the value is null, and kotlinx tolerates reading it back, which `ExplicitNullsTest`
+ *    pins. The two configurations disagree about that key — the engine's omits a null and
+ *    kotlinx's default `Json` writes one — which is why each needs rows of its own and the
+ *    fixture alone proves neither.
  *  * `themes` — one theme filling all five token maps, with `base` left at its default so a
  *    defaulted field is omitted rather than written.
  *  * `theme` — the selection naming it, and the one of the seven that a parameter of `buildDocument`
@@ -398,7 +401,7 @@ class DslEqualsJsonTest {
         hostFunction("fetchAccount", TypeRef.Object(TypeId("d_account"))) {
             param("accountId", TypeRef.Str)
         }
-        hostFunction("logEvent", TypeRef.Bool, suspend = true) {
+        hostFunction("logEvent", null, suspend = true) {
             param("message", TypeRef.Str)
         }
         theme("t_brand", "Brand") {
@@ -487,10 +490,12 @@ private val SET_LABEL_ON_CLICK: ActionSequence = ActionSequence(
  *    omits `fields` because it is the record's default, which is the half of the rule that a
  *    fixture holding only populated records would not exercise.
  *  * `enums` — `entries`, the only field `EnumTypeDecl` has besides its identity.
- *  * `hostFunctions` — both write `returns` because it has **no** default, and the second writes
- *    `suspend` because it differs from the record's. Neither may leave `returns` null: the
- *    canonical `Json` sets `explicitNulls = false`, so a null would be dropped on the way out and
- *    the field would be missing on the way back in.
+ *  * `hostFunctions` — both states of `returns` at once. `fetchAccount` writes the key and
+ *    `logEvent` does not, because a function that returns nothing has a null there and the
+ *    canonical `Json` omits the key for a null. **The absent key is the wire form of a unit
+ *    function, not a gap in the fixture to be filled in**, and it reads back as null because
+ *    kotlinx tolerates an absent nullable under that flag. `ExplicitNullsTest` is what pins that
+ *    tolerance; the second writes `suspend` because it differs from the record's.
  *  * `themes` — all five token maps, with `base` omitted for the same reason `d_empty` omits its
  *    `fields`, and a colour role carrying both halves of its `ColorSpec` so the eight-digit hex
  *    form is on the wire twice.
@@ -559,7 +564,6 @@ private val HAND_WRITTEN_ENVELOPE: String = """
           {
             "name": "logEvent",
             "params": [{"name": "message", "type": {"type": "str"}}],
-            "returns": {"type": "bool"},
             "suspend": true
           }
         ],

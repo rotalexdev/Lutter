@@ -215,9 +215,10 @@ class UiDocumentTest {
             Json.encodeToString<ResourceDecl>(full.resources.getValue(ResourceId("r_submit"))),
         )
 
-        // `HostFunctionDecl.returns` has no default, so a function that returns nothing writes
-        // an explicit `null` rather than being read as one that does. §11.6 takes that position
-        // on purpose and the negative case is what pins it.
+        // `HostFunctionDecl.returns` has no default, so under this file's `Json` — which sets
+        // `explicitNulls = true` and is not the engine's configuration — a function that returns
+        // nothing writes an explicit `null` and an absent key is refused. The engine's canonical
+        // `Json` omits the key and reads it back instead, and that is `ExplicitNullsTest`.
         assertFailsWith<SerializationException> {
             Json.decodeFromString<HostFunctionDecl>("""{"name":"host.toast","params":[]}""")
         }
