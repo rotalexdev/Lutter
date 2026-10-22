@@ -1,3 +1,4 @@
+import com.android.build.api.dsl.KotlinMultiplatformAndroidHostTestCompilation
 import javax.inject.Inject
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
@@ -31,6 +32,14 @@ dependencies {
     commonMainImplementation(rootLibs.jetbrains.compose.material3)
     // Desktop-only UI test runner; commonTest stays pure so Android host tests keep running.
     desktopTestImplementation(compose.desktop.uiTestJUnit4)
+    // Plan §36.1 bullet 7's Android half: `RuntimeSemanticsTest` composes under Robolectric on
+    // the host runner. Robolectric boots the Android runtime the desktop runner does not pretend
+    // to be, and the androidx junit4 rule is what launches a Compose activity for it.
+    androidHostTestImplementation(libs.robolectric)
+    androidHostTestImplementation(libs.androidx.ui.test.junit4)
+    // Declared because the rule launches `TestActivity`, which this manifest-only artifact
+    // registers and nothing on the classpath above carries.
+    androidHostTestImplementation(libs.androidx.ui.test.manifest)
     // Skiko's native library, or every `runComposeUiTest` dies in `LibraryLoadException` on a
     // headless runner. uiTestJUnit4 pulls the test API, not the rendering backend.
     desktopTestImplementation(compose.desktop.currentOs)
@@ -449,6 +458,19 @@ kotlin {
         // function of the nightly's document count.
         if (fuzzBatchRequested) {
             kotlin.srcDir(generateFuzzBatch)
+        }
+    }
+
+    android {
+        // Robolectric loads the merged resources of the test graph, which is the documented
+        // prerequisite for running Compose activity tests on the host runner: the rule
+        // launches an activity, and the activity needs resource-backed infrastructure even
+        // when the fixture itself draws no resource. Only one host test compilation may exist,
+        // and the `forge.kmp.library` convention's `withHostTest {}` already created it, so the
+        // flag goes on that existing compilation rather than through a second `withHostTest`
+        // call — the API would refuse a second one.
+        compilations.withType(KotlinMultiplatformAndroidHostTestCompilation::class.java) {
+            isIncludeAndroidResources = true
         }
     }
 }
