@@ -1,12 +1,19 @@
 name: branch-policy
 
-# Two rules, checked together because both are about how a change is presented and neither
-# is discoverable from the code.
+# Three rules, checked together because all three are about how a change is presented and
+# none is discoverable from the code.
 #
 #   1. The branch carries only the conventional-commit TYPE: `feat/foundation`, `fix/node-repo`.
 #      No version, no semver. A branch is a place to do one change, not a release record.
 #   2. The PULL REQUEST TITLE is a strict conventional commit:
 #      `type(scope)!: description`.
+#   3. Pull requests name `dev` as their base. `main` is the release shelf: its only
+#      inhabitants are promoted `dev` states, so a PR that opens directly against `main`
+#      would merge an entire topic branch's history — and every branch before it — into a
+#      line whose history is supposed to stay the clean promotion of `dev`. PR #76 was
+#      exactly this defect: a one-commit fixture branch whose PR base defaulted to the
+#      repository's default branch, showing a 66-commit diff and one step away from
+#      forking `main` from `dev`.
 #
 # The title is deliberately NOT required to match the branch name. `fix/node-distribution`
 # opening `fix(build): declare the Node and Yarn distributions in settings` is correct and
@@ -93,3 +100,30 @@ jobs:
           fi
 
           echo "::notice::'$TITLE' is a valid conventional commit"
+
+      # `gh pr create` without an explicit `--base` defaults to the repository's DEFAULT
+      # branch — which is `main` here — so a missing flag is enough to open a topic PR
+      # against the release shelf. The head branch is what carries the change and nothing
+      # else; basing a topic PR anywhere other than `dev` is the wrong target, not a
+      # different flavour of the right one.
+      #
+      # `main` is not banned as a base outright: its gate is that the branch coming up to
+      # it is `dev` itself, so a promotion PR (`dev` → `main`) still reaches this workflow
+      # and passes.
+      - name: Pull requests to main may only come from dev
+        env:
+          BASE: ${{ github.event.pull_request.base.ref }}
+          HEAD: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          if [[ "$BASE" == "main" && "$HEAD" != "dev" ]]; then
+            echo "::error title=Pull requests to main may only come from dev::'$HEAD' opened against 'main'"
+            echo ""
+            echo "All PRs are delivered to 'dev'. 'main' is promoted from 'dev', so the only"
+            echo "PR whose base is 'main' is the promotion of 'dev' itself."
+            echo ""
+            echo "Reopen this PR with its base set to dev:  gh pr edit --base dev"
+            exit 1
+          fi
+
+          echo "::notice::base '$BASE' is correct for head '$HEAD'"
