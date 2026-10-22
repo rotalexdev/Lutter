@@ -22,10 +22,9 @@ import kotlin.test.assertSame
 /**
  * §11.4's six MVP actions: the key set, the shapes §11.2 and §13.1 spell, and the registrar.
  *
- * **There is deliberately no handler-coverage test here, and its absence is the one gap left.**
- * `ui.showSnackbar` was registered with no handler and nothing failed while it was: the executor
- * answers an unhandled action with its own diagnostic. `BuiltinFunctionCoverageTest` is the shape
- * a gate over every registered action would take.
+ * **The handler gate is `CoverageTests` in `:engine:builtins-compose`:** it pairs every
+ * registered action with the handler `IntrinsicHandlers` builds, the check this file's shape
+ * suggested once became real there.
  *
  * Every assertion below is a claim PLAN makes, read back through the registry.
  */

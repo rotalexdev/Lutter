@@ -1,4 +1,6 @@
+import com.android.build.api.dsl.KotlinMultiplatformAndroidHostTestCompilation
 import javax.inject.Inject
+import org.gradle.api.tasks.testing.Test
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
@@ -31,6 +33,14 @@ dependencies {
     commonMainImplementation(rootLibs.jetbrains.compose.material3)
     // Desktop-only UI test runner; commonTest stays pure so Android host tests keep running.
     desktopTestImplementation(compose.desktop.uiTestJUnit4)
+    // Plan §36.1 bullet 7's Android half: `RuntimeSemanticsTest` composes under Robolectric on
+    // the host runner. Robolectric boots the Android runtime the desktop runner does not pretend
+    // to be, and the androidx junit4 rule is what launches a Compose activity for it.
+    androidHostTestImplementation(libs.robolectric)
+    androidHostTestImplementation(libs.androidx.ui.test.junit4)
+    // Declared because the rule launches `TestActivity`, which this manifest-only artifact
+    // registers and nothing on the classpath above carries.
+    androidHostTestImplementation(libs.androidx.ui.test.manifest)
     // Skiko's native library, or every `runComposeUiTest` dies in `LibraryLoadException` on a
     // headless runner. uiTestJUnit4 pulls the test API, not the rendering backend.
     desktopTestImplementation(compose.desktop.currentOs)
@@ -450,5 +460,37 @@ kotlin {
         if (fuzzBatchRequested) {
             kotlin.srcDir(generateFuzzBatch)
         }
+    }
+
+    android {
+        // Robolectric loads the merged resources of the test graph, which is the documented
+        // prerequisite for running Compose activity tests on the host runner: the rule
+        // launches an activity, and the activity needs resource-backed infrastructure even
+        // when the fixture itself draws no resource. Only one host test compilation may exist,
+        // and the `forge.kmp.library` convention's `withHostTest {}` already created it, so the
+        // flag goes on that existing compilation rather than through a second `withHostTest`
+        // call — the API would refuse a second one.
+        compilations.withType(KotlinMultiplatformAndroidHostTestCompilation::class.java) {
+            isIncludeAndroidResources = true
+        }
+    }
+}
+
+// Robolectric's FileDescriptorInterceptor reflects into `jdk.internal.access.SharedSecrets`,
+// which java.base does not export to an unnamed module on modern JDKs (robolectric
+// issues #11434 and #11470): without this the first Compose activity the rule launches dies in
+// "Failed to interact with raw FileDescriptor internals". The export went to this one test
+// task — the only runner that loads Robolectric in the build — rather than every test JVM.
+// Matching rather than naming: the host test task exists only in builds that create it, and a
+// named lookup would fail the desktop-only workflows at configuration time.
+//
+// Full exception format, not the default: the console closes a Compose stack at the composable
+// call site, and reading why the runtime failed to draw a fixture from "at
+// RuntimeSemanticsTest.kt:72" is guessing. The whole trace goes to the build log this repo's
+// CI reads.
+tasks.withType(Test::class.java).matching { it.name == "testAndroidHostTest" }.configureEach {
+    jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
+    testLogging {
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
 }
