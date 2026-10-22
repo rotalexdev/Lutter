@@ -1,0 +1,191 @@
+name: benchmark
+
+# PLAN's nightly column ("benchmarks vs baseline") and §36.5's "nightly regression
+# alert", wired for what this repository's CI can actually mean by those words.
+#
+# Not a required check and not a gate, for the same reason fuzz-batch is not one: a
+# wall-clock median on a shared, throttled runner is weather, and greening `dev` on it
+# would make CI a slot machine. The `push`-on-`dev` trigger mirrors fuzz-batch's own
+# justification: `schedule:` fires from the default branch only, `main` here is a
+# four-file shelf, so a nightly would never actually run; every merge runs this instead,
+# which answers the plan's real question (did this change get slower?) sooner than a
+# calendar would.
+#
+# `workflow_dispatch` stays for the day `main` catches up, and documents the same
+# 404-on-dispatch-from-old-branch fact fuzz-batch's header records.
+on:
+  push:
+    branches: [ dev ]
+  workflow_dispatch:
+
+concurrency:
+  group: benchmark-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  benchmark:
+    name: Benchmark §29's five rows
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Apply the CI-only Gradle properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.5.0'
+
+      # The comparison, without which an alert is theatre against an impossible
+      # number, is run-to-run on this fleet: this run's medians against the
+      # previous run's medians, restored from the cache a passing run left behind.
+      #
+      # What the committed baseline.txt is deliberately *not* for here: its header
+      # (and BenchmarkBaseline's KDoc) already worked out that nanoseconds taken on
+      # one machine are facts about that machine, so a ratio into `desktopTest`
+      # on this runner from a laptop's `machine:` line is cross-machine weather,
+      # not a regression detector. `record`, not `assert`, is the honest mode: it
+      # prints the same measured table, and never asserts against a committed
+      # number taken elsewhere.
+      #
+      # The same hourly caveat in fleet image terms: a runner-image or CPU update
+      # can shift every row at once. When the alert fires, read both runs'
+      # `(JVM Desktop ... )` machine lines before assuming the engine is slower -
+      # plus the report artifact attached below.
+      - name: Restore the previous run's medians
+        uses: actions/cache/restore@v4
+        with:
+          path: bench-previous
+          key: bench-previous-${{ github.run_number }}
+          restore-keys: bench-previous-
+
+      - name: Measure the five rows
+        id: measure
+        run: |
+          start=$(date +%s)
+          # `record` over `measure` only because its extra output is the paste-block
+          # whose `.baselineNs` lines the comparison below consumes; the measured
+          # table itself is identical in both modes.
+          if gradle -Pforge.benchmark=record :engine:test-support:desktopTest \
+               --tests "dev.rotalex.lutter.testsupport.benchmark.PerformanceHarnessTest" \
+               > "$RUNNER_TEMP/benchmark.txt" 2>&1; then status=0; else status=$?; fi
+          echo "benchmark: rows=5 elapsed=$(( $(date +%s) - start ))s exit=$status"
+          exit $status
+
+      - name: Compare run to run
+        id: compare
+        run: |
+          current="$RUNNER_TEMP/cur.txt"; regressions="$RUNNER_TEMP/regressions.txt"
+          # The step's own report copy, artifact-bound below and immune to $RUNNER_TEMP's
+          # per-run wiping.
+          cp "$RUNNER_TEMP/benchmark.txt" benchmark-report.txt
+
+          # Only recorded rows and only nonzero ones: a zero, per baseline.txt's own
+          # convention, means "nobody measured this", and comparing clocks against
+          # that would be dividing by absence.
+          grep -E '\.baselineNs [1-9][0-9]*' "$RUNNER_TEMP/benchmark.txt" | sed 's/^[[:space:]]*//' \
+            > "$current" || true
+
+          mkdir -p bench-previous
+          if [ -s bench-previous/baselines.txt ]; then
+            status=0
+            while read -r key ns; do
+              row=${key%.baselineNs}
+              p=$(awk -v k="$key" '$1==k {print $2}' bench-previous/baselines.txt)
+              # A row the previous run recorded but this one did not (or vice versa)
+              # has no shared clock and no claimed regression; a *missing key* pair
+              # would otherwise read as 1.00x forever.
+              if [ -z "$p" ]; then continue; fi
+              r=$(awk -v c="$ns" -v p="$p" 'BEGIN { printf "%.2f", c/p }')
+              if awk -v r="$r" 'BEGIN { exit !(r > 1.20) }'; then
+                echo "$row: this run $ns ns against the previous run $p ns is ${r}x, " \
+                  "past the 1.20x ceiling" >> "$regressions"
+                status=1
+              fi
+            done < "$current"
+          else
+            echo "first run: no medians to compare against; this run becomes the next run's baseline"
+            status=0
+          fi
+
+          count=0
+          if [ -f "$regressions" ]; then count=$(wc -l < "$regressions"); fi
+          echo "regressions=$count" >> "$GITHUB_OUTPUT"
+          # The next run's comparison source, written before this step exits; the save
+          # step below only publishes it when the run stayed green, so a regression
+          # never normalizes itself into the next run's baseline.
+          cp "$current" bench-previous/baselines.txt
+          echo "compared with previous: regressions=$count"
+          exit "$status"
+
+      # Explicit save so the cache only ever advances on a green run: `actions/cache@v4`
+      # saves in post even when a step failed, which would commit the regression into
+      # next run's comparison and hide exactly the alert this job exists to raise.
+      - name: Keep these medians for the next run
+        if: success() && steps.compare.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: bench-previous
+          key: bench-previous-${{ github.run_number }}
+
+      - name: Open the nightly regression issue
+        if: failure() && steps.compare.outputs.regressions != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          title="Benchmark regression flagged by the nightly-benchmark job"
+          regressions="$RUNNER_TEMP/regressions.txt"
+
+          body="$RUNNER_TEMP/regression.md"
+          {
+            echo "The benchmark job compared this run's measured medians against the previous"
+            echo "green run on the same fleet and found rows past the plan's \`1.20x\` ceiling."
+            echo
+            echo "When reading this, remember the fleet caveats: a runner-image or CPU change"
+            echo "moves every row at once, and this job has no stable \`machine:\` line of its"
+            echo "own - \`record\` drive it through the same two runs, mid-list median under"
+            echo "warm-up, ratio-based, exactly as \`baseline.txt\`'s header intended."
+            echo
+            echo '```'
+            cat "$regressions"
+            echo '```'
+            echo
+            echo "Full measured table: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } > "$body"
+
+          # A sticky issue, reopened-in-place rather than one issue per alert, so the
+          # noise per regression is one comment and history reads top to bottom.
+          issue=$(gh issue list --state open --search "in:title benchmark regression flagged" \
+                    --limit 1 --json number --jq '.[0].number' 2>/dev/null || true)
+          if [ -z "$issue" ] || [ "$issue" = "null" ]; then
+            issue=$(gh issue create --title "$title" \
+                      --body "Sticky regression tracker for the benchmark job; one comment per run that regressed." \
+                      2>/dev/null | tail -n1)
+            if [ -z "$issue" ]; then echo "could not open the tracker issue; the log holds the medians"; exit 0; fi
+          fi
+          gh issue comment "$issue" --body-file "$body" \
+            || echo "could not comment on the tracker issue; the log holds the medians"
+
+      # The measured table and the `.baselineNs` lines the comparator consumed, as the
+      # run's own artifact; test XMLs ride along for shape parity with fuzz-batch.
+      - name: Upload the measured report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-report
+          path: |
+            benchmark-report.txt
+            **/build/test-results/**/*.xml
+          if-no-files-found: ignore
+          retention-days: 14
