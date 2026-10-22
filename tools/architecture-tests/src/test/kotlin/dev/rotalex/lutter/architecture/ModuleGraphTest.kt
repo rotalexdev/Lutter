@@ -51,21 +51,19 @@ class ModuleGraphTest {
 
     @Test
     fun `the build includes exactly the modules the policy knows`() {
-        tracedParse("everything test 1 touches") {
-            val policy = POLICY
-            val includes = GRAPH.includes
+        val policy = POLICY
+        val includes = GRAPH.includes
 
-            assertTrue(
-                policy.known.isNotEmpty(),
-                "parsed no entry out of ModuleGraphRules.KNOWN_MODULES; the policy file is no longer " +
-                    "the readable data object this test reads it as",
-            )
-            assertEquals(
-                policy.known.sorted(),
-                includes.sorted(),
-                "the settings file and the policy file disagree on which modules this build is",
-            )
-        }
+        assertTrue(
+            policy.known.isNotEmpty(),
+            "parsed no entry out of ModuleGraphRules.KNOWN_MODULES; the policy file is no longer " +
+                "the readable data object this test reads it as",
+        )
+        assertEquals(
+            policy.known.sorted(),
+            includes.sorted(),
+            "the settings file and the policy file disagree on which modules this build is",
+        )
     }
 
     @Test
@@ -279,21 +277,11 @@ internal class GraphPolicy internal constructor(
 
 private val LOADED_POLICY: GraphPolicy by lazy { readPolicy() }
 
-private fun readPolicy(): GraphPolicy = tracedParse("ModuleGraphRules policy") { readPolicyNow() }
-
-private fun <T> tracedParse(what: String, parse: () -> T): T = try {
-    parse()
-} catch (t: Throwable) {
-    System.err.println("ModuleGraphTest failed to read the $what:")
-    t.printStackTrace(System.err)
-    throw t
-}
-
 private val POLICY: GraphPolicy
     get() = LOADED_POLICY
 
 /** Both configuration lists and both maps, one quoted-string find per piece. */
-private fun readPolicyNow(): GraphPolicy {
+private fun readPolicy(): GraphPolicy {
     val root = RepositoryRoot.path
     val rules = root.resolve(
         "build-logic/convention/src/main/kotlin/forge/modulegraph/ModuleGraphRules.kt",
@@ -402,13 +390,11 @@ private val LOADED_GRAPH: DeclaredGraph by lazy { readGraph() }
 private val GRAPH: DeclaredGraph
     get() = LOADED_GRAPH
 
-private fun readGraph(): DeclaredGraph = tracedParse("declared module graph") { readGraphNow() }
-
-private fun readGraphNow(): DeclaredGraph {
+private fun readGraph(): DeclaredGraph {
     val root = RepositoryRoot.path
     val settings = Files.readString(root.resolve("settings.gradle.kts"))
 
-    val includes = Regex("include\\(\":([\\w:]+)\"\\)")
+    val includes = Regex("include\\(\":([\\w:-]+)\"\\)")
         .findAll(settings)
         .map { ":" + it.groupValues[1] }
         .toList()
@@ -446,9 +432,13 @@ private fun readGraphNow(): DeclaredGraph {
             }
 
             if ("project(\":" in line) {
+                val target = "project\\(\":([\\w:-]+)\"\\)".toRegex().find(line)?.groupValues?.get(1)
                 edges += ProjectEdge.Declared(
                     include,
-                    ":" + Regex("project\\(\":([\\w:]+)\"\\)").find(line)!!.groupValues[1],
+                    when (target) {
+                        null -> "<unextractable path line ${index + 1}>"
+                        else -> ":" + target
+                    },
                     "<unclassified line ${index + 1}>",
                 )
             }
@@ -463,11 +453,11 @@ private fun readGraphNow(): DeclaredGraph {
 }
 
 private val DERIVED_ADD = Regex(
-    "^add\\s*\\(\\s*([\\w.]+)\\.name\\s*,\\s*project\\(\":([\\w:]+)\"\\)\\s*\\)\\s*$",
+    "^add\\s*\\(\\s*([\\w.]+)\\.name\\s*,\\s*project\\(\":([\\w:-]+)\"\\)\\s*\\)\\s*$",
 )
 
 private val INLINE_CALL = Regex(
-    "^([A-Za-z]\\w*)\\s*\\(\\s*project\\(\":([\\w:]+)\"\\)\\s*\\)\\s*$",
+    "^([A-Za-z]\\w*)\\s*\\(\\s*project\\(\":([\\w:-]+)\"\\)\\s*\\)\\s*$",
 )
 
 private fun blessedDerivedEdges(): Set<Pair<String, String>> = setOf(
