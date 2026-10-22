@@ -7,8 +7,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.ComposeContentTestRule
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -53,7 +52,7 @@ import org.robolectric.annotation.Config
 class RuntimeSemanticsTest {
 
     @get:Rule
-    val rule: ComposeContentTestRule = createComposeRule()
+    val rule = createComposeRule()
 
     private companion object {
         val HOME: PageId = PageId("p_home")

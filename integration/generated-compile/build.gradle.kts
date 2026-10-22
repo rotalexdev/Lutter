@@ -1,5 +1,6 @@
 import com.android.build.api.dsl.KotlinMultiplatformAndroidHostTestCompilation
 import javax.inject.Inject
+import org.gradle.api.tasks.testing.Test
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
@@ -473,4 +474,13 @@ kotlin {
             isIncludeAndroidResources = true
         }
     }
+}
+
+// Robolectric's FileDescriptorInterceptor reflects into `jdk.internal.access.SharedSecrets`,
+// which java.base does not export to an unnamed module on modern JDKs (robolectric
+// issues #11434 and #11470): without this the first Compose activity the rule launches dies in
+// "Failed to interact with raw FileDescriptor internals". The export went to this one test
+// task — the only runner that loads Robolectric in the build — rather than every test JVM.
+tasks.named("testAndroidHostTest", Test::class.java) {
+    jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
 }
