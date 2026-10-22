@@ -277,11 +277,21 @@ internal class GraphPolicy internal constructor(
 
 private val LOADED_POLICY: GraphPolicy by lazy { readPolicy() }
 
+private fun readPolicy(): GraphPolicy = tracedParse("ModuleGraphRules policy") { readPolicyNow() }
+
+private fun <T> tracedParse(what: String, parse: () -> T): T = try {
+    parse()
+} catch (t: Throwable) {
+    System.err.println("ModuleGraphTest failed to read the $what:")
+    t.printStackTrace(System.err)
+    throw t
+}
+
 private val POLICY: GraphPolicy
     get() = LOADED_POLICY
 
 /** Both configuration lists and both maps, one quoted-string find per piece. */
-private fun readPolicy(): GraphPolicy {
+private fun readPolicyNow(): GraphPolicy {
     val root = RepositoryRoot.path
     val rules = root.resolve(
         "build-logic/convention/src/main/kotlin/forge/modulegraph/ModuleGraphRules.kt",
@@ -390,7 +400,9 @@ private val LOADED_GRAPH: DeclaredGraph by lazy { readGraph() }
 private val GRAPH: DeclaredGraph
     get() = LOADED_GRAPH
 
-private fun readGraph(): DeclaredGraph {
+private fun readGraph(): DeclaredGraph = tracedParse("declared module graph") { readGraphNow() }
+
+private fun readGraphNow(): DeclaredGraph {
     val root = RepositoryRoot.path
     val settings = Files.readString(root.resolve("settings.gradle.kts"))
 
