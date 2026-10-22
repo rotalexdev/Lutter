@@ -18,3 +18,11 @@ dependencies {
     commonMainApi(project(":engine:builtins"))
     commonMainApi(project(":engine:builtins-compose"))
 }
+
+// The §29 harness is opt-in by design (`PerformanceHarnessTest`'s KDoc): an unset
+// property is the harness's own `Off` spelling, so no check build pays the five-row
+// budget. `-Pforge.benchmark=measure|record|assert` is the whole of the wiring, which
+// is what the nightly job and a developer's own machine both drive it through.
+tasks.withType<Test>().configureEach {
+    systemProperty("forge.benchmark", providers.gradleProperty("forge.benchmark").orNull.orEmpty())
+}
