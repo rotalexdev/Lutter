@@ -48,4 +48,12 @@ kotlin {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+
+    // TEMPORARY DIAGNOSTIC for PR #79: the failing rows die with a bare NPE and Gradle's
+    // default logging shows one frame. Print every frame plus the test JVM's own
+    // standard streams. Remove with the same commit that fixes the failure.
+    testLogging {
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showStandardStreams = true
+    }
 }
