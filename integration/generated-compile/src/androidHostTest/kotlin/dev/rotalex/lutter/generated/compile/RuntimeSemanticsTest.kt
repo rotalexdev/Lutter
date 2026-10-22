@@ -1,5 +1,6 @@
 package dev.rotalex.lutter.generated.compile
 
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsConfiguration
@@ -70,10 +71,13 @@ class RuntimeSemanticsTest {
      * One composition serves the whole loop rather than one `setContent` per fixture: this
      * runner allows a single `setContent` per activity (the second one fails with "has already
      * set content"), so the fixtures drive a recomposition instead — the same move the desktop
-     * side expresses by re-running `setContent` inside `runComposeUiTest`. Resolution runs once
-     * before the composition, and holding the runtime in one instance for the loop is the same
-     * assembly `ConformanceHarness` documents: construction is what runs the coverage check,
-     * not each draw.
+     * side expresses by re-running `setContent` inside `runComposeUiTest`. `key` makes each
+     * fixture a fresh subtree, which matters for more than tidiness: the stateful fixture's
+     * holders are seeded inside its own subtree, and a recomposition that reuses the previous
+     * stateless fixture's would leave `text_field_state` reading a store that holds nothing.
+     * Resolution runs once before the composition, and holding the runtime in one instance for
+     * the loop is the same assembly `ConformanceHarness` documents: construction is what runs
+     * the coverage check, not each draw.
      */
     @Test
     fun `the runtime renders every fixture under the Android runner`() {
@@ -84,7 +88,9 @@ class RuntimeSemanticsTest {
 
         val current = mutableStateOf(resolved.keys.first())
         rule.setContent {
-            UiScreen(runtime, resolved.getValue(current.value), HOME, environment)
+            key(current.value) {
+                UiScreen(runtime, resolved.getValue(current.value), HOME, environment)
+            }
         }
         for (id in FixtureDocuments.ids) {
             current.value = id
