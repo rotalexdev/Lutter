@@ -23,6 +23,15 @@ dependencies {
 // property is the harness's own `Off` spelling, so no check build pays the five-row
 // budget. `-Pforge.benchmark=measure|record|assert` is the whole of the wiring, which
 // is what the nightly job and a developer's own machine both drive it through.
+//
+// `showStandardStreams` belongs to the same opt-in tier: the harness's table and
+// its `.baselineNs` lines are the test's stdout, which Gradle swallows by default -
+// the first benchmark run measured all five rows green and its report contained
+// none of them, so whenever the property is set, stdout is echoed and readable.
+val forgeBenchmark = providers.gradleProperty("forge.benchmark").orNull
 tasks.withType<Test>().configureEach {
-    systemProperty("forge.benchmark", providers.gradleProperty("forge.benchmark").orNull.orEmpty())
+    systemProperty("forge.benchmark", forgeBenchmark.orEmpty())
+    if (forgeBenchmark != null) {
+        testLogging { showStandardStreams = true }
+    }
 }
