@@ -11,8 +11,8 @@ import dev.rotalex.lutter.runtime.RenderScope
 import dev.rotalex.lutter.runtime.ScopeHandle
 
 /**
- * PLAN §7.3's row renderer, minus the enum maps: spacing is a dp, the named arrangement is
- * three documented strings, and spacing wins when both read.
+ * PLAN §7.3's row renderer: spacing is a dp, the named arrangement resolves through
+ * `ArrangementMaps`'s horizontal axis, and spacing wins when both read.
  *
  * The row scope is opened for the children because that receiver is what `layout.weight`
  * applies against; the implicit `RowScope` of the lambda does not reach a modifier applier.
@@ -26,15 +26,9 @@ internal object RowRenderer : ComponentRenderer {
             modifier = scope.modifierFor(node),
             horizontalArrangement =
             if (spacing != null) Arrangement.spacedBy(spacing.dp)
-            else horizontalArrangementOf(props[RowSpec.horizontalArrangement]),
+            else ArrangementMaps.horizontal(props[RowSpec.horizontalArrangement]),
         ) {
             scope.withScope(ScopeHandle.Row(this)) { RenderSlot(node, RowSpec.children.name) }
         }
     }
 }
-
-/** The documented entries; anything else is `Start`, which is also the default. */
-private fun horizontalArrangementOf(entry: String?): Arrangement.Horizontal =
-    if (entry == "End") Arrangement.End
-    else if (entry == "Center") Arrangement.Center
-    else Arrangement.Start
