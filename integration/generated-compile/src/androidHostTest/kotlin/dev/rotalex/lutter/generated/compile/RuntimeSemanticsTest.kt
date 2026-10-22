@@ -1,5 +1,6 @@
 package dev.rotalex.lutter.generated.compile
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsConfiguration
 import androidx.compose.ui.semantics.SemanticsNode
@@ -65,18 +66,29 @@ class RuntimeSemanticsTest {
      * Every shared fixture renders under the runtime: the analyzer resolves it, the renderer
      * composes it, and the resulting tree carries text, so nothing along that path stopped at
      * a stub only the desktop runner would have furnished.
+     *
+     * One composition serves the whole loop rather than one `setContent` per fixture: this
+     * runner allows a single `setContent` per activity (the second one fails with "has already
+     * set content"), so the fixtures drive a recomposition instead — the same move the desktop
+     * side expresses by re-running `setContent` inside `runComposeUiTest`. Resolution runs once
+     * before the composition, and holding the runtime in one instance for the loop is the same
+     * assembly `ConformanceHarness` documents: construction is what runs the coverage check,
+     * not each draw.
      */
     @Test
     fun `the runtime renders every fixture under the Android runner`() {
+        val runtime = ConformanceHarness.runtime(ConformanceHarness.schema())
+        val environment = ConformanceHarness.environment()
+        val resolved: Map<String, ResolvedDocument> =
+            FixtureDocuments.ids.associateWith { id -> resolve(id) }
+
+        val current = mutableStateOf(resolved.keys.first())
+        rule.setContent {
+            UiScreen(runtime, resolved.getValue(current.value), HOME, environment)
+        }
         for (id in FixtureDocuments.ids) {
-            rule.setContent {
-                UiScreen(
-                    ConformanceHarness.runtime(ConformanceHarness.schema()),
-                    resolve(id),
-                    HOME,
-                    ConformanceHarness.environment(),
-                )
-            }
+            current.value = id
+            rule.waitForIdle()
             assertTrue(texts().isNotEmpty(), "fixture '$id'")
         }
     }
