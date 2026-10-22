@@ -1,5 +1,6 @@
 package dev.rotalex.lutter.builtins.compose
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
