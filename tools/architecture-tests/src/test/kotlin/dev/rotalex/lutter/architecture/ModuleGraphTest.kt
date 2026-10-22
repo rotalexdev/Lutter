@@ -51,19 +51,21 @@ class ModuleGraphTest {
 
     @Test
     fun `the build includes exactly the modules the policy knows`() {
-        val policy = POLICY
-        val includes = GRAPH.includes
+        tracedParse("everything test 1 touches") {
+            val policy = POLICY
+            val includes = GRAPH.includes
 
-        assertTrue(
-            policy.known.isNotEmpty(),
-            "parsed no entry out of ModuleGraphRules.KNOWN_MODULES; the policy file is no longer " +
-                "the readable data object this test reads it as",
-        )
-        assertEquals(
-            policy.known.sorted(),
-            includes.sorted(),
-            "the settings file and the policy file disagree on which modules this build is",
-        )
+            assertTrue(
+                policy.known.isNotEmpty(),
+                "parsed no entry out of ModuleGraphRules.KNOWN_MODULES; the policy file is no longer " +
+                    "the readable data object this test reads it as",
+            )
+            assertEquals(
+                policy.known.sorted(),
+                includes.sorted(),
+                "the settings file and the policy file disagree on which modules this build is",
+            )
+        }
     }
 
     @Test
