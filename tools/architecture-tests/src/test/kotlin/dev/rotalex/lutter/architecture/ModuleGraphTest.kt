@@ -134,7 +134,7 @@ class ModuleGraphTest {
             "parsed no entry out of ModuleGraphRules.ALLOWED; the policy file is no longer readable",
         )
         assertEquals(
-            emptyList(),
+            emptyList<String>(),
             violations.sorted(),
             "every main-scope edge must be an allowed cell of §23.2's matrix",
         )
@@ -165,7 +165,7 @@ class ModuleGraphTest {
             "parsed no entry out of ModuleGraphRules.ALLOWED_IN_TESTS; the policy file is no longer readable",
         )
         assertEquals(
-            emptyList(),
+            emptyList<String>(),
             violations.sorted(),
             "every test-scope edge must be an allowed cell of §23.2 or one of the named consumers",
         )
@@ -176,7 +176,7 @@ class ModuleGraphTest {
         val declared = GRAPH.declaredMainDependencies
 
         assertEquals(
-            emptyList(),
+            emptyList<String>(),
             listOf(
                 if (":engine:runtime" in declared[":engine:codegen"].orEmpty()) {
                     ":engine:codegen -> :engine:runtime"
