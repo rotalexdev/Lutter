@@ -1,0 +1,87 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "payload": {
+    "app": {
+      "packageName": "com.example.counter",
+      "startPage": "p_home"
+    },
+    "components": {},
+    "meta": {
+      "name": "Counter"
+    },
+    "nodes": {
+      "n_root": {
+        "id": "n_root",
+        "modifiers": [
+          {
+            "args": {
+              "all": {
+                "type": "const",
+                "value": {
+                  "type": "dp",
+                  "v": 16
+                }
+              }
+            },
+            "type": "layout.padding"
+          },
+          {
+            "type": "layout.background"
+          }
+        ],
+        "props": {
+          "padding": {
+            "type": "const",
+            "value": {
+              "type": "dp",
+              "v": 16.5
+            }
+          },
+          "spacing": {
+            "type": "const",
+            "value": {
+              "type": "dp",
+              "v": 0.1
+            }
+          },
+          "width": {
+            "type": "const",
+            "value": {
+              "type": "dp",
+              "v": 320
+            }
+          }
+        },
+        "slots": {
+          "children": [
+            "n_total"
+          ]
+        },
+        "type": "core.Column"
+      },
+      "n_total": {
+        "id": "n_total",
+        "props": {
+          "text": {
+            "type": "const",
+            "value": {
+              "type": "str",
+              "v": "Total"
+            }
+          }
+        },
+        "type": "m3.Text"
+      }
+    },
+    "pages": {
+      "p_home": {
+        "id": "p_home",
+        "name": "HomeScreen",
+        "root": "n_root",
+        "route": "/home"
+      }
+    }
+  },
+  "schemaVersion": 1
+}
