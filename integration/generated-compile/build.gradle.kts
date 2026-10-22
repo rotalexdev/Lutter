@@ -481,6 +481,8 @@ kotlin {
 // issues #11434 and #11470): without this the first Compose activity the rule launches dies in
 // "Failed to interact with raw FileDescriptor internals". The export went to this one test
 // task — the only runner that loads Robolectric in the build — rather than every test JVM.
-tasks.named("testAndroidHostTest", Test::class.java) {
+// Matching rather than naming: the host test task exists only in builds that create it, and a
+// named lookup would fail the desktop-only workflows at configuration time.
+tasks.withType(Test::class.java).matching { it.name == "testAndroidHostTest" }.configureEach {
     jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
 }
