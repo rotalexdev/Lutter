@@ -483,6 +483,14 @@ kotlin {
 // task — the only runner that loads Robolectric in the build — rather than every test JVM.
 // Matching rather than naming: the host test task exists only in builds that create it, and a
 // named lookup would fail the desktop-only workflows at configuration time.
+//
+// Full exception format, not the default: the console closes a Compose stack at the composable
+// call site, and reading why the runtime failed to draw a fixture from "at
+// RuntimeSemanticsTest.kt:72" is guessing. The whole trace goes to the build log this repo's
+// CI reads.
 tasks.withType(Test::class.java).matching { it.name == "testAndroidHostTest" }.configureEach {
     jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
+    testLogging {
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
 }
