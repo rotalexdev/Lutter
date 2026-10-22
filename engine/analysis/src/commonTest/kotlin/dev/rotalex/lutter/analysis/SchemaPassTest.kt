@@ -331,4 +331,34 @@ class SchemaPassTest {
 
         assertTrue(codes.isEmpty(), "got $codes")
     }
+
+    @Test
+    fun `the valid schema view emits none of the code family`() {
+        val codes = codesOf {
+            node(ColumnType) {
+                modifier(PaddingType, mapOf(PropertyKey("all") to constOf(Value.Dp(4f))))
+                val title = node(TextType) {
+                    prop("text", Value.Str("Hi"))
+                    prop("maxLines", Value.Int32(3))
+                }
+                slot("children", listOf(title))
+            }
+        }
+
+        assertTrue(codes.none { it == DiagnosticCodes.ComponentUnknown.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ComponentSlotUnknown.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ComponentSlotCardinality.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ComponentChildNotAllowed.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ComponentConflictingProperties.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.PropUnknown.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.PropRequiredMissing.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.PropTypeMismatch.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.PropEnumEntryInvalid.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.PropRange.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.PropNotBindable.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ValueNonFinite.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ModifierUnknown.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ModifierScopeMissing.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ModifierArgInvalid.value }, "got $codes")
+    }
 }

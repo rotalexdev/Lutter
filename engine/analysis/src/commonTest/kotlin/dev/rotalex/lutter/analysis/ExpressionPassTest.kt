@@ -615,6 +615,21 @@ class ExpressionPassTest {
             )
         }
     }
+
+    @Test
+    fun `the valid expressions emit none of the expression codes`() {
+        val codes = codesOf {
+            node(TextType) {
+                prop("text", Value.Str("Hi"))
+                computed("maxLines", Expr.Binary(BinaryOp.Add, i32(1), i32(2)))
+            }
+        }
+
+        assertTrue(codes.none { it == DiagnosticCodes.ExprUnknownFunction.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ExprTypeMismatch.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ExprNullableAccess.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ExprUnresolvedRef.value }, "got $codes")
+    }
 }
 
 /** The prefix every pass 5 code shares, so the other passes' findings can be told apart. */

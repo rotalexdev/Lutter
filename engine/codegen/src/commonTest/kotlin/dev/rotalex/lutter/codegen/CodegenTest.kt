@@ -1693,4 +1693,17 @@ class CodegenTest {
             }
         }
     }
+
+    @Test
+    fun `the resolved document generates none of the codegen codes`() {
+        val result = generate(homeDocument(columnNode("n_1", emptyMap(), listOf(textNode("n_2", "Hi")))))
+
+        val codes = result.diagnostics.map { it.code.value }
+
+        assertTrue(codes.none { it == DiagnosticCodes.CodegenNoBinding.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.CodegenStrategyUnsupported.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.CodegenNameCollision.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.CodegenNoTypeSpelling.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.NameReserved.value }, "got $codes")
+    }
 }

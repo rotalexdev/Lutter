@@ -214,4 +214,16 @@ class ReferencePassTest {
         assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
         assertEquals(TokenSource.Custom, assertNotNull(styleSourceOf(result)))
     }
+
+    @Test
+    fun `the valid document emits none of the reference codes`() {
+        val codes = codesOf {
+            node(TextType) { prop("text", Value.Str("Hi")) }
+        }
+
+        assertTrue(codes.none { it == DiagnosticCodes.RefDangling.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.RefKindMismatch.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.TokenUnknown.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ResourceUnknown.value }, "got $codes")
+    }
 }

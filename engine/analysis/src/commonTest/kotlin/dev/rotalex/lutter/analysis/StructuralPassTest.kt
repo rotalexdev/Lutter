@@ -102,4 +102,18 @@ class StructuralPassTest {
 
         assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
     }
+
+    @Test
+    fun `the valid document emits none of the six structural codes`() {
+        val result = analyzer.analyze(validDocument())
+
+        val codes = result.diagnostics.map { it.code.value }
+
+        assertTrue(codes.none { it == DiagnosticCodes.StructDuplicateId.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.StructMissingNode.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.StructCycle.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.StructOrphan.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.StructMultipleParents.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.StructMissingRoot.value }, "got $codes")
+    }
 }

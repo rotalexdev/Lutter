@@ -673,6 +673,26 @@ class ActionPassTest {
 
     private fun sum(): Expr = Expr.Binary(BinaryOp.Add, Expr.Const(Value.Int32(1)), Expr.Const(Value.Int32(1)))
 
+    @Test
+    fun `the valid document emits none of the action codes`() {
+        val result = analyzer.analyze(
+            fieldWith(listOf(count)) {
+                handler(
+                    write(count.id, constOf(Value.Int32(1))),
+                    step("ui.showSnackbar", args = mapOf(PropertyKey("message") to constOf(Value.Str("saved")))),
+                    step("nav.back"),
+                )
+            },
+        )
+
+        val codes = result.diagnostics.map { it.code.value }
+
+        assertTrue(codes.none { it == DiagnosticCodes.ActionUnknown.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ActionArgInvalid.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ActionStateNotWritable.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.NavArgsMismatch.value }, "got $codes")
+    }
+
     private companion object {
         val NODE: NodeId = NodeId("n_1")
         val PROFILE_ID: ParamDecl = ParamDecl(ParamName("id"), TypeRef.Str)
