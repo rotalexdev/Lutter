@@ -1,5 +1,6 @@
 package dev.rotalex.lutter.builtins.compose
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
@@ -56,6 +57,11 @@ internal object AlignmentMaps {
         "BottomRight" to AbsoluteAlignment.Right,
     )
 
+    /** The entries each axis holds explicitly, for the coverage gate in `CoverageTests`. */
+    val boxEntries: Set<String> get() = twoAxis.keys
+    val verticalEntries: Set<String> get() = verticalAxis.keys
+    val horizontalEntries: Set<String> get() = horizontalAxis.keys
+
     /** The two-axis form, for a box. */
     fun box(entry: String): Alignment = twoAxis[entry] ?: Alignment.Center
 
@@ -68,10 +74,49 @@ internal object AlignmentMaps {
 }
 
 /**
- * Shape entry to shape. The two are the enum's whole vocabulary; an unknown entry is the
- * rectangle, which is what every painter in the set defaults to.
+ * Shape entry to shape. The two are the enum's whole vocabulary, held as a map so the coverage
+ * gate can read the vocabulary; an unknown entry is the rectangle, which is what every painter
+ * in the set defaults to.
  */
 internal object ShapeMaps {
-    fun of(entry: String): Shape =
-        if (entry == "Circle") CircleShape else RectangleShape
+
+    private val shapes: Map<String, Shape> = mapOf(
+        "Circle" to CircleShape,
+        "Rectangle" to RectangleShape,
+    )
+
+    /** The entries held explicitly, for the coverage gate in `CoverageTests`. */
+    val entries: Set<String> get() = shapes.keys
+
+    fun of(entry: String): Shape = shapes[entry] ?: RectangleShape
+}
+
+/**
+ * Arrangement entry to the `Row`/`Column` spacing family. A row lays out along the horizontal
+ * axis and a column along the vertical, so each projection holds the entries on its own axis.
+ * An unknown entry is the axis's default, which is what the layout containers default to.
+ */
+internal object ArrangementMaps {
+
+    private val horizontal: Map<String, Arrangement.Horizontal> = mapOf(
+        "Start" to Arrangement.Start,
+        "Center" to Arrangement.Center,
+        "End" to Arrangement.End,
+    )
+
+    private val vertical: Map<String, Arrangement.Vertical> = mapOf(
+        "Top" to Arrangement.Top,
+        "Center" to Arrangement.Center,
+        "Bottom" to Arrangement.Bottom,
+    )
+
+    /** The entries each axis holds explicitly, for the coverage gate in `CoverageTests`. */
+    val horizontalEntries: Set<String> get() = horizontal.keys
+    val verticalEntries: Set<String> get() = vertical.keys
+
+    /** The horizontal form, for a row. */
+    fun horizontal(entry: String?): Arrangement.Horizontal = horizontal[entry] ?: Arrangement.Start
+
+    /** The vertical form, for a column. */
+    fun vertical(entry: String?): Arrangement.Vertical = vertical[entry] ?: Arrangement.Top
 }
