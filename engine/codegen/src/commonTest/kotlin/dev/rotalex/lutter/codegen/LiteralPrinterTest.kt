@@ -68,7 +68,7 @@ class LiteralPrinterTest {
     }
 
     @Test
-    fun `a material role Material does not publish refuses`() {
+    fun `a material role Material does not publish falls to the default the runtime draws`() {
         val name = "md.typography.bodyEnormous"
         val emitted = LiteralPrinter.emit(
             Value.Token(TokenKind.Typography, name),
@@ -76,7 +76,7 @@ class LiteralPrinterTest {
             theme,
         )
 
-        assertNull(emitted)
+        assertEquals("TextStyle.Default", textOf(emitted))
     }
 
     @Test
@@ -134,7 +134,7 @@ class LiteralPrinterTest {
     }
 
     @Test
-    fun `a text style key this engine does not spell refuses the whole style`() {
+    fun `a text style key this engine does not spell collapses to the default`() {
         val odd = theme.copy(
             typography = mapOf(TextRole("caption") to mapOf(PropertyKey("baselineShift") to Value.Sp(1f))),
         )
@@ -145,7 +145,7 @@ class LiteralPrinterTest {
             odd,
         )
 
-        assertNull(emitted)
+        assertEquals("TextStyle.Default", textOf(emitted))
     }
 
     @Test
