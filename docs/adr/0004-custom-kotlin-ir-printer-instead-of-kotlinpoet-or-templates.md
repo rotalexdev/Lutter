@@ -1,6 +1,6 @@
 # 0004. Custom Kotlin IR + printer instead of KotlinPoet or templates
 
-> Mirrored verbatim from `PLAN.md` §34 — the plan stays the source of record; edit it first and re-mirror. Accepted (MVP).
+> Status: accepted at MVP. Source of record: the repository's planning document — edit it first and re-mirror here.
 
 - **Decision:** Small `KtExpr/KtStmt/KtDeclaration` IR with a deterministic printer in `commonMain`.
 - **Why:** KotlinPoet is JVM-only (verify at kickoff); templates cannot guarantee validity/imports; the needed Kotlin subset is small.

@@ -1,6 +1,6 @@
 # 0013. Patch-based undo/redo
 
-> Mirrored verbatim from `PLAN.md` §34 — the plan stays the source of record; edit it first and re-mirror. Accepted (MVP).
+> Status: accepted at MVP. Source of record: the repository's planning document — edit it first and re-mirror here.
 
 - **Decision:** Commands plan invertible `Patch`es; history stores patches.
 - **Why:** Small, precise, diffable, reusable for sync and tests.

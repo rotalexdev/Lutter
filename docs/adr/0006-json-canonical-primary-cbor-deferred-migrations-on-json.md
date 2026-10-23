@@ -1,6 +1,6 @@
 # 0006. JSON canonical primary; CBOR deferred; migrations on JSON
 
-> Mirrored verbatim from `PLAN.md` §34 — the plan stays the source of record; edit it first and re-mirror. Accepted (MVP).
+> Status: accepted at MVP. Source of record: the repository's planning document — edit it first and re-mirror here.
 
 - **Decision:** Canonical JSON only; migrations work on `JsonElement`.
 - **Why:** Human-readable, Git-friendly, debuggable; migrations need a schema-free tree.

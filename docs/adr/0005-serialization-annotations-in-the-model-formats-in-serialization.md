@@ -1,6 +1,6 @@
 # 0005. Serialization annotations in the model; formats in `:serialization`
 
-> Mirrored verbatim from `PLAN.md` §34 — the plan stays the source of record; edit it first and re-mirror. Accepted (MVP).
+> Status: accepted at MVP. Source of record: the repository's planning document — edit it first and re-mirror here.
 
 - **Decision:** `@Serializable/@SerialName` on model types; codec, envelope, canonicalization, migrations in `:engine:serialization`.
 - **Why:** Avoids a duplicated DTO layer (a second representation) while keeping the model format-agnostic.

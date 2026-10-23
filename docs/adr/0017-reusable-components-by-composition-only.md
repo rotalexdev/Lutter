@@ -1,6 +1,6 @@
 # 0017. Reusable components by composition only
 
-> Mirrored verbatim from `PLAN.md` §34 — the plan stays the source of record; edit it first and re-mirror. Accepted (MVP).
+> Status: accepted at MVP. Source of record: the repository's planning document — edit it first and re-mirror here.
 
 - **Decision:** `ComponentDecl` with params/slots; no inheritance and no structural overrides.
 - **Why:** Matches Compose functions; predictable codegen; avoids override-diff complexity.
