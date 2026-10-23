@@ -2810,7 +2810,7 @@ The MVP is complete only when **all** items are demonstrably true (CI evidence i
 
 - [ ] Benchmarks on a 10,000-node document meet the §29 targets (recorded baselines committed; nightly regression alert configured).
 - [ ] `./gradlew check` is green with `allWarningsAsErrors`.
-- [ ] Documentation exists in `docs/` as standalone, industry-standard artifacts: format specification (envelope, canonical JSON rules, `@SerialName` catalog, real wire samples), plugin authoring guide (the 4-step registration recipe of §7.4), CLI usage, getting-started (§32), and this plan's ADRs kept in `docs/adr/`. Every document holds on its own: a reader never needs this plan file to make sense of it — no cross-references to this plan's sections, D-rows or ADR numbers, and where code and plan disagree the docs describe the code. ADR identifiers remain the standard ADR artifact; the plan stays their source of record.
+- [ ] Documentation exists in `docs/` as standalone, industry-standard artifacts: format specification (envelope, canonical JSON rules, `@SerialName` catalog, real wire samples), plugin authoring guide (the 4-step registration recipe of §7.4), CLI usage, getting-started (§32), and this plan's ADRs kept in `docs/adr/`. Every document holds on its own: a reader never needs this plan file to make sense of it — no cross-references to this plan's sections, D-rows or ADR numbers, and no numbered (`§`-style) cross-references inside the documents either, sections referencing each other by name; and where code and plan disagree the docs describe the code. ADR identifiers remain the standard ADR artifact; the plan stays their source of record.
 
 ### 36.6 The final question
 

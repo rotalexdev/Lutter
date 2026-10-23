@@ -27,7 +27,7 @@ Every encoded document is one JSON object with exactly four required fields
 | `format` | `String`, the literal `"forge.ui-document"` (`FORMAT_ID`) | Format family id. Anything else is a decode error; additional formats arriving later speak through their own `DocumentCodec.formatId` on the same interface. |
 | `formatVersion` | `Int`, must equal `1` (`FORMAT_VERSION`) | Envelope-layout version. Strict equality — no acceptance of larger values and no migration on it. |
 | `schemaVersion` | `Int`, current `1` (`SchemaVersion.kt`) | Payload-contract version. Above the supported value throws `UnsupportedFutureVersion` (a `SerializationException`); below it refuses — the format has never had a v0. |
-| `payload` | `UiDocument`, required | The document; §2's rules and §4's discriminators apply inside it and nowhere else. |
+| `payload` | `UiDocument`, required | The document; the canonical rules and the discriminator rules below apply inside it and nowhere else. |
 
 Decode semantics (`Envelope.kt`, `JsonDocumentCodec.kt`):
 
@@ -38,7 +38,7 @@ Decode semantics (`Envelope.kt`, `JsonDocumentCodec.kt`):
   way: the tools-door exists so a tool may tolerate a hand-edited header without
   relaxing anything else.
 - A successful decode returns `DecodeResult`; `migratedFrom` is null until a migration
-  chain exists (§6).
+  chain exists (the migrations section below).
 
 ## 2. Canonical JSON rules
 
@@ -50,10 +50,10 @@ configuration (`ForgeJson.kt`); nothing canonicalizes ad hoc at call sites.
 | 1 | Object keys are sorted recursively, by UTF-16 code-unit order. Node ids in the `nodes` table are object keys, so the nodes table is sorted through this same rule. |
 | 2 | Arrays keep model order — order is data and the writer never sorts it. |
 | 3 | Pretty-printed with a two-space indent, LF line endings, one trailing newline; empty containers stay inline (`{}`, `[]`). |
-| 4 | Scalars are written verbatim; the writer applies no second number formatter. Number spelling is owned by the serializers (§3). |
+| 4 | Scalars are written verbatim; the writer applies no second number formatter. Number spelling is owned by the serializers — the canonical-numbers section below. |
 | 5 | `encodeDefaults = false`: a model default is not written. Changing a model's default value is therefore a persisted-shape change — the kind of change a schema migration must own. |
 | 6 | `explicitNulls = false`: absent equals null on the wire; a null is never spelled. |
-| 7 | Set-typed values get no ordering rule from the writer today — only object keys are sorted. See §8. |
+| 7 | Set-typed values get no ordering rule from the writer today — only object keys are sorted. The open-items section at the end records this. |
 
 The absence and defaults rules together are the format's own contract: a key omitted
 because of rule 5 reads as the model default of the property that declares one, and a
@@ -83,7 +83,7 @@ One discriminator spelling: `"type"`. Every polymorphic union in the model carri
 own `@JsonClassDiscriminator("type")`; the `ForgeJson` configuration's
 `classDiscriminator = "k"` is overridden by each union, so `"k"` does not appear on the
 v1 wire for any of them. Non-polymorphic classes serialize as flat members with no
-discriminator at all. Tag values are §5's catalog.
+discriminator at all. Tag values are the catalog below.
 
 ## 5. The `@SerialName` catalog
 
@@ -129,8 +129,8 @@ The migration machinery (`Migrations.kt`, `Migration.kt`, engine/serialization):
   gaps; each entry is a pure `JsonElement → JsonElement` function; released entries are
   immutable forever after they ship.
 
-The envelope gates this from the outside: `formatVersion` mismatches are envelope errors
-(§1), and the payload only ever sees chains for its own `schemaVersion`.
+The envelope gates this from the outside: `formatVersion` mismatches are envelope
+errors, and the payload only ever sees chains for its own `schemaVersion`.
 
 ## 7. A real wire sample
 
@@ -156,7 +156,7 @@ The sample's envelope excerpt, verbatim from `v1.json`:
     "meta": { "name": "Counter" }
 ```
 
-The excerpt shows §2's rules working unaided: four header fields, object keys sorted
+The excerpt shows the canonical rules working unaided: four header fields, object keys sorted
 (`app` < `components` < `meta`), two-space indent, no nulls spelled.
 
 ## 8. Promised by the plan, not on the v1 wire
@@ -167,8 +167,8 @@ Recorded here so the spec never teaches a fiction — each bullet holds on today
   `{"type":"const","value":…}` shape and `PropertyValueTest` asserts it. A collapsed
   bare-value spelling would be bytes a v1 decoder refuses; it can only belong to a
   future version with its own migration.
-- Set-typed values have no ordering rule (§2, rule 7). `ResourceVariant.qualifiers` is
-  the current field that notices the difference.
+- Set-typed values have no ordering rule — only object keys are sorted.
+  `ResourceVariant.qualifiers` is the current field that notices the difference.
 - The version constants live in `engine/model`'s `SchemaVersion.kt`
   (`dev.rotalex.lutter.model.SchemaVersion`) and are imported by the serializer; which
   module owns them is a cosmetic choice and not part of the wire contract.
