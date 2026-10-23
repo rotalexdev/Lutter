@@ -1149,7 +1149,10 @@ class CodegenTest {
         // leaves the chain, and with it the `padding` import no argument ever asked for.
         val content = nullishPaddedScreen(listOf(allKey to null))
 
-        assertTrue(content.contains("modifier = modifier\n"), content)
+        // The printer hangs a sole argument's comma on its own line, so the bare `modifier`
+        // base ends `modifier = modifier,` — the newline is only there when a chain continues
+        // the value, which the padding tests pin with their `.padding(...)` continuation.
+        assertTrue(content.contains("modifier = modifier"), content)
         assertTrue(!content.contains("padding"), content)
     }
 
@@ -1157,7 +1160,7 @@ class CodegenTest {
     fun `a modifier whose axes all read null drops its entry too`() {
         val content = nullishPaddedScreen(listOf(horizontalKey to null, verticalKey to null))
 
-        assertTrue(content.contains("modifier = modifier\n"), content)
+        assertTrue(content.contains("modifier = modifier"), content)
         assertTrue(!content.contains("padding"), content)
     }
 
@@ -1189,7 +1192,7 @@ class CodegenTest {
 
         assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
         val screen = result.files.files.single { it.path == "screens/HomeScreen.kt" }
-        assertTrue(screen.content.contains("modifier = modifier\n"), screen.content)
+        assertTrue(screen.content.contains("modifier = modifier"), screen.content)
         assertTrue(!screen.content.contains("padding"), screen.content)
     }
 
