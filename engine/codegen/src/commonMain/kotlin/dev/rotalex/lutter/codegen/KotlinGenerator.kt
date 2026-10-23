@@ -24,6 +24,7 @@ import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.ids.TypeId
+import dev.rotalex.lutter.model.type.TokenKind
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.SchemaView
@@ -984,7 +985,27 @@ public class KotlinGenerator<A : Any, T : Any>(
         }
         val literal = LiteralPrinter.emit(constant, provenance, theme)
         if (literal == null) {
-            refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Value kind emits nothing yet")
+            // The colour and shape sentences name the design their refusal rests on:
+            // `ThemeHandle` answers text styles only, a colour role is a light/dark
+            // pair and nothing decides which half draws, and a shape role is an open map with
+            // no agreed key set — so there is no runtime drawing to mirror, and the gap is a
+            // design the engine has not built rather than a value this printer dropped. The
+            // kinds without a literal keep the flat class wording.
+            val message: String = when (constant) {
+                is Value.Token -> when (constant.kind) {
+                    TokenKind.Color ->
+                        "Token '" + constant.name + "' has no runtime drawing to mirror: no " +
+                            "ThemeHandle answers colour tokens, and a colour role is a " +
+                            "light/dark pair codegen cannot see which half draws"
+                    TokenKind.Shape ->
+                        "Token '" + constant.name + "' has no runtime drawing to mirror: no " +
+                            "ThemeHandle answers shape tokens, and a shape role has no agreed " +
+                            "key set"
+                    else -> "Value kind emits nothing yet"
+                }
+                else -> "Value kind emits nothing yet"
+            }
+            refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, message)
             return null
         }
         return KtExpr.Literal(literal.text, literal.symbols)
