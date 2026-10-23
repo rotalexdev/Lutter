@@ -31,6 +31,7 @@ import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.CodegenBinding
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.EmitterId
+import dev.rotalex.lutter.schema.component.EmitCase
 import dev.rotalex.lutter.schema.component.EventBinding
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.LambdaTarget
@@ -739,7 +740,14 @@ public class KotlinGenerator<A : Any, T : Any>(
             args += KtArg(receiver.member, KtExpr.Name(receiver.member))
             actionEmitter()?.require(receiver)
         }
-        modifierArg("modifier", node, isRoot, scopes)?.let { args += it }
+        // Always spelled. A document instance's callee declares its modifier parameter without
+        // looking at the call site, so an omitted argument here is the "No value passed for
+        // parameter 'modifier'" the fuzz batch's leaf calls compile into — while an intrinsic
+        // callee reads the argument through its own renderer's `scope.modifierFor(node)`, which
+        // falls through to the untouched `Modifier` when the node carries no entries. The
+        // fallback is the same `Modifier` base a leaf with an update chain builds its call on.
+        args += modifierArg("modifier", node, isRoot, scopes)
+            ?: KtArg("modifier", KtExpr.Ref(KtSymbolRef(modifierType)))
         var trailing: KtExpr.Lambda? = null
         for (slot in spec.slots) {
             val lambda: KtExpr.Lambda =
@@ -827,20 +835,33 @@ public class KotlinGenerator<A : Any, T : Any>(
         return KtExpr.Call(KtExpr.Name(name.value), emptyList())
     }
 
-    // Present and not defaulted away; absent reads as omitted, never as null.
+    // Present, valueful and not defaulted away; absent reads as omitted, never as null.
+    //
+    // Valueful is the word the addendum to that sentence needs: the fuzz batch mints
+    // `Value.Null` on nullable Dp properties about a quarter of the time, and the renderers
+    // answer a null the way they answer an absence (`ArrangementMaps` falls through, the
+    // padding applier reads its `?: 0f` fallbacks). A null-valued arrival left `present`
+    // would carry the key into a case whose pattern splices it, and the generated call would
+    // name a `Dp` it holds no value for — the compiler's `Null cannot be a value of a
+    // non-null type 'Dp'`. Reading the null as absent keeps the call the shape the renderer
+    // draws: the parameter left off when nothing the node carries has a value.
     private fun keptParams(
         binding: CodegenBinding.ComposeCall,
         node: ResolvedNode,
     ): List<KeptParam> {
         val kept: MutableList<KeptParam> = mutableListOf()
         for (param in binding.params) {
-            val present: List<PropertyKey> = param.from.filter { node.props.containsKey(it) }
+            val present: List<PropertyKey> = param.from.filter { key -> valueful(node, key) }
             if (present.isEmpty()) continue
             if (param.omitWhenDefault && present.all { isDefault(node, it) }) continue
             kept += KeptParam(param, present)
         }
         return kept
     }
+
+    /** True when [key]'s arrival exists and is not a `Value.Null` the renderers fall through. */
+    private fun valueful(node: ResolvedNode, key: PropertyKey): Boolean =
+        node.props[key]?.let { carriesValue(it) } == true
 
     private fun isDefault(node: ResolvedNode, key: PropertyKey): Boolean {
         val prop: ResolvedProp? = node.props[key]
@@ -875,8 +896,11 @@ public class KotlinGenerator<A : Any, T : Any>(
             return valueOf(prop, spec.properties, node)
         }
         if (emit is ValueEmit.Cases) {
+            // The same presence the parameter was kept by: the from-list keys that carry a
+            // value. A key the node still holds as a `Value.Null` arrival does not select a
+            // case, so no pattern ever looks up a fill the renderers fall through.
             val match = emit.cases.firstOrNull { kase ->
-                kase.whenPresent.all { node.props.containsKey(it) }
+                kase.whenPresent.all { key -> key in kept.present }
             }
             if (match == null) {
                 refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "No emission case matches")
@@ -1120,7 +1144,9 @@ public class KotlinGenerator<A : Any, T : Any>(
         return KtExpr.Lambda(emptyList(), body)
     }
 
-    // Roots thread the caller's modifier; leaves start from `Modifier`. No entry, no arg.
+    // Roots thread the caller's modifier; leaves start from `Modifier`. A chain that answers
+    // empty (root) stays the caller's `modifier` parameter; an empty chain anywhere else omits
+    // the argument, the defaulted parameter reading as the untouched `Modifier`.
     private fun modifierArg(
         param: String?,
         node: ResolvedNode,
@@ -1128,7 +1154,12 @@ public class KotlinGenerator<A : Any, T : Any>(
         scopes: List<ScopeId>,
     ): KtArg? {
         val calls: MutableList<KtExpr> = mutableListOf()
-        for (entry in node.modifiers) calls += emitModifier(entry, node, scopes) ?: return null
+        for (entry in node.modifiers) {
+            when (val frag: ModifierFrag = emitModifier(entry, node, scopes) ?: return null) {
+                is ModifierFrag.Written -> calls += frag.expr
+                ModifierFrag.Dropped -> {}
+            }
+        }
         if (param == null) {
             if (calls.isEmpty()) return null
             refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Modifiers without a parameter")
@@ -1140,7 +1171,24 @@ public class KotlinGenerator<A : Any, T : Any>(
         return KtArg(param, KtExpr.Chain(root, calls))
     }
 
-    private fun emitModifier(entry: ResolvedModifier, node: ResolvedNode, scopes: List<ScopeId>): KtExpr? {
+    /**
+     * One modifier entry's per-shape answer: the chained call it writes, or a drop.
+     *
+     * [Dropped] is the answer the appliers give a modifier nothing applies: an argument the
+     * renderers read as absent (`Value.Null`, which the fuzz batch mints on nullable Dp
+     * properties) leaves the whole entry out of the chain rather than carrying `null` into a
+     * `Dp` parameter, the same fall-through `PaddingApplier` and the size family spell with
+     * `?: return modifier`. A case list whose every shape fails the null-aware walk drops the
+     * entry for the same reason — an unmatched case once refused the document, which turned a
+     * generated file into a refusal for what the runtime treats as an untouched modifier.
+     */
+    private sealed class ModifierFrag {
+        class Written(val expr: KtExpr) : ModifierFrag()
+
+        object Dropped : ModifierFrag()
+    }
+
+    private fun emitModifier(entry: ResolvedModifier, node: ResolvedNode, scopes: List<ScopeId>): ModifierFrag? {
         val spec: ModifierSpec? = schema.modifiers[entry.type]
         if (spec == null) {
             refuse(DiagnosticCodes.CodegenNoBinding, node, "No spec for '${entry.type}'")
@@ -1160,6 +1208,11 @@ public class KotlinGenerator<A : Any, T : Any>(
         }
         val entries: Map<String, KotlinSymbol> = scope?.let { emit.scopeEntries.getValue(it) } ?: emptyMap()
         if (emit.cases.isEmpty()) {
+            // A modifier with no cases reads its arguments bare, and any argument that is a
+            // `Value.Null` the renderer would fall through makes the applier leave the entry
+            // out — `?: return modifier` over the whole apply. Spell the drop before the value
+            // walk, so no argument ever splices a null into a typed parameter.
+            if (entry.args.values.any { !carriesValue(it) }) return ModifierFrag.Dropped
             val args: MutableList<KtArg> = mutableListOf()
             for (key in entry.args.keys.sortedBy { it.value }) {
                 val prop: ResolvedProp = checkNotNull(entry.args[key]) {
@@ -1168,22 +1221,27 @@ public class KotlinGenerator<A : Any, T : Any>(
                 args += KtArg(key.value, valueOf(prop, spec.params, node, entries) ?: return null)
             }
             // A scope member's name resolves through the receiver, so it is not an import.
-            return KtCall(emit.function, args, imported = !emit.scopeMember)
+            return ModifierFrag.Written(KtCall(emit.function, args, imported = !emit.scopeMember))
         }
-        // First declared case whose keys the entry carries, so the order a spec writes is the
-        // precedence it means: `padding`'s `all` wins when a document also names an axis.
-        val match = emit.cases.firstOrNull { cased ->
-            cased.whenPresent.all { entry.args.containsKey(it) }
+        // First declared case whose keys the entry carries with values, so the order a spec
+        // writes is the precedence it means: `padding`'s `all` wins when a document also names
+        // an axis. A null-valued key does not count as carried, which walks an entry with a
+        // null axis onto the per-axis shape the applier's `?: 0f` fallback reads.
+        val match: EmitCase? = emit.cases.firstOrNull { cased ->
+            cased.whenPresent.all { key -> entry.args[key]?.let { carriesValue(it) } == true }
         }
-        if (match == null) {
-            refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "No emission case matches")
-            return null
-        }
+        if (match == null) return ModifierFrag.Dropped
         val filled = fillPattern(match.pattern, entry.args, spec.params, node, entries) ?: return null
         // The pattern spells the whole call, so the chained function is an import of its own
         // unless it is a scope member, whose name the parent content lambda already resolves.
         val imported: List<KotlinSymbol> = if (emit.scopeMember) emptyList() else listOf(emit.function)
-        return KtExpr.Snippet(filled.first, imported + match.imports + filled.second)
+        return ModifierFrag.Written(KtExpr.Snippet(filled.first, imported + match.imports + filled.second))
+    }
+
+    /** True when [prop]'s value would emit as something, never as the `null` the printer spells. */
+    private fun carriesValue(prop: ResolvedProp): Boolean = when (val stored = prop.value) {
+        is PropertyValue.Computed -> true
+        is PropertyValue.Const -> stored.value != Value.Null
     }
 
     private fun refuse(code: DiagnosticCode, node: ResolvedNode, message: String): Unit {
