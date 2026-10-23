@@ -1,6 +1,6 @@
 # 0016. Canonical numerics and schema-free decoding
 
-> Mirrored verbatim from `PLAN.md` §34 — the plan stays the source of record; edit it first and re-mirror. Accepted (MVP).
+> Status: accepted at MVP. Source of record: the repository's planning document — edit it first and re-mirror here.
 
 - **Decision:** ≤4 fractional digits, integer-arithmetic formatting; self-describing `Value` tags; decoding never consults the schema.
 - **Why:** Cross-platform determinism; lossless round trip for unknown plugin content.

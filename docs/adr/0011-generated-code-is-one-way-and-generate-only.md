@@ -1,6 +1,6 @@
 # 0011. Generated code is one-way and generate-only
 
-> Mirrored verbatim from `PLAN.md` §34 — the plan stays the source of record; edit it first and re-mirror. Accepted (MVP).
+> Status: accepted at MVP. Source of record: the repository's planning document — edit it first and re-mirror here.
 
 - **Decision:** No parsing generated Kotlin back; users extend via host functions, slots, and reusable components.
 - **Why:** Round-tripping requires a Kotlin parser and destroys determinism.

@@ -1,12 +1,12 @@
 # Lutter format specification — envelope, canonical JSON, and the `@SerialName` catalog
 
-Status: the v1 wire contract as implemented. `PLAN.md` §18/§19 remains the design record;
-where this document and the code disagree, fix the code first and then mirror — never the
-reverse. Anchors are file names (line numbers drift); the serializer code lives in
-`engine/serialization` and the annotated model lives in `engine/model`.
+Status: the v1 wire contract as implemented. Where this document and the code disagree,
+fix the code first and then mirror it here — never the reverse. Anchors are file names
+(line numbers drift); the serializer code lives in `engine/serialization` and the
+annotated model lives in `engine/model`.
 
-Applies to `formatVersion = 1` and `schemaVersion = 1` — both frozen at MVP release per
-`PLAN.md` §19.2, so this is the complete v1 surface, not a moving snapshot.
+Applies to `formatVersion = 1` and `schemaVersion = 1`, both frozen at MVP release, so
+this is the complete v1 surface, not a moving snapshot.
 
 ## 1. Envelope
 
@@ -35,7 +35,8 @@ Decode semantics (`Envelope.kt`, `JsonDocumentCodec.kt`):
   or a missing field is a decode error — unknown keys are never silently ignored.
 - The one escape hatch is `DecodeOptions(lenient = true)`, tools-only: it strips unknown
   header keys and re-decodes strictly. The payload below the header stays strict either
-  way, which is what §19.4 of the plan means by strict-with-a-tools-door.
+  way: the tools-door exists so a tool may tolerate a hand-edited header without
+  relaxing anything else.
 - A successful decode returns `DecodeResult`; `migratedFrom` is null until a migration
   chain exists (§6).
 
@@ -50,9 +51,9 @@ configuration (`ForgeJson.kt`); nothing canonicalizes ad hoc at call sites.
 | 2 | Arrays keep model order — order is data and the writer never sorts it. |
 | 3 | Pretty-printed with a two-space indent, LF line endings, one trailing newline; empty containers stay inline (`{}`, `[]`). |
 | 4 | Scalars are written verbatim; the writer applies no second number formatter. Number spelling is owned by the serializers (§3). |
-| 5 | `encodeDefaults = false`: a model default is not written. Changing a model's default value is therefore a persisted-shape change — the kind of change a schema migration must own (ADR-005). |
+| 5 | `encodeDefaults = false`: a model default is not written. Changing a model's default value is therefore a persisted-shape change — the kind of change a schema migration must own. |
 | 6 | `explicitNulls = false`: absent equals null on the wire; a null is never spelled. |
-| 7 | Plan §18.2's set-ordering policy (sets emitted sorted by each element's canonical encoding) is *not* enforced by the writer today — only object keys are sorted. See §8. |
+| 7 | Set-typed values get no ordering rule from the writer today — only object keys are sorted. See §8. |
 
 The absence and defaults rules together are the format's own contract: a key omitted
 because of rule 5 reads as the model default of the property that declares one, and a
@@ -113,8 +114,8 @@ Two facts a reader of the catalog must hold at once:
 - Within one union the set of tags is the discriminated alphabet: an unknown tag there
   is a decode error, and a renamed one is a data migration. Adding or renaming a tag
   never silently changes the wire — the catalog documents the change, and the schema
-  version carries it. `@SerialName` names are the persistence contract (ADR-005):
-  renaming a Kotlin class is safe, renaming its serial name is not.
+  version carries it. `@SerialName` names are the persistence contract: renaming a
+  Kotlin class is safe, renaming its serial name is not.
 
 ## 6. Versions, migrations, and the future
 
@@ -122,8 +123,8 @@ The migration machinery (`Migrations.kt`, `Migration.kt`, engine/serialization):
 
 - The registry today is an **empty chain**: `schemaVersion` is 1 and nothing below exists,
   so there is nothing to migrate yet — persisted v1 documents are the whole universe.
-- The plan freezes the v1 surface at MVP release (`PLAN.md` §19.2), so any persisted-shape
-  change after the freeze goes through a new schema version and a chain entry.
+- The v1 surface is frozen at MVP release, so any persisted-shape change after the
+  freeze goes through a new schema version and a chain entry.
 - A chain, once present, routes sequentially: versions sorted ascending, contiguous, no
   gaps; each entry is a pure `JsonElement → JsonElement` function; released entries are
   immutable forever after they ship.
@@ -160,18 +161,14 @@ The excerpt shows §2's rules working unaided: four header fields, object keys s
 
 ## 8. Promised by the plan, not on the v1 wire
 
-Recorded here so the spec never teaches a fiction (each traceable to §34's ADRs):
+Recorded here so the spec never teaches a fiction — each bullet holds on today's tree:
 
-- A `PropertyValueSerializer` collapsing the `{"type":"const","value":…}` shape to a
-  bare-value spelling is promised by `PLAN.md` §18.5 but is not implemented — the wire
-  today carries the full shape, and `PropertyValueTest` asserts that spelling. Writing
-  the collapsed shape would be writing bytes a v1 decoder refuses.
-- Plan §18.2's set-ordering rule has no writer implementation (§2, rule 7) —
-  `ResourceVariant.qualifiers` is the current field that notices the difference.
-- `PLAN.md` §18.5's own wire example is stale: it spells `"k"` and collapsed consts,
-  while the code writes `"type"` and the full const shape. Do not copy its samples;
-  this document's sample and §5's catalog are the ones with code behind them.
-- Version constants live in `engine/model`'s `SchemaVersion.kt`
-  (`dev.rotalex.lutter.model.SchemaVersion`), though `PLAN.md` §19.1 says
-  `schemaVersion` is owned by `:engine:serialization` — cosmetic drift, recorded
-  rather than massaged.
+- The const envelope is not collapsed today: the wire carries the full
+  `{"type":"const","value":…}` shape and `PropertyValueTest` asserts it. A collapsed
+  bare-value spelling would be bytes a v1 decoder refuses; it can only belong to a
+  future version with its own migration.
+- Set-typed values have no ordering rule (§2, rule 7). `ResourceVariant.qualifiers` is
+  the current field that notices the difference.
+- The version constants live in `engine/model`'s `SchemaVersion.kt`
+  (`dev.rotalex.lutter.model.SchemaVersion`) and are imported by the serializer; which
+  module owns them is a cosmetic choice and not part of the wire contract.

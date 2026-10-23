@@ -1,6 +1,6 @@
 # 0007. Immutable model with persistent collections
 
-> Mirrored verbatim from `PLAN.md` §34 — the plan stays the source of record; edit it first and re-mirror. Accepted (MVP).
+> Status: accepted at MVP. Source of record: the repository's planning document — edit it first and re-mirror here.
 
 - **Decision:** All model types immutable; `NodeTable` on persistent map; no in-place mutation APIs.
 - **Why:** Safe sharing across threads/Compose; cheap snapshots; trivially testable; structural sharing for undo and analysis caching.

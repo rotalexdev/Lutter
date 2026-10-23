@@ -1,6 +1,6 @@
 # 0010. Static plugin composition in MVP
 
-> Mirrored verbatim from `PLAN.md` §34 — the plan stays the source of record; edit it first and re-mirror. Accepted (MVP).
+> Status: accepted at MVP. Source of record: the repository's planning document — edit it first and re-mirror here.
 
 - **Decision:** Plugins are installed in code as contribution facets; no dynamic loading; document records required plugins.
 - **Why:** `ServiceLoader`/class loading is not portable across KMP; MVP does not need it.

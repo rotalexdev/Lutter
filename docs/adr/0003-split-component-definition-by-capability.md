@@ -1,6 +1,6 @@
 # 0003. Split component definition by capability
 
-> Mirrored verbatim from `PLAN.md` §34 — the plan stays the source of record; edit it first and re-mirror. Accepted (MVP).
+> Status: accepted at MVP. Source of record: the repository's planning document — edit it first and re-mirror here.
 
 - **Decision:** `ComponentSpec` (data) + `ComponentRenderer` (Compose) + declarative `CodegenBinding` (data) instead of one `ComponentDefinition` with `createRuntime()/generateCode()`.
 - **Why:** Keep schema Compose-free and codegen platform-neutral; single resolver ensures parity.
