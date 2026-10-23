@@ -19,7 +19,6 @@ import dev.rotalex.lutter.model.doc.ThemeDecl
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.expr.TypedExpr
 import dev.rotalex.lutter.model.ids.ComponentDeclId
-import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
@@ -651,10 +650,6 @@ public class KotlinGenerator<A : Any, T : Any>(
             refuse(DiagnosticCodes.CodegenNoBinding, node, "No compose call for '${node.type}'")
             return null
         }
-        unboundEvent(binding, node)?.let { unbound ->
-            refuse(DiagnosticCodes.CodegenNoBinding, node, "Event '$unbound' has no parameter to receive it")
-            return null
-        }
         val args: MutableList<KtArg> = mutableListOf()
         val kept: List<KeptParam> = keptParams(binding, node)
         for (keptParam in kept) {
@@ -666,6 +661,13 @@ public class KotlinGenerator<A : Any, T : Any>(
         // A handler argument is always named and a positional value argument has to precede every
         // named one, so the handlers land between the values and `modifier`: the component's own
         // argument comes first, and `modifier` stays where the rest of the file expects it.
+        //
+        // A node event no binding here receives is left out of the call, and that is parity and
+        // not a dropped feature: the interpreter runs such a handler nowhere. `TextFieldRenderer`
+        // passes an inert `onValueChange = {}`, and nothing dispatches a sequence the binding
+        // cannot receive (`Dispatch` is reached only by renderers that bind the parameter), so
+        // the document's handler is a no-op on the runtime side and the generated call leaving it
+        // out is what the two backends do alike. This used to refuse as `codegen.no_binding`.
         for (event in binding.events) {
             args += KtArg(event.param, eventLambda(event, node) ?: return null)
         }
@@ -1051,37 +1053,24 @@ public class KotlinGenerator<A : Any, T : Any>(
         (schema.types[id] as? EnumTypeSpec)?.entries ?: emptyList()
 
     /**
-     * An event the node carries that no [EventBinding] receives, or null when every one is bound.
-     *
-     * The mirror of the refusal inside [eventLambda]: a sequence with nowhere to go would be
-     * dropped here while the interpreter runs it, so the document is not refused for carrying a
-     * handler but for the schema having no parameter to carry it in. The smallest by name, so
-     * two runs over one document name the same event.
-     */
-    private fun unboundEvent(binding: CodegenBinding.ComposeCall, node: ResolvedNode): EventKey? =
-        node.events.keys
-            .filter { event -> binding.events.none { it.event == event } }
-            .minByOrNull { it.value }
-
-    /**
      * One `EventBinding` as the lambda its Compose parameter receives.
      *
      * The three fields are three different facts and the sequence is the join: `event` selects it
      * out of [ResolvedNode.events], `lambdaParams` names the lambda's own parameters, and `param`
-     * names the parameter it is written as. A binding whose event the node carries no sequence for
-     * refuses rather than emitting an empty lambda, because a handler parameter has no default to
-     * omit it with and `{}` is a handler that runs and does nothing.
+     * names the parameter it is written as.
+     *
+     * A binding whose event the node carries no sequence for emits an empty lambda rather than
+     * refusing. That is what the runtime draws for the same absence: the renderer binds the
+     * parameter unconditionally — `ButtonRenderer` passes
+     * `onClick = { scope.Dispatch(node, ON_CLICK) }` whether the document wrote a handler or not —
+     * and `Dispatch` answers a node holding nothing for the event by running nothing, so a
+     * missing handler is a *running* no-op. `{}` is that no-op spelled, and a handler parameter
+     * has no default to omit it with: a call without it would not compile.
      */
     private fun eventLambda(binding: EventBinding, node: ResolvedNode): KtExpr.Lambda? {
         val emitter: ActionEmitter = actionEmitter() ?: return null
-        val sequence: ActionSequence = node.events[binding.event] ?: run {
-            refuse(
-                DiagnosticCodes.CodegenStrategyUnsupported,
-                node,
-                "Event '" + binding.event + "' has no handler, and '" + binding.param + "' has no default",
-            )
-            return null
-        }
+        val sequence: ActionSequence = node.events[binding.event]
+            ?: return KtExpr.Lambda(binding.lambdaParams, emptyList())
         val at: DiagnosticLocation = DiagnosticLocation(nodeId = node.id, event = binding.event)
         // A refused step recorded the finding itself, so the null here adds nothing of its own.
         val body: List<KtStmt> = emitter.emit(sequence, at) ?: return null
