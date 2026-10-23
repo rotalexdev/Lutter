@@ -16,7 +16,7 @@
 #
 # Dispatch: `gh workflow run goldens.yml --ref <branch> -f ref=<branch>`, passing the same
 # branch in both places: `--ref` is what GitHub checks out, `ref` is what the job regenerates.
-name: goldens
+name: golden-regen
 
 on:
   workflow_dispatch:
