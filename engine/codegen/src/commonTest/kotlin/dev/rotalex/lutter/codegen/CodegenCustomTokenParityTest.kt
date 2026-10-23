@@ -29,9 +29,9 @@ import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.Schema
 import dev.rotalex.lutter.schema.component.Category
 import dev.rotalex.lutter.schema.component.ComponentSpec
-import dev.rotalex.lutter.schema.component.FunctionSpec
+import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.component.KotlinSymbol
-import dev.rotalex.lutter.schema.component.ModifierSpec
+import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import dev.rotalex.lutter.schema.component.Positional
 import dev.rotalex.lutter.schema.component.component
 import dev.rotalex.lutter.schema.component.componentSpec
