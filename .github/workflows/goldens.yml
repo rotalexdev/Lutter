@@ -13,6 +13,9 @@
 # uses. The commit happens on the checked-out ref, so a pull request's own checks pick the
 # rotated golden up from the push alone; nothing here ever runs the comparison — the pull
 # request's checks are the verification, not this workflow.
+#
+# Dispatch: `gh workflow run goldens.yml --ref <branch> -f ref=<branch>`, passing the same
+# branch in both places: `--ref` is what GitHub checks out, `ref` is what the job regenerates.
 name: goldens
 
 on:
