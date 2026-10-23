@@ -2770,31 +2770,31 @@ The MVP is complete only when **all** items are demonstrably true (CI evidence i
 
 ### 36.1 Functional
 
-- [ ] A document can be created programmatically (DSL) and equals the JSON-decoded document for the same content (`DslEqualsJsonTest`).
-- [ ] Components can be registered via `SchemaContribution` + `RuntimeContribution`; a component defined **only in a test module** passes validation, rendering, codegen and serialization without any change to engine modules (`ThirdPartyComponentTest`).
-- [ ] Properties are represented in a typed manner (`Value`/`TypeRef`/`PropertySpec`); no `Map<String, Any>` in engine code (`NoUntypedStringMapTest`).
-- [ ] The document serializes to canonical JSON and deserializes back to an equal document; `encode(decode(encode(d))) == encode(d)` for ≥ 1,000 generated documents (`RoundTripPropertyTest`).
-- [ ] Schema migrations work: fixtures `v1`…`vCURRENT` in `resources/migrations` migrate to the golden current form; future versions are rejected with `UnsupportedFutureVersion` (`MigrationTests`).
+- [x] A document can be created programmatically (DSL) and equals the JSON-decoded document for the same content (`DslEqualsJsonTest`).
+- [x] Components can be registered via `SchemaContribution` + the runtime registry builders (D35's amended shape); a component defined **only in a test module** passes validation, rendering, codegen and serialization without any change to engine modules (`ThirdPartyComponentTest`).
+- [x] Properties are represented in a typed manner (`Value`/`TypeRef`/`PropertySpec`); no `Map<String, Any>` in engine code (`NoUntypedStringMapTest`).
+- [x] The document serializes to canonical JSON and deserializes back to an equal document; `encode(decode(encode(d))) == encode(d)` for ≥ 1,000 generated documents (`RoundTripPropertyTest`).
+- [x] Schema migrations work: fixtures `v1`…`vCURRENT` in `resources/migrations` migrate to the golden current form; future versions are rejected with `UnsupportedFutureVersion` (`MigrationTests`).
 - [ ] The document validates through all eight passes; every code in §17.3 has a positive and a negative test; diagnostics are sorted deterministically (`DiagnosticCatalogTest`).
-- [ ] The runtime renders the §30 example and all wave-1 fixtures with Compose (`RuntimeSemanticsTest` on Desktop and Android unit runner).
+- [x] The runtime renders the §30 example and all wave-1 fixtures with Compose (`RuntimeSemanticsTest` on Desktop and Android unit runner).
 - [ ] The same documents generate Kotlin/Compose code (`CodegenGoldenTest` ≥ 25 fixtures incl. multi-file navigation, state, expressions, custom component, import alias conflict).
 
 ### 36.2 Determinism and correctness
 
 - [ ] Generated code is byte-identical across runs, across operating systems, and across the engine targets (Desktop, Android) for all golden fixtures (`DeterminismTest`, `check`).
-- [ ] Permutation tests (different construction orders) yield identical bytes/diagnostics/generated files (`PermutationTest`).
+- [x] Permutation tests (different construction orders) yield identical bytes/diagnostics/generated files (`PermutationTest`).
 - [ ] Generated code **compiles** for every conformance fixture as a real Gradle module compile, and the nightly fuzz batch of ≥ 200 random valid documents compiles with zero errors (`:integration:generated-compile:desktopTest`, nightly job).
-- [ ] Runtime and generated code have the same semantics: semantics dumps equal for all conformance fixtures, interaction scripts produce equal dumps, and Desktop pixel comparison has zero difference (`ConformanceTest` — its pixel row compares raw `IntArray` bytes over every fixture).
+- [x] Runtime and generated code have the same semantics: semantics dumps equal for all conformance fixtures, interaction scripts produce equal dumps, and Desktop pixel comparison has zero difference (`ConformanceTest` — its pixel row compares raw `IntArray` bytes over every fixture).
 - [ ] The expression corpus (≥ 150 cases) passes in the interpreter and in compiled generated code (`ExpressionCorpusTest`).
-- [ ] Coverage checks pass: every `ComponentSpec` has a renderer and a valid binding; every enum entry has a runtime mapping and Kotlin symbol; every `FunctionSpec` has an impl; every `ActionSpec` has a handler and an emitter (`CoverageTests`).
-- [ ] `apply(patch.inverse(), apply(patch, d)) == d` for all commands over ≥ 1,000 generated documents (`PatchInversePropertyTest`); `apply(diff(a, b), a) == b`.
+- [x] Coverage checks pass: every `ComponentSpec` has a renderer and a valid binding; every enum entry has a runtime mapping and Kotlin symbol; every `FunctionSpec` has an impl; every `ActionSpec` has a handler and an emitter (`CoverageTests`).
+- [x] `apply(patch.inverse(), apply(patch, d)) == d` for all commands over ≥ 1,000 generated documents (`PatchInversePropertyTest`); `apply(diff(a, b), a) == b`.
 
 ### 36.3 Architecture
 
 - [ ] The architecture does not require a visual editor: `:tools:cli` performs decode → validate → generate, and `:samples:desktop-preview` renders a document, using only public APIs.
-- [ ] The core domain model (`:engine:model`, `:schema`, `:serialization`, `:interpreter`, `:analysis`, `:editing`, `:codegen`, `:builtins`) has **no Compose dependency** (`verifyModuleGraph`, `NoComposeInPureModulesTest`).
-- [ ] The module dependency graph matches §23 exactly, with no cycles (`ModuleGraphTest`).
-- [ ] `:engine:codegen` and `:engine:runtime` do not depend on each other.
+- [x] The core domain model (`:engine:model`, `:schema`, `:serialization`, `:interpreter`, `:analysis`, `:editing`, `:codegen`, `:builtins`) has **no Compose dependency** (`verifyModuleGraph`, `NoComposeInPureModulesTest`).
+- [x] The module dependency graph matches §23 exactly, with no cycles (`ModuleGraphTest`).
+- [x] `:engine:codegen` and `:engine:runtime` do not depend on each other.
 - [ ] `explicitApi` is on everywhere; ABI dumps are committed and checked; internal APIs are `internal` or `@EngineInternalApi`.
 - [ ] No `when` over component types anywhere in engine code (`NoComponentWhenTest`).
 
@@ -2805,6 +2805,9 @@ The MVP is complete only when **all** items are demonstrably true (CI evidence i
 - [ ] `expect/actual` declarations exist only in the allow-listed files of §21.3.
 
 ### 36.5 Performance and quality gates
+
+> **Verification record (2026-10-23).** The ticked rows above were re-read against their named tests — claim and quantity — with green CI `Build, test and verify` / `Runtime versus generated code` / `Conformance run` (run 39919637732 wave). Still red, each for a checked reason: `CodegenGoldenTest` covers 11 fixtures where the row asks ≥ 25, `ExpressionCorpusTest` has 27 rows where the row asks ≥ 150, the fuzz batch compiles but the workflow's own comment records failures at 41/200 (codegen gaps on `m3.TextField`/`m3.Button` event surfaces and printer refusals — engine work, notCI work) and runs on push rather than a schedule, the cross-OS determinism clause has no CI witness (every workflow runs `ubuntu-latest` only), and `:tools:cli` / `:tools:architecture-tests` carry no `explicitApi` dumps while every engine module does. **`./gradlew check` with warnings-as-errors is not provable by construction**: `forge.warningsAsErrors=false` is pinned deliberately (unattributable toolchain-injected compiler warnings), and the docs/runtime rows sit in separate sections. --
+
 
 - [ ] Benchmarks on a 10,000-node document meet the §29 targets (recorded baselines committed; nightly regression alert configured).
 - [ ] `./gradlew check` is green with `allWarningsAsErrors`.
