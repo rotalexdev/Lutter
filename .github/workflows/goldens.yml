@@ -1,0 +1,56 @@
+# Golden regeneration for the codegen suite (`CodegenGoldenTest`).
+#
+# The builder in `integration/generated-compile/build.gradle.kts` (`GenerateCodegenGoldens`)
+# is the only thing that may write a golden: it forks `:tools:cli`'s `generate` command and
+# writes its output verbatim, so the pinned bytes are always what the shipped command emits.
+# That task needs a JVM, and the check workflow only ever compares — so every deliberate
+# rotation pays a manual, reviewable round trip through this workflow instead of a silent
+# one during a red run.
+#
+# Everything here mirrors `check.yml`: the CI-only Gradle properties, temurin 21 as the JVM
+# that runs Gradle (no toolchain anywhere in this build — see check.yml's comment), the
+# explicit setup-gradle version, and the same auto-commit action the ABI-dump regeneration
+# uses. The commit happens on the checked-out ref, so a pull request's own checks pick the
+# rotated golden up from the push alone; nothing here ever runs the comparison — the pull
+# request's checks are the verification, not this workflow.
+name: goldens
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: The branch to regenerate the goldens on
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Apply the CI-only Gradle properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.5.0'
+
+      - name: Regenerate the codegen goldens
+        run: gradle :integration:generated-compile:generateCodegenGoldens
+
+      - name: Commit the regenerated goldens
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          file_pattern: integration/generated-compile/src/commonTest/resources/goldens/**
+          commit_message: "chore(build): record the reference codegen goldens"
