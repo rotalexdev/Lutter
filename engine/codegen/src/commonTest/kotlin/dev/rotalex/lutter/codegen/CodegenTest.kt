@@ -1166,7 +1166,6 @@ class CodegenTest {
     }
 
     @Test
-    @Test
     fun `a pattern's doubled braces spell the lambda literally`() {
         // fillPattern treats a lone `{key}` as a placeholder, so the bare trailing lambda a
         // handler-less modifier needs is spelled `{{ }}`: the emitted text keeps one brace
