@@ -64,30 +64,36 @@ import dev.rotalex.lutter.schema.types.TypeSpec
 // overall — but this corpus does not exercise them, and a failure that only those shapes could
 // produce will not be found here.
 //
-// ### Why the schema also filters every component whose event has no binding
+// ### What the "event with no binding" rule filters now that the refusal is gone
 //
 // The rule above drops a component by **name**, and it can: three types, one failing mode, a
 // throw at construction. The one below cannot, and the difference is the reason it is written as
 // a predicate.
 //
 // **The class is: a component whose spec declares an event that its `CodegenBinding.ComposeCall`
-// does not bind.** Today that class has exactly one member, and it is a builtin.
+// does not bind.** That class still has exactly one member, and it is a builtin.
 // `TextFieldSpec` declares `event(onValueChange)` and its compose call binds only
 // `param("value", …)` — `ButtonSpec`, the only other spec that declares an event at all, binds
-// it as `event(onClick, "onClick")`. So the model's handler for `onValueChange` has somewhere to
-// go and the generated file has nowhere to put it: `KotlinGenerator`'s `unboundEvent` check
-// refuses every node of that type carrying a handler, as `codegen.no_binding` and the message
-// `Event 'onValueChange' has no parameter to receive it`.
+// it as `event(onClick, "onClick")`.
 //
-// **That is a real gap in `:engine:codegen`, and it is not this work unit's to close.**
-// `CodegenCoverage.check` is §4.5's build-time fail-fast and `callProblem` validates **one
-// direction** of the spec/binding pair: it refuses an `EventBinding` the spec does not declare
-// (`event '…' is not declared`) and never asks whether every declared event is bound. A
-// component in this class therefore *passes* the fail-fast, and refuses later — once per node,
-// at document time, with a code that names neither the spec nor the binding. That asymmetry is
-// the defect, it belongs to `:engine:codegen` as its own unit and its own row, and this file
-// only declines to measure around it. Nothing here fixes it and nothing here reports it as
-// fixed.
+// **The row's old premise is closed.** This ledger used to adjudicate the class as a real gap in
+// `:engine:codegen`: `KotlinGenerator`'s `unboundEvent` check refused every node of that type
+// carrying a handler, as `codegen.no_binding` and the message `Event 'onValueChange' has no
+// parameter to receive it`. That refusal is gone, and not as permissiveness — parity. The
+// interpreter runs such a handler nowhere: `TextFieldRenderer` passes an inert
+// `onValueChange = {}` and no runtime path dispatches a sequence the binding cannot receive, so
+// the emitter now leaves the same handler out of the call in silence, and a document carrying
+// one generates. The asymmetry the row below used to name — `CodegenCoverage.check`'s
+// `callProblem` validating only one direction of the spec/binding pair — is still there, but it
+// no longer leaves a class the engine refuses: the other direction now has an answer.
+//
+// **What this row still waits for, stated plainly.** The run lines of this file still apply the
+// rule, and `m3.TextField` is still out of the pool on purpose. Dropping the exclusion is a
+// run-line change that has to widen `EmittableView.exclusions` and the mirror `LargeDocumentTest`
+// asserts on (`the corpus excludes exactly the components codegen cannot spell`) together, and
+// none of those lines were this unit's surfaces. Until that edit lands, `EventWithoutBinding`
+// records the corpus's own scope and not a codegen refusal — a document carrying such a handler
+// is no longer refused by anyone.
 //
 // **Why a rule and not a second name.** Three reasons, and only the third is about style.
 //
@@ -177,12 +183,15 @@ internal enum class CorpusExclusion(val reason: String) {
 
     /**
      * A `ComposeCall` spec declaring an event the binding does not bind — the `onValueChange`
-     * case. Refused per node at document time as `codegen.no_binding`, which is why it needed its
-     * own rule and why the rule is written over the shape rather than over the name.
+     * case. Codegen used to refuse that per node at document time as `codegen.no_binding`, which
+     * was the ledger's own grounds; the emitter now leaves the unbound handler out of the call,
+     * the same no-op the interpreter runs it as. The rule stays because it and the mirror
+     * `LargeDocumentTest` reads are one row to widen, and not because a refusal is behind it.
      */
     EventWithoutBinding(
-        "declares an event its compose call does not bind, so codegen refuses every node " +
-            "carrying a handler for it as codegen.no_binding",
+        "declares an event its compose call does not bind. Codegen used to refuse every node " +
+            "carrying a handler for it and no longer does — the emitter drops the unbound " +
+            "handler — so this row records this corpus's scope, not a codegen refusal",
     ),
 }
 
@@ -190,9 +199,11 @@ internal enum class CorpusExclusion(val reason: String) {
  * Whether codegen can put [spec]'s declared events into the call it writes.
  *
  * The class is named in the file KDoc; this is the whole of the test, and it reads the same two
- * declarations `KotlinGenerator.unboundEvent` does — `spec.events` against
- * `binding.events` — so a component that passes here and is refused there is a bug in this
- * function rather than a difference of opinion about what "bound" means.
+ * declarations the emitter's handler walk does — `spec.events` against
+ * `binding.events` — so a component that passes here and comes out of the call differently is a
+ * bug in one of the two rather than a difference of opinion about what "bound" means. Where
+ * codegen once refused below this, it now emits without the unbound handler, so this function
+ * narrows a corpus and answers nothing about a document refusal any more.
  *
  * Narrowed to `ComposeCall` deliberately. `Intrinsic` specs are the *other* exclusion, they fail
  * earlier and louder, and their event is emitted by the engine-owned path rather than by a
