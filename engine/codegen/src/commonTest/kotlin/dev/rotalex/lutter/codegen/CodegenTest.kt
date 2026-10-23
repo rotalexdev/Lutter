@@ -239,19 +239,17 @@ class CodegenTest {
     }
 
     @Test
-    fun `a declared event with no handler refuses`() {
-        val result = eventResult(iconButtonNode(), iconButtonStub())
+    fun `a declared event with no handler emits the no-op the runtime binds`() {
+        val content = eventScreen(iconButtonNode(), iconButtonStub())
 
-        assertTrue(result.files.files.isEmpty())
-        assertEquals(listOf("codegen.strategy_unsupported"), result.diagnostics.map { it.code.value })
+        assertTrue(content.contains("onClick = {}"), content)
     }
 
     @Test
-    fun `a sequence no binding receives refuses`() {
-        val result = eventResult(iconButtonNode(navigateStep()), iconButtonStub(bindsClick = false))
+    fun `a sequence no binding receives is left out of the call`() {
+        val content = eventScreen(iconButtonNode(navigateStep()), iconButtonStub(bindsClick = false))
 
-        assertTrue(result.files.files.isEmpty())
-        assertEquals(listOf("codegen.no_binding"), result.diagnostics.map { it.code.value })
+        assertTrue(!content.contains("onClick"), content)
     }
 
     /**
