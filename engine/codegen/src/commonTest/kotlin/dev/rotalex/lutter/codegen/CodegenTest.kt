@@ -93,6 +93,7 @@ class CodegenTest {
     private val casedPaddingType: ModifierType = ModifierType("test.casedPadding")
     private val weightType: ModifierType = ModifierType("test.weight")
     private val alignType: ModifierType = ModifierType("test.align")
+    private val clickableType: ModifierType = ModifierType("test.clickable")
     private val textKey: PropertyKey = PropertyKey("text")
     private val styleKey: PropertyKey = PropertyKey("style")
     private val spacingKey: PropertyKey = PropertyKey("spacing")
@@ -1165,6 +1166,21 @@ class CodegenTest {
     }
 
     @Test
+    @Test
+    fun `a pattern's doubled braces spell the lambda literally`() {
+        // fillPattern treats a lone `{key}` as a placeholder, so the bare trailing lambda a
+        // handler-less modifier needs is spelled `{{ }}`: the emitted text keeps one brace
+        // pair and the compile shape is `Modifier.clickable { }`.
+        val result = scopedResult(rowType, ResolvedModifier(clickableType, emptyMap()))
+
+        val screen = screenOf(result, "clickable tile")
+        // The join style is the printer's, so the pin is on the literal the escaping buys:
+        // the case's emitted text keeps `{ }` and never carries a doubled brace forward.
+        assertTrue(screen.contains("clickable { }"), screen)
+        assertTrue(!screen.contains("{{"), screen)
+    }
+
+    @Test
     fun `a no-case modifier arg that reads null drops its entry`() {
         // The no-cases branch reads the argument bare, and the appliers' `?: return modifier`
         // means a null argument leaves nothing applied: the entry drops instead of spelling
@@ -1420,6 +1436,7 @@ class CodegenTest {
             component(textStub(textType, KotlinSymbol("androidx.compose.material3", "Text")))
             modifier(weightStub())
             modifier(alignStub())
+            modifier(clickableStub())
             type(
                 EnumTypeSpec(
                     alignmentId,
@@ -1463,6 +1480,17 @@ class CodegenTest {
             listOf(EmitCase(setOf(alignKey), "align({alignment})")),
             scopeMember = true,
             scopeEntries = alignEntries,
+        ),
+    )
+
+    /** A pattern whose doubled braces are literal: the shape a bare trailing lambda needs. */
+    private fun clickableStub(): ModifierSpec = ModifierSpec(
+        clickableType,
+        ModifierMetadata("Clickable"),
+        emptyList(),
+        emit = ModifierEmit(
+            KotlinSymbol("androidx.compose.foundation", "clickable"),
+            listOf(EmitCase(emptySet(), "clickable {{ }}")),
         ),
     )
 
