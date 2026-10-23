@@ -57,13 +57,13 @@ class BuiltinModifierSpecsTest {
 
     @Test
     fun `the argument-free modifiers carry no params and no cases`() {
-        // The four holders share no supertype, so a `listOf` of the objects infers `Any` and
-        // every `.spec` on it stops resolving. Collect the specs instead.
+        // The three holders share no supertype, so a `listOf` of the objects infers `Any` and
+        // every `.spec` on it stops resolving. Collect the specs instead. `clickable` is
+        // argument-free too but has its own case, so it is pinned on its own test below.
         val bare: List<ModifierSpec> = listOf(
             FillMaxSizeModifier.spec,
             FillMaxWidthModifier.spec,
             FillMaxHeightModifier.spec,
-            ClickableModifier.spec,
         )
         for (spec in bare) {
             assertEquals(emptyList(), spec.params, "${spec.type}")
@@ -73,6 +73,26 @@ class BuiltinModifierSpecsTest {
         assertEquals(
             "androidx.compose.foundation.layout",
             FillMaxSizeModifier.spec.emit.function.packageName,
+        )
+    }
+
+    /**
+     * `clickable` is argument-free but not case-free: the long overload the compiler resolves a
+     * call to requires `interactionSource`, `indication` and `onClick`, and a document names
+     * none of them. The case's pattern spells the propertyless call with its trailing lambda,
+     * which is exactly the call the runtime's `ClickableApplier` writes off the chain.
+     */
+    @Test
+    fun `clickable emits the propertyless call with its trailing lambda`() {
+        assertEquals(emptyList(), ClickableModifier.spec.params)
+        assertEquals(emptySet(), ClickableModifier.spec.requiresScope)
+        val cases = ClickableModifier.spec.emit.cases
+        assertEquals(1, cases.size)
+        assertEquals(emptySet(), cases.single().whenPresent)
+        assertEquals("clickable { }", cases.single().pattern)
+        assertEquals(
+            KotlinSymbol("androidx.compose.foundation", "clickable"),
+            ClickableModifier.spec.emit.function,
         )
     }
 

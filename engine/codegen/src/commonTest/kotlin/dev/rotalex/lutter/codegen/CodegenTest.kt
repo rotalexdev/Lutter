@@ -1109,6 +1109,91 @@ class CodegenTest {
     }
 
     @Test
+    fun `a null spacing keeps the renderers default arrangement`() {
+        // The fuzz batch carries `Value.Null` on the spacing the minting let through, and the
+        // renderer answers the null with `ArrangementMaps`' fall-through default exactly as it
+        // answers an absence. The generated call therefore names no arrangement at all: no case
+        // survives the walk the kept params keep to the valueful keys.
+        val props = mapOf(
+            spacingKey to ResolvedProp(
+                spacingKey,
+                PropertyValue.Const(Value.Null),
+                PropOrigin.Specified,
+                null,
+            ),
+        )
+        val result = generate(homeDocument(columnNode("n_1", props, listOf(textNode("n_2", "Hi")))))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = result.files.files.single { it.path == "screens/HomeScreen.kt" }
+        assertTrue(!screen.content.contains("verticalArrangement"), screen.content)
+        assertTrue(!screen.content.contains("Arrangement"), screen.content)
+    }
+
+    @Test
+    fun `a null axis falls to the per-axis shape the applier reads`() {
+        // `horizontal = 8.0.dp, vertical = null` names a `Dp` the node carries no value for. The
+        // applier's `(datum.vertical ?: 0f).dp` reads the null as the default, so the generated
+        // call is the single-axis shape: the case whose pattern splices no axis at all.
+        val content = nullishPaddedScreen(listOf(horizontalKey to 8f, verticalKey to null))
+
+        assertTrue(content.contains(".padding(horizontal = 8.0.dp)"), content)
+        assertTrue(content.contains("import androidx.compose.foundation.layout.padding\n"), content)
+        assertTrue(content.contains("import androidx.compose.ui.unit.dp\n"), content)
+        assertTrue(!content.contains("null"), content)
+    }
+
+    @Test
+    fun `a modifier entry with nothing to spell drops out`() {
+        // Every case's keys read null, which is the call the applier leaves untouched: the entry
+        // leaves the chain, and with it the `padding` import no argument ever asked for.
+        val content = nullishPaddedScreen(listOf(allKey to null))
+
+        assertTrue(content.contains("modifier = modifier\n"), content)
+        assertTrue(!content.contains("padding"), content)
+    }
+
+    @Test
+    fun `a modifier whose axes all read null drops its entry too`() {
+        val content = nullishPaddedScreen(listOf(horizontalKey to null, verticalKey to null))
+
+        assertTrue(content.contains("modifier = modifier\n"), content)
+        assertTrue(!content.contains("padding"), content)
+    }
+
+    @Test
+    fun `a no-case modifier arg that reads null drops its entry`() {
+        // The no-cases branch reads the argument bare, and the appliers' `?: return modifier`
+        // means a null argument leaves nothing applied: the entry drops instead of spelling
+        // `padding(null)`.
+        val entry = ResolvedModifier(
+            paddingType,
+            mapOf(
+                allKey to ResolvedProp(
+                    allKey,
+                    PropertyValue.Const(Value.Null),
+                    PropOrigin.Specified,
+                    null,
+                ),
+            ),
+        )
+        val root = ResolvedNode(
+            NodeId("n_1"),
+            columnType,
+            emptyMap(),
+            listOf(entry),
+            mapOf(childrenSlot to listOf(textNode("n_2", "Hi"))),
+            emptySet(),
+        )
+        val result = generate(homeDocument(root))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = result.files.files.single { it.path == "screens/HomeScreen.kt" }
+        assertTrue(screen.content.contains("modifier = modifier\n"), screen.content)
+        assertTrue(!screen.content.contains("padding"), screen.content)
+    }
+
+    @Test
     fun `a named arrangement emits the symbol its enum declares`() {
         val result = arrangementScreen(withEnum = true)
 
@@ -1240,6 +1325,28 @@ class CodegenTest {
             casedPaddingType,
             args.associate { (key, value) ->
                 key to ResolvedProp(key, PropertyValue.Const(Value.Dp(value)), PropOrigin.Specified, null)
+            },
+        )
+        val root = ResolvedNode(NodeId("n_1"), columnType, emptyMap(), listOf(entry), emptyMap(), emptySet())
+        val result = generate(homeDocument(root))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        return result.files.files.single { it.path == "screens/HomeScreen.kt" }.content
+    }
+
+    /**
+     * [paddedScreen]'s null-bearing twin: the fuzz batch mints `Value.Null` on nullable Dp
+     * properties about a quarter of the time, and a null here is the arrival the appliers read
+     * as absent before `?: 0f` answers it.
+     */
+    private fun nullishPaddedScreen(args: List<Pair<PropertyKey, Float?>>): String {
+        val entry = ResolvedModifier(
+            casedPaddingType,
+            args.associate { (key, value) ->
+                key to when (value) {
+                    null -> ResolvedProp(key, PropertyValue.Const(Value.Null), PropOrigin.Specified, null)
+                    else -> ResolvedProp(key, PropertyValue.Const(Value.Dp(value)), PropOrigin.Specified, null)
+                }
             },
         )
         val root = ResolvedNode(NodeId("n_1"), columnType, emptyMap(), listOf(entry), emptyMap(), emptySet())

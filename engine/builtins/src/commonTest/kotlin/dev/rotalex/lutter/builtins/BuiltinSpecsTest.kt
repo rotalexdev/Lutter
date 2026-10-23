@@ -188,7 +188,13 @@ class BuiltinSpecsTest {
         val call = assertIs<CodegenBinding.ComposeCall>(TextFieldSpec.spec.codegen)
         assertEquals(KotlinSymbol("androidx.compose.material3", "TextField"), call.function)
         assertEquals("value", call.params.single().param)
-        assertEquals(emptyList(), call.events, "the edit is out of the codegen scope")
+        // The edit is in the codegen scope: the generated function declares `value`, so its own
+        // handler can name it and the call binds `onValueChange = { value = it }`-shaped to the
+        // handler parameter.
+        assertEquals(
+            listOf(EventBinding(EventKey("onValueChange"), "onValueChange", listOf("value"))),
+            call.events,
+        )
         assertEquals(emptyList(), call.slots)
     }
 
