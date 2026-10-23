@@ -912,10 +912,12 @@ public class KotlinGenerator<A : Any, T : Any>(
         throw CodegenBug("Unknown ValueEmit: " + emit)
     }
 
-// Every `{key}` becomes the property's literal, spliced into text: an unknown key and a
+    // Every `{key}` becomes the property's literal, spliced into text: an unknown key and a
     // computed one both refuse here, the second because a pattern has no place to put a read.
     // Returns the text plus the literals' imports: a `dp` inside `Arrangement.spacedBy({spacing})`
-    // still needs its own symbols recorded.
+    // still needs its own symbols recorded. Doubling braces (`{{`, `}}`) spells them literally —
+    // that is how a pattern round a trailing lambda writes the lambda's own braces, the
+    // mismatching single brace staying prose.
     private fun fillPattern(
         pattern: String,
         values: Map<PropertyKey, ResolvedProp>,
@@ -927,18 +929,25 @@ public class KotlinGenerator<A : Any, T : Any>(
         val symbols: MutableList<KotlinSymbol> = mutableListOf()
         var index: Int = 0
         while (index < pattern.length) {
-            val open: Int = pattern.indexOf('{', index)
-            if (open < 0) {
-                filled.append(pattern.substring(index))
-                break
+            // A pattern is text before it is a template, so a doubled brace is the one way to
+            // spell a literal one — `clickable {{ }}` ends a trailing lambda empty, and a
+            // single brace in unmatched prose stays prose with its neighbors.
+            if (pattern.startsWith("{{", index) || pattern.startsWith("}}", index)) {
+                filled.append(pattern[index])
+                index += 2
+                continue
             }
-            val close: Int = pattern.indexOf('}', open)
+            if (pattern[index] != '{') {
+                filled.append(pattern[index])
+                index += 1
+                continue
+            }
+            val close: Int = pattern.indexOf('}', index)
             if (close < 0) {
                 filled.append(pattern.substring(index))
                 break
             }
-            filled.append(pattern.substring(index, open))
-            val raw: String = pattern.substring(open + 1, close)
+            val raw: String = pattern.substring(index + 1, close)
             val key: PropertyKey = try {
                 PropertyKey(raw)
             } catch (_: IllegalArgumentException) {

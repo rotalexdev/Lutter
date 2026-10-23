@@ -19,7 +19,9 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
  * a lambda, not as an absent argument. `ClickableApplier` writes `modifier.clickable { }`,
  * the trailing empty lambda being the inert handler both backends share, so the pattern here
  * is that call spelled the way the printer splices patterns: no case keys, so nothing fills
- * a placeholder and the snippet carries the one symbol the import lives by.
+ * a placeholder and the snippet carries the one symbol the import lives by. The lambda's
+ * braces are doubled — a pattern's single ones name placeholder keys — so the emitted text
+ * ends with the literal `{ }`.
  */
 public object ClickableModifier {
     public val spec: ModifierSpec = ModifierSpec(
@@ -28,7 +30,7 @@ public object ClickableModifier {
         params = emptyList(),
         emit = ModifierEmit(
             KotlinSymbol("androidx.compose.foundation", "clickable"),
-            listOf(EmitCase(emptySet(), "clickable { }")),
+            listOf(EmitCase(emptySet(), "clickable {{ }}")),
         ),
     )
 }
