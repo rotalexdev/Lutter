@@ -48,6 +48,7 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import dev.rotalex.lutter.schema.overlay.documentComponentSpec
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -186,6 +187,35 @@ class ComponentCodegenTest {
     }
 
     /**
+     * Kotlin binds a call's trailing lambda to the signature's last parameter, so a multi-slot
+     * component call spells the earlier slots by name and leaves the last slot's lambda trailing.
+     * The old rule trailed the first bound slot instead; beside a named last one that is the
+     * "Too many arguments" diagnostic the fuzz batch minted on every slot-heavy component.
+     */
+    @Test
+    fun `a multi slot call keeps the last slot's lambda trailing`() {
+        val actionsSlot = SlotName("actions")
+        val result = generate(
+            badge(
+                slots = listOf(SlotDecl(contentSlot), SlotDecl(actionsSlot)),
+                instance = instance(
+                    "Live",
+                    slots = mapOf(
+                        contentSlot to listOf(textNode("n_filled", "body")),
+                        actionsSlot to listOf(textNode("n_action", "press")),
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = content(result, "screens/HomeScreen.kt")
+        assertTrue(screen.contains("content = {"), screen)
+        assertFalse(screen.contains("actions = "), screen)
+        assertTrue(screen.contains("Text(\"press\")"), screen)
+    }
+
+    /**
      * A component that instantiates itself has no file order, and the runtime reports that at
      * render time — so codegen reports it here rather than picking an order and emitting a call
      * that passes a receiver its callee never got.
@@ -294,12 +324,13 @@ class ComponentCodegenTest {
     private fun badge(
         body: ResolvedNode = defaultBody(withPress = false),
         instance: ResolvedNode = instance("Live"),
+        slots: List<SlotDecl> = listOf(SlotDecl(contentSlot)),
     ): ResolvedDocument {
         val decl = ComponentDecl(
             id = badgeId,
             name = "Badge",
             params = listOf(ParamDecl(ParamName("label"), TypeRef.Str)),
-            slots = listOf(SlotDecl(contentSlot)),
+            slots = slots,
             root = body.id,
         )
         val pages = mapOf(pageId to ResolvedPage(pageId, "Home", "home", column("n_root", listOf(instance))))
@@ -330,12 +361,15 @@ class ComponentCodegenTest {
     private fun pressHandler(): ResolvedNode =
         press("n_press", ActionSequence(listOf(ActionStep(ActionId("ui.showSnackbar"), snackbarArgs()))))
 
-    private fun instance(label: String): ResolvedNode = ResolvedNode(
+    private fun instance(
+        label: String,
+        slots: Map<SlotName, List<ResolvedNode>> = mapOf(contentSlot to listOf(textNode("n_filled", "body"))),
+    ): ResolvedNode = ResolvedNode(
         id = NodeId("n_badge"),
         type = badgeType,
         props = mapOf(labelKey to string(labelKey, label)),
         modifiers = emptyList(),
-        slots = mapOf(contentSlot to listOf(textNode("n_filled", "body"))),
+        slots = slots,
         scopes = emptySet(),
     )
 
