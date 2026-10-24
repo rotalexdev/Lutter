@@ -905,7 +905,8 @@ public class KotlinGenerator<A : Any, T : Any>(
         }
         // `modifier` is always named and Compose declares it after the value arguments, so a
         // positional one has to precede it: `Text("Left", modifier = …)`, never the reverse.
-        modifierArg(binding.modifierParam, node, isRoot, scopes)?.let { args += it }
+        modifierArg(binding.modifierParam, node, isRoot, scopes, required = binding.modifierRequired)
+            ?.let { args += it }
         var trailing: KtExpr.Lambda? = null
         for (slot in binding.slots) {
             val lambda: KtExpr.Lambda = slotLambda(slot, node, spec, scopes) ?: return null
@@ -1390,12 +1391,16 @@ public class KotlinGenerator<A : Any, T : Any>(
 
     // Roots thread the caller's modifier; leaves start from `Modifier`. A chain that answers
     // empty (root) stays the caller's `modifier` parameter; an empty chain anywhere else omits
-    // the argument, the defaulted parameter reading as the untouched `Modifier`.
+    // the argument, the defaulted parameter reading as the untouched `Modifier`. A callee whose
+    // modifier parameter takes no default ([required]) still spells the untouched `Modifier`
+    // base for an empty or all-dropped chain — the same fallback the document-instance path
+    // spells — while a refusal above it keeps the `null`.
     private fun modifierArg(
         param: String?,
         node: ResolvedNode,
         isRoot: Boolean,
         scopes: List<ScopeId>,
+        required: Boolean = false,
     ): KtArg? {
         val calls: MutableList<KtExpr> = mutableListOf()
         for (entry in node.modifiers) {
@@ -1410,7 +1415,9 @@ public class KotlinGenerator<A : Any, T : Any>(
             return null
         }
         if (isRoot && calls.isEmpty()) return KtArg(param, KtExpr.Name("modifier"))
-        if (calls.isEmpty()) return null
+        if (calls.isEmpty()) {
+            return if (required) KtArg(param, KtExpr.Ref(KtSymbolRef(modifierType))) else null
+        }
         val root: KtExpr = if (isRoot) KtExpr.Name("modifier") else KtExpr.Ref(KtSymbolRef(modifierType))
         return KtArg(param, KtExpr.Chain(root, calls))
     }

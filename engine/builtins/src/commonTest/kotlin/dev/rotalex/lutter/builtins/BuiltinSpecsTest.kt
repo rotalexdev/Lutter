@@ -26,6 +26,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 /** The builtin specs: their surface, their rules, their bindings, their pairing. */
 class BuiltinSpecsTest {
@@ -154,6 +155,7 @@ class BuiltinSpecsTest {
         val call = assertIs<CodegenBinding.ComposeCall>(SpacerSpec.spec.codegen)
         assertEquals(KotlinSymbol("androidx.compose.foundation.layout", "Spacer"), call.function)
         assertEquals("modifier", call.modifierParam)
+        assertTrue(call.modifierRequired, "the Spacer modifier param takes no default")
         assertEquals(emptyList(), call.params)
         assertEquals(emptyList(), call.slots)
     }

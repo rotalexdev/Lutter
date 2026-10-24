@@ -114,10 +114,11 @@ public class ComponentSpecBuilder internal constructor(
     public fun composeCall(
         function: KotlinSymbol,
         modifierParam: String? = "modifier",
+        modifierRequired: Boolean = false,
         block: ComposeCallBuilder.() -> Unit = {},
     ): Unit {
         check(codegen == null) { "Component '${type}' declares its codegen twice" }
-        codegen = ComposeCallBuilder().apply(block).build(function, modifierParam)
+        codegen = ComposeCallBuilder().apply(block).build(function, modifierParam, modifierRequired)
     }
 
     /** A plugin-owned binding. Same single-binding rule as [composeCall]. */
@@ -191,12 +192,17 @@ public class ComposeCallBuilder internal constructor() {
     public fun slot(spec: SlotSpec, target: LambdaTarget, receiver: KotlinSymbol? = null): Unit =
         slot(spec.name, target, receiver)
 
-    internal fun build(function: KotlinSymbol, modifierParam: String?): CodegenBinding.ComposeCall =
+    internal fun build(
+        function: KotlinSymbol,
+        modifierParam: String?,
+        modifierRequired: Boolean,
+    ): CodegenBinding.ComposeCall =
         CodegenBinding.ComposeCall(
             function = function,
             modifierParam = modifierParam,
             params = params.toList(),
             events = events.toList(),
             slots = slots.toList(),
+            modifierRequired = modifierRequired,
         )
 }

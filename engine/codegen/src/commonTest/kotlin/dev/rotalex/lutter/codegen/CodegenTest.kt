@@ -90,6 +90,7 @@ class CodegenTest {
     private val choiceType: ComponentType = ComponentType("test.Choice")
     private val iconButtonType: ComponentType = ComponentType("test.IconButton")
     private val buttonType: ComponentType = ComponentType("test.Button")
+    private val spacerType: ComponentType = ComponentType("test.Spacer")
     private val paddingType: ModifierType = ModifierType("test.padding")
     private val casedPaddingType: ModifierType = ModifierType("test.casedPadding")
     private val weightType: ModifierType = ModifierType("test.weight")
@@ -1294,6 +1295,71 @@ class CodegenTest {
         assertTrue(!content.contains("padding"), content)
     }
 
+    // Compose's `Spacer` declares its modifier parameter without a default, so a modifier-less
+    // node must still spell the argument: the fuzz batch's bare `Spacer()` compiled into nothing
+    // but "No value passed for parameter 'modifier'". The flag on the binding makes the empty
+    // chain spell the same untouched `Modifier` base a chain would have built from.
+    @Test
+    fun `a modifier-less spacer spells the untouched modifier base`() {
+        val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
+            Schema.build {
+                component(columnStub(columnType))
+                component(spacerStub())
+            }
+
+        val result = KotlinGenerator(schema, CodegenOptions("com.example.app"))
+            .generate(homeDocument(layoutNode("n_1", columnType, listOf(spacerNode()))))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = homeScreenOf(result)
+        assertTrue(screen.contains("modifier = Modifier"), screen)
+        // The bare call the compiler refused never spells again.
+        assertTrue(!screen.contains("Spacer()"), screen)
+    }
+
+    // All-dropped is the same spelling: an entry that reads null leaves the chain empty, and a
+    // no-default callee cannot lean on the default the empty case leaned on before.
+    @Test
+    fun `a spacer whose modifier entry drops spells the bare base`() {
+        val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
+            Schema.build {
+                component(columnStub(columnType))
+                component(spacerStub())
+                modifier(
+                    ModifierSpec(
+                        paddingType,
+                        ModifierMetadata("Padding"),
+                        listOf(prop<Float>("all", TypeRef.Dp)),
+                        emit = ModifierEmit(KotlinSymbol("androidx.compose.foundation.layout", "padding")),
+                    ),
+                )
+            }
+        val fallen = spacerNode().copy(
+            modifiers = listOf(
+                ResolvedModifier(
+                    paddingType,
+                    mapOf(
+                        PropertyKey("all") to ResolvedProp(
+                            PropertyKey("all"),
+                            PropertyValue.Const(Value.Null),
+                            PropOrigin.Specified,
+                            null,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val result = KotlinGenerator(schema, CodegenOptions("com.example.app"))
+            .generate(homeDocument(layoutNode("n_1", columnType, listOf(fallen))))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = homeScreenOf(result)
+        assertTrue(screen.contains("modifier = Modifier"), screen)
+        assertTrue(!screen.contains("Spacer()"), screen)
+        assertTrue(!screen.contains("padding"), screen)
+    }
+
     @Test
     fun `a pattern's doubled braces spell the lambda literally`() {
         // fillPattern treats a lone `{key}` as a placeholder, so the bare trailing lambda a
@@ -1780,6 +1846,16 @@ class CodegenTest {
 
     private fun textNode(id: String, text: String): ResolvedNode = textAs(id, textType, text)
 
+    /** A leaf that carries nothing at all, which is the shape the aura-free `Spacer` travels in. */
+    private fun spacerNode(): ResolvedNode = ResolvedNode(
+        NodeId("n_2"),
+        spacerType,
+        emptyMap(),
+        emptyList(),
+        emptyMap(),
+        emptySet(),
+    )
+
     private fun textAs(id: String, type: ComponentType, text: String): ResolvedNode = ResolvedNode(
         NodeId(id),
         type,
@@ -1928,6 +2004,12 @@ class CodegenTest {
                 slot("children", LambdaTarget.Trailing)
             }
         }
+
+    /** `Spacer`'s binding: no properties, and a modifier parameter with no default. */
+    private fun spacerStub(): ComponentSpec = componentSpec(spacerType, 1) {
+        metadata("Spacer", Category.Layout)
+        composeCall(KotlinSymbol("androidx.compose.foundation.layout", "Spacer"), modifierRequired = true)
+    }
 
     private fun textStub(type: ComponentType, function: KotlinSymbol): ComponentSpec {
         val text = prop<String>("text", TypeRef.Str, required = true)

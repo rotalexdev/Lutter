@@ -202,19 +202,21 @@ public final class dev/rotalex/lutter/schema/component/CodegenBinding$Companion 
 
 public final class dev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall : dev/rotalex/lutter/schema/component/CodegenBinding {
 	public static final field Companion Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall$Companion;
-	public fun <init> (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
-	public synthetic fun <init> (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Z)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
 	public final fun component2 ()Ljava/lang/String;
 	public final fun component3 ()Ljava/util/List;
 	public final fun component4 ()Ljava/util/List;
 	public final fun component5 ()Ljava/util/List;
-	public final fun copy (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;)Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall;
-	public static synthetic fun copy$default (Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall;
+	public final fun component6 ()Z
+	public final fun copy (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Z)Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ZILjava/lang/Object;)Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getEvents ()Ljava/util/List;
 	public final fun getFunction ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
 	public final fun getModifierParam ()Ljava/lang/String;
+	public final fun getModifierRequired ()Z
 	public final fun getParams ()Ljava/util/List;
 	public final fun getSlots ()Ljava/util/List;
 	public fun hashCode ()I
@@ -311,8 +313,8 @@ public final class dev/rotalex/lutter/schema/component/ComponentSpec {
 
 public final class dev/rotalex/lutter/schema/component/ComponentSpecBuilder {
 	public final fun availability (Ljava/util/Set;)V
-	public final fun composeCall (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
-	public static synthetic fun composeCall$default (Ldev/rotalex/lutter/schema/component/ComponentSpecBuilder;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public final fun composeCall (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;ZLkotlin/jvm/functions/Function1;)V
+	public static synthetic fun composeCall$default (Ldev/rotalex/lutter/schema/component/ComponentSpecBuilder;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
 	public final fun custom-vKe6DGs (Ljava/lang/String;)V
 	public final fun event (Ldev/rotalex/lutter/schema/component/EventSpec;)V
 	public final fun event (Ljava/lang/String;Ljava/util/List;)V

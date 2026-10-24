@@ -16,6 +16,9 @@ public object SpacerSpec {
     /** The spec renderers, validation and codegen share. */
     public val spec: ComponentSpec = componentSpec(ComponentType("core.Spacer"), version = 1) {
         metadata(displayName = "Spacer", category = Category.Layout)
-        composeCall(KotlinSymbol("androidx.compose.foundation.layout", "Spacer"))
+        composeCall(
+            KotlinSymbol("androidx.compose.foundation.layout", "Spacer"),
+            modifierRequired = true,
+        )
     }
 }
