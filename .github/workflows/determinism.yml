@@ -1,0 +1,88 @@
+name: determinism
+
+# PLAN §36: generated code is byte-identical across runs, across operating systems, and
+# across the engine targets (Desktop, Android) for all golden fixtures.
+#
+# The target axis already has its witness: the golden fixtures are embedded as Kotlin
+# constants and the same rows run on the Desktop and the Android units of their modules
+# inside `Build, test and verify`. The OS axis is what had none: every workflow ran
+# `ubuntu-latest`, so a divergence that only a Windows runner would surface — the checkout
+# rewriting line endings, a directory listing feeding an unordered byte stream, a default
+# charset leaking into a snapshot — was a possibility a sentence said should not exist
+# rather than a fact CI had ruled out. This is the ruling.
+#
+# Same as fuzz-batch: `push`, not `schedule`. GitHub runs a scheduled event from the
+# default branch and from nowhere else, and `main` is four files with no build. A push
+# runs where the code is. Both matrix legs run the identical script: one leg that only
+# works on one side of a matrix is not a probe (`preview-artifacts`' matrix exists for
+# packaging, not for evidence).
+#
+# macOS is deliberately absent. The two hazards a third unix leg adds are the charset and
+# locale defaults a JVM picks from the host, and both leak through paths the canonical
+# writer already owns; the windows leg is the leg that genuinely can diverge, and it is
+# the one §36's critic asked for by name.
+#
+# `workflow_dispatch` behaves like fuzz-batch's: it answers 404 until `main` carries this
+# file, and it stays so the next reader does not rediscover the constraint.
+on:
+  push:
+    branches: [ dev ]
+  workflow_dispatch:
+
+concurrency:
+  group: determinism-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  determinism:
+    name: Determinism on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    matrix:
+      os: [ ubuntu-latest, windows-latest ]
+    # ubuntu measured ~21 min for the build+test cold on a GitHub runner in the checks
+    # this session watched; windows ran ~3x slower on the same shape in preview artifacts.
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Apply the CI-only Gradle properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.5.0'
+
+      # One identical script for both legs, under bash so the lines do not fork per OS.
+      # Desktop (JVM) and Android (KMP commonTest's android unit task) both run the same
+      # two classes, because §36's row asks for targets AND operating systems at once.
+      # `if` rather than a bare command because GitHub runs bash with `-e`: a failing
+      # gradle would abort the step before the echo it must produce.
+      - name: Run the determinism suite on both targets
+        shell: bash
+        run: |
+          start=$(date +%s)
+          if gradle \
+              :engine:test-support:desktopTest --tests "dev.rotalex.lutter.testsupport.generator.DeterminismTest" \
+              :engine:test-support:testDebugUnitTest --tests "dev.rotalex.lutter.testsupport.generator.DeterminismTest" \
+              :integration:generated-compile:desktopTest --tests "dev.rotalex.lutter.generated.compile.CodegenGoldenTest" \
+              :integration:generated-compile:testDebugUnitTest --tests "dev.rotalex.lutter.generated.compile.CodegenGoldenTest"; then status=0; else status=$?; fi
+          echo "determinism: os=$(uname -s) elapsed=$(( $(date +%s) - start ))s"
+          exit $status
+
+      - name: Upload the test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: '**/build/test-results/**/*.xml'
+          if-no-files-found: ignore
+          retention-days: 14
