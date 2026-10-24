@@ -74,6 +74,7 @@ import dev.rotalex.lutter.schema.types.TypeSpec
 import dev.rotalex.lutter.schema.types.type
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
@@ -625,7 +626,7 @@ class CodegenTest {
             public interface AppHost {}
 
             public interface SnackbarHost {
-                public fun show(message: String) {}
+                public fun show(message: String)
             }
 
             """.trimIndent(),
@@ -637,7 +638,7 @@ class CodegenTest {
     fun `one host function becomes one member`() {
         val host = appHostOf(listOf(hostDecl("submitOrder", listOf(ParamDecl(ParamName("id"), TypeRef.Str)))))
 
-        assertTrue(host.contains("    public fun submitOrder(id: String) {}"), host)
+        assertTrue(host.contains("    public fun submitOrder(id: String)"), host)
     }
 
     @Test
@@ -654,11 +655,11 @@ class CodegenTest {
             host.contains(
                 """
                 public interface AppHost {
-                    public fun submitOrder(id: String) {}
+                    public fun submitOrder(id: String)
 
-                    public fun logEvent(count: Int) {}
+                    public fun logEvent(count: Int)
 
-                    public fun clear() {}
+                    public fun clear()
                 }
                 """.trimIndent(),
             ),
@@ -667,12 +668,46 @@ class CodegenTest {
     }
 
     @Test
+    fun `a declared return does not give an abstract member braces`() {
+        // The fuzz batch names the concrete: `fun genHost1(first: String, second: String): String {}`
+        // inside an interface is not Kotlin ("missing return"), while the same shape with no
+        // return type compiles. Both spell abstract, so neither carries braces.
+        val host = appHostOf(
+            listOf(
+                hostDecl(
+                    "genHost1",
+                    listOf(
+                        ParamDecl(ParamName("first"), TypeRef.Str),
+                        ParamDecl(ParamName("second"), TypeRef.Str),
+                    ),
+                ),
+                HostFunctionDecl("fetch", emptyList(), returns = TypeRef.Str, suspend = false),
+            ),
+        )
+
+        assertTrue(
+            host.contains(
+                """
+                public interface AppHost {
+                    public fun genHost1(first: String, second: String)
+
+                    public fun fetch(): String
+                }
+                """.trimIndent(),
+            ),
+            host,
+        )
+        assertTrue(host.contains("public fun genHost1("), host)
+        assertFalse(host.contains("genHost1(first: String, second: String) {"), host)
+    }
+
+    @Test
     fun `a declaration that suspends is declared suspend`() {
         val host = appHostOf(
             listOf(hostDecl("refresh", listOf(ParamDecl(ParamName("token"), TypeRef.Str)), suspending = true)),
         )
 
-        assertTrue(host.contains("public suspend fun refresh(token: String) {}"), host)
+        assertTrue(host.contains("public suspend fun refresh(token: String)"), host)
     }
 
     @Test
