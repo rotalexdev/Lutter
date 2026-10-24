@@ -119,12 +119,14 @@ public fun HomeScreen(modifier: Modifier = Modifier, state: HomeScreenState = re
         c_badge(
             label = state.label,
             accent = Color(0xFFFFB300),
+            modifier = Modifier,
         ) {
             Text("amber body")
         }
         c_badge(
             label = "Idle",
             accent = Color(0xFF1B5E20),
+            modifier = Modifier,
         ) {
             Text("green body")
         }

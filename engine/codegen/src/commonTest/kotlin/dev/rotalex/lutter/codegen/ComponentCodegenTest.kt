@@ -140,6 +140,7 @@ class ComponentCodegenTest {
                 ) {
                     c_badge(
                         label = "Live",
+                        modifier = Modifier,
                     ) {
                         Text("body")
                     }
@@ -241,6 +242,28 @@ class ComponentCodegenTest {
         assertTrue(
             result.diagnostics.any { it.message.contains("omits parameter 'label'") },
             "${result.diagnostics}",
+        )
+    }
+
+    /**
+     * The instance call always names the modifier argument, even when the node carries no
+     * entries: the callee the call reaches is the generated function, whose signature was
+     * already written with a default, so the compiler has nothing to fall back on at the call
+     * site — "No value passed for parameter 'modifier'" is what an omission compiles into
+     * there. The argument spelled is the untouched `Modifier`, the same base a leaf with an
+     * update chain builds on.
+     */
+    @Test
+    fun `an instance call spells its modifier argument even with no entries`() {
+        val result = generate(badge())
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = content(result, "screens/HomeScreen.kt")
+        // Args at the call's own indent, the close back at the call's: the same columns the
+        // `C_badge` golden above prints the call with.
+        assertTrue(
+            "c_badge(\n            label = \"Live\",\n            modifier = Modifier,\n        ) {" in screen,
+            screen,
         )
     }
 

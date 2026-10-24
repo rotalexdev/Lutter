@@ -93,6 +93,7 @@ class CodegenTest {
     private val casedPaddingType: ModifierType = ModifierType("test.casedPadding")
     private val weightType: ModifierType = ModifierType("test.weight")
     private val alignType: ModifierType = ModifierType("test.align")
+    private val clickableType: ModifierType = ModifierType("test.clickable")
     private val textKey: PropertyKey = PropertyKey("text")
     private val styleKey: PropertyKey = PropertyKey("style")
     private val spacingKey: PropertyKey = PropertyKey("spacing")
@@ -1109,6 +1110,108 @@ class CodegenTest {
     }
 
     @Test
+    fun `a null spacing keeps the renderers default arrangement`() {
+        // The fuzz batch carries `Value.Null` on the spacing the minting let through, and the
+        // renderer answers the null with `ArrangementMaps`' fall-through default exactly as it
+        // answers an absence. The generated call therefore names no arrangement at all: no case
+        // survives the walk the kept params keep to the valueful keys.
+        val props = mapOf(
+            spacingKey to ResolvedProp(
+                spacingKey,
+                PropertyValue.Const(Value.Null),
+                PropOrigin.Specified,
+                null,
+            ),
+        )
+        val result = generate(homeDocument(columnNode("n_1", props, listOf(textNode("n_2", "Hi")))))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = result.files.files.single { it.path == "screens/HomeScreen.kt" }
+        assertTrue(!screen.content.contains("verticalArrangement"), screen.content)
+        assertTrue(!screen.content.contains("Arrangement"), screen.content)
+    }
+
+    @Test
+    fun `a null axis falls to the per-axis shape the applier reads`() {
+        // `horizontal = 8.0.dp, vertical = null` names a `Dp` the node carries no value for. The
+        // applier's `(datum.vertical ?: 0f).dp` reads the null as the default, so the generated
+        // call is the single-axis shape: the case whose pattern splices no axis at all.
+        val content = nullishPaddedScreen(listOf(horizontalKey to 8f, verticalKey to null))
+
+        assertTrue(content.contains(".padding(horizontal = 8.0.dp)"), content)
+        assertTrue(content.contains("import androidx.compose.foundation.layout.padding\n"), content)
+        assertTrue(content.contains("import androidx.compose.ui.unit.dp\n"), content)
+        assertTrue(!content.contains("null"), content)
+    }
+
+    @Test
+    fun `a modifier entry with nothing to spell drops out`() {
+        // Every case's keys read null, which is the call the applier leaves untouched: the entry
+        // leaves the chain, and with it the `padding` import no argument ever asked for.
+        val content = nullishPaddedScreen(listOf(allKey to null))
+
+        // The printer hangs a sole argument's comma on its own line, so the bare `modifier`
+        // base ends `modifier = modifier,` — the newline is only there when a chain continues
+        // the value, which the padding tests pin with their `.padding(...)` continuation.
+        assertTrue(content.contains("modifier = modifier"), content)
+        assertTrue(!content.contains("padding"), content)
+    }
+
+    @Test
+    fun `a modifier whose axes all read null drops its entry too`() {
+        val content = nullishPaddedScreen(listOf(horizontalKey to null, verticalKey to null))
+
+        assertTrue(content.contains("modifier = modifier"), content)
+        assertTrue(!content.contains("padding"), content)
+    }
+
+    @Test
+    fun `a pattern's doubled braces spell the lambda literally`() {
+        // fillPattern treats a lone `{key}` as a placeholder, so the bare trailing lambda a
+        // handler-less modifier needs is spelled `{{ }}`: the emitted text keeps one brace
+        // pair and the compile shape is `Modifier.clickable { }`.
+        val result = scopedResult(rowType, ResolvedModifier(clickableType, emptyMap()))
+
+        val screen = screenOf(result, "clickable tile")
+        // The join style is the printer's, so the pin is on the literal the escaping buys:
+        // the case's emitted text keeps `{ }` and never carries a doubled brace forward.
+        assertTrue(screen.contains("clickable { }"), screen)
+        assertTrue(!screen.contains("{{"), screen)
+    }
+
+    @Test
+    fun `a no-case modifier arg that reads null drops its entry`() {
+        // The no-cases branch reads the argument bare, and the appliers' `?: return modifier`
+        // means a null argument leaves nothing applied: the entry drops instead of spelling
+        // `padding(null)`.
+        val entry = ResolvedModifier(
+            paddingType,
+            mapOf(
+                allKey to ResolvedProp(
+                    allKey,
+                    PropertyValue.Const(Value.Null),
+                    PropOrigin.Specified,
+                    null,
+                ),
+            ),
+        )
+        val root = ResolvedNode(
+            NodeId("n_1"),
+            columnType,
+            emptyMap(),
+            listOf(entry),
+            mapOf(childrenSlot to listOf(textNode("n_2", "Hi"))),
+            emptySet(),
+        )
+        val result = generate(homeDocument(root))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = result.files.files.single { it.path == "screens/HomeScreen.kt" }
+        assertTrue(screen.content.contains("modifier = modifier"), screen.content)
+        assertTrue(!screen.content.contains("padding"), screen.content)
+    }
+
+    @Test
     fun `a named arrangement emits the symbol its enum declares`() {
         val result = arrangementScreen(withEnum = true)
 
@@ -1250,6 +1353,28 @@ class CodegenTest {
     }
 
     /**
+     * [paddedScreen]'s null-bearing twin: the fuzz batch mints `Value.Null` on nullable Dp
+     * properties about a quarter of the time, and a null here is the arrival the appliers read
+     * as absent before `?: 0f` answers it.
+     */
+    private fun nullishPaddedScreen(args: List<Pair<PropertyKey, Float?>>): String {
+        val entry = ResolvedModifier(
+            casedPaddingType,
+            args.associate { (key, value) ->
+                key to when (value) {
+                    null -> ResolvedProp(key, PropertyValue.Const(Value.Null), PropOrigin.Specified, null)
+                    else -> ResolvedProp(key, PropertyValue.Const(Value.Dp(value)), PropOrigin.Specified, null)
+                }
+            },
+        )
+        val root = ResolvedNode(NodeId("n_1"), columnType, emptyMap(), listOf(entry), emptyMap(), emptySet())
+        val result = generate(homeDocument(root))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        return result.files.files.single { it.path == "screens/HomeScreen.kt" }.content
+    }
+
+    /**
      * A layout of [parent] type at the root holding one Text that carries [modifier].
      *
      * [nested] puts a row between them, which is the only way a node can have two open scopes.
@@ -1310,6 +1435,7 @@ class CodegenTest {
             component(textStub(textType, KotlinSymbol("androidx.compose.material3", "Text")))
             modifier(weightStub())
             modifier(alignStub())
+            modifier(clickableStub())
             type(
                 EnumTypeSpec(
                     alignmentId,
@@ -1353,6 +1479,17 @@ class CodegenTest {
             listOf(EmitCase(setOf(alignKey), "align({alignment})")),
             scopeMember = true,
             scopeEntries = alignEntries,
+        ),
+    )
+
+    /** A pattern whose doubled braces are literal: the shape a bare trailing lambda needs. */
+    private fun clickableStub(): ModifierSpec = ModifierSpec(
+        clickableType,
+        ModifierMetadata("Clickable"),
+        emptyList(),
+        emit = ModifierEmit(
+            KotlinSymbol("androidx.compose.foundation", "clickable"),
+            listOf(EmitCase(emptySet(), "clickable {{ }}")),
         ),
     )
 

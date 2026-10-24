@@ -71,10 +71,12 @@ import dev.rotalex.lutter.schema.types.TypeSpec
 // a predicate.
 //
 // **The class is: a component whose spec declares an event that its `CodegenBinding.ComposeCall`
-// does not bind.** That class still has exactly one member, and it is a builtin.
-// `TextFieldSpec` declares `event(onValueChange)` and its compose call binds only
-// `param("value", …)` — `ButtonSpec`, the only other spec that declares an event at all, binds
-// it as `event(onClick, "onClick")`.
+// does not bind.** It has no member left today, and that is the story of the branch that bound
+// the last one: `TextFieldSpec` declared `event(onValueChange)` and its compose call bound only
+// `param("value", …)`, which made `m3.TextField` the rule's one member — `ButtonSpec`, the only
+// other spec that declares an event at all, binds it as `event(onClick, "onClick")`. The
+// TextField binding now carries the event (`event(onValueChange, param = "onValueChange",
+// lambdaParams = listOf("value"))`), so the predicate filters nobody and the pool is nine.
 //
 // **The row's old premise is closed.** This ledger used to adjudicate the class as a real gap in
 // `:engine:codegen`: `KotlinGenerator`'s `unboundEvent` check refused every node of that type
@@ -87,13 +89,15 @@ import dev.rotalex.lutter.schema.types.TypeSpec
 // `callProblem` validating only one direction of the spec/binding pair — is still there, but it
 // no longer leaves a class the engine refuses: the other direction now has an answer.
 //
-// **What this row still waits for, stated plainly.** The run lines of this file still apply the
-// rule, and `m3.TextField` is still out of the pool on purpose. Dropping the exclusion is a
-// run-line change that has to widen `EmittableView.exclusions` and the mirror `LargeDocumentTest`
-// asserts on (`the corpus excludes exactly the components codegen cannot spell`) together, and
-// none of those lines were this unit's surfaces. Until that edit lands, `EventWithoutBinding`
-// records the corpus's own scope and not a codegen refusal — a document carrying such a handler
-// is no longer refused by anyone.
+// **Why the rule stays now that it filters nobody.** The rule is written against a *class*, not
+// against `m3.TextField`, and the engine's specs are not a closed set this file wrote down: the
+// next spec that declares an event and binds none of it lands in [EmittableView.exclusions] the
+// moment it is registered, with its name on the ledger and `LargeDocumentTest` red. A rule that
+// filters nobody today is the same accountability a rule that filters one did; a name written
+// where the rule's sentence is would only say what yesterday's schema said.
+//
+// [CorpusExclusion.EventWithoutBinding] stays in the enum for the same reason — it is the
+// reason the rule's future member will carry in the map `LargeDocumentTest` asserts on.
 //
 // **Why a rule and not a second name.** Three reasons, and only the third is about style.
 //
@@ -104,30 +108,34 @@ import dev.rotalex.lutter.schema.types.TypeSpec
 //     it is checked against the same two lists `CodegenCoverage` reads.
 //   * A rule can change the corpus **on its own**, which is the whole risk. `EmittableView`
 //     therefore records what it removed in [EmittableView.exclusions] and `LargeDocumentTest`
-//     asserts that record is exactly the four types expected. Excluding by name needs no such
-//     check, because a name list only changes when a person edits it; a predicate can widen
+//     asserts that record is exactly the types this file's ledger names. Excluding by name
+//     needs no such check, because a name list only changes when a person edits it; a predicate
+//     can widen
 //     silently the next time the schema gains a component, and a benchmark that quietly stopped
 //     testing something is worse than a red one.
 //
-// **What the corpus still covers, stated plainly.** The pool is eight components — `core.Column`,
-// `core.Row`, `core.Box`, `core.Spacer`, `core.SlotOutlet`, `m3.Text`, `m3.Button`, `m3.Card` —
-// and between them they cover every path the schema has that still works: value parameters, a
-// `ValueEmit.Cases` arrival pattern on both layouts, a trailing slot lambda, an `Intrinsic`
-// component and the `doc.*` document instances, plus the whole §31.2 modifier set and all six
-// §11.4 actions. `LargeDocumentTest` pins the size of the composed document this runs over and
-// names what is missing from it, so §29's codegen row finally measures codegen instead of a
-// refusal — and the reader of that row can see how much of the schema it covers.
+// **What the corpus still covers, stated plainly.** The pool is nine components — `core.Column`,
+// `core.Row`, `core.Box`, `core.Spacer`, `core.SlotOutlet`, `m3.Text`, `m3.Button`, `m3.Card`,
+// `m3.TextField` — and between them they cover every path the schema has that still works: value
+// parameters, a `ValueEmit.Cases` arrival pattern on both layouts, a trailing slot lambda, an
+// `Intrinsic` component and the `doc.*` document instances, plus the whole §31.2 modifier set and
+// all six §11.4 actions. The ninth is `m3.TextField`: its binding now carries the event,
+// which is what widened the pool. `LargeDocumentTest` pins
+// the size of the composed document this runs over and names what is missing from it, so §29's
+// codegen row finally measures codegen instead of a refusal — and the reader of that row can see
+// how much of the schema it covers.
 //
-// **And the honest part is the loss, which is larger than it looks.** Before this filter the
-// corpus emitted **no files at all** on that document — §16.7 makes every error empty the result
-// — so nothing was covered before either; the exclusion does not take coverage away from a
-// working corpus, it is what lets one start. What remains unreachable afterwards is narrower
-// and worth naming precisely: **no handler in this corpus receives a declared event argument,
-// so `RefTarget.EventArg` is no longer read by anything generated here.** Both components that
-// declared an argument are the two excluded for unspellable bindings — `m3.TextField`'s
-// `value` and `gen.Probe`'s `probeValue` — and the one remaining event, `m3.Button`'s
-// `onClick`, declares none, so its lambda is emitted with no parameters. That is a real gap in
-// the corpus and it is the price of this row being green.
+// **And the honest half is the reach the pool's ninth bought, plus the gap that remains.** A
+// handler's conditional is filled from the event the handler belongs to (`boolExpression`'s
+// argument arm), and the rule is what used to keep every event-arg carrier out of the pool — so
+// `RefTarget.EventArg` reached nothing this corpus generated. The rule now filters nobody and
+// the pool is nine, so a `m3.TextField` handler's `value: Str` argument can be drawn and
+// `RefTarget.EventArg` is read by codegen again through that draw. What this corpus still
+// cannot reach: `gen.Probe`, whose `probeValue` argument lives on an intrinsic spec the corpus
+// excludes for its own reason, and event arguments typed beyond `Str`, whose comparisons
+// `boolExpression` does not write. That is narrower than the row's old loss — a handler that
+// receives its own declared argument is now a shape the corpus mints, which is the reason the
+// filter ever mattered.
 //
 // ### What a refusal is an outcome and not a gap
 //
@@ -182,11 +190,12 @@ internal enum class CorpusExclusion(val reason: String) {
     ),
 
     /**
-     * A `ComposeCall` spec declaring an event the binding does not bind — the `onValueChange`
-     * case. Codegen used to refuse that per node at document time as `codegen.no_binding`, which
-     * was the ledger's own grounds; the emitter now leaves the unbound handler out of the call,
-     * the same no-op the interpreter runs it as. The rule stays because it and the mirror
-     * `LargeDocumentTest` reads are one row to widen, and not because a refusal is behind it.
+     * A `ComposeCall` spec declaring an event the binding does not bind. Codegen used to refuse
+     * that per node at document time as `codegen.no_binding`, which was the ledger's own grounds;
+     * the emitter now leaves the unbound handler out of the call, the same no-op the interpreter
+     * runs it as. The class's last member left the pool when `m3.TextField`'s binding gained the
+     * event, so this row sits empty today — the reason it carries into the map a future member
+     * will bring, still recording scope and not a refusal.
      */
     EventWithoutBinding(
         "declares an event its compose call does not bind. Codegen used to refuse every node " +
