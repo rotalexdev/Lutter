@@ -1,0 +1,13 @@
+# Determinism (PLAN §36). The fixtures and the golden snapshots are compared as raw bytes,
+# so a checkout must not rewrite their line endings per platform. GitHub's Windows runners
+# carry core.autocrlf=true by default, which turns every LF blob in the index into CRLF on
+# disk; a snapshot then differs from the bytes the engine writes and the comparison fails
+# for packaging reasons rather than for the determinism it exists to probe.
+#
+# `eol=lf` pins the working tree to the index's LF for the patterns the determinism suite
+# reads, on every platform. The index blobs are already LF (verified with
+# `git ls-files --eol`), so nothing is renormalized and no tracked file changes today —
+# this only stops a Windows checkout from rewriting what it receives.
+
+*.golden text eol=lf
+*.json text eol=lf
