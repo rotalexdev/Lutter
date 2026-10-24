@@ -43,6 +43,19 @@ public object ReservedCodegenNames {
     public const val RememberPrefix: String = "remember"
 
     /**
+     * `val lutterAppState = LocalAppState.current`: the hoisted local a handler's lambda reads
+     * app state through, and the one name here that is a function local rather than a
+     * top-level declaration. A document's own state name is spelled onto a parameter or a local
+     * of its composable — where nothing emitted here can reach it, per §12.1 — so `findings`
+     * never checks this one; the `lutter` prefix is what keeps the space closed all the same.
+     *
+     * Internal because `literals` reserves *top-level* names and nothing outside the module
+     * spells the local: making it public would put a member in the ABI dump for a generator
+     * detail, which is what kept [ActionEmitter]'s dead `imports` list public too.
+     */
+    internal const val HoistedAppStateName: String = "lutterAppState"
+
+    /**
      * Every name emitted whole: the two this generator writes itself, plus whatever the active
      * strategies emit. No strategy owns the first two — `KotlinGenerator` writes `AppHost.kt`
      * whether or not a strategy has an opinion about presentation hosts.
