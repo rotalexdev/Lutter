@@ -69,6 +69,9 @@ public class CodegenExtensions(public val emitters: Map<EmitterId, CustomEmitter
  * The function registry is [FunctionSpec] rather than a type parameter: `schema.functions` is
  * how an expression call resolves, so a generator bound to anything else could not emit one.
  */
+private const val ESCAPED_OPEN: String = "\uE050"
+private const val ESCAPED_CLOSE: String = "\uE051"
+
 public class KotlinGenerator<A : Any, T : Any>(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, A, FunctionSpec, T>,
     private val options: CodegenOptions,
@@ -915,9 +918,7 @@ public class KotlinGenerator<A : Any, T : Any>(
     // Every `{key}` becomes the property's literal, spliced into text: an unknown key and a
     // computed one both refuse here, the second because a pattern has no place to put a read.
     // Returns the text plus the literals' imports: a `dp` inside `Arrangement.spacedBy({spacing})`
-    // still needs its own symbols recorded. Doubling braces (`{{`, `}}`) spells them literally —
-    // that is how a pattern round a trailing lambda writes the lambda's own braces, the
-    // mismatching single brace staying prose.
+    // still needs its own symbols recorded.
     private fun fillPattern(
         pattern: String,
         values: Map<PropertyKey, ResolvedProp>,
@@ -925,29 +926,27 @@ public class KotlinGenerator<A : Any, T : Any>(
         node: ResolvedNode,
         entries: Map<String, KotlinSymbol> = emptyMap(),
     ): Pair<String, List<KotlinSymbol>>? {
+        // Doubling is the pattern's one spelling of a literal brace: a lambda's own pair is not
+        // a `{key}` placeholder. The sentinels stand in for the braces here, so the walk below
+        // runs exactly as it always ran for every pattern without them — no placeholder body
+        // ever sees a doubled pair, and the collapse-back is fill time's last step.
+        val spelled: String = pattern.replace("{{", ESCAPED_OPEN).replace("}}", ESCAPED_CLOSE)
         val filled: StringBuilder = StringBuilder()
         val symbols: MutableList<KotlinSymbol> = mutableListOf()
         var index: Int = 0
-        while (index < pattern.length) {
-            // A pattern is text before it is a template, so a doubled brace is the one way to
-            // spell a literal one — `clickable {{ }}` ends a trailing lambda empty, and a
-            // single brace in unmatched prose stays prose with its neighbors.
-            if (pattern.startsWith("{{", index) || pattern.startsWith("}}", index)) {
-                filled.append(pattern[index])
-                index += 2
-                continue
-            }
-            if (pattern[index] != '{') {
-                filled.append(pattern[index])
-                index += 1
-                continue
-            }
-            val close: Int = pattern.indexOf('}', index)
-            if (close < 0) {
-                filled.append(pattern.substring(index))
+        while (index < spelled.length) {
+            val open: Int = spelled.indexOf('{', index)
+            if (open < 0) {
+                filled.append(spelled.substring(index))
                 break
             }
-            val raw: String = pattern.substring(index + 1, close)
+            val close: Int = spelled.indexOf('}', open)
+            if (close < 0) {
+                filled.append(spelled.substring(index))
+                break
+            }
+            filled.append(spelled.substring(index, open))
+            val raw: String = spelled.substring(open + 1, close)
             val key: PropertyKey = try {
                 PropertyKey(raw)
             } catch (_: IllegalArgumentException) {
@@ -975,7 +974,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             symbols.addAll(value.imports)
             index = close + 1
         }
-        return filled.toString() to symbols
+        return filled.toString().replace(ESCAPED_OPEN, "{").replace(ESCAPED_CLOSE, "}") to symbols
     }
 
     /**

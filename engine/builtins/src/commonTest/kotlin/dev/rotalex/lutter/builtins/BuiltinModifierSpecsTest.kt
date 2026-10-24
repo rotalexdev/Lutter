@@ -89,7 +89,9 @@ class BuiltinModifierSpecsTest {
         val cases = ClickableModifier.spec.emit.cases
         assertEquals(1, cases.size)
         assertEquals(emptySet(), cases.single().whenPresent)
-        assertEquals("clickable { }", cases.single().pattern)
+        // The braces are doubled on the pattern: a single one names a fill key to fillPattern,
+        // so the trailing lambda's pair is spelled escaped and emits the literal `{ }`.
+        assertEquals("clickable {{ }}", cases.single().pattern)
         assertEquals(
             KotlinSymbol("androidx.compose.foundation", "clickable"),
             ClickableModifier.spec.emit.function,
