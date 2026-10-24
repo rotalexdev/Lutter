@@ -4,8 +4,10 @@ import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.schema.component.Category
+import dev.rotalex.lutter.schema.component.CodegenBinding
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.EventArgSpec
+import dev.rotalex.lutter.schema.component.EventBinding
 import dev.rotalex.lutter.schema.component.EventSpec
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.PropertySpec
@@ -36,6 +38,13 @@ public object TextFieldSpec {
         event(onValueChange)
         composeCall(KotlinSymbol("androidx.compose.material3", "TextField")) {
             param("value", from = value)
+            // Compose's `TextField(value: String, onValueChange: (String) -> Unit, …)` names the
+            // change handler a required parameter with no default, and `TextFieldRenderer` binds
+            // it unconditionally — `onValueChange: (String) -> Unit = {}` — so codegen has to
+            // carry the parameter every call spells. A node with a sequence dispatches it off
+            // the same walk every bound event takes; the renderer runs it nowhere today, which
+            // is the read-only scope's own gap and not this binding's.
+            event(onValueChange, param = "onValueChange", lambdaParams = listOf("value"))
         }
     }
 }
