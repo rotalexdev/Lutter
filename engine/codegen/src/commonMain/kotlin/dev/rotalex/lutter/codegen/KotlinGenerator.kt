@@ -752,11 +752,15 @@ public class KotlinGenerator<A : Any, T : Any>(
         args += modifierArg("modifier", node, isRoot, scopes)
             ?: KtArg("modifier", KtExpr.Ref(KtSymbolRef(modifierType)))
         var trailing: KtExpr.Lambda? = null
+        val lastSlot: String? = spec.slots.lastOrNull()?.name?.value
         for (slot in spec.slots) {
             val lambda: KtExpr.Lambda =
                 slotLambda(SlotBinding(slot.name, LambdaTarget.Trailing), node, spec, scopes)
                     ?: return null
-            if (trailing == null) {
+            // Kotlin binds a trailing lambda to the signature's last parameter, so only the
+            // last slot may go trailing: a first-slot trailing under a named last one is the
+            // call-stray "Too many arguments" the fuzz batch's slot-heavy components trip.
+            if (slot.name.value == lastSlot && trailing == null) {
                 trailing = lambda
             } else {
                 args += KtArg(slot.name.value, lambda)
