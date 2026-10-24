@@ -89,3 +89,16 @@ jobs:
           path: '**/build/test-results/**/*.xml'
           if-no-files-found: ignore
           retention-days: 14
+
+      # A compile failure names the generated file and line, and without the file the finding is
+      # unreadable from the run's log alone — the batch deletes nothing but the workspace goes
+      # with the runner, so this holds the generated tree for the failing path. Every other use
+      # of it stays manual: it is an artifact of a failure, not a golden material.
+      - name: Upload the generated sources on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-sources
+          path: integration/generated-compile/build/generated/
+          if-no-files-found: ignore
+          retention-days: 7

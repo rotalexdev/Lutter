@@ -97,8 +97,9 @@ public class KtPrinter(
         declaration: KtDeclaration,
         indent: Int,
         aliases: Map<String, String>,
+        abstractMember: Boolean = false,
     ): String = when (declaration) {
-        is KtDeclaration.Function -> renderFunction(declaration, indent, aliases)
+        is KtDeclaration.Function -> renderFunction(declaration, indent, aliases, abstractMember)
         is KtDeclaration.Property -> renderProperty(declaration, indent, aliases)
         is KtDeclaration.Class -> renderClass(declaration, indent, aliases)
         is KtDeclaration.Interface -> renderInterface(declaration, indent, aliases)
@@ -120,6 +121,7 @@ public class KtPrinter(
         function: KtDeclaration.Function,
         indent: Int,
         aliases: Map<String, String>,
+        abstractMember: Boolean = false,
     ): String = buildString {
         append(renderAnnotations(function.annotations, indent, aliases))
         append(indentOf(indent) + "public ")
@@ -128,10 +130,15 @@ public class KtPrinter(
         append(function.params.joinToString(", ") { renderParam(it, aliases) })
         append(")")
         val returned: String = function.type?.let { ": " + renderExpr(it, indent, aliases) } ?: ""
-        append(returned + " {")
+        append(returned)
         if (function.body.isEmpty()) {
-            append("}")
+            // An interface member with no body is abstract, and `fun f(): String {}` is not
+            // Kotlin: braces would declare a body the tree does not hold and the missing
+            // return then fails at compile. Elsewhere the same tree is an empty fallback,
+            // which `{}` spells.
+            if (!abstractMember) append(" {}")
         } else {
+            append(" {")
             append("\n")
             for (stmt in function.body) append(renderStmt(stmt, indent + 1, aliases) + "\n")
             append(indentOf(indent) + "}")
@@ -179,7 +186,11 @@ public class KtPrinter(
         appendMembers(clazz.members, indent, aliases, this)
     }
 
-    /** `sealed interface Route`, spelled the same way a class is apart from the keyword. */
+    /**
+     * `sealed interface Route`, spelled the same way a class is apart from the keyword, and it
+     * hands its members down marked abstract: a member whose body is empty is a declaration,
+     * not a definition, so it prints without braces.
+     */
     private fun renderInterface(
         declaration: KtDeclaration.Interface,
         indent: Int,
@@ -189,7 +200,7 @@ public class KtPrinter(
         append(indentOf(indent) + "public ")
         if (declaration.sealed) append("sealed ")
         append("interface " + declaration.name)
-        appendMembers(declaration.members, indent, aliases, this)
+        appendMembers(declaration.members, indent, aliases, this, abstractMembers = true)
     }
 
     /** `data object Home : Route`: the keyword, the name, and the supertypes it closes over. */
@@ -212,6 +223,7 @@ public class KtPrinter(
         indent: Int,
         aliases: Map<String, String>,
         into: StringBuilder,
+        abstractMembers: Boolean = false,
     ): Unit {
         if (members.isEmpty()) {
             into.append(" {}")
@@ -220,7 +232,7 @@ public class KtPrinter(
         into.append(" {\n")
         for ((index, member) in members.withIndex()) {
             if (index > 0) into.append("\n")
-            into.append(renderDeclaration(member, indent + 1, aliases) + "\n")
+            into.append(renderDeclaration(member, indent + 1, aliases, abstractMembers) + "\n")
         }
         into.append(indentOf(indent) + "}")
     }
