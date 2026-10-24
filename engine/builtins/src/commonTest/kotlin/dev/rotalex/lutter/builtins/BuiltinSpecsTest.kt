@@ -201,12 +201,12 @@ class BuiltinSpecsTest {
     }
 
     @Test
-    fun `card is a surface with a body and no scope of its own`() {
+    fun `card is a surface with a body the column scope aligns`() {
         assertEquals(ComponentType("m3.Card"), CardSpec.spec.type)
         assertEquals(Category.Basic, CardSpec.spec.metadata.category)
         assertEquals(emptyList(), CardSpec.spec.properties.map { it.key })
         assertEquals(Cardinality.Many, CardSpec.content.cardinality)
-        assertEquals(emptySet(), CardSpec.content.provides)
+        assertEquals(setOf(LayoutScopes.Column), CardSpec.content.provides)
 
         val call = assertIs<CodegenBinding.ComposeCall>(CardSpec.spec.codegen)
         assertEquals(KotlinSymbol("androidx.compose.material3", "Card"), call.function)

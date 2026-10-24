@@ -17,8 +17,12 @@ import dev.rotalex.lutter.schema.component.componentSpec
  * would be a second path to one decision.
  */
 public object CardSpec {
-    /** The body. `Card` puts a `ColumnScope` in that lambda and nothing registered gates on it. */
-    public val content: SlotSpec = SlotSpec(SlotName("content"), Cardinality.Many)
+    /** The body. `Card` puts a `ColumnScope` in that lambda, which align projections read. */
+    public val content: SlotSpec = SlotSpec(
+        SlotName("content"),
+        Cardinality.Many,
+        provides = setOf(LayoutScopes.Column),
+    )
 
     /** The spec renderers, validation and codegen share. */
     public val spec: ComponentSpec = componentSpec(ComponentType("m3.Card"), version = 1) {
