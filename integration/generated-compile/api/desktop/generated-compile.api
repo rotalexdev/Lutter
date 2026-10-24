@@ -27,11 +27,7 @@ public final class dev/rotalex/lutter/generated/box_align/Route$Home : dev/rotal
 }
 
 public abstract interface class dev/rotalex/lutter/generated/box_align/SnackbarHost {
-	public fun show (Ljava/lang/String;)V
-}
-
-public final class dev/rotalex/lutter/generated/box_align/SnackbarHost$DefaultImpls {
-	public static fun show (Ldev/rotalex/lutter/generated/box_align/SnackbarHost;Ljava/lang/String;)V
+	public abstract fun show (Ljava/lang/String;)V
 }
 
 public final class dev/rotalex/lutter/generated/box_align/screens/HomeScreenKt {
@@ -75,11 +71,7 @@ public final class dev/rotalex/lutter/generated/button_navigate/Route$Profile : 
 }
 
 public abstract interface class dev/rotalex/lutter/generated/button_navigate/SnackbarHost {
-	public fun show (Ljava/lang/String;)V
-}
-
-public final class dev/rotalex/lutter/generated/button_navigate/SnackbarHost$DefaultImpls {
-	public static fun show (Ldev/rotalex/lutter/generated/button_navigate/SnackbarHost;Ljava/lang/String;)V
+	public abstract fun show (Ljava/lang/String;)V
 }
 
 public final class dev/rotalex/lutter/generated/button_navigate/screens/ComposableSingletons$HomeScreenKt {
@@ -125,11 +117,7 @@ public final class dev/rotalex/lutter/generated/column_color/Route$Home : dev/ro
 }
 
 public abstract interface class dev/rotalex/lutter/generated/column_color/SnackbarHost {
-	public fun show (Ljava/lang/String;)V
-}
-
-public final class dev/rotalex/lutter/generated/column_color/SnackbarHost$DefaultImpls {
-	public static fun show (Ldev/rotalex/lutter/generated/column_color/SnackbarHost;Ljava/lang/String;)V
+	public abstract fun show (Ljava/lang/String;)V
 }
 
 public final class dev/rotalex/lutter/generated/column_color/screens/HomeScreenKt {
@@ -165,11 +153,7 @@ public final class dev/rotalex/lutter/generated/column_text/Route$Home : dev/rot
 }
 
 public abstract interface class dev/rotalex/lutter/generated/column_text/SnackbarHost {
-	public fun show (Ljava/lang/String;)V
-}
-
-public final class dev/rotalex/lutter/generated/column_text/SnackbarHost$DefaultImpls {
-	public static fun show (Ldev/rotalex/lutter/generated/column_text/SnackbarHost;Ljava/lang/String;)V
+	public abstract fun show (Ljava/lang/String;)V
 }
 
 public final class dev/rotalex/lutter/generated/column_text/screens/HomeScreenKt {
@@ -247,11 +231,7 @@ public final class dev/rotalex/lutter/generated/component_param_slot/Route$Home 
 }
 
 public abstract interface class dev/rotalex/lutter/generated/component_param_slot/SnackbarHost {
-	public fun show (Ljava/lang/String;)V
-}
-
-public final class dev/rotalex/lutter/generated/component_param_slot/SnackbarHost$DefaultImpls {
-	public static fun show (Ldev/rotalex/lutter/generated/component_param_slot/SnackbarHost;Ljava/lang/String;)V
+	public abstract fun show (Ljava/lang/String;)V
 }
 
 public final class dev/rotalex/lutter/generated/component_param_slot/components/C_badgeKt {
@@ -313,11 +293,7 @@ public final class dev/rotalex/lutter/generated/expression_corpus/Route$Home : d
 }
 
 public abstract interface class dev/rotalex/lutter/generated/expression_corpus/SnackbarHost {
-	public fun show (Ljava/lang/String;)V
-}
-
-public final class dev/rotalex/lutter/generated/expression_corpus/SnackbarHost$DefaultImpls {
-	public static fun show (Ldev/rotalex/lutter/generated/expression_corpus/SnackbarHost;Ljava/lang/String;)V
+	public abstract fun show (Ljava/lang/String;)V
 }
 
 public final class dev/rotalex/lutter/generated/expression_corpus/screens/HomeScreenKt {
@@ -372,11 +348,7 @@ public final class dev/rotalex/lutter/generated/material_token/Route$Home : dev/
 }
 
 public abstract interface class dev/rotalex/lutter/generated/material_token/SnackbarHost {
-	public fun show (Ljava/lang/String;)V
-}
-
-public final class dev/rotalex/lutter/generated/material_token/SnackbarHost$DefaultImpls {
-	public static fun show (Ldev/rotalex/lutter/generated/material_token/SnackbarHost;Ljava/lang/String;)V
+	public abstract fun show (Ljava/lang/String;)V
 }
 
 public final class dev/rotalex/lutter/generated/material_token/screens/HomeScreenKt {
@@ -412,11 +384,7 @@ public final class dev/rotalex/lutter/generated/row_weight/Route$Home : dev/rota
 }
 
 public abstract interface class dev/rotalex/lutter/generated/row_weight/SnackbarHost {
-	public fun show (Ljava/lang/String;)V
-}
-
-public final class dev/rotalex/lutter/generated/row_weight/SnackbarHost$DefaultImpls {
-	public static fun show (Ldev/rotalex/lutter/generated/row_weight/SnackbarHost;Ljava/lang/String;)V
+	public abstract fun show (Ljava/lang/String;)V
 }
 
 public final class dev/rotalex/lutter/generated/row_weight/screens/HomeScreenKt {
@@ -452,11 +420,7 @@ public final class dev/rotalex/lutter/generated/spacer_size/Route$Home : dev/rot
 }
 
 public abstract interface class dev/rotalex/lutter/generated/spacer_size/SnackbarHost {
-	public fun show (Ljava/lang/String;)V
-}
-
-public final class dev/rotalex/lutter/generated/spacer_size/SnackbarHost$DefaultImpls {
-	public static fun show (Ldev/rotalex/lutter/generated/spacer_size/SnackbarHost;Ljava/lang/String;)V
+	public abstract fun show (Ljava/lang/String;)V
 }
 
 public final class dev/rotalex/lutter/generated/spacer_size/screens/HomeScreenKt {
@@ -492,11 +456,7 @@ public final class dev/rotalex/lutter/generated/text_field_state/Route$Home : de
 }
 
 public abstract interface class dev/rotalex/lutter/generated/text_field_state/SnackbarHost {
-	public fun show (Ljava/lang/String;)V
-}
-
-public final class dev/rotalex/lutter/generated/text_field_state/SnackbarHost$DefaultImpls {
-	public static fun show (Ldev/rotalex/lutter/generated/text_field_state/SnackbarHost;Ljava/lang/String;)V
+	public abstract fun show (Ljava/lang/String;)V
 }
 
 public final class dev/rotalex/lutter/generated/text_field_state/screens/HomeScreenKt {
@@ -554,11 +514,7 @@ public final class dev/rotalex/lutter/generated/theme_tokens/Route$Home : dev/ro
 }
 
 public abstract interface class dev/rotalex/lutter/generated/theme_tokens/SnackbarHost {
-	public fun show (Ljava/lang/String;)V
-}
-
-public final class dev/rotalex/lutter/generated/theme_tokens/SnackbarHost$DefaultImpls {
-	public static fun show (Ldev/rotalex/lutter/generated/theme_tokens/SnackbarHost;Ljava/lang/String;)V
+	public abstract fun show (Ljava/lang/String;)V
 }
 
 public final class dev/rotalex/lutter/generated/theme_tokens/screens/HomeScreenKt {
