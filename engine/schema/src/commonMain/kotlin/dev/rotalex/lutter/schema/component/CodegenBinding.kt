@@ -34,6 +34,11 @@ public sealed interface CodegenBinding {
         public val params: List<ParamBinding> = emptyList(),
         public val events: List<EventBinding> = emptyList(),
         public val slots: List<SlotBinding> = emptyList(),
+        /**
+         * The callee's modifier parameter takes no default (Compose's `Spacer`), so an empty
+         * chain still spells one.
+         */
+        public val modifierRequired: Boolean = false,
     ) : CodegenBinding
 
     /** Plugin-owned emission, looked up in `CodegenExtensions` by [emitterId]. */
