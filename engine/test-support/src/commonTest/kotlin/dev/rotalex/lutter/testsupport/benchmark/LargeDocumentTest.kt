@@ -147,31 +147,37 @@ class LargeDocumentTest {
      *
      * ### What this row is really for
      *
-     * Three of the four exclusions are named in `CodegenCorpus.kt` and cannot surprise anybody.
-     * The fourth is chosen by a **rule** — a component whose spec declares an event its
-     * `CodegenBinding.ComposeCall` does not bind — and a rule is free to widen on its own the
-     * next time the schema gains a component. That is what it is for, and it is also how a
-     * benchmark goes quietly blind: eight components become seven, the corpus gets a little
-     * easier, and the table keeps its shape and its milliseconds.
+     * The three exclusions are named in `CodegenCorpus.kt` and cannot surprise anybody. The rule
+     * — a component whose spec declares an event its `CodegenBinding.ComposeCall` does not bind —
+     * can widen on its own the next time the schema gains a component. That is what it is for,
+     * and it is also how a benchmark goes quietly blind: eight components become seven, the
+     * corpus gets a little easier, and the table keeps its shape and its milliseconds.
      *
      * So the rule is not allowed to be silent. This row is the whole of its accountability, and
-     * it is worth being blunt about what a failure means: **a fifth exclusion is not a defect in
-     * the filter, it is information about `:engine:codegen`** — another component whose event
-     * nothing can spell. The right response is to report it, in whatever row it deserves, and
-     * then to write its name down here. Excluding a component because codegen cannot emit it is
-     * correct once and corrosive twice; a pile of them is a corpus that stopped testing anything
-     * while continuing to produce numbers.
+     * it is worth being blunt about what a failure means: **an unexpected exclusion is not a
+     * defect in the filter, it is information about `:engine:codegen`** — another component whose
+     * event nothing can spell. The right response is to report it, in whatever row it deserves,
+     * and then to write its name down here. Excluding a component because codegen cannot emit it
+     * is correct once and corrosive twice; a pile of them is a corpus that stopped testing
+     * anything while continuing to produce numbers.
      *
-     * ### What §29's codegen row means with this component absent
+     * ### What the rule filters now that `m3.TextField` binds its edit
      *
-     * `codegen < 300 ms` is now a real measurement — before this exclusion the generator refused
-     * the whole composed document and emitted nothing, so the row was timing a refusal — and it
-     * is a measurement over **eight** components, not over the schema. It covers value params,
-     * `ValueEmit.Cases` arrivals, trailing slot lambdas, the intrinsic slot outlet, `doc.*`
-     * instances, the modifier set and the six actions. It does **not** cover a handler receiving
-     * a declared event argument: both components that declared one are excluded here, and
-     * `m3.Button`'s `onClick` declares none, so nothing in this corpus reads `RefTarget.EventArg`.
-     * A reader must not take the number as a claim about the whole schema.
+     * `m3.TextField` used to be the rule's one member: its spec declared `onValueChange` and its
+     * compose call bound only `value`. The binding now carries the event
+     * (`event(onValueChange, param = "onValueChange", lambdaParams = listOf("value"))`), closing
+     * the gap this ledger's row recorded, so the pool is nine components and
+     * the rule currently filters nobody. It stays because an honestly-named ledger beats a silent
+     * pool: the next spec that declares an event and binds none of it lands here with its name.
+     *
+     * ### What §29's codegen row means over nine components
+     *
+     * `codegen < 300 ms` is a real measurement over the corpus, not over the schema. It covers
+     * value params, `ValueEmit.Cases` arrivals, trailing slot lambdas, the intrinsic slot outlet,
+     * `doc.*` instances, the modifier set, the six actions and — where the draw puts a handler on
+     * a `m3.TextField` — a handler whose condition reads the declared argument it is emitted with
+     * (`value == "…"` in the generated lambda). `m3.Button`'s `onClick` still declares no
+     * argument, so `RefTarget.EventArg` reaches codegen only through that one draw.
      */
     @Test
     fun `the corpus excludes exactly the components codegen cannot spell`() {
@@ -180,7 +186,6 @@ class LargeDocumentTest {
                 ComponentType("gen.SinglePanel") to CorpusExclusion.IntrinsicWithoutEmitter,
                 ComponentType("gen.Banner") to CorpusExclusion.IntrinsicWithoutEmitter,
                 ComponentType("gen.Probe") to CorpusExclusion.IntrinsicWithoutEmitter,
-                ComponentType("m3.TextField") to CorpusExclusion.EventWithoutBinding,
             ),
             codegenCorpusView.exclusions,
             "the corpus no longer filters exactly the components CodegenCorpus names.\nIt filters:" +
