@@ -40,8 +40,10 @@ jobs:
   determinism:
     name: Determinism on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    matrix:
-      os: [ ubuntu-latest, windows-latest ]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
     # ubuntu measured ~21 min for the build+test cold on a GitHub runner in the checks
     # this session watched; windows ran ~3x slower on the same shape in preview artifacts.
     timeout-minutes: 60
