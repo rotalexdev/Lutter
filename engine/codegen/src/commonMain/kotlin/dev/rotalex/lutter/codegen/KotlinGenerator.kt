@@ -23,6 +23,7 @@ import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.SlotName
+import dev.rotalex.lutter.model.ids.StateId
 import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TokenKind
 import dev.rotalex.lutter.model.type.TypeRef
@@ -124,6 +125,7 @@ public class KotlinGenerator<A : Any, T : Any>(
         diagnostics.clear()
         screenReceivers.clear()
         componentReceivers.clear()
+        appStateHoist = null
         componentSpecs = document.componentSpecs
         theme = document.theme.theme
         // Before the plan and before any emitter: §16.7 asks for a located finding rather than a
@@ -132,9 +134,14 @@ public class KotlinGenerator<A : Any, T : Any>(
         state = StateEmitter(document, options, schema.functions)
         val reader: ExprEmitter = ExprEmitter(schema.functions, StateRead { id -> state?.readInScreen(id) })
         expressions = reader
+        // An argument's reads go through their own reader, because every statement [ActionEmitter]
+        // emits lands inside a lambda — the event lambda the caller builds, or its `launched(…)`
+        // wrapper — and only an app-scope read spells differently there. [reader]'s spelling is
+        // right for the composable positions the same document's properties are emitted into, so
+        // the two readers differ in their [StateRead] alone.
         actions = ActionEmitter(
             schema.actions,
-            reader,
+            ExprEmitter(schema.functions, StateRead { id -> lambdaBoundStateRead(id) }),
             document.pages,
             HostDecl { name -> document.hostFunctions.firstOrNull { it.name == name } },
             options,
@@ -364,6 +371,9 @@ public class KotlinGenerator<A : Any, T : Any>(
         val at: DiagnosticLocation = DiagnosticLocation(pageId = page.id)
         if (refuseState(page.state, at)) return null
         val emitter: StateEmitter = stateEmitter() ?: return null
+        // Per this function, before the tree is emitted: the hoist is read once the root is built,
+        // so a leftover from a previous file cannot claim this one.
+        appStateHoist = null
         val root: KtExpr = emitNode(page.root, true, emptyList()) ?: return null
         val reads: Set<ActionReceiver> = drainReads()
         recordDemand(page.id, reads)
@@ -381,7 +391,9 @@ public class KotlinGenerator<A : Any, T : Any>(
             listOf(composable),
             null,
             params,
-            actionLocals(reads) + listOf(KtStmt.Expr(root)),
+            // First: reading the accessor is composable work, and the composable must own it
+            // before any lambda it hands to a component runs — including `scope`'s launches.
+            hoistAppState() + actionLocals(reads) + listOf(KtStmt.Expr(root)),
         )
         return KtFile(planned.packageName, headerText(), declarations)
     }
@@ -397,6 +409,8 @@ public class KotlinGenerator<A : Any, T : Any>(
         val at: DiagnosticLocation = DiagnosticLocation(componentDeclId = componentId)
         val held: List<ResolvedState> = document.componentState[componentId].orEmpty()
         if (refuseState(held, at)) return null
+        // Per this function, for the same reason [emitScreen] clears before its tree is emitted.
+        appStateHoist = null
         val body: KtExpr = emitNode(root, true, emptyList()) ?: return null
         // Recorded rather than drained away: a component function now has a caller — §5.5 makes an
         // instance a call, and every instantiation site has to pass the receivers this body closed
@@ -405,8 +419,9 @@ public class KotlinGenerator<A : Any, T : Any>(
         val reads: Set<ActionReceiver> = drainReads()
         componentReceivers[componentId] = reads.filter { it.type != null }.sortedBy { it.member }
         val declared: List<KtParam> = componentParams(componentId, document) ?: return null
-        val statements: List<KtStmt> =
-            emitter.componentLocals(held).orEmpty() + actionLocals(reads) + listOf(KtStmt.Expr(body))
+        val statements: List<KtStmt> = hoistAppState() +
+            emitter.componentLocals(held).orEmpty() +
+            actionLocals(reads) + listOf(KtStmt.Expr(body))
         val function: KtDeclaration.Function = KtDeclaration.Function(
             componentId.value,
             listOf(composable),
@@ -556,6 +571,12 @@ public class KotlinGenerator<A : Any, T : Any>(
 
     private val screenReceivers: MutableMap<PageId, MutableSet<ActionReceiver>> = mutableMapOf()
 
+    // The hoist a handler's lambda made necessary, for the file being assembled. Set on the
+    // first app-scope argument [ActionEmitter] reads, consumed once by the screen or component
+    // function when its statements are put together, and cleared at the top of both — so the
+    // `val` is exactly one per function that needs it, and a file that needs none emits none.
+    private var appStateHoist: KtStmt.LocalProperty? = null
+
     private fun actionEmitter(): ActionEmitter? = actions
 
     /**
@@ -592,6 +613,102 @@ public class KotlinGenerator<A : Any, T : Any>(
             ),
         )
     }
+
+    /**
+     * [id]'s read, spelled the way a handler's lambda needs it.
+     *
+     * Every statement [ActionEmitter] emits lands inside a lambda — the event lambda the caller
+     * builds, or its own `launched(…)` wrapper — and a lambda is not a composable, so the app
+     * scope's `LocalAppState.current` cannot be invoked where the statement runs. That is only a
+     * spelling question at the argument boundary, which is why this sits at the [StateRead]
+     * [ActionEmitter] is handed: [StateEmitter.readInScreen] still spells every read, and this
+     * rewrites the accessor the app scope's receiver carries into
+     * [ReservedCodegenNames.HoistedAppStateName], recording [appStateHoist] on the first hit so
+     * the enclosing composable declares it. A page or component scope keeps its spelling —
+     * `state` and a bare name bind to the lambda as lexically as they bind to the composable,
+     * and rewriting either would leave a parameter nothing reads.
+     */
+    private fun lambdaBoundStateRead(id: StateId): KtExpr? {
+        val bound: KtExpr = state?.readInScreen(id) ?: return null
+        return hoistedAppStateRead(bound)
+    }
+
+    /**
+     * [expr] with every app-scope accessor spelled out of it.
+     *
+     * The descent covers the shapes [ExprEmitter] hands an argument — a member chain over the
+     * accessors, a binary or unary over one of them, an `if`, a template, the calls an argument
+     * can resolve to. A `snippet` filled by a header's pattern is text and never reaches here;
+     * the remaining node kinds are screen assembly this reader is not given, so they are carried
+     * over unchanged rather than recursed into.
+     */
+    private fun hoistedAppStateRead(expr: KtExpr): KtExpr {
+        if (isAppStateAccessor(expr)) {
+            if (appStateHoist == null) {
+                appStateHoist = KtStmt.LocalProperty(
+                    name = ReservedCodegenNames.HoistedAppStateName,
+                    type = null,
+                    mutable = false,
+                    // The accessor as [StateEmitter.readInScreen] spelled it, verbatim: the hoist
+                    // and the reads that demanded it name their `LocalAppState` through one
+                    // expression, and the import rides only on the statement that needs it.
+                    initializer = expr,
+                    delegate = null,
+                )
+            }
+            return KtExpr.Name(ReservedCodegenNames.HoistedAppStateName)
+        }
+        return when (expr) {
+            is KtExpr.Member -> KtExpr.Member(hoistedAppStateRead(expr.receiver), expr.name, expr.safe)
+            is KtExpr.Binary -> KtExpr.Binary(
+                expr.op,
+                hoistedAppStateRead(expr.left),
+                hoistedAppStateRead(expr.right),
+            )
+            is KtExpr.Unary -> KtExpr.Unary(expr.op, hoistedAppStateRead(expr.operand))
+            is KtExpr.IfElse -> KtExpr.IfElse(
+                hoistedAppStateRead(expr.cond),
+                hoistedAppStateRead(expr.then),
+                hoistedAppStateRead(expr.otherwise),
+            )
+            is KtExpr.Call -> KtExpr.Call(
+                hoistedAppStateRead(expr.callee),
+                expr.args.map { arg -> KtArg(arg.name, hoistedAppStateRead(arg.value)) },
+                expr.trailing?.let { lambda -> KtExpr.Lambda(lambda.params, lambda.body) },
+            )
+            is KtExpr.PatternCall -> KtExpr.PatternCall(
+                expr.pattern,
+                expr.args.map { arg -> hoistedAppStateRead(arg) },
+                expr.imports,
+                expr.precedence,
+            )
+            is KtExpr.StringTemplate -> KtExpr.StringTemplate(
+                expr.parts.map { part ->
+                    if (part is KtTemplatePart.Interpolation) {
+                        KtTemplatePart.Interpolation(hoistedAppStateRead(part.expr))
+                    } else {
+                        part
+                    }
+                },
+            )
+            else -> expr
+        }
+    }
+
+    /**
+     * True when [expr] is the accessor [StateStrategy.receiver] spells for the app scope: a
+     * member read named `current` over the reference the strategy renders `LocalAppState` as.
+     * [StateEmitter]'s own constant is what the comparison names, so a rename of the generated
+     * local in `state/AppState.kt` moves this check and the spelling it answers together.
+     */
+    private fun isAppStateAccessor(expr: KtExpr): Boolean {
+        if (expr !is KtExpr.Member || expr.name != "current") return false
+        val receiver: KtExpr.Ref = expr.receiver as? KtExpr.Ref ?: return false
+        return receiver.symbol.symbol.name == StateEmitter.LocalAppStateName
+    }
+
+    /** The hoist the function already needed, or nothing in front of it. */
+    private fun hoistAppState(): List<KtStmt> = appStateHoist?.let { listOf(it) } ?: emptyList()
 
     /**
      * Records the first declaration in [declarations] the strategy cannot emit; true when it did.
