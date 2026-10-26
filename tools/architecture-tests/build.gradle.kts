@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -44,6 +45,17 @@ kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.fromTarget(rootLibs.versions.jvmTarget.get()))
     }
+
+    // ABI tracking. The engine modules get theirs from `forge.kmp.library`; the external
+    // `convention.jvm.library` of the shared catalog does not wire it, so the two tools opt
+    // in module-locally — PLAN §36's row stays red while they carry no ABI dumps. The
+    // `@OptIn` plus the no-arg call is the shape the convention plugin itself uses.
+    //
+    // The reference dumps under `api/` do not exist yet. The first `check` run fails on
+    // purpose, and its built-in recovery generates, commits, and re-verifies them; later
+    // runs verify against the committed files.
+    @OptIn(ExperimentalAbiValidation::class)
+    abiValidation()
 }
 
 tasks.withType<Test>().configureEach {
