@@ -1,0 +1,9 @@
+public final class dev/rotalex/lutter/cli/FileSink {
+	public static final field INSTANCE Ldev/rotalex/lutter/cli/FileSink;
+	public final fun write (Ljava/io/File;Ldev/rotalex/lutter/codegen/GeneratedFiles;)Ljava/util/List;
+}
+
+public final class dev/rotalex/lutter/cli/MainKt {
+	public static final fun main ([Ljava/lang/String;)V
+}
+
