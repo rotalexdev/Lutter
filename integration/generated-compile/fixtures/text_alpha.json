@@ -1,0 +1,28 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "TextAlpha"},
+    "nodes": {
+      "n_a": {
+        "id": "n_a",
+        "modifiers": [
+          {"type": "decoration.alpha", "args": {"alpha": {"type": "const", "value": {"type": "f32", "v": 0.5}}}}
+        ],
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Faded"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "slots": {"children": ["n_a"]},
+        "type": "core.Column"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

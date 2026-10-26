@@ -1,0 +1,33 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "TextStateRef"},
+    "nodes": {
+      "n_a": {
+        "id": "n_a",
+        "props": {"text": {"type": "expr", "expr": {"type": "ref", "target": {"type": "state", "id": "s_greeting"}}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "slots": {"children": ["n_a"]},
+        "type": "core.Column"
+      }
+    },
+    "pages": {
+      "p_home": {
+        "id": "p_home",
+        "name": "Home",
+        "root": "n_root",
+        "route": "home",
+        "state": [
+          {"id": "s_greeting", "name": "greeting", "type": {"type": "str"}, "initial": {"type": "str", "v": "Hello from state"}}
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "hostFunctions": [
+      {"name": "ping", "params": []}
+    ],
+    "meta": {"name": "ButtonHostCall"},
+    "nodes": {
+      "n_btn": {
+        "id": "n_btn",
+        "events": {
+          "onClick": {
+            "steps": [
+              {
+                "action": "host.call",
+                "args": {
+                  "name": {"type": "const", "value": {"type": "str", "v": "ping"}}
+                }
+              }
+            ]
+          }
+        },
+        "slots": {"content": ["n_btn_label"]},
+        "type": "m3.Button"
+      },
+      "n_btn_label": {
+        "id": "n_btn_label",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Ping"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "modifiers": [
+          {"type": "layout.fillMaxSize"},
+          {
+            "type": "layout.padding",
+            "args": {"all": {"type": "const", "value": {"type": "dp", "v": 16}}}
+          }
+        ],
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 8}}},
+        "slots": {"children": ["n_title", "n_btn"]},
+        "type": "core.Column"
+      },
+      "n_title": {
+        "id": "n_title",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Host"}}},
+        "type": "m3.Text"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

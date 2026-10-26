@@ -1,0 +1,39 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "TextMultiFixed"},
+    "nodes": {
+      "n_a": {
+        "id": "n_a",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Title"}}},
+        "type": "m3.Text"
+      },
+      "n_b": {
+        "id": "n_b",
+        "props": {
+          "color": {"type": "const", "value": {"type": "color", "argb": "#FF03DAC5"}},
+          "text": {"type": "const", "value": {"type": "str", "v": "Subtitle"}}
+        },
+        "type": "m3.Text"
+      },
+      "n_c": {
+        "id": "n_c",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Caption"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 4}}},
+        "slots": {"children": ["n_a", "n_b", "n_c"]},
+        "type": "core.Column"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

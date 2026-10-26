@@ -1,0 +1,67 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "NestedDepth3"},
+    "nodes": {
+      "n_leaf": {
+        "id": "n_leaf",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Deep"}}},
+        "type": "m3.Text"
+      },
+      "n_gap": {
+        "id": "n_gap",
+        "modifiers": [
+          {"type": "layout.size", "args": {"height": {"type": "const", "value": {"type": "dp", "v": 16}}, "width": {"type": "const", "value": {"type": "dp", "v": 16}}}}
+        ],
+        "type": "core.Spacer"
+      },
+      "n_box": {
+        "id": "n_box",
+        "modifiers": [
+          {
+            "type": "layout.size",
+            "args": {"height": {"type": "const", "value": {"type": "dp", "v": 48}}, "width": {"type": "const", "value": {"type": "dp", "v": 96}}}
+          }
+        ],
+        "slots": {"children": ["n_leaf", "n_gap"]},
+        "type": "core.Box"
+      },
+      "n_row_cap": {
+        "id": "n_row_cap",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Beside"}}},
+        "type": "m3.Text"
+      },
+      "n_row": {
+        "id": "n_row",
+        "modifiers": [{"type": "layout.fillMaxWidth"}],
+        "slots": {"children": ["n_box", "n_row_cap"]},
+        "type": "core.Row"
+      },
+      "n_root": {
+        "id": "n_root",
+        "modifiers": [
+          {"type": "layout.fillMaxWidth"},
+          {
+            "type": "layout.padding",
+            "args": {"all": {"type": "const", "value": {"type": "dp", "v": 16}}}
+          }
+        ],
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 8}}},
+        "slots": {"children": ["n_title", "n_row"]},
+        "type": "core.Column"
+      },
+      "n_title": {
+        "id": "n_title",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Depth"}}},
+        "type": "m3.Text"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

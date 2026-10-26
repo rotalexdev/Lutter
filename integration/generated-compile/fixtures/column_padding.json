@@ -1,0 +1,35 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "ColumnPadding"},
+    "nodes": {
+      "n_a": {
+        "id": "n_a",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Inset"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "modifiers": [
+          {
+            "type": "layout.padding",
+            "args": {
+              "horizontal": {"type": "const", "value": {"type": "dp", "v": 20}},
+              "vertical": {"type": "const", "value": {"type": "dp", "v": 10}}
+            }
+          }
+        ],
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 4}}},
+        "slots": {"children": ["n_a"]},
+        "type": "core.Column"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}
