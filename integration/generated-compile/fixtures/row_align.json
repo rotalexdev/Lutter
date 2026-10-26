@@ -33,10 +33,7 @@
         "id": "n_root",
         "modifiers": [
           {"type": "layout.fillMaxWidth"},
-          {
-            "type": "layout.size",
-            "args": {"height": {"type": "const", "value": {"type": "dp", "v": 96}}}
-          }
+          {"type": "layout.height", "args": {"height": {"type": "const", "value": {"type": "dp", "v": 96}}}}
         ],
         "slots": {"children": ["n_a", "n_b"]},
         "type": "core.Row"
