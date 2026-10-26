@@ -49,6 +49,7 @@ class FixtureValidationTest {
                 "text_field_state",
                 "theme_tokens",
                 "box_background",
+                "box_width_height",
                 "border_text",
                 "card_align",
                 "column_min_height",
