@@ -1,0 +1,38 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "BorderText"},
+    "nodes": {
+      "n_a": {
+        "id": "n_a",
+        "modifiers": [
+          {
+            "type": "decoration.border",
+            "args": {
+              "color": {"type": "const", "value": {"type": "color", "argb": "#FF1B5E20"}},
+              "width": {"type": "const", "value": {"type": "dp", "v": 2}}
+            }
+          },
+          {
+            "type": "layout.padding",
+            "args": {"all": {"type": "const", "value": {"type": "dp", "v": 8}}}
+          }
+        ],
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Boxed"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "slots": {"children": ["n_a"]},
+        "type": "core.Column"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "SpacerFlex"},
+    "nodes": {
+      "n_a": {
+        "id": "n_a",
+        "modifiers": [
+          {"type": "layout.weight", "args": {"weight": {"type": "const", "value": {"type": "f32", "v": 1}}}}
+        ],
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Left"}}},
+        "type": "m3.Text"
+      },
+      "n_gap": {
+        "id": "n_gap",
+        "modifiers": [
+          {"type": "layout.weight", "args": {"weight": {"type": "const", "value": {"type": "f32", "v": 2}}}}
+        ],
+        "type": "core.Spacer"
+      },
+      "n_b": {
+        "id": "n_b",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Right"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "modifiers": [{"type": "layout.fillMaxWidth"}],
+        "slots": {"children": ["n_a", "n_gap", "n_b"]},
+        "type": "core.Row"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

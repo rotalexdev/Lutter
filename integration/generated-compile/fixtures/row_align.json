@@ -1,0 +1,49 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "RowAlign"},
+    "nodes": {
+      "n_a": {
+        "id": "n_a",
+        "modifiers": [
+          {
+            "type": "layout.align",
+            "args": {"alignment": {"type": "const", "value": {"type": "enum", "entry": "TopLeft"}}}
+          }
+        ],
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Top"}}},
+        "type": "m3.Text"
+      },
+      "n_b": {
+        "id": "n_b",
+        "modifiers": [
+          {
+            "type": "layout.align",
+            "args": {"alignment": {"type": "const", "value": {"type": "enum", "entry": "BottomCenter"}}}
+          }
+        ],
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Bottom"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "modifiers": [
+          {"type": "layout.fillMaxWidth"},
+          {
+            "type": "layout.size",
+            "args": {"height": {"type": "const", "value": {"type": "dp", "v": 96}}}
+          }
+        ],
+        "slots": {"children": ["n_a", "n_b"]},
+        "type": "core.Row"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

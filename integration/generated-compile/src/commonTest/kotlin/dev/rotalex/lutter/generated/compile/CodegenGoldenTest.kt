@@ -133,6 +133,81 @@ class CodegenGoldenTest {
         fixture("button_navigate")
     }
 
+    @Test
+    fun `box_background generates the committed golden`() {
+        fixture("box_background")
+    }
+
+    @Test
+    fun `box_width_height generates the committed golden`() {
+        fixture("box_width_height")
+    }
+
+    @Test
+    fun `border_text generates the committed golden`() {
+        fixture("border_text")
+    }
+
+    @Test
+    fun `button_host_call generates the committed golden`() {
+        fixture("button_host_call")
+    }
+
+    @Test
+    fun `card_align generates the committed golden`() {
+        fixture("card_align")
+    }
+
+    @Test
+    fun `column_min_height generates the committed golden`() {
+        fixture("column_min_height")
+    }
+
+    @Test
+    fun `column_padding generates the committed golden`() {
+        fixture("column_padding")
+    }
+
+    @Test
+    fun `nested_depth3 generates the committed golden`() {
+        fixture("nested_depth3")
+    }
+
+    @Test
+    fun `row_align generates the committed golden`() {
+        fixture("row_align")
+    }
+
+    @Test
+    fun `row_padding generates the committed golden`() {
+        fixture("row_padding")
+    }
+
+    @Test
+    fun `slot_outlet generates the committed golden`() {
+        fixture("slot_outlet")
+    }
+
+    @Test
+    fun `spacer_flex generates the committed golden`() {
+        fixture("spacer_flex")
+    }
+
+    @Test
+    fun `text_alpha generates the committed golden`() {
+        fixture("text_alpha")
+    }
+
+    @Test
+    fun `text_multi_fixed generates the committed golden`() {
+        fixture("text_multi_fixed")
+    }
+
+    @Test
+    fun `text_state_ref generates the committed golden`() {
+        fixture("text_state_ref")
+    }
+
     /**
      * The harness covers what is on disk, and says the count when it does not.
      *
@@ -356,7 +431,22 @@ class CodegenGoldenTest {
             "spacer_size",
             "text_field_state",
             "theme_tokens",
+            "box_background",
+            "box_width_height",
+            "border_text",
+            "button_host_call",
             "button_navigate",
+            "card_align",
+            "column_min_height",
+            "column_padding",
+            "nested_depth3",
+            "row_align",
+            "row_padding",
+            "slot_outlet",
+            "spacer_flex",
+            "text_alpha",
+            "text_multi_fixed",
+            "text_state_ref",
         )
     }
 }

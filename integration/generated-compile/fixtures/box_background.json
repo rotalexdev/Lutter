@@ -1,0 +1,38 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "BoxBackground"},
+    "nodes": {
+      "n_a": {
+        "id": "n_a",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Painted"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "modifiers": [
+          {
+            "type": "decoration.background",
+            "args": {"color": {"type": "const", "value": {"type": "color", "argb": "#FFEDE7F1"}}}
+          },
+          {
+            "type": "layout.size",
+            "args": {
+              "height": {"type": "const", "value": {"type": "dp", "v": 64}},
+              "width": {"type": "const", "value": {"type": "dp", "v": 128}}
+            }
+          }
+        ],
+        "slots": {"children": ["n_a"]},
+        "type": "core.Box"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {
+      "c_pill": {
+        "id": "c_pill",
+        "name": "Pill",
+        "params": [
+          {"name": "label", "type": {"type": "str"}}
+        ],
+        "slots": [{"name": "content"}],
+        "root": "n_pill_body"
+      }
+    },
+    "meta": {"name": "SlotOutlet"},
+    "nodes": {
+      "n_pill_body": {
+        "id": "n_pill_body",
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 4}}},
+        "slots": {"children": ["n_pill_label", "n_pill_outlet"]},
+        "type": "core.Column"
+      },
+      "n_pill_label": {
+        "id": "n_pill_label",
+        "props": {"text": {"type": "expr", "expr": {"type": "ref", "target": {"type": "param", "name": "label"}}}},
+        "type": "m3.Text"
+      },
+      "n_pill_outlet": {
+        "id": "n_pill_outlet",
+        "props": {"slot": {"type": "const", "value": {"type": "str", "v": "content"}}},
+        "type": "core.SlotOutlet"
+      },
+      "n_root": {
+        "id": "n_root",
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 8}}},
+        "slots": {"children": ["n_heading", "n_tag"]},
+        "type": "core.Column"
+      },
+      "n_heading": {
+        "id": "n_heading",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Pills"}}},
+        "type": "m3.Text"
+      },
+      "n_tag": {
+        "id": "n_tag",
+        "props": {"label": {"type": "const", "value": {"type": "str", "v": "Tag"}}},
+        "slots": {"content": ["n_tag_note"]},
+        "type": "doc.c_pill"
+      },
+      "n_tag_note": {
+        "id": "n_tag_note",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "filled body"}}},
+        "type": "m3.Text"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}
