@@ -2795,7 +2795,7 @@ The MVP is complete only when **all** items are demonstrably true (CI evidence i
 - [x] The core domain model (`:engine:model`, `:schema`, `:serialization`, `:interpreter`, `:analysis`, `:editing`, `:codegen`, `:builtins`) has **no Compose dependency** (`verifyModuleGraph`, `NoComposeInPureModulesTest`).
 - [x] The module dependency graph matches §23 exactly, with no cycles (`ModuleGraphTest`).
 - [x] `:engine:codegen` and `:engine:runtime` do not depend on each other.
-- [ ] `explicitApi` is on everywhere; ABI dumps are committed and checked; internal APIs are `internal` or `@EngineInternalApi`.
+- [x] `explicitApi` is on everywhere; ABI dumps are committed and checked; internal APIs are `internal` or `@EngineInternalApi`.
 - [ ] No `when` over component types anywhere in engine code (`NoComponentWhenTest`).
 
 ### 36.4 KMP readiness
@@ -2806,7 +2806,7 @@ The MVP is complete only when **all** items are demonstrably true (CI evidence i
 
 ### 36.5 Performance and quality gates
 
-> **Verification record (2026-10-23).** The ticked rows above were re-read against their named tests — claim and quantity — with green CI `Build, test and verify` / `Runtime versus generated code` / `Conformance run` (run 39919637732 wave). Still red, each for a checked reason: `CodegenGoldenTest` covers 11 fixtures where the row asks ≥ 25, `ExpressionCorpusTest` has 27 rows where the row asks ≥ 150, the fuzz batch runs but the workflow's own comment records failures at 41/200 (codegen gaps on `m3.TextField`/`m3.Button` event surfaces and printer refusals — engine work, not CI work) and runs on push rather than a schedule, the cross-OS determinism clause has no CI witness (every workflow runs `ubuntu-latest` only), and `:tools:cli` / `:tools:architecture-tests` carry no `explicitApi` dumps while every engine module does. **`./gradlew check` with warnings-as-errors is not provable by construction**: `forge.warningsAsErrors=false` is pinned deliberately (unattributable toolchain-injected compiler warnings). --
+> **Verification record (2026-10-26).** The ticked rows above were re-read against their named tests — claim and quantity — across green CI waves: the 2026-10-23 record (run 39919637732) re-confirmed, and this update replaces it. Closed since: the fuzz batch is green at full scope — 200/200 documents generate and compile (run 40121233571, on the #94–#105 codegen fix chain), the cross-OS determinism clause has its CI witness — `Determinism` green on both `ubuntu-latest` and `windows-latest` (run 40127548304, PRs #106/#107, with `.gitattributes` pinning `*.golden`/`*.json` to LF) — and the tools now carry the engine's whole API discipline: committed, checked ABI dumps plus strict `explicitApi()` mode (PRs #109/#110, dev `54438b9`, check run 40389515314; the `architecture-tests` dump is empty on purpose, the module has no public production surface). The still-red items are exactly: `CodegenGoldenTest` covers 11 fixtures where the row asks ≥ 25, `ExpressionCorpusTest` has 27 rows where the row asks ≥ 150, and the fuzz batch still runs on push rather than a schedule. **`./gradlew check` with warnings-as-errors is not provable by construction**, unchanged: `forge.warningsAsErrors=false` is pinned deliberately (unattributable toolchain-injected compiler warnings).
 
 
 - [ ] Benchmarks on a 10,000-node document meet the §29 targets (recorded baselines committed; nightly regression alert configured).
