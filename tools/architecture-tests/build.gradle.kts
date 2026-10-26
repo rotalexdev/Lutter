@@ -42,20 +42,28 @@ dependencies {
 //
 // Both sides now read the catalog's single `jvmTarget`. One number, two compilers.
 kotlin {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(rootLibs.versions.jvmTarget.get()))
-    }
+    // Explicit API mode. The engine modules turn it on through `forge.kmp.library`; the
+    // external `convention.jvm.library` of the shared catalog does not, and PLAN §36 asks
+    // for `explicitApi` everywhere, so it is switched on module-locally. This module has no
+    // production source, so the mode is free here today and pins that for tomorrow: the day
+    // someone adds public surface to an architecture checker, they do it with explicit
+    // modifiers, not by accident.
+    explicitApi()
 
     // ABI tracking. The engine modules get theirs from `forge.kmp.library`; the external
     // `convention.jvm.library` of the shared catalog does not wire it, so the two tools opt
     // in module-locally — PLAN §36's row stays red while they carry no ABI dumps. The
     // `@OptIn` plus the no-arg call is the shape the convention plugin itself uses.
     //
-    // The reference dumps under `api/` do not exist yet. The first `check` run fails on
-    // purpose, and its built-in recovery generates, commits, and re-verifies them; later
-    // runs verify against the committed files.
+    // The committed reference dump is empty on purpose (`api/architecture-tests.api`): a
+    // module with no public production surface. A regeneration that makes it non-empty is
+    // a change to review, not noise to overwrite.
     @OptIn(ExperimentalAbiValidation::class)
     abiValidation()
+
+    compilerOptions {
+        jvmTarget.set(JvmTarget.fromTarget(rootLibs.versions.jvmTarget.get()))
+    }
 }
 
 tasks.withType<Test>().configureEach {
