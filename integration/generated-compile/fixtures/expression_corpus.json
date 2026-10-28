@@ -5561,43 +5561,54 @@
                   }
                 },
                 {
-                  "type": "call",
-                  "function": "list.get",
-                  "args": [
-                    {
-                      "type": "list",
-                      "items": [
-                        {
-                          "type": "const",
-                          "value": {
-                            "type": "i32",
-                            "v": 1
+                  "type": "binary",
+                  "op": "eq",
+                  "left": {
+                    "type": "call",
+                    "function": "list.get",
+                    "args": [
+                      {
+                        "type": "list",
+                        "items": [
+                          {
+                            "type": "const",
+                            "value": {
+                              "type": "i32",
+                              "v": 1
+                            }
+                          },
+                          {
+                            "type": "const",
+                            "value": {
+                              "type": "i32",
+                              "v": 2
+                            }
+                          },
+                          {
+                            "type": "const",
+                            "value": {
+                              "type": "i32",
+                              "v": 3
+                            }
                           }
-                        },
-                        {
-                          "type": "const",
-                          "value": {
-                            "type": "i32",
-                            "v": 2
-                          }
-                        },
-                        {
-                          "type": "const",
-                          "value": {
-                            "type": "i32",
-                            "v": 3
-                          }
+                        ]
+                      },
+                      {
+                        "type": "const",
+                        "value": {
+                          "type": "i32",
+                          "v": 0
                         }
-                      ]
-                    },
-                    {
-                      "type": "const",
-                      "value": {
-                        "type": "i32",
-                        "v": 0
                       }
+                    ]
+                  },
+                  "right": {
+                    "type": "const",
+                    "value": {
+                      "type": "i32",
+                      "v": 1
                     }
-                  ]
+                  }
                 }
               ]
             }
@@ -5621,43 +5632,54 @@
                   }
                 },
                 {
-                  "type": "call",
-                  "function": "list.get",
-                  "args": [
-                    {
-                      "type": "list",
-                      "items": [
-                        {
-                          "type": "const",
-                          "value": {
-                            "type": "i32",
-                            "v": 1
+                  "type": "binary",
+                  "op": "eq",
+                  "left": {
+                    "type": "call",
+                    "function": "list.get",
+                    "args": [
+                      {
+                        "type": "list",
+                        "items": [
+                          {
+                            "type": "const",
+                            "value": {
+                              "type": "i32",
+                              "v": 1
+                            }
+                          },
+                          {
+                            "type": "const",
+                            "value": {
+                              "type": "i32",
+                              "v": 2
+                            }
+                          },
+                          {
+                            "type": "const",
+                            "value": {
+                              "type": "i32",
+                              "v": 3
+                            }
                           }
-                        },
-                        {
-                          "type": "const",
-                          "value": {
-                            "type": "i32",
-                            "v": 2
-                          }
-                        },
-                        {
-                          "type": "const",
-                          "value": {
-                            "type": "i32",
-                            "v": 3
-                          }
+                        ]
+                      },
+                      {
+                        "type": "const",
+                        "value": {
+                          "type": "i32",
+                          "v": 2
                         }
-                      ]
-                    },
-                    {
-                      "type": "const",
-                      "value": {
-                        "type": "i32",
-                        "v": 2
                       }
+                    ]
+                  },
+                  "right": {
+                    "type": "const",
+                    "value": {
+                      "type": "i32",
+                      "v": 3
                     }
-                  ]
+                  }
                 }
               ]
             }
@@ -5833,22 +5855,8 @@
                             {
                               "type": "const",
                               "value": {
-                                "type": "i32",
-                                "v": 1
-                              }
-                            },
-                            {
-                              "type": "const",
-                              "value": {
-                                "type": "i32",
-                                "v": 2
-                              }
-                            },
-                            {
-                              "type": "const",
-                              "value": {
-                                "type": "i32",
-                                "v": 3
+                                "type": "str",
+                                "v": "x"
                               }
                             }
                           ]
@@ -5857,7 +5865,7 @@
                           "type": "const",
                           "value": {
                             "type": "i32",
-                            "v": 7
+                            "v": 0
                           }
                         }
                       ]
@@ -5906,22 +5914,8 @@
                             {
                               "type": "const",
                               "value": {
-                                "type": "i32",
-                                "v": 1
-                              }
-                            },
-                            {
-                              "type": "const",
-                              "value": {
-                                "type": "i32",
-                                "v": 2
-                              }
-                            },
-                            {
-                              "type": "const",
-                              "value": {
-                                "type": "i32",
-                                "v": 3
+                                "type": "str",
+                                "v": "x"
                               }
                             }
                           ]
@@ -5930,7 +5924,7 @@
                           "type": "const",
                           "value": {
                             "type": "i32",
-                            "v": 0
+                            "v": 7
                           }
                         }
                       ]
@@ -6191,11 +6185,17 @@
                       "function": "num.toDouble",
                       "args": [
                         {
-                          "type": "ref",
-                          "target": {
-                            "type": "state",
-                            "id": "s_label"
-                          }
+                          "type": "call",
+                          "function": "str.length",
+                          "args": [
+                            {
+                              "type": "ref",
+                              "target": {
+                                "type": "state",
+                                "id": "s_label"
+                              }
+                            }
+                          ]
                         }
                       ]
                     },

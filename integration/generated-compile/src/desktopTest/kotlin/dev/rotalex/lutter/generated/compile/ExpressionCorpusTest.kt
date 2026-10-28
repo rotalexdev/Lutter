@@ -254,12 +254,12 @@ class ExpressionCorpusTest {
             "k3: true",
             "k4: false",
             "k5: true",
-            "k6: 1",
-            "k7: 3",
+            "k6: true",
+            "k7: true",
             "k8: -1",
             "k9: true",
-            "k10: gone",
-            "k11: 1",
+            "k10: a",
+            "k11: gone",
             "l1: 1.25",
             "l2: 1.250",
             "l3: 1.2500",
@@ -466,18 +466,18 @@ class ExpressionCorpusTest {
                     Text("k3: ${'$'}{listOf(1, 2, 3).contains(2)}")
                     Text("k4: ${'$'}{listOf(1, 2, 3).isEmpty()}")
                     Text("k5: ${'$'}{listOf(1, 2, 3).isNotEmpty()}")
-                    Text("k6: ${'$'}{listOf(1, 2, 3).getOrNull(0)}")
-                    Text("k7: ${'$'}{listOf(1, 2, 3).getOrNull(2)}")
+                    Text("k6: ${'$'}{listOf(1, 2, 3).getOrNull(0) == 1}")
+                    Text("k7: ${'$'}{listOf(1, 2, 3).getOrNull(2) == 3}")
                     Text("k8: ${'$'}{listOf(1, 2, 3).getOrNull(7) ?: -1}")
                     Text("k9: ${'$'}{listOf(1, 2, 3).getOrNull(7) == null}")
-                    Text("k10: ${'$'}{listOf(1, 2, 3).getOrNull(7) ?: "gone"}")
-                    Text("k11: ${'$'}{listOf(1, 2, 3).getOrNull(0) ?: "gone"}")
+                    Text("k10: ${'$'}{listOf("x").getOrNull(0) ?: "gone"}")
+                    Text("k11: ${'$'}{listOf("x").getOrNull(7) ?: "gone"}")
                     Text("l1: ${'$'}{fixedDecimalText(state.ratio, 2)}")
                     Text("l2: ${'$'}{fixedDecimalText(state.ratio, 3)}")
                     Text("l3: ${'$'}{fixedDecimalText(state.ratio, 4)}")
                     Text("l4: ${'$'}{fixedDecimalText(state.count.toDouble(), 1)}")
                     Text("l5: ${'$'}{fixedDecimalText(state.count.toDouble(), 3)}")
-                    Text("l6: ${'$'}{fixedDecimalText(state.label.toDouble(), 2)}")
+                    Text("l6: ${'$'}{fixedDecimalText(state.label.length.toDouble(), 2)}")
                     Text("m1: ${'$'}{-state.count}")
                     Text("m2: ${'$'}{-(state.count + 1)}")
                     Text("m3: ${'$'}{-(state.count - 3)}")
