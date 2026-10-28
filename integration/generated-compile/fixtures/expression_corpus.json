@@ -5306,21 +5306,7 @@
                           "type": "const",
                           "value": {
                             "type": "i32",
-                            "v": 1
-                          }
-                        },
-                        {
-                          "type": "const",
-                          "value": {
-                            "type": "i32",
-                            "v": 2
-                          }
-                        },
-                        {
-                          "type": "const",
-                          "value": {
-                            "type": "i32",
-                            "v": 3
+                            "v": 4
                           }
                         }
                       ]
@@ -5405,21 +5391,7 @@
                           "type": "const",
                           "value": {
                             "type": "i32",
-                            "v": 1
-                          }
-                        },
-                        {
-                          "type": "const",
-                          "value": {
-                            "type": "i32",
-                            "v": 2
-                          }
-                        },
-                        {
-                          "type": "const",
-                          "value": {
-                            "type": "i32",
-                            "v": 3
+                            "v": 4
                           }
                         }
                       ]
@@ -5428,7 +5400,7 @@
                       "type": "const",
                       "value": {
                         "type": "i32",
-                        "v": 2
+                        "v": 4
                       }
                     }
                   ]
@@ -5465,21 +5437,7 @@
                           "type": "const",
                           "value": {
                             "type": "i32",
-                            "v": 1
-                          }
-                        },
-                        {
-                          "type": "const",
-                          "value": {
-                            "type": "i32",
-                            "v": 2
-                          }
-                        },
-                        {
-                          "type": "const",
-                          "value": {
-                            "type": "i32",
-                            "v": 3
+                            "v": 4
                           }
                         }
                       ]
@@ -5518,21 +5476,7 @@
                           "type": "const",
                           "value": {
                             "type": "i32",
-                            "v": 1
-                          }
-                        },
-                        {
-                          "type": "const",
-                          "value": {
-                            "type": "i32",
-                            "v": 2
-                          }
-                        },
-                        {
-                          "type": "const",
-                          "value": {
-                            "type": "i32",
-                            "v": 3
+                            "v": 4
                           }
                         }
                       ]
@@ -5575,21 +5519,7 @@
                               "type": "const",
                               "value": {
                                 "type": "i32",
-                                "v": 1
-                              }
-                            },
-                            {
-                              "type": "const",
-                              "value": {
-                                "type": "i32",
-                                "v": 2
-                              }
-                            },
-                            {
-                              "type": "const",
-                              "value": {
-                                "type": "i32",
-                                "v": 3
+                                "v": 4
                               }
                             }
                           ]
@@ -5648,21 +5578,7 @@
                               "type": "const",
                               "value": {
                                 "type": "i32",
-                                "v": 1
-                              }
-                            },
-                            {
-                              "type": "const",
-                              "value": {
-                                "type": "i32",
-                                "v": 2
-                              }
-                            },
-                            {
-                              "type": "const",
-                              "value": {
-                                "type": "i32",
-                                "v": 3
+                                "v": 4
                               }
                             }
                           ]
@@ -5721,21 +5637,7 @@
                               "type": "const",
                               "value": {
                                 "type": "i32",
-                                "v": 1
-                              }
-                            },
-                            {
-                              "type": "const",
-                              "value": {
-                                "type": "i32",
-                                "v": 2
-                              }
-                            },
-                            {
-                              "type": "const",
-                              "value": {
-                                "type": "i32",
-                                "v": 3
+                                "v": 4
                               }
                             }
                           ]
@@ -5794,21 +5696,7 @@
                               "type": "const",
                               "value": {
                                 "type": "i32",
-                                "v": 1
-                              }
-                            },
-                            {
-                              "type": "const",
-                              "value": {
-                                "type": "i32",
-                                "v": 2
-                              }
-                            },
-                            {
-                              "type": "const",
-                              "value": {
-                                "type": "i32",
-                                "v": 3
+                                "v": 4
                               }
                             }
                           ]

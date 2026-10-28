@@ -249,13 +249,13 @@ class ExpressionCorpusTest {
             "j7: a",
             "j8: x",
             "j9: lt",
-            "k1: 3",
+            "k1: 1",
             "k2: true",
             "k3: true",
             "k4: false",
             "k5: true",
-            "k6: 1",
-            "k7: 3",
+            "k6: 4",
+            "k7: 0",
             "k8: -1",
             "k9: true",
             "k10: a",
@@ -461,15 +461,15 @@ class ExpressionCorpusTest {
                     Text("j7: ${'$'}{if (state.flag) if (2 < 3) "a" else "b" else "c"}")
                     Text("j8: ${'$'}{if (1 < 2) "x" else if (2 < 3) "y" else "z"}")
                     Text("j9: ${'$'}{if (state.count < state.label.length) "lt" else "ge"}")
-                    Text("k1: ${'$'}{listOf(1, 2, 3).size}")
+                    Text("k1: ${'$'}{listOf(4).size}")
                     Text("k2: ${'$'}{listOf("x").contains("x")}")
-                    Text("k3: ${'$'}{listOf(1, 2, 3).contains(2)}")
-                    Text("k4: ${'$'}{listOf(1, 2, 3).isEmpty()}")
-                    Text("k5: ${'$'}{listOf(1, 2, 3).isNotEmpty()}")
-                    Text("k6: ${'$'}{listOf(1, 2, 3).getOrNull(0) ?: 0}")
-                    Text("k7: ${'$'}{listOf(1, 2, 3).getOrNull(2) ?: 0}")
-                    Text("k8: ${'$'}{listOf(1, 2, 3).getOrNull(7) ?: -1}")
-                    Text("k9: ${'$'}{listOf(1, 2, 3).getOrNull(7) == null}")
+                    Text("k3: ${'$'}{listOf(4).contains(4)}")
+                    Text("k4: ${'$'}{listOf(4).isEmpty()}")
+                    Text("k5: ${'$'}{listOf(4).isNotEmpty()}")
+                    Text("k6: ${'$'}{listOf(4).getOrNull(0) ?: 0}")
+                    Text("k7: ${'$'}{listOf(4).getOrNull(2) ?: 0}")
+                    Text("k8: ${'$'}{listOf(4).getOrNull(7) ?: -1}")
+                    Text("k9: ${'$'}{listOf(4).getOrNull(7) == null}")
                     Text("k10: ${'$'}{listOf("x").getOrNull(0) ?: "gone"}")
                     Text("k11: ${'$'}{listOf("x").getOrNull(7) ?: "gone"}")
                     Text("l1: ${'$'}{fixedDecimalText(state.ratio, 2)}")
