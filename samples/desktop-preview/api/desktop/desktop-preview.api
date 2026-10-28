@@ -1,0 +1,6 @@
+public final class dev/rotalex/lutter/samples/desktoppreview/MainKt {
+	public static final field DEFAULT_DOCUMENT Ljava/lang/String;
+	public static final fun main ([Ljava/lang/String;)V
+	public static final fun readDocument (Ljava/lang/String;)Ldev/rotalex/lutter/model/doc/UiDocument;
+}
+

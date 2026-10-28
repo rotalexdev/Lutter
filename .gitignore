@@ -26,6 +26,25 @@ opencode.json
 .gentle-ai-default-agent.json
 .atl/
 
+# Organic Driven Development working documents.
+#
+# `odd/tasks/<feature>.md` is a process artifact: which work unit is in
+# flight, what is blocked, what the next session should do. It is written
+# and read constantly and it changes on every work unit, so committing it
+# puts churn in the diff that says nothing about the product.
+#
+# The authoritative copy is the Engram observation at
+# `odd/<feature>/tasks`, which holds the FULL document, not a summary.
+# Engram already outlives a session and a compaction; a file in the working
+# tree does not.
+#
+# The reasoning is not lost. A "why" belongs next to the code it explains,
+# where it cannot drift, so it lives in KDoc — see
+# `engine/model/.../value/CanonicalNumbers.kt` for the canonical-numerics
+# rationale as the worked example. PLAN.md stays committed because it is
+# the spec, not the process.
+odd/
+
 # OS
 .DS_Store
 Thumbs.db

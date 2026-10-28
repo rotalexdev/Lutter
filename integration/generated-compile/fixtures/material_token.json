@@ -1,0 +1,48 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "MaterialToken"},
+    "nodes": {
+      "n_root": {
+        "id": "n_root",
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 8}}},
+        "slots": {"children": ["n_heading", "n_body", "n_label"]},
+        "type": "core.Column"
+      },
+      "n_heading": {
+        "id": "n_heading",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Material"}}},
+        "type": "m3.Text"
+      },
+      "n_body": {
+        "id": "n_body",
+        "props": {
+          "text": {"type": "const", "value": {"type": "str", "v": "Body large"}},
+          "style": {
+            "type": "const",
+            "value": {"type": "token", "kind": "typography", "name": "md.typography.bodyLarge"}
+          }
+        },
+        "type": "m3.Text"
+      },
+      "n_label": {
+        "id": "n_label",
+        "props": {
+          "text": {"type": "const", "value": {"type": "str", "v": "Label large"}},
+          "style": {
+            "type": "const",
+            "value": {"type": "token", "kind": "typography", "name": "md.typography.labelLarge"}
+          }
+        },
+        "type": "m3.Text"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

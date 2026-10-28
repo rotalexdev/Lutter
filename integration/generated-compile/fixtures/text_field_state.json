@@ -1,0 +1,53 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "appState": [
+      {"id": "s_theme", "name": "theme", "type": {"type": "str"}, "initial": {"type": "str", "v": "light"}}
+    ],
+    "components": {},
+    "meta": {"name": "TextFieldState"},
+    "nodes": {
+      "n_a": {
+        "id": "n_a",
+        "props": {"text": {"type": "expr", "expr": {"type": "ref", "target": {"type": "state", "id": "s_label"}}}},
+        "type": "m3.Text"
+      },
+      "n_b": {
+        "id": "n_b",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Total"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "slots": {"children": ["n_a", "n_b"]},
+        "type": "core.Column"
+      }
+    },
+    "pages": {
+      "p_home": {
+        "id": "p_home",
+        "name": "Home",
+        "root": "n_root",
+        "route": "home",
+        "state": [
+          {"id": "s_count", "name": "count", "type": {"type": "i32"}, "initial": {"type": "i32", "v": 0}},
+          {"id": "s_label", "name": "label", "type": {"type": "str"}, "initial": {"type": "str", "v": "Clicks"}},
+          {
+            "id": "s_doubled",
+            "name": "doubled",
+            "type": {"type": "i32"},
+            "derived": {
+              "type": "binary",
+              "op": "add",
+              "left": {"type": "ref", "target": {"type": "state", "id": "s_count"}},
+              "right": {"type": "const", "value": {"type": "i32", "v": 1}}
+            }
+          }
+        ]
+      }
+    }
+  }
+}

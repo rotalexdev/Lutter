@@ -1,0 +1,37 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "RowWeight"},
+    "nodes": {
+      "n_a": {
+        "id": "n_a",
+        "modifiers": [
+          {"type": "layout.weight", "args": {"weight": {"type": "const", "value": {"type": "f32", "v": 1}}}}
+        ],
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Left"}}},
+        "type": "m3.Text"
+      },
+      "n_b": {
+        "id": "n_b",
+        "modifiers": [
+          {"type": "layout.weight", "args": {"weight": {"type": "const", "value": {"type": "f32", "v": 2}}}}
+        ],
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Right"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "modifiers": [{"type": "layout.fillMaxWidth"}],
+        "slots": {"children": ["n_a", "n_b"]},
+        "type": "core.Row"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

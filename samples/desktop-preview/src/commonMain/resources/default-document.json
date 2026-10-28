@@ -1,0 +1,61 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "ButtonNavigate"},
+    "nodes": {
+      "n_btn": {
+        "id": "n_btn",
+        "events": {
+          "onClick": {
+            "steps": [
+              {
+                "action": "nav.navigate",
+                "args": {
+                  "page": {"type": "const", "value": {"type": "ref", "kind": "page", "id": "p_profile"}}
+                }
+              }
+            ]
+          }
+        },
+        "slots": {"content": ["n_btn_label"]},
+        "type": "m3.Button"
+      },
+      "n_btn_label": {
+        "id": "n_btn_label",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Continue"}}},
+        "type": "m3.Text"
+      },
+      "n_profile_text": {
+        "id": "n_profile_text",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Profile"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "modifiers": [
+          {"type": "layout.fillMaxSize"},
+          {
+            "type": "layout.padding",
+            "args": {"all": {"type": "const", "value": {"type": "dp", "v": 16}}}
+          }
+        ],
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 8}}},
+        "slots": {"children": ["n_title", "n_btn"]},
+        "type": "core.Column"
+      },
+      "n_title": {
+        "id": "n_title",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Welcome"}}},
+        "type": "m3.Text"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"},
+      "p_profile": {"id": "p_profile", "name": "Profile", "root": "n_profile_text", "route": "profile"}
+    }
+  }
+}

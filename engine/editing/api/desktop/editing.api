@@ -1,0 +1,1262 @@
+public final class dev/rotalex/lutter/editing/DocumentChange {
+	public fun <init> (JLdev/rotalex/lutter/editing/patch/Patch;)V
+	public final fun component1 ()J
+	public final fun component2 ()Ldev/rotalex/lutter/editing/patch/Patch;
+	public final fun copy (JLdev/rotalex/lutter/editing/patch/Patch;)Ldev/rotalex/lutter/editing/DocumentChange;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/DocumentChange;JLdev/rotalex/lutter/editing/patch/Patch;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/DocumentChange;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPatch ()Ldev/rotalex/lutter/editing/patch/Patch;
+	public final fun getRevision ()J
+	public final fun getTouchedNodes ()Ljava/util/Set;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/DocumentController {
+	public fun <init> (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/model/ids/IdGenerator;Ldev/rotalex/lutter/editing/history/History;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/model/ids/IdGenerator;Ldev/rotalex/lutter/editing/history/History;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun dispatch (Ldev/rotalex/lutter/editing/command/Command;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/editing/history/MergeWindow;)Ldev/rotalex/lutter/editing/command/CommandResult;
+	public static synthetic fun dispatch$default (Ldev/rotalex/lutter/editing/DocumentController;Ldev/rotalex/lutter/editing/command/Command;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/editing/history/MergeWindow;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/CommandResult;
+	public final fun getChanges ()Lkotlinx/coroutines/flow/SharedFlow;
+	public final fun getState ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun redo ()Z
+	public final fun transaction (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+	public final fun undo ()Z
+}
+
+public final class dev/rotalex/lutter/editing/DocumentState {
+	public fun <init> (Ldev/rotalex/lutter/model/doc/UiDocument;JZZ)V
+	public final fun component1 ()Ldev/rotalex/lutter/model/doc/UiDocument;
+	public final fun component2 ()J
+	public final fun component3 ()Z
+	public final fun component4 ()Z
+	public final fun copy (Ldev/rotalex/lutter/model/doc/UiDocument;JZZ)Ldev/rotalex/lutter/editing/DocumentState;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/DocumentState;Ldev/rotalex/lutter/model/doc/UiDocument;JZZILjava/lang/Object;)Ldev/rotalex/lutter/editing/DocumentState;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCanRedo ()Z
+	public final fun getCanUndo ()Z
+	public final fun getDocument ()Ldev/rotalex/lutter/model/doc/UiDocument;
+	public final fun getRevision ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/rotalex/lutter/editing/TransactionScope {
+	public abstract fun dispatch (Ldev/rotalex/lutter/editing/command/Command;)Ldev/rotalex/lutter/editing/command/CommandResult;
+}
+
+public abstract interface class dev/rotalex/lutter/editing/command/Command {
+}
+
+public final class dev/rotalex/lutter/editing/command/Command$AddPage : dev/rotalex/lutter/editing/command/Command {
+	public fun <init> (Ldev/rotalex/lutter/model/doc/Page;Ldev/rotalex/lutter/editing/template/NodeTemplate;)V
+	public final fun component1 ()Ldev/rotalex/lutter/model/doc/Page;
+	public final fun component2 ()Ldev/rotalex/lutter/editing/template/NodeTemplate;
+	public final fun copy (Ldev/rotalex/lutter/model/doc/Page;Ldev/rotalex/lutter/editing/template/NodeTemplate;)Ldev/rotalex/lutter/editing/command/Command$AddPage;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/command/Command$AddPage;Ldev/rotalex/lutter/model/doc/Page;Ldev/rotalex/lutter/editing/template/NodeTemplate;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/Command$AddPage;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPage ()Ldev/rotalex/lutter/model/doc/Page;
+	public final fun getSubtree ()Ldev/rotalex/lutter/editing/template/NodeTemplate;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/command/Command$ApplyPatch : dev/rotalex/lutter/editing/command/Command {
+	public fun <init> (Ldev/rotalex/lutter/editing/patch/Patch;)V
+	public final fun component1 ()Ldev/rotalex/lutter/editing/patch/Patch;
+	public final fun copy (Ldev/rotalex/lutter/editing/patch/Patch;)Ldev/rotalex/lutter/editing/command/Command$ApplyPatch;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/command/Command$ApplyPatch;Ldev/rotalex/lutter/editing/patch/Patch;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/Command$ApplyPatch;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPatch ()Ldev/rotalex/lutter/editing/patch/Patch;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/command/Command$DuplicateNode : dev/rotalex/lutter/editing/command/Command {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun copy-D9n_bC4 (Ljava/lang/String;)Ldev/rotalex/lutter/editing/command/Command$DuplicateNode;
+	public static synthetic fun copy-D9n_bC4$default (Ldev/rotalex/lutter/editing/command/Command$DuplicateNode;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/Command$DuplicateNode;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-qw1I0Vk ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/command/Command$InsertNode : dev/rotalex/lutter/editing/command/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILdev/rotalex/lutter/editing/template/NodeTemplate;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2-P6TfaEA ()Ljava/lang/String;
+	public final fun component3 ()I
+	public final fun component4 ()Ldev/rotalex/lutter/editing/template/NodeTemplate;
+	public final fun copy-zEvMDMM (Ljava/lang/String;Ljava/lang/String;ILdev/rotalex/lutter/editing/template/NodeTemplate;)Ldev/rotalex/lutter/editing/command/Command$InsertNode;
+	public static synthetic fun copy-zEvMDMM$default (Ldev/rotalex/lutter/editing/command/Command$InsertNode;Ljava/lang/String;Ljava/lang/String;ILdev/rotalex/lutter/editing/template/NodeTemplate;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/Command$InsertNode;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getIndex ()I
+	public final fun getParent-qw1I0Vk ()Ljava/lang/String;
+	public final fun getSlot-P6TfaEA ()Ljava/lang/String;
+	public final fun getSubtree ()Ldev/rotalex/lutter/editing/template/NodeTemplate;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/command/Command$MoveNode : dev/rotalex/lutter/editing/command/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2-qw1I0Vk ()Ljava/lang/String;
+	public final fun component3-P6TfaEA ()Ljava/lang/String;
+	public final fun component4 ()I
+	public final fun copy-KMoP3Tg (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)Ldev/rotalex/lutter/editing/command/Command$MoveNode;
+	public static synthetic fun copy-KMoP3Tg$default (Ldev/rotalex/lutter/editing/command/Command$MoveNode;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/Command$MoveNode;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-qw1I0Vk ()Ljava/lang/String;
+	public final fun getIndex ()I
+	public final fun getNewParent-qw1I0Vk ()Ljava/lang/String;
+	public final fun getSlot-P6TfaEA ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/command/Command$RemoveNode : dev/rotalex/lutter/editing/command/Command {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun copy-D9n_bC4 (Ljava/lang/String;)Ldev/rotalex/lutter/editing/command/Command$RemoveNode;
+	public static synthetic fun copy-D9n_bC4$default (Ldev/rotalex/lutter/editing/command/Command$RemoveNode;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/Command$RemoveNode;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-qw1I0Vk ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/command/Command$RenameNode : dev/rotalex/lutter/editing/command/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-owchrTU (Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/editing/command/Command$RenameNode;
+	public static synthetic fun copy-owchrTU$default (Ldev/rotalex/lutter/editing/command/Command$RenameNode;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/Command$RenameNode;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-qw1I0Vk ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/command/Command$SetEventHandler : dev/rotalex/lutter/editing/command/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/action/ActionSequence;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2-S-bTLXs ()Ljava/lang/String;
+	public final fun component3 ()Ldev/rotalex/lutter/model/action/ActionSequence;
+	public final fun copy-474G9VY (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/action/ActionSequence;)Ldev/rotalex/lutter/editing/command/Command$SetEventHandler;
+	public static synthetic fun copy-474G9VY$default (Ldev/rotalex/lutter/editing/command/Command$SetEventHandler;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/action/ActionSequence;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/Command$SetEventHandler;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getActions ()Ldev/rotalex/lutter/model/action/ActionSequence;
+	public final fun getEvent-S-bTLXs ()Ljava/lang/String;
+	public final fun getNode-qw1I0Vk ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/command/Command$SetModifiers : dev/rotalex/lutter/editing/command/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy-owchrTU (Ljava/lang/String;Ljava/util/List;)Ldev/rotalex/lutter/editing/command/Command$SetModifiers;
+	public static synthetic fun copy-owchrTU$default (Ldev/rotalex/lutter/editing/command/Command$SetModifiers;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/Command$SetModifiers;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getModifiers ()Ljava/util/List;
+	public final fun getNode-qw1I0Vk ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/command/Command$SetProperty : dev/rotalex/lutter/editing/command/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/expr/PropertyValue;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2-ciGozWU ()Ljava/lang/String;
+	public final fun component3 ()Ldev/rotalex/lutter/model/expr/PropertyValue;
+	public final fun copy-P1mFJUc (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/expr/PropertyValue;)Ldev/rotalex/lutter/editing/command/Command$SetProperty;
+	public static synthetic fun copy-P1mFJUc$default (Ldev/rotalex/lutter/editing/command/Command$SetProperty;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/expr/PropertyValue;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/Command$SetProperty;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getKey-ciGozWU ()Ljava/lang/String;
+	public final fun getNode-qw1I0Vk ()Ljava/lang/String;
+	public final fun getValue ()Ldev/rotalex/lutter/model/expr/PropertyValue;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/command/Command$UnwrapNode : dev/rotalex/lutter/editing/command/Command {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun copy-D9n_bC4 (Ljava/lang/String;)Ldev/rotalex/lutter/editing/command/Command$UnwrapNode;
+	public static synthetic fun copy-D9n_bC4$default (Ldev/rotalex/lutter/editing/command/Command$UnwrapNode;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/Command$UnwrapNode;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-qw1I0Vk ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/command/Command$WrapNode : dev/rotalex/lutter/editing/command/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2-RCZ7MqM ()Ljava/lang/String;
+	public final fun component3-P6TfaEA ()Ljava/lang/String;
+	public final fun copy-xAYcEjc (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/editing/command/Command$WrapNode;
+	public static synthetic fun copy-xAYcEjc$default (Ldev/rotalex/lutter/editing/command/Command$WrapNode;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/Command$WrapNode;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-qw1I0Vk ()Ljava/lang/String;
+	public final fun getSlot-P6TfaEA ()Ljava/lang/String;
+	public final fun getWrapper-RCZ7MqM ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/command/CommandPlanner {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/command/CommandPlanner;
+	public final fun plan (Ldev/rotalex/lutter/editing/command/Command;Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/model/ids/IdGenerator;)Ldev/rotalex/lutter/editing/command/CommandResult;
+}
+
+public abstract interface class dev/rotalex/lutter/editing/command/CommandResult {
+}
+
+public final class dev/rotalex/lutter/editing/command/CommandResult$Ok : dev/rotalex/lutter/editing/command/CommandResult {
+	public fun <init> (Ldev/rotalex/lutter/editing/patch/Patch;)V
+	public final fun component1 ()Ldev/rotalex/lutter/editing/patch/Patch;
+	public final fun copy (Ldev/rotalex/lutter/editing/patch/Patch;)Ldev/rotalex/lutter/editing/command/CommandResult$Ok;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/command/CommandResult$Ok;Ldev/rotalex/lutter/editing/patch/Patch;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/CommandResult$Ok;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPatch ()Ldev/rotalex/lutter/editing/patch/Patch;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/command/CommandResult$Rejected : dev/rotalex/lutter/editing/command/CommandResult {
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Ldev/rotalex/lutter/editing/command/CommandResult$Rejected;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/command/CommandResult$Rejected;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/CommandResult$Rejected;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getReasons ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/command/EditCodes {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/command/EditCodes;
+	public final fun getCycle-a0Ipk4o ()Ljava/lang/String;
+	public final fun getDuplicateId-a0Ipk4o ()Ljava/lang/String;
+	public final fun getEmptySubtree-a0Ipk4o ()Ljava/lang/String;
+	public final fun getIndexOutOfRange-a0Ipk4o ()Ljava/lang/String;
+	public final fun getMultipleParents-a0Ipk4o ()Ljava/lang/String;
+	public final fun getNoParent-a0Ipk4o ()Ljava/lang/String;
+	public final fun getNothingToUnwrap-a0Ipk4o ()Ljava/lang/String;
+	public final fun getRootMismatch-a0Ipk4o ()Ljava/lang/String;
+	public final fun getSlotCardinality-a0Ipk4o ()Ljava/lang/String;
+	public final fun getSlotChildNotAllowed-a0Ipk4o ()Ljava/lang/String;
+	public final fun getUndeclaredSlot-a0Ipk4o ()Ljava/lang/String;
+	public final fun getUnknownComponent-a0Ipk4o ()Ljava/lang/String;
+	public final fun getUnknownNode-a0Ipk4o ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/diff/DocumentDiff {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/diff/DocumentDiff;
+	public final fun compute (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/model/doc/UiDocument;)Ldev/rotalex/lutter/editing/patch/Patch;
+}
+
+public final class dev/rotalex/lutter/editing/history/History {
+	public fun <init> ()V
+	public fun <init> (I)V
+	public synthetic fun <init> (IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun clear ()V
+	public final fun getCanRedo ()Z
+	public final fun getCanUndo ()Z
+	public final fun getRedoEntries ()Ljava/util/List;
+	public final fun getUndoEntries ()Ljava/util/List;
+	public final fun record (Ldev/rotalex/lutter/editing/history/Transaction;Ldev/rotalex/lutter/editing/history/MergeWindow;)V
+	public final fun redo ()Ldev/rotalex/lutter/editing/history/Transaction;
+	public final fun undo ()Ldev/rotalex/lutter/editing/history/Transaction;
+}
+
+public final class dev/rotalex/lutter/editing/history/MergeWindow {
+	public fun <init> (JJ)V
+	public final fun component1 ()J
+	public final fun component2 ()J
+	public final fun copy (JJ)Ldev/rotalex/lutter/editing/history/MergeWindow;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/history/MergeWindow;JJILjava/lang/Object;)Ldev/rotalex/lutter/editing/history/MergeWindow;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAtMillis ()J
+	public final fun getToleranceMillis ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/history/Transaction {
+	public fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/Patch;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ldev/rotalex/lutter/editing/patch/Patch;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/Patch;Ljava/lang/String;)Ldev/rotalex/lutter/editing/history/Transaction;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/history/Transaction;Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/Patch;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/history/Transaction;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLabel ()Ljava/lang/String;
+	public final fun getMergeKey ()Ljava/lang/String;
+	public final fun getPatch ()Ldev/rotalex/lutter/editing/patch/Patch;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/migration/SpecMigrationPass {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/migration/SpecMigrationPass;
+	public final fun plan (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/schema/migration/SpecMigrationRegistry;Ljava/util/Map;)Ldev/rotalex/lutter/editing/patch/Patch;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Patch {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/Patch$Companion;
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Ldev/rotalex/lutter/editing/patch/Patch;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/patch/Patch;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/Patch;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getOps ()Ljava/util/List;
+	public final fun getTouchedNodes ()Ljava/util/Set;
+	public fun hashCode ()I
+	public final fun inverse ()Ldev/rotalex/lutter/editing/patch/Patch;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/Patch$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/Patch$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/Patch;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/Patch;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Patch$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchApplier {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/PatchApplier;
+	public final fun apply (Ldev/rotalex/lutter/editing/patch/Patch;Ldev/rotalex/lutter/model/doc/UiDocument;)Ldev/rotalex/lutter/model/doc/UiDocument;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchInverter {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/PatchInverter;
+	public final fun invert (Ldev/rotalex/lutter/editing/patch/Patch;)Ldev/rotalex/lutter/editing/patch/Patch;
+}
+
+public abstract interface class dev/rotalex/lutter/editing/patch/PatchOp {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/PatchOp$Companion;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$InsertNodes : dev/rotalex/lutter/editing/patch/PatchOp {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/PatchOp$InsertNodes$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/util/List;ZLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2-P6TfaEA ()Ljava/lang/String;
+	public final fun component3 ()I
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()Z
+	public final fun copy-_G5Ww3I (Ljava/lang/String;Ljava/lang/String;ILjava/util/List;Z)Ldev/rotalex/lutter/editing/patch/PatchOp$InsertNodes;
+	public static synthetic fun copy-_G5Ww3I$default (Ldev/rotalex/lutter/editing/patch/PatchOp$InsertNodes;Ljava/lang/String;Ljava/lang/String;ILjava/util/List;ZILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/PatchOp$InsertNodes;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getIndex ()I
+	public final fun getNodes ()Ljava/util/List;
+	public final fun getParent-qw1I0Vk ()Ljava/lang/String;
+	public final fun getSlot-P6TfaEA ()Ljava/lang/String;
+	public final fun getSlotExisted ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/PatchOp$InsertNodes$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/PatchOp$InsertNodes$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/PatchOp$InsertNodes;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/PatchOp$InsertNodes;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$InsertNodes$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$MoveNode : dev/rotalex/lutter/editing/patch/PatchOp {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/PatchOp$MoveNode$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/Placement;Ldev/rotalex/lutter/editing/patch/Placement;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2 ()Ldev/rotalex/lutter/editing/patch/Placement;
+	public final fun component3 ()Ldev/rotalex/lutter/editing/patch/Placement;
+	public final fun copy-JRZvf1E (Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/Placement;Ldev/rotalex/lutter/editing/patch/Placement;)Ldev/rotalex/lutter/editing/patch/PatchOp$MoveNode;
+	public static synthetic fun copy-JRZvf1E$default (Ldev/rotalex/lutter/editing/patch/PatchOp$MoveNode;Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/Placement;Ldev/rotalex/lutter/editing/patch/Placement;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/PatchOp$MoveNode;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFrom ()Ldev/rotalex/lutter/editing/patch/Placement;
+	public final fun getId-qw1I0Vk ()Ljava/lang/String;
+	public final fun getTo ()Ldev/rotalex/lutter/editing/patch/Placement;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/PatchOp$MoveNode$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/PatchOp$MoveNode$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/PatchOp$MoveNode;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/PatchOp$MoveNode;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$MoveNode$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$PutNodes : dev/rotalex/lutter/editing/patch/PatchOp {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/PatchOp$PutNodes$Companion;
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Ldev/rotalex/lutter/editing/patch/PatchOp$PutNodes;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/patch/PatchOp$PutNodes;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/PatchOp$PutNodes;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNodes ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/PatchOp$PutNodes$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/PatchOp$PutNodes$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/PatchOp$PutNodes;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/PatchOp$PutNodes;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$PutNodes$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$PutRecord : dev/rotalex/lutter/editing/patch/PatchOp {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/PatchOp$PutRecord$Companion;
+	public fun <init> (Ldev/rotalex/lutter/editing/patch/RecordRef;Ldev/rotalex/lutter/editing/patch/Record;Ldev/rotalex/lutter/editing/patch/Record;)V
+	public final fun component1 ()Ldev/rotalex/lutter/editing/patch/RecordRef;
+	public final fun component2 ()Ldev/rotalex/lutter/editing/patch/Record;
+	public final fun component3 ()Ldev/rotalex/lutter/editing/patch/Record;
+	public final fun copy (Ldev/rotalex/lutter/editing/patch/RecordRef;Ldev/rotalex/lutter/editing/patch/Record;Ldev/rotalex/lutter/editing/patch/Record;)Ldev/rotalex/lutter/editing/patch/PatchOp$PutRecord;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/patch/PatchOp$PutRecord;Ldev/rotalex/lutter/editing/patch/RecordRef;Ldev/rotalex/lutter/editing/patch/Record;Ldev/rotalex/lutter/editing/patch/Record;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/PatchOp$PutRecord;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNew ()Ldev/rotalex/lutter/editing/patch/Record;
+	public final fun getOld ()Ldev/rotalex/lutter/editing/patch/Record;
+	public final fun getRef ()Ldev/rotalex/lutter/editing/patch/RecordRef;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/PatchOp$PutRecord$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/PatchOp$PutRecord$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/PatchOp$PutRecord;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/PatchOp$PutRecord;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$PutRecord$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree : dev/rotalex/lutter/editing/patch/PatchOp {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/RemovedSubtree;ZLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2 ()Ldev/rotalex/lutter/editing/patch/RemovedSubtree;
+	public final fun component3 ()Z
+	public final fun copy-JRZvf1E (Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/RemovedSubtree;Z)Ldev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree;
+	public static synthetic fun copy-JRZvf1E$default (Ldev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree;Ljava/lang/String;Ldev/rotalex/lutter/editing/patch/RemovedSubtree;ZILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCaptured ()Ldev/rotalex/lutter/editing/patch/RemovedSubtree;
+	public final fun getRoot-qw1I0Vk ()Ljava/lang/String;
+	public final fun getSlotExisted ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$RemoveSubtree$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion : dev/rotalex/lutter/editing/patch/PatchOp {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-RCZ7MqM ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/Integer;
+	public final fun component3 ()Ljava/lang/Integer;
+	public final fun copy-4sAO-_g (Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion;
+	public static synthetic fun copy-4sAO-_g$default (Ldev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getComponent-RCZ7MqM ()Ljava/lang/String;
+	public final fun getNew ()Ljava/lang/Integer;
+	public final fun getOld ()Ljava/lang/Integer;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$SetComponentVersion$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$SetHandler : dev/rotalex/lutter/editing/patch/PatchOp {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/PatchOp$SetHandler$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/action/ActionSequence;Ldev/rotalex/lutter/model/action/ActionSequence;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2-S-bTLXs ()Ljava/lang/String;
+	public final fun component3 ()Ldev/rotalex/lutter/model/action/ActionSequence;
+	public final fun component4 ()Ldev/rotalex/lutter/model/action/ActionSequence;
+	public final fun copy-pCSdTVE (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/action/ActionSequence;Ldev/rotalex/lutter/model/action/ActionSequence;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetHandler;
+	public static synthetic fun copy-pCSdTVE$default (Ldev/rotalex/lutter/editing/patch/PatchOp$SetHandler;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/action/ActionSequence;Ldev/rotalex/lutter/model/action/ActionSequence;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetHandler;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEvent-S-bTLXs ()Ljava/lang/String;
+	public final fun getNew ()Ldev/rotalex/lutter/model/action/ActionSequence;
+	public final fun getNode-qw1I0Vk ()Ljava/lang/String;
+	public final fun getOld ()Ldev/rotalex/lutter/model/action/ActionSequence;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/PatchOp$SetHandler$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/PatchOp$SetHandler$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetHandler;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/PatchOp$SetHandler;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$SetHandler$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$SetModifiers : dev/rotalex/lutter/editing/patch/PatchOp {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/PatchOp$SetModifiers$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy-JRZvf1E (Ljava/lang/String;Ljava/util/List;Ljava/util/List;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetModifiers;
+	public static synthetic fun copy-JRZvf1E$default (Ldev/rotalex/lutter/editing/patch/PatchOp$SetModifiers;Ljava/lang/String;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetModifiers;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNew ()Ljava/util/List;
+	public final fun getNode-qw1I0Vk ()Ljava/lang/String;
+	public final fun getOld ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/PatchOp$SetModifiers$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/PatchOp$SetModifiers$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetModifiers;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/PatchOp$SetModifiers;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$SetModifiers$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$SetNodeName : dev/rotalex/lutter/editing/patch/PatchOp {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/PatchOp$SetNodeName$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy-JRZvf1E (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetNodeName;
+	public static synthetic fun copy-JRZvf1E$default (Ldev/rotalex/lutter/editing/patch/PatchOp$SetNodeName;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetNodeName;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNew ()Ljava/lang/String;
+	public final fun getNode-qw1I0Vk ()Ljava/lang/String;
+	public final fun getOld ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/PatchOp$SetNodeName$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/PatchOp$SetNodeName$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetNodeName;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/PatchOp$SetNodeName;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$SetNodeName$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$SetProp : dev/rotalex/lutter/editing/patch/PatchOp {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/PatchOp$SetProp$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/expr/PropertyValue;Ldev/rotalex/lutter/model/expr/PropertyValue;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2-ciGozWU ()Ljava/lang/String;
+	public final fun component3 ()Ldev/rotalex/lutter/model/expr/PropertyValue;
+	public final fun component4 ()Ldev/rotalex/lutter/model/expr/PropertyValue;
+	public final fun copy-dMRDPGg (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/expr/PropertyValue;Ldev/rotalex/lutter/model/expr/PropertyValue;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetProp;
+	public static synthetic fun copy-dMRDPGg$default (Ldev/rotalex/lutter/editing/patch/PatchOp$SetProp;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/expr/PropertyValue;Ldev/rotalex/lutter/model/expr/PropertyValue;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetProp;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getKey-ciGozWU ()Ljava/lang/String;
+	public final fun getNew ()Ldev/rotalex/lutter/model/expr/PropertyValue;
+	public final fun getNode-qw1I0Vk ()Ljava/lang/String;
+	public final fun getOld ()Ldev/rotalex/lutter/model/expr/PropertyValue;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/PatchOp$SetProp$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/PatchOp$SetProp$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetProp;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/PatchOp$SetProp;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$SetProp$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$SetTheme : dev/rotalex/lutter/editing/patch/PatchOp {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/PatchOp$SetTheme$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-sdq1k4o ()Ljava/lang/String;
+	public final fun component2-sdq1k4o ()Ljava/lang/String;
+	public final fun copy-yZ6rX_U (Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetTheme;
+	public static synthetic fun copy-yZ6rX_U$default (Ldev/rotalex/lutter/editing/patch/PatchOp$SetTheme;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetTheme;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNew-sdq1k4o ()Ljava/lang/String;
+	public final fun getOld-sdq1k4o ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/PatchOp$SetTheme$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/PatchOp$SetTheme$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/PatchOp$SetTheme;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/PatchOp$SetTheme;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/PatchOp$SetTheme$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Placement {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/Placement$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2-P6TfaEA ()Ljava/lang/String;
+	public final fun component3 ()I
+	public final fun copy-mnK2Wx4 (Ljava/lang/String;Ljava/lang/String;I)Ldev/rotalex/lutter/editing/patch/Placement;
+	public static synthetic fun copy-mnK2Wx4$default (Ldev/rotalex/lutter/editing/patch/Placement;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/Placement;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getIndex ()I
+	public final fun getParent-qw1I0Vk ()Ljava/lang/String;
+	public final fun getSlot-P6TfaEA ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/Placement$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/Placement$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/Placement;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/Placement;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Placement$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public abstract interface class dev/rotalex/lutter/editing/patch/Record {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/Record$Companion;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Record$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Record$Component : dev/rotalex/lutter/editing/patch/Record {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/Record$Component$Companion;
+	public fun <init> (Ldev/rotalex/lutter/model/doc/ComponentDecl;)V
+	public final fun component1 ()Ldev/rotalex/lutter/model/doc/ComponentDecl;
+	public final fun copy (Ldev/rotalex/lutter/model/doc/ComponentDecl;)Ldev/rotalex/lutter/editing/patch/Record$Component;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/patch/Record$Component;Ldev/rotalex/lutter/model/doc/ComponentDecl;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/Record$Component;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ldev/rotalex/lutter/model/doc/ComponentDecl;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/Record$Component$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/Record$Component$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/Record$Component;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/Record$Component;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Record$Component$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Record$DataModel : dev/rotalex/lutter/editing/patch/Record {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/Record$DataModel$Companion;
+	public fun <init> (Ldev/rotalex/lutter/model/doc/DataModelDecl;)V
+	public final fun component1 ()Ldev/rotalex/lutter/model/doc/DataModelDecl;
+	public final fun copy (Ldev/rotalex/lutter/model/doc/DataModelDecl;)Ldev/rotalex/lutter/editing/patch/Record$DataModel;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/patch/Record$DataModel;Ldev/rotalex/lutter/model/doc/DataModelDecl;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/Record$DataModel;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ldev/rotalex/lutter/model/doc/DataModelDecl;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/Record$DataModel$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/Record$DataModel$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/Record$DataModel;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/Record$DataModel;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Record$DataModel$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Record$EnumType : dev/rotalex/lutter/editing/patch/Record {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/Record$EnumType$Companion;
+	public fun <init> (Ldev/rotalex/lutter/model/doc/EnumTypeDecl;)V
+	public final fun component1 ()Ldev/rotalex/lutter/model/doc/EnumTypeDecl;
+	public final fun copy (Ldev/rotalex/lutter/model/doc/EnumTypeDecl;)Ldev/rotalex/lutter/editing/patch/Record$EnumType;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/patch/Record$EnumType;Ldev/rotalex/lutter/model/doc/EnumTypeDecl;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/Record$EnumType;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ldev/rotalex/lutter/model/doc/EnumTypeDecl;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/Record$EnumType$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/Record$EnumType$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/Record$EnumType;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/Record$EnumType;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Record$EnumType$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Record$HostFunction : dev/rotalex/lutter/editing/patch/Record {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/Record$HostFunction$Companion;
+	public fun <init> (Ldev/rotalex/lutter/model/doc/HostFunctionDecl;)V
+	public final fun component1 ()Ldev/rotalex/lutter/model/doc/HostFunctionDecl;
+	public final fun copy (Ldev/rotalex/lutter/model/doc/HostFunctionDecl;)Ldev/rotalex/lutter/editing/patch/Record$HostFunction;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/patch/Record$HostFunction;Ldev/rotalex/lutter/model/doc/HostFunctionDecl;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/Record$HostFunction;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ldev/rotalex/lutter/model/doc/HostFunctionDecl;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/Record$HostFunction$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/Record$HostFunction$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/Record$HostFunction;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/Record$HostFunction;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Record$HostFunction$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Record$Page : dev/rotalex/lutter/editing/patch/Record {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/Record$Page$Companion;
+	public fun <init> (Ldev/rotalex/lutter/model/doc/Page;)V
+	public final fun component1 ()Ldev/rotalex/lutter/model/doc/Page;
+	public final fun copy (Ldev/rotalex/lutter/model/doc/Page;)Ldev/rotalex/lutter/editing/patch/Record$Page;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/patch/Record$Page;Ldev/rotalex/lutter/model/doc/Page;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/Record$Page;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ldev/rotalex/lutter/model/doc/Page;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/Record$Page$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/Record$Page$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/Record$Page;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/Record$Page;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Record$Page$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Record$Resource : dev/rotalex/lutter/editing/patch/Record {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/Record$Resource$Companion;
+	public fun <init> (Ldev/rotalex/lutter/model/doc/ResourceDecl;)V
+	public final fun component1 ()Ldev/rotalex/lutter/model/doc/ResourceDecl;
+	public final fun copy (Ldev/rotalex/lutter/model/doc/ResourceDecl;)Ldev/rotalex/lutter/editing/patch/Record$Resource;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/patch/Record$Resource;Ldev/rotalex/lutter/model/doc/ResourceDecl;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/Record$Resource;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ldev/rotalex/lutter/model/doc/ResourceDecl;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/Record$Resource$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/Record$Resource$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/Record$Resource;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/Record$Resource;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Record$Resource$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Record$State : dev/rotalex/lutter/editing/patch/Record {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/Record$State$Companion;
+	public fun <init> (Ldev/rotalex/lutter/model/doc/StateDecl;)V
+	public final fun component1 ()Ldev/rotalex/lutter/model/doc/StateDecl;
+	public final fun copy (Ldev/rotalex/lutter/model/doc/StateDecl;)Ldev/rotalex/lutter/editing/patch/Record$State;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/patch/Record$State;Ldev/rotalex/lutter/model/doc/StateDecl;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/Record$State;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ldev/rotalex/lutter/model/doc/StateDecl;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/Record$State$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/Record$State$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/Record$State;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/Record$State;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Record$State$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Record$Theme : dev/rotalex/lutter/editing/patch/Record {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/Record$Theme$Companion;
+	public fun <init> (Ldev/rotalex/lutter/model/doc/ThemeDecl;)V
+	public final fun component1 ()Ldev/rotalex/lutter/model/doc/ThemeDecl;
+	public final fun copy (Ldev/rotalex/lutter/model/doc/ThemeDecl;)Ldev/rotalex/lutter/editing/patch/Record$Theme;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/patch/Record$Theme;Ldev/rotalex/lutter/model/doc/ThemeDecl;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/Record$Theme;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ldev/rotalex/lutter/model/doc/ThemeDecl;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/Record$Theme$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/Record$Theme$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/Record$Theme;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/Record$Theme;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/Record$Theme$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public abstract interface class dev/rotalex/lutter/editing/patch/RecordRef {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/RecordRef$Companion;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RecordRef$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RecordRef$Component : dev/rotalex/lutter/editing/patch/RecordRef {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/RecordRef$Component$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-ZsdnPYA ()Ljava/lang/String;
+	public final fun copy-Ipl7Alo (Ljava/lang/String;)Ldev/rotalex/lutter/editing/patch/RecordRef$Component;
+	public static synthetic fun copy-Ipl7Alo$default (Ldev/rotalex/lutter/editing/patch/RecordRef$Component;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/RecordRef$Component;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-ZsdnPYA ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/RecordRef$Component$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/RecordRef$Component$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/RecordRef$Component;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/RecordRef$Component;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RecordRef$Component$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RecordRef$DataModel : dev/rotalex/lutter/editing/patch/RecordRef {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/RecordRef$DataModel$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-3396sQ4 ()Ljava/lang/String;
+	public final fun copy-Qlsh13I (Ljava/lang/String;)Ldev/rotalex/lutter/editing/patch/RecordRef$DataModel;
+	public static synthetic fun copy-Qlsh13I$default (Ldev/rotalex/lutter/editing/patch/RecordRef$DataModel;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/RecordRef$DataModel;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-3396sQ4 ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/RecordRef$DataModel$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/RecordRef$DataModel$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/RecordRef$DataModel;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/RecordRef$DataModel;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RecordRef$DataModel$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RecordRef$EnumType : dev/rotalex/lutter/editing/patch/RecordRef {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/RecordRef$EnumType$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-7JNyzJc ()Ljava/lang/String;
+	public final fun copy-7VzP3t0 (Ljava/lang/String;)Ldev/rotalex/lutter/editing/patch/RecordRef$EnumType;
+	public static synthetic fun copy-7VzP3t0$default (Ldev/rotalex/lutter/editing/patch/RecordRef$EnumType;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/RecordRef$EnumType;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-7JNyzJc ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/RecordRef$EnumType$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/RecordRef$EnumType$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/RecordRef$EnumType;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/RecordRef$EnumType;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RecordRef$EnumType$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RecordRef$HostFunction : dev/rotalex/lutter/editing/patch/RecordRef {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/RecordRef$HostFunction$Companion;
+	public fun <init> (Ljava/lang/String;I)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun copy (Ljava/lang/String;I)Ldev/rotalex/lutter/editing/patch/RecordRef$HostFunction;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/patch/RecordRef$HostFunction;Ljava/lang/String;IILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/RecordRef$HostFunction;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getIndex ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/RecordRef$HostFunction$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/RecordRef$HostFunction$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/RecordRef$HostFunction;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/RecordRef$HostFunction;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RecordRef$HostFunction$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RecordRef$Page : dev/rotalex/lutter/editing/patch/RecordRef {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/RecordRef$Page$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-rrQF154 ()Ljava/lang/String;
+	public final fun copy-jEiJveE (Ljava/lang/String;)Ldev/rotalex/lutter/editing/patch/RecordRef$Page;
+	public static synthetic fun copy-jEiJveE$default (Ldev/rotalex/lutter/editing/patch/RecordRef$Page;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/RecordRef$Page;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-rrQF154 ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/RecordRef$Page$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/RecordRef$Page$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/RecordRef$Page;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/RecordRef$Page;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RecordRef$Page$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RecordRef$Resource : dev/rotalex/lutter/editing/patch/RecordRef {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/RecordRef$Resource$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-XjdEN7s ()Ljava/lang/String;
+	public final fun copy-wqpkics (Ljava/lang/String;)Ldev/rotalex/lutter/editing/patch/RecordRef$Resource;
+	public static synthetic fun copy-wqpkics$default (Ldev/rotalex/lutter/editing/patch/RecordRef$Resource;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/RecordRef$Resource;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-XjdEN7s ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/RecordRef$Resource$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/RecordRef$Resource$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/RecordRef$Resource;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/RecordRef$Resource;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RecordRef$Resource$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RecordRef$State : dev/rotalex/lutter/editing/patch/RecordRef {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/RecordRef$State$Companion;
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-mPR_jfw ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun copy-wfBsst0 (Ljava/lang/String;I)Ldev/rotalex/lutter/editing/patch/RecordRef$State;
+	public static synthetic fun copy-wfBsst0$default (Ldev/rotalex/lutter/editing/patch/RecordRef$State;Ljava/lang/String;IILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/RecordRef$State;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-mPR_jfw ()Ljava/lang/String;
+	public final fun getIndex ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/RecordRef$State$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/RecordRef$State$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/RecordRef$State;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/RecordRef$State;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RecordRef$State$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RecordRef$Theme : dev/rotalex/lutter/editing/patch/RecordRef {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/RecordRef$Theme$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-Mh_IGs8 ()Ljava/lang/String;
+	public final fun copy-QWW1sdg (Ljava/lang/String;)Ldev/rotalex/lutter/editing/patch/RecordRef$Theme;
+	public static synthetic fun copy-QWW1sdg$default (Ldev/rotalex/lutter/editing/patch/RecordRef$Theme;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/RecordRef$Theme;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-Mh_IGs8 ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/RecordRef$Theme$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/RecordRef$Theme$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/RecordRef$Theme;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/RecordRef$Theme;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RecordRef$Theme$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RemovedSubtree {
+	public static final field Companion Ldev/rotalex/lutter/editing/patch/RemovedSubtree$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-05jdo6Y ()Ljava/lang/String;
+	public final fun component2-o3un5aM ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/Integer;
+	public final fun component4 ()Ljava/util/List;
+	public final fun copy-0L-YJ24 (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;Ljava/util/List;)Ldev/rotalex/lutter/editing/patch/RemovedSubtree;
+	public static synthetic fun copy-0L-YJ24$default (Ldev/rotalex/lutter/editing/patch/RemovedSubtree;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Integer;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/patch/RemovedSubtree;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getIndex ()Ljava/lang/Integer;
+	public final fun getNodes ()Ljava/util/List;
+	public final fun getParent-05jdo6Y ()Ljava/lang/String;
+	public final fun getPlacement ()Ldev/rotalex/lutter/editing/patch/Placement;
+	public final fun getSlot-o3un5aM ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editing/patch/RemovedSubtree$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/patch/RemovedSubtree$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editing/patch/RemovedSubtree;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editing/patch/RemovedSubtree;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editing/patch/RemovedSubtree$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public final fun unplaced (Ljava/util/List;)Ldev/rotalex/lutter/editing/patch/RemovedSubtree;
+}
+
+public final class dev/rotalex/lutter/editing/policy/DropTarget {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2-P6TfaEA ()Ljava/lang/String;
+	public final fun component3 ()I
+	public final fun copy-mnK2Wx4 (Ljava/lang/String;Ljava/lang/String;I)Ldev/rotalex/lutter/editing/policy/DropTarget;
+	public static synthetic fun copy-mnK2Wx4$default (Ldev/rotalex/lutter/editing/policy/DropTarget;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)Ldev/rotalex/lutter/editing/policy/DropTarget;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getIndex ()I
+	public final fun getParent-qw1I0Vk ()Ljava/lang/String;
+	public final fun getSlot-P6TfaEA ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/policy/DropTargets {
+	public static final field INSTANCE Ldev/rotalex/lutter/editing/policy/DropTargets;
+	public final fun forNode-WyKeCbM (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/schema/SchemaView;Ljava/lang/String;)Ljava/util/List;
+}
+
+public final class dev/rotalex/lutter/editing/template/IdRemapper {
+	public fun <init> (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/model/ids/IdGenerator;)V
+	public final fun fresh-qw1I0Vk ()Ljava/lang/String;
+	public final fun remap (Ljava/util/List;)Ldev/rotalex/lutter/editing/template/NodeTemplate;
+}
+
+public final class dev/rotalex/lutter/editing/template/NodeTemplate {
+	public static final field Companion Ldev/rotalex/lutter/editing/template/NodeTemplate$Companion;
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Ldev/rotalex/lutter/editing/template/NodeTemplate;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editing/template/NodeTemplate;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/template/NodeTemplate;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNodes ()Ljava/util/List;
+	public final fun getRoot ()Ldev/rotalex/lutter/model/doc/Node;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editing/template/NodeTemplate$Companion {
+	public final fun capture (Ldev/rotalex/lutter/model/doc/UiDocument;Ljava/util/Collection;)Ldev/rotalex/lutter/editing/template/NodeTemplate;
+}
+

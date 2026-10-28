@@ -1,0 +1,329 @@
+name: check
+
+# The verification gate. Required check on both `dev` and `main`.
+#
+# Triggers: pull requests into the integration branch, and pushes to it. Feature branches get
+# their results here, which is what makes a PR mergeable, so this is the workflow that has to
+# be trustworthy rather than the one that has to be fast.
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ dev, main ]
+  # Not for a human to click. It exists so that the ABI recovery below can re-run this
+  # workflow on a branch it has just pushed to.
+  #
+  # A commit made with GITHUB_TOKEN does not start a workflow run, which is why the recovery
+  # used to be unable to finish its own job. `workflow_dispatch` is one of exactly two
+  # documented exceptions to that rule - the other is `repository_dispatch` - and GitHub
+  # added the exception precisely because the call is explicit and therefore cannot loop by
+  # accident. So: commit with the token, then ask for a run by name.
+  workflow_dispatch:
+
+concurrency:
+  group: check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Build, test and verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Three permissions, each for exactly one of the three things this job does beyond
+    # building: `contents: write` to commit a regenerated ABI baseline, `actions: write` to
+    # ask for the re-run that verifies it, `pull-requests: write` to say so on the pull
+    # request when it could not.
+    permissions:
+      contents: write
+      actions: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Apply the CI-only Gradle properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          # The JDK that runs Gradle. Deliberately NOT a Gradle toolchain: this build has no
+          # `jvmToolchain` anywhere, on purpose.
+          #
+          # A toolchain would be a second, independent JDK number. A Java compilation with no
+          # explicit target falls back to the toolchain while Kotlin's jvmTarget comes from the
+          # catalog, and the two disagreeing is the "inconsistent JVM-target compatibility"
+          # failure. The catalog's jvmTarget is applied to both Java's and Kotlin's side, so
+          # there is only ever one number.
+          java-version: '21'
+
+      # No wrapper JAR is committed (see README.md), so this is the action's documented
+      # "project doesn't use Gradle wrapper" path: an explicit, quoted version, and the
+      # `gradle` command below rather than a wrapper script.
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.5.0'
+
+      # build-logic is a real build with real code. Verifying it is a separate, cheaper CI
+      # gate that names build-logic as the culprit instead of blaming the module that merely
+      # applied a broken convention plugin.
+      - name: Verify the convention plugins themselves
+        run: gradle -p build-logic :convention:check
+
+      - name: Build, test, verify the module graph and the ABI
+        id: verify
+        run: gradle check verifyModuleGraph checkKotlinAbi
+
+      # ABI validation compares against reference dumps under `*/api/`. A module with no
+      # committed dump fails with "Expected file with ABI declarations ... does not exist" —
+      # the guardrail working, on a project that has never recorded a baseline.
+      #
+      # This job used to fix that itself: regenerate the dumps and auto-commit them. It cannot,
+      # and the reason is structural rather than a matter of permissions.
+      #
+      # A commit pushed with GITHUB_TOKEN does not start workflow runs. GitHub does create
+      # `pull_request` runs for the new head — a push changes the PR's head, and the PR is the
+      # trigger — but it holds every one of them in `action_required`, because they were caused
+      # by a token-authored push. So the branch gains the dumps and the checks never run. The
+      # pull request then reports an empty `statusCheckRollup` and sits BLOCKED with a red X
+      # that no amount of pushing clears. It cost three round trips on one branch before the
+      # shape of it was understood.
+      #
+      # A required check that mutates the repository is not a gate; it is a second actor racing
+      # the first one. So the job regenerates, publishes, and reports, and the change lands as
+      # an ordinary commit by an ordinary push, which is a commit a workflow will actually run.
+      #
+      # `failure() &&` is load-bearing throughout. GitHub implicitly conjoins an `if` with
+      # `success()` unless the expression already contains a status function, so after the
+      # verify step fails, a bare `steps.verify.outcome == 'failure'` is false and every
+      # recovery step silently skips. The status function has to be stated.
+      # `id: regenerate` is load-bearing for every step below. On a red build this command fails
+      # *after* the `find -delete` above, which leaves the working tree with the dumps removed and
+      # nothing to put back. Committing that is not a baseline, it is its erasure, and it is how
+      # several modules lost their dumps one red run at a time. Anything that acts on a regenerated
+      # baseline therefore reads this step's outcome first.
+      - name: Regenerate the ABI dumps
+        id: regenerate
+        if: failure() && steps.verify.outcome == 'failure'
+        run: |
+          echo "::notice::check failed; regenerating the reference ABI dumps"
+          # Delete first. `updateKotlinAbi` writes and overwrites but never removes, so a
+          # dump belonging to a target that no longer exists survives every regeneration and
+          # is then compared against a build that cannot produce it. That is exactly what
+          # removing the Kotlin/Native target left behind.
+          find . -path '*/api/*' -name '*.api' -delete
+          gradle updateKotlinAbi
+
+      # Commit the baseline and then ask for a run that will verify it. Those two steps are
+      # one mechanism and splitting them is what left the previous version stuck: the branch
+      # ended up with the right files and a pull request whose checks could never run, which
+      # is the worst of both outcomes rather than neither.
+      #
+      # `commit-pushed` is the first loop guard and it is free. The action commits only files
+      # that actually changed, so a run whose regeneration reproduced the committed dumps
+      # pushes nothing and therefore dispatches nothing.
+      #
+      # A regeneration that failed leaves nothing to commit but the deletions it made, so it
+      # gets no baseline commit. The steps below already key off `changes_detected`, so they
+      # skip themselves and the handover path runs instead.
+      - name: Commit the regenerated ABI dumps
+        id: baseline
+        if: failure() && steps.verify.outcome == 'failure' && steps.regenerate.outcome == 'success'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          file_pattern: '**/api/**'
+          commit_message: "chore(build): record the reference ABI dumps"
+
+      # The second guard, and it is the one that matters. If the commit *before* the one this
+      # run just made is also a baseline commit, then a previous run committed a baseline,
+      # this run still found `checkKotlinAbi` unhappy, and regeneration is not converging.
+      # Another round trip would loop, so stop, publish, and let a human read the log.
+      #
+      # It has to be the second commit and not the first. This step runs *after* the
+      # auto-commit, so `git log -1` is the commit that step just made - which is always the
+      # baseline commit, so a first-commit check always says "not converged" and the
+      # dispatch below never happens. It looked correct, read correctly, and disabled
+      # the entire mechanism.
+      - name: Is another round trip safe
+        id: converge
+        if: failure() && steps.verify.outcome == 'failure' && steps.regenerate.outcome == 'success' && steps.baseline.outputs.changes_detected == 'true'
+        run: |
+          previous=$(git log -2 --pretty=%s | sed -n '2p')
+          if [ "$previous" = "chore(build): record the reference ABI dumps" ]; then
+            echo "converged=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::regenerating the ABI dumps did not make checkKotlinAbi pass; not retrying"
+          else
+            echo "converged=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Re-run this check on the new baseline
+        if: failure() && steps.verify.outcome == 'failure' && steps.baseline.outputs.changes_detected == 'true' && steps.converge.outputs.converged == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          if [ -z "$REF" ]; then
+            echo "::warning::not a pull request and the baseline was committed; nothing to re-run"
+            exit 0
+          fi
+          # workflow_dispatch is one of the two documented exceptions to the rule that a
+          # GITHUB_TOKEN push starts no workflow, so this run is a real one: not
+          # approval-gated, and attached to the same head the pull request is waiting on.
+          gh workflow run check.yml --ref "$REF"
+          echo "::notice::re-running check on $REF; the pull request will clear once it lands"
+
+      # Everything below is the path where the job could not fix itself: a fork with no write
+      # access, a push to dev where there is no pull request, or regeneration that will not
+      # converge. A recovery message that misdiagnoses is worse than none, so each of these
+      # steps first establishes that there is something to hand over.
+      #
+      # The upload needs a regeneration that succeeded. A failed one leaves the tree holding the
+      # deletions it made, and the handover instructions below tell a human to `git add` and commit
+      # whatever is under `**/api/**` — which would commit exactly those deletions. Publishing
+      # nothing is the smaller harm; the comment step still runs and its own guard reports that no
+      # dumps were produced.
+      - name: Publish the regenerated ABI dumps
+        if: failure() && steps.verify.outcome == 'failure' && steps.regenerate.outcome == 'success' && (steps.baseline.outputs.changes_detected != 'true' || steps.converge.outputs.converged != 'true')
+        uses: actions/upload-artifact@v4
+        with:
+          name: abi-baseline
+          path: '**/api/**'
+          if-no-files-found: ignore
+          retention-days: 30
+
+      # The two steps below used to be one, and it told a maintainer to download an artifact
+      # that had never been uploaded.
+      #
+      # The upload above publishes `abi-baseline` on exactly one condition: regeneration
+      # succeeded. The comment did not carry that condition, so on a run where `regenerate`
+      # itself FAILED, the upload was skipped and the comment still posted - claiming "it got as
+      # far as publishing the files" and "the regenerated dumps are attached to this run as
+      # abi-baseline". Observed on PR #38, run 37829419984: step 8 failed, step 12 was skipped,
+      # step 13 succeeded, and the run's only artifacts were `test-results` and `problems-report`.
+      #
+      # Worse, that comment ended with `git add -- ':(glob)**/api/**' && git commit`. The
+      # regenerate step runs `find . -path '*/api/*' -name '*.api' -delete` before recording,
+      # and it died before it could put most of them back, so the tree held every dump DELETED
+      # except those recorded first. Following the comment would have committed that erasure -
+      # the exact outcome the comment at the regenerate step is written to prevent.
+      #
+      # It also had a file check standing in for the real signal: `[ -f .../model.api ]` passed
+      # on that run, because `:engine:model` happened to be recorded before the build died in
+      # `:engine:codegen`. One module's dump says nothing about whether the set is complete.
+      #
+      # So there are two comments now, mutually exclusive, and the condition is `regenerate`'s
+      # own outcome - the only thing that knows whether anything was produced.
+      #
+      # A recovery message that misdiagnoses is worse than none: each of these first
+      # establishes what actually happened.
+      - name: Say on the pull request that regeneration did not finish
+        if: failure() && steps.verify.outcome == 'failure' && steps.regenerate.outcome != 'success' && (steps.baseline.outputs.changes_detected != 'true' || steps.converge.outputs.converged != 'true')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -z "$PR" ]; then
+            echo "not a pull request and nothing was produced; read the log for the real cause"
+            exit 0
+          fi
+          cat > "$RUNNER_TEMP/abi.md" <<'EOF'
+          ### Re-recording the ABI dumps did not finish
+
+          The job tried to regenerate the reference dumps and **failed partway**, so there is
+          **no `abi-baseline` artifact on this run and nothing to download**.
+
+          Nothing needs fixing in your checkout. Regeneration deletes every dump before
+          re-recording them and died before it could put most of them back, so whatever is under
+          `**/api/**` in the runner's tree is partial. Do not commit it - that commits the
+          deletion, not a baseline.
+
+          The cause is earlier in this run's log, and it is nearly always a compile error:
+          `gradle check` stops at the first failure, so `checkKotlinAbi` failing is often a
+          symptom rather than the defect. `scripts/ci-triage.sh triage <run-id>` reduces that
+          log to file:line plus message.
+          EOF
+          gh pr comment "$PR" --body-file "$RUNNER_TEMP/abi.md" \
+            || echo "could not comment on #$PR; read the log for the real cause"
+
+      - name: Say on the pull request where the baseline is
+        if: failure() && steps.verify.outcome == 'failure' && steps.regenerate.outcome == 'success' && (steps.baseline.outputs.changes_detected != 'true' || steps.converge.outputs.converged != 'true')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -z "$PR" ]; then
+            echo "not a pull request; the artifact is on the run and there is nothing to comment on"
+            exit 0
+          fi
+          cat > "$RUNNER_TEMP/abi.md" <<'EOF'
+          ### The ABI baseline still needs a hand
+
+          The job could not close this one on its own. It regenerates the dumps and commits
+          them, then re-runs itself through `workflow_dispatch` - the one documented way a
+          `GITHUB_TOKEN` push can start a run. The dumps were regenerated and published, so one
+          of these is what stopped it:
+
+          - the push was refused, most often a fork with no write access;
+          - regeneration did not converge, and retrying would loop;
+          - this is a push to `dev` rather than a pull request, so there is no pull request
+            to comment on.
+
+          The regenerated dumps are attached to this run as **abi-baseline**.
+
+          ```
+          unzip abi-baseline.zip -d .
+          git add -- ':(glob)**/api/**'
+          git commit -m "chore(build): record the reference ABI dumps"
+          git push
+          ```
+
+          Or re-record them on a machine that has a toolchain: `gradle updateKotlinAbi`.
+          EOF
+          # A fork has no write access here, so the comment is skipped rather than failed. The
+          # artifact is published either way and stays downloadable from the run.
+          gh pr comment "$PR" --body-file "$RUNNER_TEMP/abi.md" \
+            || echo "could not comment on #$PR; the artifact is on the run"
+
+      # `always()` so the self-test runs even on a run where something else is already red.
+      # A guardrail that is only proven on green runs is a guardrail that is never proven
+      # while it matters, and a bare `if` is conjoined with `success()` by GitHub, so
+      # without the explicit status function this step would be skipped on any already-red
+      # run — and the one job that proves the module-graph checker can still *fail* would
+      # never run on a run where that mattered.
+      - name: Prove the graph checker rejects an illegal edge
+        if: always()
+        run: gradle selfTestModuleGraph
+
+      # Gradle reports Kotlin compiler errors through the Problems API, and the step log
+      # then carries only "Kotlin compiler error" with a file and a line. That is not
+      # enough to act on: an internal compiler error in particular arrives with no message
+      # at all. The report has the message, so it is uploaded whenever anything failed.
+      - name: Upload the Gradle problems report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: problems-report
+          path: '**/build/reports/problems/'
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # The problems report covers the *compiler*. A failing test is a different failure
+      # with different evidence, and the step log carries only "kotlinx.serialization
+      # .SerializationException at ActionSequenceTest.kt:392" - no message, and in three
+      # separate cases a line number past the end of the file, so it cannot even be read
+      # back. Guessing from a line number is how a day gets spent chasing the wrong file.
+      #
+      # The XML results hold the message and the full stack. Uploading them unconditionally
+      # rather than only on failure keeps them available for a flake that passed on the
+      # rerun, which is the one case where you most want the evidence and least have it.
+      - name: Upload the test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/build/test-results/**/*.xml'
+          if-no-files-found: ignore
+          retention-days: 14

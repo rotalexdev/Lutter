@@ -1,0 +1,2055 @@
+package dev.rotalex.lutter.codegen
+
+import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCodes
+import dev.rotalex.lutter.analysis.resolved.PropOrigin
+import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
+import dev.rotalex.lutter.analysis.resolved.ResolvedModifier
+import dev.rotalex.lutter.analysis.resolved.ResolvedNode
+import dev.rotalex.lutter.analysis.resolved.ResolvedPage
+import dev.rotalex.lutter.analysis.resolved.ResolvedProp
+import dev.rotalex.lutter.analysis.resolved.ResolvedState
+import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
+import dev.rotalex.lutter.analysis.resolved.ResolvedToken
+import dev.rotalex.lutter.analysis.resolved.TokenSource
+import dev.rotalex.lutter.model.action.ActionSequence
+import dev.rotalex.lutter.model.action.ActionStep
+import dev.rotalex.lutter.model.diagnostic.Diagnostic
+import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
+import dev.rotalex.lutter.model.diagnostic.Severity
+import dev.rotalex.lutter.model.doc.HostFunctionDecl
+import dev.rotalex.lutter.model.doc.ParamDecl
+import dev.rotalex.lutter.model.doc.StateDecl
+import dev.rotalex.lutter.model.doc.TextRole
+import dev.rotalex.lutter.model.doc.ThemeDecl
+import dev.rotalex.lutter.model.doc.TokenName
+import dev.rotalex.lutter.model.expr.Expr
+import dev.rotalex.lutter.model.expr.ExprType
+import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.expr.RefTarget
+import dev.rotalex.lutter.model.expr.TypedExpr
+import dev.rotalex.lutter.model.ids.ActionId
+import dev.rotalex.lutter.model.ids.ComponentType
+import dev.rotalex.lutter.model.ids.EventKey
+import dev.rotalex.lutter.model.ids.ModifierType
+import dev.rotalex.lutter.model.ids.NodeId
+import dev.rotalex.lutter.model.ids.PageId
+import dev.rotalex.lutter.model.ids.ParamName
+import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.SlotName
+import dev.rotalex.lutter.model.ids.StateId
+import dev.rotalex.lutter.model.ids.ThemeId
+import dev.rotalex.lutter.model.ids.TypeId
+import dev.rotalex.lutter.model.type.RefKind
+import dev.rotalex.lutter.model.type.TokenKind
+import dev.rotalex.lutter.model.type.TypeRef
+import dev.rotalex.lutter.model.value.Value
+import dev.rotalex.lutter.schema.Schema
+import dev.rotalex.lutter.schema.action.ActionEmit
+import dev.rotalex.lutter.schema.action.ActionMetadata
+import dev.rotalex.lutter.schema.action.ActionSpec
+import dev.rotalex.lutter.schema.action.ArgRule
+import dev.rotalex.lutter.schema.action.ArgShape
+import dev.rotalex.lutter.schema.action.action
+import dev.rotalex.lutter.schema.component.Cardinality
+import dev.rotalex.lutter.schema.component.Category
+import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.component.EmitCase
+import dev.rotalex.lutter.schema.component.EventArgSpec
+import dev.rotalex.lutter.schema.component.KotlinSymbol
+import dev.rotalex.lutter.schema.component.LambdaTarget
+import dev.rotalex.lutter.schema.component.Positional
+import dev.rotalex.lutter.schema.component.ScopeId
+import dev.rotalex.lutter.schema.component.ValueEmit
+import dev.rotalex.lutter.schema.component.component
+import dev.rotalex.lutter.schema.component.componentSpec
+import dev.rotalex.lutter.schema.component.prop
+import dev.rotalex.lutter.schema.function.FunctionSpec
+import dev.rotalex.lutter.schema.modifier.ModifierEmit
+import dev.rotalex.lutter.schema.modifier.ModifierMetadata
+import dev.rotalex.lutter.schema.modifier.ModifierSpec
+import dev.rotalex.lutter.schema.modifier.modifier
+import dev.rotalex.lutter.schema.types.EnumEntrySpec
+import dev.rotalex.lutter.schema.types.EnumTypeSpec
+import dev.rotalex.lutter.schema.types.TypeSpec
+import dev.rotalex.lutter.schema.types.type
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
+
+/** Codegen over hand-built resolved documents: no analyzer, no fixtures, no filesystem. */
+class CodegenTest {
+
+    private val columnType: ComponentType = ComponentType("test.Column")
+    private val textType: ComponentType = ComponentType("test.Text")
+    private val styledType: ComponentType = ComponentType("test.Styled")
+    private val ghostType: ComponentType = ComponentType("test.Ghost")
+    private val rowType: ComponentType = ComponentType("test.Row")
+    private val boxType: ComponentType = ComponentType("test.Box")
+    private val choiceType: ComponentType = ComponentType("test.Choice")
+    private val iconButtonType: ComponentType = ComponentType("test.IconButton")
+    private val buttonType: ComponentType = ComponentType("test.Button")
+    private val spacerType: ComponentType = ComponentType("test.Spacer")
+    private val paddingType: ModifierType = ModifierType("test.padding")
+    private val casedPaddingType: ModifierType = ModifierType("test.casedPadding")
+    private val weightType: ModifierType = ModifierType("test.weight")
+    private val alignType: ModifierType = ModifierType("test.align")
+    private val clickableType: ModifierType = ModifierType("test.clickable")
+    private val textKey: PropertyKey = PropertyKey("text")
+    private val styleKey: PropertyKey = PropertyKey("style")
+    private val spacingKey: PropertyKey = PropertyKey("spacing")
+    private val valueKey: PropertyKey = PropertyKey("value")
+    private val allKey: PropertyKey = PropertyKey("all")
+    private val horizontalKey: PropertyKey = PropertyKey("horizontal")
+    private val verticalKey: PropertyKey = PropertyKey("vertical")
+    private val weightKey: PropertyKey = PropertyKey("weight")
+    private val alignKey: PropertyKey = PropertyKey("alignment")
+    private val arrangementKey: PropertyKey = PropertyKey("horizontalArrangement")
+    private val childrenSlot: SlotName = SlotName("children")
+    private val arrangementId: TypeId = TypeId("testArrangement")
+    private val alignmentId: TypeId = TypeId("testAlignment")
+    private val rowScope: ScopeId = ScopeId("compose.RowScope")
+    private val columnScope: ScopeId = ScopeId("compose.ColumnScope")
+    private val boxScope: ScopeId = ScopeId("compose.BoxScope")
+    private val count: StateId = StateId("s_count")
+    private val theme: StateId = StateId("s_theme")
+
+    // One entry, member-qualified the way an `EnumTypeSpec` declares it: the owner is the import.
+    private val arrangementEnum: EnumTypeSpec = EnumTypeSpec(
+        arrangementId,
+        listOf(
+            EnumEntrySpec("Center", KotlinSymbol("androidx.compose.foundation.layout", "Arrangement.Center")),
+        ),
+    )
+
+    // The two actions the event tests need, declared the way the specs in the module this cannot
+    // see declare them: the same ids, keys and shapes, or the emitter reads a different grammar.
+    private val navigate: ActionSpec = ActionSpec(
+        id = ActionId("nav.navigate"),
+        metadata = ActionMetadata("Navigate"),
+        params = listOf(prop<String>("page", TypeRef.Ref(RefKind.Page), required = true)),
+        emit = ActionEmit.Intrinsic,
+    )
+
+    private val showSnackbar: ActionSpec = ActionSpec(
+        id = ActionId("ui.showSnackbar"),
+        metadata = ActionMetadata("Show snackbar"),
+        params = listOf(prop<String>("message", TypeRef.Str, required = true)),
+        emit = ActionEmit.Intrinsic,
+    )
+
+    private val clickKey: EventKey = EventKey("onClick")
+    private val contentSlot: SlotName = SlotName("content")
+    private val pageKey: PropertyKey = PropertyKey("page")
+    private val messageKey: PropertyKey = PropertyKey("message")
+    private val nameKey: PropertyKey = PropertyKey("name")
+    private val argsKey: PropertyKey = PropertyKey("args")
+    private val profileId: PageId = PageId("p_profile")
+    private val settingsId: PageId = PageId("p_settings")
+
+    private val callHost: ActionSpec = ActionSpec(
+        id = ActionId("host.call"),
+        metadata = ActionMetadata("Call host function"),
+        params = listOf(prop<String>("name", TypeRef.Str, required = true)),
+        argRules = listOf(ArgRule(argsKey, ArgShape.Positional(nameKey))),
+        emit = ActionEmit.Intrinsic,
+    )
+
+    @Test
+    fun `a node with an event emits its handler as the component's own argument`() {
+        val result = eventResult(
+            iconButtonNode(navigateStep()),
+            iconButtonStub(),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        assertEquals(
+            """
+            // Generated by Forge. Do not edit.
+            package com.example.app.screens
+
+            ${"import"} androidx.compose.material3.IconButton
+            ${"import"} androidx.compose.runtime.Composable
+            ${"import"} androidx.compose.ui.Modifier
+            ${"import"} com.example.app.AppNavigator
+            ${"import"} com.example.app.Route
+
+            @Composable
+            public fun HomeScreen(navigator: AppNavigator, modifier: Modifier = Modifier) {
+                IconButton(
+                    onClick = {
+                        navigator.navigate(Route.Profile)
+                    },
+                    modifier = modifier,
+                )
+            }
+
+            """.trimIndent(),
+            homeScreenOf(result),
+        )
+    }
+
+    @Test
+    fun `a handler lambda declares the parameters its binding names`() {
+        val content = eventScreen(iconButtonNode(navigateStep()), iconButtonStub(listOf("pressed")))
+
+        assertTrue(content.contains("onClick = { pressed ->"), content)
+    }
+
+    @Test
+    fun `a handler lambda reads a parameter of its own`() {
+        val pressed: PropertyValue = PropertyValue.Computed(Expr.Ref(RefTarget.EventArg("pressed")))
+        val content = eventScreen(iconButtonNode(snackbarStep(pressed)), iconButtonStub(listOf("pressed")))
+
+        assertTrue(content.contains("snackbars.show(pressed)"), content)
+    }
+
+    @Test
+    fun `a node with both a slot and an event emits both`() {
+        val result = eventResult(
+            buttonNode(snackbarStep(PropertyValue.Const(Value.Str("Saved")))),
+            buttonStub(),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        assertEquals(
+            """
+            // Generated by Forge. Do not edit.
+            package com.example.app.screens
+
+            ${"import"} androidx.compose.material3.Button
+            ${"import"} androidx.compose.material3.Text
+            ${"import"} androidx.compose.runtime.Composable
+            ${"import"} androidx.compose.ui.Modifier
+            ${"import"} com.example.app.SnackbarHost
+
+            @Composable
+            public fun HomeScreen(snackbars: SnackbarHost, modifier: Modifier = Modifier) {
+                Button(
+                    onClick = {
+                        snackbars.show("Saved")
+                    },
+                    modifier = modifier,
+                ) {
+                    Text("Continue")
+                }
+            }
+
+            """.trimIndent(),
+            homeScreenOf(result),
+        )
+    }
+
+    @Test
+    fun `a declared event with no handler emits the no-op the runtime binds`() {
+        val content = eventScreen(iconButtonNode(), iconButtonStub())
+
+        assertTrue(content.contains("onClick = {}"), content)
+    }
+
+    @Test
+    fun `a sequence no binding receives is left out of the call`() {
+        val content = eventScreen(iconButtonNode(navigateStep()), iconButtonStub(bindsClick = false))
+
+        assertTrue(!content.contains("onClick"), content)
+    }
+
+    /**
+     * A handler whose step reads app state, the shape the fuzz batch generates and the compiler
+     * refuses: `LocalAppState.current` is a composable accessor, and the event lambda it lands in
+     * is not one. The read the argument spelled has to become a read of the hoisted local, and the
+     * enclosing screen has to declare it before the tree that hands the lambda over.
+     */
+    @Test
+    fun `a handler reading app state reads the hoisted local instead of the composition local`() {
+        val greeting: StateId = StateId("s_greeting")
+        val pages = mapOf(
+            PageId("p_home") to ResolvedPage(
+                PageId("p_home"),
+                "Home",
+                "home",
+                iconButtonNode(
+                    snackbarStep(
+                        PropertyValue.Computed(
+                            Expr.Member(Expr.Ref(RefTarget.State(greeting)), "greeting"),
+                        ),
+                    ),
+                ),
+            ),
+            profileId to ResolvedPage(profileId, "Profile", "profile", textNode("n_9", "Far")),
+        )
+        val result = KotlinGenerator(eventSchema(), CodegenOptions("com.example.app")).generate(
+            ResolvedDocument(
+                pages,
+                emptyMap(),
+                indexOf(pages),
+                ResolvedTheme(null),
+                appState = listOf(
+                    ResolvedState(StateDecl(greeting, "greeting", TypeRef.Str, Value.Str("Hello")), null),
+                ),
+            ),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = homeScreenOf(result)
+        // The hoist the screen owns: exactly one, ahead of the tree whose lambda reads through it.
+        assertEquals(1, screen.lines().count { it == "    val lutterAppState = LocalAppState.current" })
+        // The handler's own read, spelled onto the hoisted local and never onto the accessor.
+        assertTrue(screen.contains("snackbars.show(lutterAppState.greeting)"), screen)
+        assertTrue(!screen.contains("LocalAppState.current.greeting"), screen)
+        // The import rides on the hoist val's initializer, so this is where it belongs.
+        assertEquals(1, screen.lines().count { it == "import com.example.app.state.LocalAppState" })
+    }
+
+    /**
+     * The inverse pin: a document whose handler reads no app state must still emit exactly the
+     * file the event tests pinned, so the hoist is demonstrably demand-driven and no byte moves
+     * for documents that need none.
+     */
+    @Test
+    fun `a screen whose handlers read no app state emits no hoisted local`() {
+        val result = eventResult(
+            buttonNode(snackbarStep(PropertyValue.Const(Value.Str("Saved")))),
+            buttonStub(),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = homeScreenOf(result)
+        // Neither name is present: the hoisted local and the import it would carry stay out.
+        assertTrue(!screen.contains(ReservedCodegenNames.HoistedAppStateName), screen)
+        assertTrue(!screen.contains("com.example.app.state.LocalAppState"), screen)
+        // The golden below is the pre-hoist pin the sibling test above asserts for the same
+        // fixture, so equality here is the byte-identity claim itself.
+        assertEquals(
+            """
+            // Generated by Forge. Do not edit.
+            package com.example.app.screens
+
+            ${"import"} androidx.compose.material3.Button
+            ${"import"} androidx.compose.material3.Text
+            ${"import"} androidx.compose.runtime.Composable
+            ${"import"} androidx.compose.ui.Modifier
+            ${"import"} com.example.app.SnackbarHost
+
+            @Composable
+            public fun HomeScreen(snackbars: SnackbarHost, modifier: Modifier = Modifier) {
+                Button(
+                    onClick = {
+                        snackbars.show("Saved")
+                    },
+                    modifier = modifier,
+                ) {
+                    Text("Continue")
+                }
+            }
+
+            """.trimIndent(),
+            screen,
+        )
+    }
+
+    /**
+     * Two pages, one screen file.
+     *
+     * Only the name is shared: a distinct id, a distinct route and a distinct tree each, because
+     * `planDocument` spells the path from the name alone and the path is the whole of what
+     * `refuseCollisions` reads. A second id is what makes the document two pages rather than one
+     * page listed twice, and a distinct route keeps the collision from being an accident of this
+     * fixture rather than the thing it is about.
+     */
+    @Test
+    fun `two pages sharing a name refuse, because their screens are one file`() {
+        val pages = mapOf(
+            PageId("p_home") to ResolvedPage(
+                PageId("p_home"),
+                "Home",
+                "home",
+                columnNode("n_1", emptyMap(), listOf(textNode("n_2", "Hi"))),
+            ),
+            PageId("p_home_again") to ResolvedPage(
+                PageId("p_home_again"),
+                "Home",
+                "home_again",
+                columnNode("n_3", emptyMap(), listOf(textNode("n_4", "Hi"))),
+            ),
+        )
+        val result = generate(ResolvedDocument(pages, emptyMap(), indexOf(pages), ResolvedTheme(null)))
+
+        assertTrue(result.files.files.isEmpty(), "got ${result.files.files.map { it.path }}")
+        assertEquals(listOf(DiagnosticCodes.CodegenNameCollision), result.diagnostics.map { it.code })
+        // No page, node or property to point at: the collision is between two entries of the plan,
+        // and §17.2's seven fields all address something inside a document. An empty location is
+        // the finding saying so rather than blaming one of the two pages for the other.
+        assertEquals(DiagnosticLocation(), result.diagnostics.single().location)
+    }
+
+    @Test
+    fun `the environment a handler closed over is a parameter of the screen`() {
+        val steps: List<ActionStep> = listOf(navigateStep(), snackbarStep(PropertyValue.Const(Value.Str("Saved"))))
+        val content = eventScreen(iconButtonNode(steps[0], steps[1]), iconButtonStub())
+
+        assertTrue(
+            content.contains(
+                "public fun HomeScreen(navigator: AppNavigator, snackbars: SnackbarHost, " +
+                    "modifier: Modifier = Modifier)",
+            ),
+            content,
+        )
+    }
+
+    @Test
+    fun `AppRoot forwards what the screens need and receives it itself`() {
+        // `AppRoot` is printed first but written last, so it learns the screens' demand from them.
+        // §11.6 already routes the generated `AppHost` through `AppRoot(host = …)`, so the
+        // composition supplies these and each one is handed down under the name the screen declares.
+        val result = eventResult(iconButtonNode(navigateStep()), iconButtonStub())
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val app = result.files.files.single { it.path == "App.kt" }.content
+
+        assertTrue(app.contains("navigator: AppNavigator"), app)
+        // The call is multi-line: every forwarded receiver is a named argument, and Compose's
+        // convention is one per line. `AppNavigator` needs no import — it is this file's own package.
+        assertTrue(app.contains("navigator = navigator,"), app)
+    }
+
+    @Test
+    fun `a refused step leaves exactly one finding`() {
+        val dangling: PageId = PageId("p_nowhere")
+        val result = eventResult(iconButtonNode(navigateStep(dangling)), iconButtonStub())
+
+        assertEquals(1, result.diagnostics.size)
+    }
+
+    @Test
+    fun `one page emits one route and a navigator over it`() {
+        val result = generate(homeDocument(columnNode("n_1", emptyMap(), listOf(textNode("n_2", "Hi")))))
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+
+        // The whole file, because the navigator's three members and the stack it holds are only
+        // readable together: each one reads the property the constructor declared.
+        assertEquals(
+            """
+            // Generated by Forge. Do not edit.
+            package com.example.app
+
+            ${"import"} androidx.compose.runtime.mutableStateListOf
+
+            public sealed interface Route {
+                public data object Home : Route
+            }
+
+            public class AppNavigator(private val backStack: MutableList<Route> = mutableStateListOf(Route.Home)) {
+                public val current: Route
+                    get() = backStack.last()
+
+                public fun navigate(route: Route) {
+                    backStack.add(route)
+                }
+
+                public fun back(): Boolean {
+                    if (backStack.size > 1) {
+                        backStack.removeAt(backStack.lastIndex)
+                        return(true)
+                    } else {
+                        return(false)
+                    }
+                }
+            }
+
+            """.trimIndent(),
+            contentOf(result, "Navigation.kt"),
+        )
+    }
+
+    @Test
+    fun `every page becomes a route of its own`() {
+        val nav = contentOf(
+            eventResult(iconButtonNode(navigateStep()), iconButtonStub()),
+            "Navigation.kt",
+        )
+
+        assertTrue(
+            nav.contains(
+                """
+                public sealed interface Route {
+                    public data object Home : Route
+
+                    public data object Profile : Route
+                }
+                """.trimIndent(),
+            ),
+            nav,
+        )
+    }
+
+    @Test
+    fun `the stack starts on the first page the document declares`() {
+        val nav = navigationOf(homeDocument(columnNode("n_1", emptyMap(), emptyList())))
+
+        assertTrue(nav.contains("mutableStateListOf(Route.Home)"), nav)
+    }
+
+    @Test
+    fun `current reads the last route the stack holds`() {
+        val nav = navigationOf(homeDocument(columnNode("n_1", emptyMap(), emptyList())))
+
+        assertTrue(nav.contains("    public val current: Route\n        get() = backStack.last()"), nav)
+    }
+
+    @Test
+    fun `navigate pushes the route it was given onto the stack`() {
+        val nav = navigationOf(homeDocument(columnNode("n_1", emptyMap(), emptyList())))
+
+        assertTrue(nav.contains("backStack.add(route)"), nav)
+    }
+
+    @Test
+    fun `back refuses at the root of the stack`() {
+        val nav = navigationOf(homeDocument(columnNode("n_1", emptyMap(), emptyList())))
+
+        assertTrue(nav.contains("if (backStack.size > 1) {"), nav)
+    }
+
+    @Test
+    fun `back pops the last route once there is one beneath it`() {
+        val nav = navigationOf(homeDocument(columnNode("n_1", emptyMap(), emptyList())))
+
+        assertTrue(nav.contains("backStack.removeAt(backStack.lastIndex)"), nav)
+    }
+
+    @Test
+    fun `a handler naming a page emits that page's route`() {
+        val pages = mapOf(
+            PageId("p_home") to ResolvedPage(
+                PageId("p_home"),
+                "Home",
+                "home",
+                iconButtonNode(navigateStep(settingsId)),
+            ),
+            settingsId to ResolvedPage(settingsId, "Settings", "settings", textNode("n_8", "Prefs")),
+        )
+        val document = ResolvedDocument(pages, emptyMap(), indexOf(pages), ResolvedTheme(null))
+        val result = KotlinGenerator(eventSchema(), CodegenOptions("com.example.app")).generate(document)
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+
+        assertTrue(homeScreenOf(result).contains("navigator.navigate(Route.Settings)"), homeScreenOf(result))
+    }
+
+    @Test
+    fun `AppRoot declares a parameter for every receiver the screens used`() {
+        // All three at once, because a screen declares one parameter per handler receiver and this
+        // signature has to be exactly that set.
+        val app = contentOf(hostAndNavigatorAndSnackbars(), "App.kt")
+
+        assertTrue(
+            app.contains(
+                "public fun AppRoot(host: AppHost, navigator: AppNavigator, snackbars: SnackbarHost, " +
+                    "modifier: Modifier = Modifier) {",
+            ),
+            app,
+        )
+    }
+
+    @Test
+    fun `AppRoot hands each receiver down under the name the screen declared`() {
+        val app = contentOf(hostAndNavigatorAndSnackbars(), "App.kt")
+
+        assertTrue(
+            app.contains(
+                "                host = host,\n                navigator = navigator,\n" +
+                    "                snackbars = snackbars,\n",
+            ),
+            app,
+        )
+    }
+
+    @Test
+    fun `AppRoot renders the screen of the route the navigator is on`() {
+        // The whole file: the subject, both arms and each arm's forwarded arguments are one
+        // statement, and reading either arm alone would not say what the other one does.
+        assertEquals(
+            """
+            // Generated by Forge. Do not edit.
+            package com.example.app
+
+            ${"import"} androidx.compose.runtime.Composable
+            ${"import"} androidx.compose.ui.Modifier
+            ${"import"} com.example.app.screens.HomeScreen
+            ${"import"} com.example.app.screens.ProfileScreen
+
+            @Composable
+            public fun AppRoot(navigator: AppNavigator, modifier: Modifier = Modifier) {
+                when (navigator.current) {
+                    Route.Home -> {
+                        HomeScreen(
+                            navigator = navigator,
+                            modifier = modifier,
+                        )
+                    }
+                    Route.Profile -> {
+                        ProfileScreen(
+                            modifier = modifier,
+                        )
+                    }
+                }
+            }
+
+            """.trimIndent(),
+            contentOf(eventResult(iconButtonNode(navigateStep()), iconButtonStub()), "App.kt"),
+        )
+    }
+
+    @Test
+    fun `AppRoot declares a navigator when no handler asked for one`() {
+        // No event anywhere, so no screen reached for a receiver. The subject is still
+        // `navigator.current`, so a root that left the parameter out would name something it
+        // holds nothing for.
+        val app = contentOf(generate(homeDocument(columnNode("n_1", emptyMap(), emptyList()))), "App.kt")
+
+        assertTrue(
+            app.contains("public fun AppRoot(navigator: AppNavigator, modifier: Modifier = Modifier) {"),
+            app,
+        )
+        assertTrue(app.contains("when (navigator.current) {"), app)
+    }
+
+    @Test
+    fun `a document with no host function declares an empty app host`() {
+        val result = generate(homeDocument(columnNode("n_1", emptyMap(), emptyList())))
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+
+        assertEquals(
+            """
+            // Generated by Forge. Do not edit.
+            package com.example.app
+
+            public interface AppHost {}
+
+            public interface SnackbarHost {
+                public fun show(message: String)
+            }
+
+            """.trimIndent(),
+            contentOf(result, "AppHost.kt"),
+        )
+    }
+
+    @Test
+    fun `one host function becomes one member`() {
+        val host = appHostOf(listOf(hostDecl("submitOrder", listOf(ParamDecl(ParamName("id"), TypeRef.Str)))))
+
+        assertTrue(host.contains("    public fun submitOrder(id: String)"), host)
+    }
+
+    @Test
+    fun `several host functions become several members in declaration order`() {
+        val host = appHostOf(
+            listOf(
+                hostDecl("submitOrder", listOf(ParamDecl(ParamName("id"), TypeRef.Str))),
+                hostDecl("logEvent", listOf(ParamDecl(ParamName("count"), TypeRef.Int32))),
+                hostDecl("clear", emptyList()),
+            ),
+        )
+
+        assertTrue(
+            host.contains(
+                """
+                public interface AppHost {
+                    public fun submitOrder(id: String)
+
+                    public fun logEvent(count: Int)
+
+                    public fun clear()
+                }
+                """.trimIndent(),
+            ),
+            host,
+        )
+    }
+
+    @Test
+    fun `a declared return does not give an abstract member braces`() {
+        // The fuzz batch names the concrete: `fun genHost1(first: String, second: String): String {}`
+        // inside an interface is not Kotlin ("missing return"), while the same shape with no
+        // return type compiles. Both spell abstract, so neither carries braces.
+        val host = appHostOf(
+            listOf(
+                hostDecl(
+                    "genHost1",
+                    listOf(
+                        ParamDecl(ParamName("first"), TypeRef.Str),
+                        ParamDecl(ParamName("second"), TypeRef.Str),
+                    ),
+                ),
+                HostFunctionDecl("fetch", emptyList(), returns = TypeRef.Str, suspend = false),
+            ),
+        )
+
+        assertTrue(
+            host.contains(
+                """
+                public interface AppHost {
+                    public fun genHost1(first: String, second: String)
+
+                    public fun fetch(): String
+                }
+                """.trimIndent(),
+            ),
+            host,
+        )
+        assertTrue(host.contains("public fun genHost1("), host)
+        assertFalse(host.contains("genHost1(first: String, second: String) {"), host)
+    }
+
+    @Test
+    fun `a declaration that suspends is declared suspend`() {
+        val host = appHostOf(
+            listOf(hostDecl("refresh", listOf(ParamDecl(ParamName("token"), TypeRef.Str)), suspending = true)),
+        )
+
+        assertTrue(host.contains("public suspend fun refresh(token: String)"), host)
+    }
+
+    @Test
+    fun `a suspending host call is wrapped in the handler that carries it`() {
+        // The flag is read twice on two sides of the module: the generated member has to be
+        // suspend for the hand-written implementation to satisfy it, and the handler has to be
+        // inside a launched block for the call to that member to be legal.
+        val result = eventResult(
+            iconButtonNode(hostStep("refresh")),
+            iconButtonStub(),
+            listOf(hostDecl("refresh", listOf(ParamDecl(ParamName("token"), TypeRef.Str)), suspending = true)),
+        )
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+
+        assertTrue(homeScreenOf(result).contains("scope.launch {"), homeScreenOf(result))
+    }
+
+    @Test
+    fun `a handler naming a host function no declaration holds is refused`() {
+        // The lookup is by name and answers null, so a document calling something it never
+        // declared cannot pass as one it did: nothing says whether the call may suspend.
+        val result = eventResult(iconButtonNode(hostStep("submitOrder")), iconButtonStub())
+
+        assertEquals(listOf("codegen.strategy_unsupported"), result.diagnostics.map { it.code.value })
+    }
+
+    @Test
+    fun `a snackbar has a host declared for it`() {
+        val host = appHostOf(emptyList())
+
+        assertTrue(host.contains("public interface SnackbarHost"), host)
+    }
+
+    @Test
+    fun `the same host function declared twice is refused`() {
+        val result = generate(
+            homeDocument(
+                columnNode("n_1", emptyMap(), emptyList()),
+                hostFunctions = listOf(hostDecl("ping", emptyList()), hostDecl("ping", emptyList())),
+            ),
+        )
+
+        assertEquals(listOf("codegen.strategy_unsupported"), result.diagnostics.map { it.code.value })
+    }
+
+    @Test
+    fun `a document with no page has no route to start its stack on`() {
+        val result = generate(ResolvedDocument(emptyMap(), emptyMap(), emptyMap(), ResolvedTheme(null)))
+
+        assertEquals(listOf("codegen.strategy_unsupported"), result.diagnostics.map { it.code.value })
+    }
+
+    @Test
+    fun `a second generate over another document forgets the first one's receivers`() {
+        val generator = KotlinGenerator(eventSchema(), CodegenOptions("com.example.app"))
+        generator.generate(
+            eventDocument(iconButtonNode(snackbarStep(PropertyValue.Const(Value.Str("Saved"))))),
+        )
+        val second = generator.generate(eventDocument(textNode("n_1", "Hi")))
+        assertTrue(second.diagnostics.isEmpty(), "got ${second.diagnostics}")
+
+        assertTrue(!contentOf(second, "App.kt").contains("SnackbarHost"), contentOf(second, "App.kt"))
+    }
+
+    /** One screen whose single handler closes over every receiver a handler can reach. */
+    private fun hostAndNavigatorAndSnackbars(): CodegenResult = eventResult(
+        iconButtonNode(
+            navigateStep(),
+            snackbarStep(PropertyValue.Const(Value.Str("Saved"))),
+            hostStep("submitOrder"),
+        ),
+        iconButtonStub(),
+        listOf(hostDecl("submitOrder", listOf(ParamDecl(ParamName("id"), TypeRef.Str)))),
+    )
+
+    private fun navigationOf(document: ResolvedDocument): String {
+        val result: CodegenResult = generate(document)
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        return contentOf(result, "Navigation.kt")
+    }
+
+    private fun appHostOf(hostFunctions: List<HostFunctionDecl>): String {
+        val result: CodegenResult = generate(
+            homeDocument(columnNode("n_1", emptyMap(), emptyList()), hostFunctions = hostFunctions),
+        )
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        return contentOf(result, "AppHost.kt")
+    }
+
+    /** A component whose only parameter is a handler, which is what `IconButton` declares. */
+    private fun iconButtonStub(
+        lambdaParams: List<String> = emptyList(),
+        bindsClick: Boolean = true,
+    ): ComponentSpec = componentSpec(iconButtonType, 1) {
+        metadata("IconButton", Category.Basic)
+        if (bindsClick) event(clickKey.value, listOf(EventArgSpec("pressed", TypeRef.Str)))
+        composeCall(KotlinSymbol("androidx.compose.material3", "IconButton")) {
+            if (bindsClick) event(clickKey, "onClick", lambdaParams)
+        }
+    }
+
+    /** The same handler beside a trailing content lambda, which is the shape `Button` declares. */
+    private fun buttonStub(): ComponentSpec = componentSpec(buttonType, 1) {
+        metadata("Button", Category.Basic)
+        event(clickKey.value, listOf(EventArgSpec("pressed", TypeRef.Str)))
+        slot("content", Cardinality.Many)
+        composeCall(KotlinSymbol("androidx.compose.material3", "Button")) {
+            event(clickKey, "onClick")
+            slot("content", LambdaTarget.Trailing)
+        }
+    }
+
+    private fun navigateStep(page: PageId = profileId): ActionStep = ActionStep(
+        action = ActionId("nav.navigate"),
+        args = mapOf(pageKey to PropertyValue.Const(Value.Ref(RefKind.Page, page.value))),
+    )
+
+    private fun snackbarStep(message: PropertyValue): ActionStep = ActionStep(
+        action = ActionId("ui.showSnackbar"),
+        args = mapOf(messageKey to message),
+    )
+
+    private fun iconButtonNode(vararg steps: ActionStep): ResolvedNode = ResolvedNode(
+        NodeId("n_1"),
+        iconButtonType,
+        emptyMap(),
+        emptyList(),
+        emptyMap(),
+        emptySet(),
+        if (steps.isEmpty()) emptyMap() else mapOf(clickKey to ActionSequence(steps.toList())),
+    )
+
+    private fun buttonNode(vararg steps: ActionStep): ResolvedNode = ResolvedNode(
+        NodeId("n_1"),
+        buttonType,
+        emptyMap(),
+        emptyList(),
+        mapOf(contentSlot to listOf(textNode("n_2", "Continue"))),
+        emptySet(),
+        mapOf(clickKey to ActionSequence(steps.toList())),
+    )
+
+    private fun eventResult(
+        root: ResolvedNode,
+        clicked: ComponentSpec = iconButtonStub(),
+        hostFunctions: List<HostFunctionDecl> = emptyList(),
+    ): CodegenResult =
+        KotlinGenerator(eventSchema(clicked), CodegenOptions("com.example.app"))
+            .generate(eventDocument(root, hostFunctions))
+
+    private fun eventSchema(
+        clicked: ComponentSpec = iconButtonStub(),
+    ): Schema<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, String> =
+        Schema.build<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, String> {
+            component(clicked)
+            component(textStub(textType, KotlinSymbol("androidx.compose.material3", "Text")))
+            action(navigate)
+            action(showSnackbar)
+            action(callHost)
+        }
+
+    private fun eventScreen(root: ResolvedNode, clicked: ComponentSpec): String {
+        val result: CodegenResult = eventResult(root, clicked)
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        return homeScreenOf(result)
+    }
+
+    private fun homeScreenOf(result: CodegenResult): String =
+        result.files.files.single { it.path == "screens/HomeScreen.kt" }.content
+
+    private fun contentOf(result: CodegenResult, path: String): String =
+        result.files.files.single { it.path == path }.content
+
+    // `Profile` is a real page because a navigation step resolves its destination against the
+    // document, and a step naming nothing else refuses before any file is written.
+    private fun eventDocument(
+        root: ResolvedNode,
+        hostFunctions: List<HostFunctionDecl> = emptyList(),
+    ): ResolvedDocument {
+        val pages = mapOf(
+            PageId("p_home") to ResolvedPage(PageId("p_home"), "Home", "home", root),
+            profileId to ResolvedPage(profileId, "Profile", "profile", textNode("n_9", "Far")),
+        )
+        return ResolvedDocument(
+            pages,
+            emptyMap(),
+            indexOf(pages),
+            ResolvedTheme(null),
+            hostFunctions = hostFunctions,
+        )
+    }
+
+    private fun hostStep(callee: String): ActionStep = ActionStep(
+        action = ActionId("host.call"),
+        args = mapOf(
+            nameKey to PropertyValue.Const(Value.Str(callee)),
+            argsKey to PropertyValue.Const(Value.ListOf(listOf(Value.Str("42")))),
+        ),
+    )
+
+    private fun hostDecl(name: String, params: List<ParamDecl>, suspending: Boolean = false): HostFunctionDecl =
+        HostFunctionDecl(name, params, returns = null, suspend = suspending)
+
+    @Test
+    fun `same document prints byte-identical output twice`() {
+        val document = homeDocument(columnNode("n_1", emptyMap(), listOf(textNode("n_2", "Hi"))))
+        val first = generate(document)
+        val second = generate(document)
+
+        assertEquals(first.files.files.map { it.path }, second.files.files.map { it.path })
+        for (index in first.files.files.indices) {
+            assertEquals(first.files.files[index].content, second.files.files[index].content)
+        }
+        for (file in first.files.files) {
+            assertTrue(file.content.endsWith("\n"), "no trailing newline in ${file.path}")
+            assertTrue(!file.content.contains("\r"), "CR in ${file.path}")
+        }
+    }
+
+    @Test
+    fun `a column and text screen prints the golden file`() {
+        val document = homeDocument(columnNode("n_1", emptyMap(), listOf(textNode("n_2", "Hi"))))
+        val result = generate(document)
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = result.files.files.single { it.path == "screens/HomeScreen.kt" }
+        // The import lines below spell `${"import"}` through a template: NoComposeInPureModulesTest
+        // scans line-starts for `import androidx`, and a golden spelling them plainly trips it.
+        assertEquals(
+            """
+            // Generated by Forge. Do not edit.
+            package com.example.app.screens
+
+            ${"import"} androidx.compose.foundation.layout.Column
+            ${"import"} androidx.compose.material3.Text
+            ${"import"} androidx.compose.runtime.Composable
+            ${"import"} androidx.compose.ui.Modifier
+
+            @Composable
+            public fun HomeScreen(modifier: Modifier = Modifier) {
+                Column(
+                    modifier = modifier,
+                ) {
+                    Text("Hi")
+                }
+            }
+
+            """.trimIndent(),
+            screen.content,
+        )
+    }
+
+    @Test
+    fun `conflicting function names alias deterministically`() {
+        val alpha = ComponentType("test.Alpha")
+        val beta = ComponentType("test.Beta")
+        val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
+            Schema.build {
+                component(columnStub(columnType))
+                component(textStub(alpha, KotlinSymbol("com.example.a", "Text")))
+                component(textStub(beta, KotlinSymbol("com.example.b", "Text")))
+            }
+        val root = columnNode(
+            "n_1",
+            emptyMap(),
+            listOf(textAs("n_2", alpha, "A"), textAs("n_3", beta, "B")),
+        )
+        val result = KotlinGenerator(schema, CodegenOptions("com.example.app"))
+            .generate(homeDocument(root))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = result.files.files.single { it.path == "screens/HomeScreen.kt" }
+        assertTrue(screen.content.contains("import com.example.a.Text\n"), screen.content)
+        assertTrue(screen.content.contains("import com.example.b.Text as BText\n"), screen.content)
+        assertTrue(screen.content.contains("Text(\"A\")"), screen.content)
+        assertTrue(screen.content.contains("BText(\"B\")"), screen.content)
+    }
+
+    @Test
+    fun `files come out sorted by path`() {
+        val pages = linkedMapOf(
+            PageId("p_zeta") to ResolvedPage(
+                PageId("p_zeta"),
+                "Zeta",
+                "zeta",
+                columnNode("n_1", emptyMap(), listOf(textNode("n_2", "Z"))),
+            ),
+            PageId("p_alpha") to ResolvedPage(
+                PageId("p_alpha"),
+                "Alpha",
+                "alpha",
+                columnNode("n_3", emptyMap(), listOf(textNode("n_4", "A"))),
+            ),
+        )
+        val result = generate(ResolvedDocument(pages, emptyMap(), indexOf(pages), ResolvedTheme(null)))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val paths = result.files.files.map { it.path }
+        assertEquals(paths.sorted(), paths)
+        assertEquals(
+            listOf(
+                "App.kt",
+                "AppHost.kt",
+                "Navigation.kt",
+                "screens/AlphaScreen.kt",
+                "screens/ZetaScreen.kt",
+            ),
+            paths,
+        )
+    }
+
+    @Test
+    fun `a document carrying errors emits nothing`() {
+        val document = homeDocument(columnNode("n_1", emptyMap(), listOf(textNode("n_2", "Hi"))))
+        val incoming = listOf(
+            Diagnostic(Severity.Error, DiagnosticCodes.ComponentUnknown, DiagnosticLocation(), "boom"),
+        )
+        val result = generate(document, incoming)
+
+        assertTrue(result.files.files.isEmpty())
+        assertEquals(incoming, result.diagnostics)
+    }
+
+    @Test
+    fun `a node without a spec reports no binding`() {
+        val root = ResolvedNode(NodeId("n_1"), ghostType, emptyMap(), emptyList(), emptyMap(), emptySet())
+        val result = generate(homeDocument(root))
+
+        assertTrue(result.files.files.isEmpty())
+        assertEquals(listOf("codegen.no_binding"), result.diagnostics.map { it.code.value })
+    }
+
+    @Test
+    fun `a computed property emits the expression pass five checked, through the scope that declared it`() {
+        // App state, not page state: the conformance fixture covers the page receiver, and a
+        // screen reading `LocalAppState` cannot be compared against the runtime, so this is the
+        // only place that receiver is proved end to end. The whole file, because the read and the
+        // `by` delegates that need `getValue` and `setValue` are visible only together.
+        assertEquals(
+            """
+            // Generated by Forge. Do not edit.
+            package com.example.app.screens
+
+            ${"import"} androidx.compose.material3.Text
+            ${"import"} androidx.compose.runtime.Composable
+            ${"import"} androidx.compose.runtime.Stable
+            ${"import"} androidx.compose.runtime.getValue
+            ${"import"} androidx.compose.runtime.mutableStateOf
+            ${"import"} androidx.compose.runtime.remember
+            ${"import"} androidx.compose.runtime.setValue
+            ${"import"} androidx.compose.ui.Modifier
+            ${"import"} com.example.app.state.LocalAppState
+
+            @Stable
+            public class HomeScreenState {
+                public var count: Int by mutableStateOf(0)
+            }
+
+            @Composable
+            public fun rememberHomeScreenState(): HomeScreenState {
+                val state: HomeScreenState = remember {
+                    HomeScreenState()
+                }
+                return(state)
+            }
+
+            @Composable
+            public fun HomeScreen(modifier: Modifier = Modifier, state: HomeScreenState = rememberHomeScreenState()) {
+                Text(
+                    LocalAppState.current.theme,
+                    modifier = modifier,
+                )
+            }
+
+            """.trimIndent(),
+            computedScreen(),
+        )
+    }
+
+    @Test
+    fun `a computed property with no checked expression is a bug rather than a finding`() {
+        // §16.7: pass 5 checks every computed value and pass 7 attaches what it produced, and
+        // pass 7 runs only over a document no pass has errored on. A `Computed` reaching
+        // emission without one is a lost record, so it throws rather than becoming a diagnostic.
+        val untyped = ResolvedProp(
+            textKey,
+            PropertyValue.Computed(Expr.Ref(RefTarget.State(theme))),
+            PropOrigin.Specified,
+            null,
+        )
+        val root = ResolvedNode(
+            NodeId("n_1"),
+            textType,
+            mapOf(textKey to untyped),
+            emptyList(),
+            emptyMap(),
+            emptySet(),
+        )
+
+        val failure = assertFailsWith<CodegenBug> { generate(homeDocument(root, appTheme())) }
+
+        assertEquals(
+            "Computed property 'text' carries no checked expression; pass 5 refused an unchecked one",
+            failure.message,
+        )
+    }
+
+    @Test
+    fun `a computed value cannot fill a pattern, because a pattern is text`() {
+        // The one refusal a computed value still meets. A modifier's cases splice the value into
+        // `padding({all})`, and §16.2's symbols are references, not text: there is nothing here
+        // that renders one to a string to splice.
+        val entry = ResolvedModifier(
+            casedPaddingType,
+            mapOf(
+                allKey to ResolvedProp(
+                    allKey,
+                    PropertyValue.Computed(Expr.Ref(RefTarget.State(count))),
+                    PropOrigin.Specified,
+                    null,
+                    TypedExpr(Expr.Ref(RefTarget.State(count)), ExprType.Of(TypeRef.Int32), emptySet()),
+                ),
+            ),
+        )
+        val root = ResolvedNode(
+            NodeId("n_1"),
+            columnType,
+            emptyMap(),
+            listOf(entry),
+            mapOf(childrenSlot to listOf(textNode("n_2", "Hi"))),
+            emptySet(),
+        )
+
+        val result = generate(homeDocument(root, pageCount()))
+
+        assertTrue(result.files.files.isEmpty())
+        assertEquals(listOf("codegen.strategy_unsupported"), result.diagnostics.map { it.code.value })
+        assertEquals(
+            "Pattern key '{all}' holds a computed value, and a pattern is text at 'n_1'",
+            result.diagnostics.single().message,
+        )
+    }
+
+    @Test
+    fun `a spacing reads as an arrangement call`() {
+        val props = mapOf(
+            spacingKey to ResolvedProp(
+                spacingKey,
+                PropertyValue.Const(Value.Dp(8f)),
+                PropOrigin.Specified,
+                null,
+            ),
+        )
+        val result = generate(homeDocument(columnNode("n_1", props, listOf(textNode("n_2", "Hi")))))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = result.files.files.single { it.path == "screens/HomeScreen.kt" }
+        assertTrue(
+            screen.content.contains("verticalArrangement = Arrangement.spacedBy(8.0.dp)"),
+            screen.content,
+        )
+        assertTrue(
+            screen.content.contains("import androidx.compose.foundation.layout.Arrangement\n"),
+            screen.content,
+        )
+    }
+
+    @Test
+    fun `modifiers chain off the modifier parameter`() {
+        val entry = ResolvedModifier(
+            paddingType,
+            mapOf(
+                PropertyKey("all") to ResolvedProp(
+                    PropertyKey("all"),
+                    PropertyValue.Const(Value.Dp(8f)),
+                    PropOrigin.Specified,
+                    null,
+                ),
+            ),
+        )
+        val root = ResolvedNode(
+            NodeId("n_1"),
+            columnType,
+            emptyMap(),
+            listOf(entry),
+            mapOf(childrenSlot to listOf(textNode("n_2", "Hi"))),
+            emptySet(),
+        )
+        val result = generate(homeDocument(root))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = result.files.files.single { it.path == "screens/HomeScreen.kt" }
+        assertTrue(screen.content.contains("modifier = modifier\n"), screen.content)
+        assertTrue(screen.content.contains(".padding(all = 8.0.dp)"), screen.content)
+        assertTrue(
+            screen.content.contains("import androidx.compose.foundation.layout.padding\n"),
+            screen.content,
+        )
+    }
+
+    @Test
+    fun `a modifier case picks the call its arguments match`() {
+        val shapes = listOf(
+            listOf(allKey to 8f) to ".padding(8.0.dp)",
+            listOf(horizontalKey to 8f, verticalKey to 4f) to
+                ".padding(horizontal = 8.0.dp, vertical = 4.0.dp)",
+            listOf(horizontalKey to 8f) to ".padding(horizontal = 8.0.dp)",
+            listOf(verticalKey to 4f) to ".padding(vertical = 4.0.dp)",
+        )
+
+        for ((args, expected) in shapes) {
+            val content = paddedScreen(args)
+            assertTrue(content.contains(expected), "$args\n$content")
+            assertTrue(
+                content.contains("import androidx.compose.foundation.layout.padding\n"),
+                content,
+            )
+            // A value filled into a pattern carries its own import: the pattern is text.
+            assertTrue(content.contains("import androidx.compose.ui.unit.dp\n"), content)
+        }
+    }
+
+    @Test
+    fun `the first declared modifier case wins`() {
+        val content = paddedScreen(listOf(allKey to 8f, verticalKey to 4f))
+
+        assertTrue(content.contains(".padding(8.0.dp)"), content)
+        assertTrue(!content.contains("vertical"), content)
+    }
+
+    @Test
+    fun `a null spacing keeps the renderers default arrangement`() {
+        // The fuzz batch carries `Value.Null` on the spacing the minting let through, and the
+        // renderer answers the null with `ArrangementMaps`' fall-through default exactly as it
+        // answers an absence. The generated call therefore names no arrangement at all: no case
+        // survives the walk the kept params keep to the valueful keys.
+        val props = mapOf(
+            spacingKey to ResolvedProp(
+                spacingKey,
+                PropertyValue.Const(Value.Null),
+                PropOrigin.Specified,
+                null,
+            ),
+        )
+        val result = generate(homeDocument(columnNode("n_1", props, listOf(textNode("n_2", "Hi")))))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = result.files.files.single { it.path == "screens/HomeScreen.kt" }
+        assertTrue(!screen.content.contains("verticalArrangement"), screen.content)
+        assertTrue(!screen.content.contains("Arrangement"), screen.content)
+    }
+
+    @Test
+    fun `a null axis falls to the per-axis shape the applier reads`() {
+        // `horizontal = 8.0.dp, vertical = null` names a `Dp` the node carries no value for. The
+        // applier's `(datum.vertical ?: 0f).dp` reads the null as the default, so the generated
+        // call is the single-axis shape: the case whose pattern splices no axis at all.
+        val content = nullishPaddedScreen(listOf(horizontalKey to 8f, verticalKey to null))
+
+        assertTrue(content.contains(".padding(horizontal = 8.0.dp)"), content)
+        assertTrue(content.contains("import androidx.compose.foundation.layout.padding\n"), content)
+        assertTrue(content.contains("import androidx.compose.ui.unit.dp\n"), content)
+        assertTrue(!content.contains("null"), content)
+    }
+
+    @Test
+    fun `a modifier entry with nothing to spell drops out`() {
+        // Every case's keys read null, which is the call the applier leaves untouched: the entry
+        // leaves the chain, and with it the `padding` import no argument ever asked for.
+        val content = nullishPaddedScreen(listOf(allKey to null))
+
+        // The printer hangs a sole argument's comma on its own line, so the bare `modifier`
+        // base ends `modifier = modifier,` — the newline is only there when a chain continues
+        // the value, which the padding tests pin with their `.padding(...)` continuation.
+        assertTrue(content.contains("modifier = modifier"), content)
+        assertTrue(!content.contains("padding"), content)
+    }
+
+    @Test
+    fun `a modifier whose axes all read null drops its entry too`() {
+        val content = nullishPaddedScreen(listOf(horizontalKey to null, verticalKey to null))
+
+        assertTrue(content.contains("modifier = modifier"), content)
+        assertTrue(!content.contains("padding"), content)
+    }
+
+    // Compose's `Spacer` declares its modifier parameter without a default, so a modifier-less
+    // node must still spell the argument: the fuzz batch's bare `Spacer()` compiled into nothing
+    // but "No value passed for parameter 'modifier'". The flag on the binding makes the empty
+    // chain spell the same untouched `Modifier` base a chain would have built from.
+    @Test
+    fun `a modifier-less spacer spells the untouched modifier base`() {
+        val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
+            Schema.build {
+                component(columnStub(columnType))
+                component(spacerStub())
+            }
+
+        val result = KotlinGenerator(schema, CodegenOptions("com.example.app"))
+            .generate(homeDocument(layoutNode("n_1", columnType, listOf(spacerNode()))))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = homeScreenOf(result)
+        assertTrue(screen.contains("modifier = Modifier"), screen)
+        // The bare call the compiler refused never spells again.
+        assertTrue(!screen.contains("Spacer()"), screen)
+    }
+
+    // All-dropped is the same spelling: an entry that reads null leaves the chain empty, and a
+    // no-default callee cannot lean on the default the empty case leaned on before.
+    @Test
+    fun `a spacer whose modifier entry drops spells the bare base`() {
+        val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
+            Schema.build {
+                component(columnStub(columnType))
+                component(spacerStub())
+                modifier(
+                    ModifierSpec(
+                        paddingType,
+                        ModifierMetadata("Padding"),
+                        listOf(prop<Float>("all", TypeRef.Dp)),
+                        emit = ModifierEmit(KotlinSymbol("androidx.compose.foundation.layout", "padding")),
+                    ),
+                )
+            }
+        val fallen = spacerNode().copy(
+            modifiers = listOf(
+                ResolvedModifier(
+                    paddingType,
+                    mapOf(
+                        PropertyKey("all") to ResolvedProp(
+                            PropertyKey("all"),
+                            PropertyValue.Const(Value.Null),
+                            PropOrigin.Specified,
+                            null,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val result = KotlinGenerator(schema, CodegenOptions("com.example.app"))
+            .generate(homeDocument(layoutNode("n_1", columnType, listOf(fallen))))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = homeScreenOf(result)
+        assertTrue(screen.contains("modifier = Modifier"), screen)
+        assertTrue(!screen.contains("Spacer()"), screen)
+        assertTrue(!screen.contains("padding"), screen)
+    }
+
+    @Test
+    fun `a pattern's doubled braces spell the lambda literally`() {
+        // fillPattern treats a lone `{key}` as a placeholder, so the bare trailing lambda a
+        // handler-less modifier needs is spelled `{{ }}`: the emitted text keeps one brace
+        // pair and the compile shape is `Modifier.clickable { }`.
+        val result = scopedResult(rowType, ResolvedModifier(clickableType, emptyMap()))
+
+        val screen = screenOf(result, "clickable tile")
+        // The join style is the printer's, so the pin is on the literal the escaping buys:
+        // the case's emitted text keeps `{ }` and never carries a doubled brace forward.
+        assertTrue(screen.contains("clickable { }"), screen)
+        assertTrue(!screen.contains("{{"), screen)
+    }
+
+    @Test
+    fun `a no-case modifier arg that reads null drops its entry`() {
+        // The no-cases branch reads the argument bare, and the appliers' `?: return modifier`
+        // means a null argument leaves nothing applied: the entry drops instead of spelling
+        // `padding(null)`.
+        val entry = ResolvedModifier(
+            paddingType,
+            mapOf(
+                allKey to ResolvedProp(
+                    allKey,
+                    PropertyValue.Const(Value.Null),
+                    PropOrigin.Specified,
+                    null,
+                ),
+            ),
+        )
+        val root = ResolvedNode(
+            NodeId("n_1"),
+            columnType,
+            emptyMap(),
+            listOf(entry),
+            mapOf(childrenSlot to listOf(textNode("n_2", "Hi"))),
+            emptySet(),
+        )
+        val result = generate(homeDocument(root))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = result.files.files.single { it.path == "screens/HomeScreen.kt" }
+        assertTrue(screen.content.contains("modifier = modifier"), screen.content)
+        assertTrue(!screen.content.contains("padding"), screen.content)
+    }
+
+    @Test
+    fun `a named arrangement emits the symbol its enum declares`() {
+        val result = arrangementScreen(withEnum = true)
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = result.files.files.single { it.path == "screens/HomeScreen.kt" }
+        assertTrue(
+            screen.content.contains("horizontalArrangement = Arrangement.Center"),
+            screen.content,
+        )
+        assertTrue(
+            screen.content.contains("import androidx.compose.foundation.layout.Arrangement\n"),
+            screen.content,
+        )
+    }
+
+    @Test
+    fun `an enum entry with no registered symbol refuses`() {
+        val result = arrangementScreen(withEnum = false)
+
+        assertTrue(result.files.files.isEmpty())
+        assertEquals(listOf("codegen.strategy_unsupported"), result.diagnostics.map { it.code.value })
+    }
+
+    @Test
+    fun `a scope member's name is not written as an import`() {
+        val content = screenOf(scopedResult(rowType, weightEntry()), "row weight")
+
+        // `RowScope.weight` has no importable FQN; the call resolves through the receiver the
+        // parent's content lambda opens, so an import would name something that does not exist.
+        assertTrue(content.contains(".weight(weight = 1.0f)"), content)
+        assertTrue(!content.contains("import androidx.compose.foundation.layout.weight"), content)
+    }
+
+    @Test
+    fun `align reads the vertical band inside a row`() {
+        val content = screenOf(scopedResult(rowType, alignEntry()), "row align")
+
+        assertTrue(content.contains(".align(Alignment.Bottom)"), content)
+        assertTrue(content.contains("import androidx.compose.ui.Alignment\n"), content)
+        assertTrue(!content.contains("import androidx.compose.foundation.layout.align"), content)
+    }
+
+    @Test
+    fun `align reads the horizontal band inside a column`() {
+        val content = screenOf(scopedResult(columnType, alignEntry()), "column align")
+
+        assertTrue(content.contains(".align(AbsoluteAlignment.Right)"), content)
+        assertTrue(content.contains("import androidx.compose.ui.AbsoluteAlignment\n"), content)
+    }
+
+    @Test
+    fun `align reads both axes inside a box`() {
+        val content = screenOf(scopedResult(boxType, alignEntry()), "box align")
+
+        assertTrue(content.contains(".align(AbsoluteAlignment.BottomRight)"), content)
+    }
+
+    @Test
+    fun `the nearest open scope reads the entry`() {
+        // A row inside a box: the row is what the aligned node sits in, so the row's axis wins.
+        val content = screenOf(scopedResult(boxType, alignEntry(), nested = true), "row in box")
+
+        assertTrue(content.contains(".align(Alignment.Bottom)"), content)
+        assertTrue(!content.contains("BottomRight"), content)
+    }
+
+    @Test
+    fun `align outside a layout scope refuses`() {
+        val root = textAs("n_root", textType, "Hi").copy(modifiers = listOf(alignEntry()))
+        val result = KotlinGenerator(scopedSchema(), CodegenOptions("com.example.app"))
+            .generate(homeDocument(root))
+
+        assertTrue(result.files.files.isEmpty())
+        assertEquals(listOf("codegen.strategy_unsupported"), result.diagnostics.map { it.code.value })
+    }
+
+    @Test
+    fun `a parameter reads the property the node carries and nothing else`() {
+        val value = ResolvedProp(valueKey, PropertyValue.Const(Value.Str("Hi")), PropOrigin.Specified, null)
+        val root = ResolvedNode(
+            NodeId("n_1"),
+            choiceType,
+            mapOf(valueKey to value),
+            emptyList(),
+            emptyMap(),
+            emptySet(),
+        )
+        val result = generate(homeDocument(root))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = result.files.files.single { it.path == "screens/HomeScreen.kt" }
+        assertTrue(screen.content.contains("value = \"Hi\""), screen.content)
+        assertTrue(!screen.content.contains("label"), screen.content)
+    }
+
+    /** A screen whose only argument is a computed read of the app's `s_theme`. */
+    private fun computedScreen(): String {
+        val read = Expr.Ref(RefTarget.State(theme))
+        val prop = ResolvedProp(
+            textKey,
+            PropertyValue.Computed(read),
+            PropOrigin.Specified,
+            null,
+            TypedExpr(read, ExprType.Of(TypeRef.Str), setOf(RefTarget.State(theme))),
+        )
+        val root = ResolvedNode(
+            NodeId("n_1"),
+            textType,
+            mapOf(textKey to prop),
+            emptyList(),
+            emptyMap(),
+            emptySet(),
+        )
+        val result = generate(homeDocument(root, pageCount(), appTheme()))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        return result.files.files.firstOrNull { it.path == "screens/HomeScreen.kt" }?.content
+            ?: error("no screen in ${result.files.files.map { it.path }}")
+    }
+
+    private fun pageCount(): List<ResolvedState> =
+        listOf(ResolvedState(StateDecl(count, "count", TypeRef.Int32, Value.Int32(0)), null))
+
+    private fun appTheme(): List<ResolvedState> =
+        listOf(ResolvedState(StateDecl(theme, "theme", TypeRef.Str, Value.Str("light")), null))
+
+    private fun paddedScreen(args: List<Pair<PropertyKey, Float>>): String {
+        val entry = ResolvedModifier(
+            casedPaddingType,
+            args.associate { (key, value) ->
+                key to ResolvedProp(key, PropertyValue.Const(Value.Dp(value)), PropOrigin.Specified, null)
+            },
+        )
+        val root = ResolvedNode(NodeId("n_1"), columnType, emptyMap(), listOf(entry), emptyMap(), emptySet())
+        val result = generate(homeDocument(root))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        return result.files.files.single { it.path == "screens/HomeScreen.kt" }.content
+    }
+
+    /**
+     * [paddedScreen]'s null-bearing twin: the fuzz batch mints `Value.Null` on nullable Dp
+     * properties about a quarter of the time, and a null here is the arrival the appliers read
+     * as absent before `?: 0f` answers it.
+     */
+    private fun nullishPaddedScreen(args: List<Pair<PropertyKey, Float?>>): String {
+        val entry = ResolvedModifier(
+            casedPaddingType,
+            args.associate { (key, value) ->
+                key to when (value) {
+                    null -> ResolvedProp(key, PropertyValue.Const(Value.Null), PropOrigin.Specified, null)
+                    else -> ResolvedProp(key, PropertyValue.Const(Value.Dp(value)), PropOrigin.Specified, null)
+                }
+            },
+        )
+        val root = ResolvedNode(NodeId("n_1"), columnType, emptyMap(), listOf(entry), emptyMap(), emptySet())
+        val result = generate(homeDocument(root))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        return result.files.files.single { it.path == "screens/HomeScreen.kt" }.content
+    }
+
+    /**
+     * A layout of [parent] type at the root holding one Text that carries [modifier].
+     *
+     * [nested] puts a row between them, which is the only way a node can have two open scopes.
+     */
+    private fun scopedResult(
+        parent: ComponentType,
+        modifier: ResolvedModifier,
+        nested: Boolean = false,
+    ): CodegenResult {
+        val child = textAs("n_a", textType, "Hi").copy(modifiers = listOf(modifier))
+        val kids = if (nested) listOf(layoutNode("n_mid", rowType, listOf(child))) else listOf(child)
+        val root = layoutNode("n_root", parent, kids)
+        return KotlinGenerator(scopedSchema(), CodegenOptions("com.example.app"))
+            .generate(homeDocument(root))
+    }
+
+    private fun screenOf(result: CodegenResult, fixture: String): String {
+        assertTrue(result.diagnostics.isEmpty(), "$fixture: ${result.diagnostics}")
+        return result.files.files.single { it.path == "screens/HomeScreen.kt" }.content
+    }
+
+    private fun weightEntry(): ResolvedModifier = ResolvedModifier(
+        weightType,
+        mapOf(
+            weightKey to ResolvedProp(
+                weightKey,
+                PropertyValue.Const(Value.Float32(1f)),
+                PropOrigin.Specified,
+                null,
+            ),
+        ),
+    )
+
+    private fun alignEntry(): ResolvedModifier = ResolvedModifier(
+        alignType,
+        mapOf(
+            alignKey to ResolvedProp(
+                alignKey,
+                PropertyValue.Const(Value.Enum("BottomRight")),
+                PropOrigin.Specified,
+                null,
+            ),
+        ),
+    )
+
+    /** One entry, the three projections `AlignModifier` declares for it. */
+    private val alignEntries: Map<ScopeId, Map<String, KotlinSymbol>> = mapOf(
+        rowScope to mapOf("BottomRight" to KotlinSymbol("androidx.compose.ui", "Alignment.Bottom")),
+        columnScope to mapOf("BottomRight" to KotlinSymbol("androidx.compose.ui", "AbsoluteAlignment.Right")),
+        boxScope to mapOf("BottomRight" to KotlinSymbol("androidx.compose.ui", "AbsoluteAlignment.BottomRight")),
+    )
+
+    private fun scopedSchema(): Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, TypeSpec> =
+        Schema.build<ComponentSpec, ModifierSpec, String, FunctionSpec, TypeSpec> {
+            component(layoutStub(rowType, "Row", rowScope))
+            component(layoutStub(columnType, "Column", columnScope))
+            component(layoutStub(boxType, "Box", boxScope))
+            component(textStub(textType, KotlinSymbol("androidx.compose.material3", "Text")))
+            modifier(weightStub())
+            modifier(alignStub())
+            modifier(clickableStub())
+            type(
+                EnumTypeSpec(
+                    alignmentId,
+                    listOf(
+                        EnumEntrySpec(
+                            "BottomRight",
+                            KotlinSymbol("androidx.compose.ui", "AbsoluteAlignment.BottomRight"),
+                        ),
+                    ),
+                ),
+            )
+        }
+
+    /** A layout whose `children` slot provides [scope], which is what the scope tests walk into. */
+    private fun layoutStub(type: ComponentType, name: String, scope: ScopeId): ComponentSpec =
+        componentSpec(type, 1) {
+            metadata(name, Category.Layout)
+            slot("children", Cardinality.Many, provides = setOf(scope))
+            composeCall(KotlinSymbol("androidx.compose.foundation.layout", name)) {
+                slot("children", LambdaTarget.Trailing)
+            }
+        }
+
+    private fun weightStub(): ModifierSpec = ModifierSpec(
+        weightType,
+        ModifierMetadata("Weight"),
+        listOf(prop<Float>("weight", TypeRef.Float32)),
+        requiresScope = setOf(rowScope),
+        emit = ModifierEmit(
+            KotlinSymbol("androidx.compose.foundation.layout", "weight"),
+            scopeMember = true,
+        ),
+    )
+
+    private fun alignStub(): ModifierSpec = ModifierSpec(
+        alignType,
+        ModifierMetadata("Align"),
+        listOf(prop<String>("alignment", TypeRef.Enum(alignmentId), required = true)),
+        emit = ModifierEmit(
+            KotlinSymbol("androidx.compose.foundation.layout", "align"),
+            listOf(EmitCase(setOf(alignKey), "align({alignment})")),
+            scopeMember = true,
+            scopeEntries = alignEntries,
+        ),
+    )
+
+    /** A pattern whose doubled braces are literal: the shape a bare trailing lambda needs. */
+    private fun clickableStub(): ModifierSpec = ModifierSpec(
+        clickableType,
+        ModifierMetadata("Clickable"),
+        emptyList(),
+        emit = ModifierEmit(
+            KotlinSymbol("androidx.compose.foundation", "clickable"),
+            listOf(EmitCase(emptySet(), "clickable {{ }}")),
+        ),
+    )
+
+    // The enum is registered or not, which is the whole difference between the two arrangement
+    // tests: a symbol nobody declared cannot be written down.
+    private fun arrangementScreen(withEnum: Boolean): CodegenResult {
+        val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, TypeSpec> =
+            Schema.build<ComponentSpec, ModifierSpec, String, FunctionSpec, TypeSpec> {
+                component(rowStub())
+                if (withEnum) type(arrangementEnum)
+            }
+        val entry = ResolvedProp(
+            arrangementKey,
+            PropertyValue.Const(Value.Enum("Center")),
+            PropOrigin.Specified,
+            null,
+        )
+        val root = ResolvedNode(
+            NodeId("n_1"),
+            rowType,
+            mapOf(entry.key to entry),
+            emptyList(),
+            emptyMap(),
+            emptySet(),
+        )
+        return KotlinGenerator(schema, CodegenOptions("com.example.app")).generate(homeDocument(root))
+    }
+
+    // ---------------------------------------------------------------------------
+    // Theme tokens: §9.2's codegen column, read against the provenance pass 7 decided.
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun `a material token emits the member off its own theme group`() {
+        val result = generate(homeDocument(styledWith("md.typography.bodyLarge", material())))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        assertTrue(
+            styleScreen(result).contains("style = MaterialTheme.typography.bodyLarge"),
+            styleScreen(result),
+        )
+    }
+
+    @Test
+    fun `a token the theme declares emits the value the theme wrote, not a member name`() {
+        val brand: ResolvedTheme = brandTheme()
+        val result = generate(homeDocument(styledWith("caption", custom()), theme = brand))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = styleScreen(result)
+        assertTrue(screen.contains("style = TextStyle(fontSize = 28.0.sp)"), screen)
+        assertTrue(screen.contains("import androidx.compose.ui.unit.sp"), screen)
+        assertTrue(!screen.contains("MaterialTheme.typography.caption"), screen)
+    }
+
+    @Test
+    fun `a token whose provenance is gone refuses rather than assuming material`() {
+        val node: ResolvedNode = ResolvedNode(
+            NodeId("n_1"),
+            styledType,
+            mapOf(
+                textKey to ResolvedProp(textKey, PropertyValue.Const(Value.Str("Hi")), PropOrigin.Specified, null),
+                styleKey to ResolvedProp(
+                    styleKey,
+                    PropertyValue.Const(Value.Token(TokenKind.Typography, "md.typography.bodyLarge")),
+                    PropOrigin.Specified,
+                    null,
+                ),
+            ),
+            emptyList(),
+            emptyMap(),
+            emptySet(),
+        )
+
+        val result = generate(homeDocument(node))
+
+        assertTrue(result.files.files.isEmpty())
+        assertTrue(
+            result.diagnostics.single().message.contains("no resolved provenance"),
+            result.diagnostics.toString(),
+        )
+    }
+
+    /** The screen a styled node generated, for the two token cases above. */
+    private fun styleScreen(result: CodegenResult): String =
+        result.files.files.single { it.path == "screens/HomeScreen.kt" }.content
+
+    /** One `Text` styled by [name] with [token] as the provenance pass 7 would have attached. */
+    private fun styledWith(name: String, token: ResolvedToken): ResolvedNode = ResolvedNode(
+        NodeId("n_1"),
+        styledType,
+        mapOf(
+            textKey to ResolvedProp(textKey, PropertyValue.Const(Value.Str("Hi")), PropOrigin.Specified, null),
+            styleKey to ResolvedProp(
+                styleKey,
+                PropertyValue.Const(Value.Token(TokenKind.Typography, name)),
+                PropOrigin.Specified,
+                token,
+            ),
+        ),
+        emptyList(),
+        emptyMap(),
+        emptySet(),
+    )
+
+    private fun material(): ResolvedToken =
+        ResolvedToken(TokenKind.Typography, "md.typography.bodyLarge", TokenSource.Material)
+
+    private fun custom(): ResolvedToken =
+        ResolvedToken(TokenKind.Typography, "caption", TokenSource.Custom)
+
+    // A theme whose `caption` role is the document's own, which is §14.1's MVP line: a single
+    // theme, selected implicitly, and one typography role with a size written down.
+    private fun brandTheme(): ResolvedTheme = ResolvedTheme(
+        ThemeDecl(
+            id = ThemeId("t_brand"),
+            name = "Brand",
+            typography = mapOf(
+                TextRole("caption") to mapOf(PropertyKey("fontSize") to Value.Sp(28f)),
+            ),
+        ),
+    )
+
+    private fun generate(
+        document: ResolvedDocument,
+        incoming: List<Diagnostic> = emptyList(),
+    ): CodegenResult =
+        KotlinGenerator(testSchema(), CodegenOptions("com.example.app")).generate(document, incoming)
+
+    private fun homeDocument(
+        root: ResolvedNode,
+        state: List<ResolvedState> = emptyList(),
+        appState: List<ResolvedState> = emptyList(),
+        hostFunctions: List<HostFunctionDecl> = emptyList(),
+        theme: ResolvedTheme = ResolvedTheme(null),
+    ): ResolvedDocument {
+        val pages = mapOf(
+            PageId("p_home") to ResolvedPage(PageId("p_home"), "Home", "home", root, state),
+        )
+        return ResolvedDocument(
+            pages,
+            emptyMap(),
+            indexOf(pages),
+            theme,
+            appState,
+            hostFunctions = hostFunctions,
+        )
+    }
+
+    private fun indexOf(pages: Map<PageId, ResolvedPage>): Map<NodeId, ResolvedNode> {
+        val index = LinkedHashMap<NodeId, ResolvedNode>()
+        fun walk(node: ResolvedNode) {
+            index[node.id] = node
+            for (kids in node.slots.values) kids.forEach(::walk)
+        }
+        for (page in pages.values) walk(page.root)
+        return index
+    }
+
+    private fun textNode(id: String, text: String): ResolvedNode = textAs(id, textType, text)
+
+    /** A leaf that carries nothing at all, which is the shape the aura-free `Spacer` travels in. */
+    private fun spacerNode(): ResolvedNode = ResolvedNode(
+        NodeId("n_2"),
+        spacerType,
+        emptyMap(),
+        emptyList(),
+        emptyMap(),
+        emptySet(),
+    )
+
+    private fun textAs(id: String, type: ComponentType, text: String): ResolvedNode = ResolvedNode(
+        NodeId(id),
+        type,
+        mapOf(
+            textKey to ResolvedProp(
+                textKey,
+                PropertyValue.Const(Value.Str(text)),
+                PropOrigin.Specified,
+                null,
+            ),
+        ),
+        emptyList(),
+        emptyMap(),
+        emptySet(),
+    )
+
+    private fun columnNode(
+        id: String,
+        props: Map<PropertyKey, ResolvedProp>,
+        kids: List<ResolvedNode>,
+    ): ResolvedNode = ResolvedNode(
+        NodeId(id),
+        columnType,
+        props,
+        emptyList(),
+        if (kids.isEmpty()) emptyMap() else mapOf(childrenSlot to kids),
+        emptySet(),
+    )
+
+    private fun layoutNode(id: String, type: ComponentType, kids: List<ResolvedNode>): ResolvedNode =
+        ResolvedNode(
+            NodeId(id),
+            type,
+            emptyMap(),
+            emptyList(),
+            if (kids.isEmpty()) emptyMap() else mapOf(childrenSlot to kids),
+            emptySet(),
+        )
+
+    private fun testSchema(): Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
+        Schema.build {
+            val spacing = prop<Float>("spacing", TypeRef.Dp)
+            component(
+                componentSpec(columnType, 1) {
+                    metadata("Column", Category.Layout)
+                    property(spacing)
+                    slot("children", Cardinality.Many)
+                    composeCall(KotlinSymbol("androidx.compose.foundation.layout", "Column")) {
+                        param(
+                            "verticalArrangement",
+                            from = listOf(spacing.key),
+                            emit = ValueEmit.Cases(
+                                listOf(
+                                    EmitCase(
+                                        setOf(spacing.key),
+                                        "Arrangement.spacedBy({spacing})",
+                                        listOf(
+                                            KotlinSymbol(
+                                                "androidx.compose.foundation.layout",
+                                                "Arrangement",
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        )
+                        slot("children", LambdaTarget.Trailing)
+                    }
+                },
+            )
+            component(textStub(textType, KotlinSymbol("androidx.compose.material3", "Text")))
+            component(styledStub())
+            component(choiceStub())
+            modifier(
+                ModifierSpec(
+                    paddingType,
+                    ModifierMetadata("Padding"),
+                    listOf(prop<Float>("all", TypeRef.Dp)),
+                    emit = ModifierEmit(KotlinSymbol("androidx.compose.foundation.layout", "padding")),
+                ),
+            )
+            modifier(casedPaddingStub())
+        }
+
+    // `PaddingModifier`'s four cases in the same order: the first match is what `all` relies on.
+    private fun casedPaddingStub(): ModifierSpec = ModifierSpec(
+        casedPaddingType,
+        ModifierMetadata("Padding"),
+        listOf(
+            prop<Float>("all", TypeRef.Dp),
+            prop<Float>("horizontal", TypeRef.Dp),
+            prop<Float>("vertical", TypeRef.Dp),
+        ),
+        emit = ModifierEmit(
+            KotlinSymbol("androidx.compose.foundation.layout", "padding"),
+            listOf(
+                EmitCase(setOf(allKey), "padding({all})"),
+                EmitCase(
+                    setOf(horizontalKey, verticalKey),
+                    "padding(horizontal = {horizontal}, vertical = {vertical})",
+                ),
+                EmitCase(setOf(horizontalKey), "padding(horizontal = {horizontal})"),
+                EmitCase(setOf(verticalKey), "padding(vertical = {vertical})"),
+            ),
+        ),
+    )
+
+    // `RowSpec`'s arrangement half, with the document's enum spelled the way a document would.
+    private fun rowStub(): ComponentSpec {
+        val arrangement = prop<String?>("horizontalArrangement", TypeRef.Nullable(TypeRef.Enum(arrangementId)))
+        return componentSpec(rowType, 1) {
+            metadata("Row", Category.Layout)
+            property(arrangement)
+            composeCall(KotlinSymbol("androidx.compose.foundation.layout", "Row")) {
+                param(
+                    "horizontalArrangement",
+                    from = listOf(arrangement.key),
+                    emit = ValueEmit.Cases(
+                        listOf(EmitCase(setOf(arrangement.key), "{horizontalArrangement}")),
+                    ),
+                )
+            }
+        }
+    }
+
+    // Two declared properties, one parameter: the node carries the second, and `from` lists the
+    // first, which is the order a naive fill reads in the wrong direction.
+    private fun choiceStub(): ComponentSpec {
+        val label = prop<String>("label", TypeRef.Str)
+        val value = prop<String>("value", TypeRef.Str)
+        return componentSpec(choiceType, 1) {
+            metadata("Choice", Category.Basic)
+            property(label)
+            property(value)
+            composeCall(KotlinSymbol("com.example.ui", "Choice")) {
+                param("value", from = listOf(label.key, value.key))
+            }
+        }
+    }
+
+    private fun columnStub(type: ComponentType): ComponentSpec =
+        componentSpec(type, 1) {
+            metadata("Column", Category.Layout)
+            slot("children", Cardinality.Many)
+            composeCall(KotlinSymbol("androidx.compose.foundation.layout", "Column")) {
+                slot("children", LambdaTarget.Trailing)
+            }
+        }
+
+    /** `Spacer`'s binding: no properties, and a modifier parameter with no default. */
+    private fun spacerStub(): ComponentSpec = componentSpec(spacerType, 1) {
+        metadata("Spacer", Category.Layout)
+        composeCall(KotlinSymbol("androidx.compose.foundation.layout", "Spacer"), modifierRequired = true)
+    }
+
+    private fun textStub(type: ComponentType, function: KotlinSymbol): ComponentSpec {
+        val text = prop<String>("text", TypeRef.Str, required = true)
+        return componentSpec(type, 1) {
+            metadata("Text", Category.Basic)
+            property(text)
+            composeCall(function) {
+                param("text", from = text, positional = Positional.WhenSole)
+            }
+        }
+    }
+
+    /**
+     * §7.4's `Text` with its `style` parameter, which is the one property in the engine typed as
+     * a token and so the only one a token test can travel through.
+     */
+    private fun styledStub(): ComponentSpec {
+        val text = prop<String>("text", TypeRef.Str, required = true)
+        val style = prop<TokenName?>("style", TypeRef.Nullable(TypeRef.Token(TokenKind.Typography)))
+        return componentSpec(styledType, 1) {
+            metadata("Styled", Category.Basic)
+            property(text)
+            property(style)
+            composeCall(KotlinSymbol("androidx.compose.material3", "Text")) {
+                param("text", from = text, positional = Positional.WhenSole)
+                param("style", from = style)
+            }
+        }
+    }
+
+    @Test
+    fun `the resolved document generates none of the codegen codes`() {
+        val result = generate(homeDocument(columnNode("n_1", emptyMap(), listOf(textNode("n_2", "Hi")))))
+
+        val codes = result.diagnostics.map { it.code.value }
+
+        assertTrue(codes.none { it == DiagnosticCodes.CodegenNoBinding.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.CodegenStrategyUnsupported.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.CodegenNameCollision.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.CodegenNoTypeSpelling.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.NameReserved.value }, "got $codes")
+    }
+}

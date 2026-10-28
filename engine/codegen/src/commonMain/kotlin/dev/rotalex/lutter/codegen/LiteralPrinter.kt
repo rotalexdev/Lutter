@@ -1,0 +1,337 @@
+package dev.rotalex.lutter.codegen
+
+import dev.rotalex.lutter.analysis.resolved.ResolvedToken
+import dev.rotalex.lutter.analysis.resolved.TokenSource
+import dev.rotalex.lutter.model.doc.TextStyleSpec
+import dev.rotalex.lutter.model.doc.ThemeDecl
+import dev.rotalex.lutter.model.doc.TokenName
+import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.type.TokenKind
+import dev.rotalex.lutter.model.value.Value
+import dev.rotalex.lutter.model.value.fixedDecimalText
+import dev.rotalex.lutter.schema.component.KotlinSymbol
+
+/**
+ * A literal's text plus the imports it needs (`dp`, `Color`, a theme member).
+ *
+ * Null means the value has no skeleton spelling here: containers, references, icons and enum
+ * entries are refused by the generator, not guessed at.
+ */
+internal data class EmittedLiteral(val text: String, val symbols: List<KotlinSymbol>)
+
+/** §5.4's four fractional digits — the same width [textOf] writes and the same this prints. */
+private const val MAX_FRACTIONAL_DIGITS: Int = 4
+
+/** Values to Kotlin text. Returns null where the skeleton has no valid spelling. */
+internal object LiteralPrinter {
+    private val ComposeColor: KotlinSymbol = KotlinSymbol("androidx.compose.ui.graphics", "Color")
+    private val DpUnit: KotlinSymbol = KotlinSymbol("androidx.compose.ui.unit", "dp")
+    private val SpUnit: KotlinSymbol = KotlinSymbol("androidx.compose.ui.unit", "sp")
+    private val MaterialTheme: KotlinSymbol =
+        KotlinSymbol("androidx.compose.material3", "MaterialTheme")
+    private val ComposeTextStyle: KotlinSymbol = KotlinSymbol("androidx.compose.ui.text", "TextStyle")
+    private val HexDigits: String = "0123456789ABCDEF"
+
+    /**
+     * The name prefix and the `MaterialTheme` group each kind's `md.` names reach, §14.1's
+     * `md.color.primary` on the left and §9.2's `MaterialTheme.colorScheme.primary` on the
+     * right.
+     *
+     * `TokenKind.Dimension` is **absent**, and that is the answer rather than a gap: Material 3
+     * publishes no spacing scale under `MaterialTheme`, so a dimension token resolves through the
+     * document's own `dimensions` map and a `md.dimension.*` name is refused instead of being
+     * written out as a member that does not exist.
+     */
+    private val MaterialGroups: Map<TokenKind, Pair<String, String>> = mapOf(
+        TokenKind.Color to ("color" to "colorScheme"),
+        TokenKind.Typography to ("typography" to "typography"),
+        TokenKind.Shape to ("shape" to "shapes"),
+    )
+
+    private val MaterialPrefix: String = "md."
+
+    /**
+     * The plain default, spelled as the runtime spells it: `DefaultThemeHandle.textStyle`
+     * answers `TextStyle.Default` for every typography reading whose own role it cannot build,
+     * and the generated file names that member rather than paraphrasing it.
+     */
+    private val DefaultTextStyle: EmittedLiteral =
+        EmittedLiteral("TextStyle.Default", listOf(ComposeTextStyle))
+
+    /**
+     * The typography roles Material 3 publishes.
+     *
+     * Checked here because `MaterialTheme.typography` is the one token group the runtime reads
+     * back (§14.2's runtime row), so a role this set omits is one the two backends disagree
+     * about — and §16.2 asks for a located finding rather than a red build in the consumer's
+     * tree. Colour and shape roles are written through unchecked, and the reason is a limit
+     * rather than a preference: no property in the engine takes a colour or a shape token, so
+     * nothing on this side can yet be wrong about them.
+     *
+     * The runtime's own copy of this vocabulary is `DefaultThemeHandle.materialTextStyle`, which
+     * is a `when` over the same fifteen members because Kotlin has no member-by-name lookup. The
+     * two are a pair, and the conformance fixture is what holds them together.
+     */
+    private val MaterialTextRoles: Set<String> = setOf(
+        "displayLarge", "displayMedium", "displaySmall",
+        "headlineLarge", "headlineMedium", "headlineSmall",
+        "titleLarge", "titleMedium", "titleSmall",
+        "bodyLarge", "bodyMedium", "bodySmall",
+        "labelLarge", "labelMedium", "labelSmall",
+    )
+
+    /**
+     * [value] as Kotlin text, or null where the skeleton has no valid spelling.
+     *
+     * [token] and [theme] are the provenance pass 7 decided and the theme a document-owned value
+     * is read out of. Both are nullable because three of the four call sites have no
+     * `ResolvedProp` to carry them — an action argument, a state initializer and a constant
+     * inside a computed expression reach this printer with nothing but the value — and a token
+     * arriving there is **refused**, never assumed to be Material's. §16.2's rule is the reason:
+     * a generated file naming a `MaterialTheme` member that does not exist is a compile error in
+     * the consumer's tree, and a caller that cannot say where a token came from cannot say
+     * whether it is there.
+     */
+    fun emit(value: Value, token: ResolvedToken? = null, theme: ThemeDecl? = null): EmittedLiteral? {
+        val emitted: EmittedLiteral? = when (value) {
+            is Value.Null -> EmittedLiteral("null", emptyList())
+            is Value.Bool -> EmittedLiteral(if (value.v) "true" else "false", emptyList())
+            is Value.Int32 -> EmittedLiteral(value.v.toString(), emptyList())
+            is Value.Int64 -> EmittedLiteral(value.v.toString() + "L", emptyList())
+            is Value.Float32 -> EmittedLiteral(floatText(value.v.toDouble()) + "f", emptyList())
+            is Value.Float64 -> EmittedLiteral(floatText(value.v), emptyList())
+            is Value.Str -> EmittedLiteral("\"" + escape(value.v) + "\"", emptyList())
+            is Value.Url -> EmittedLiteral("\"" + escape(value.v) + "\"", emptyList())
+            is Value.Color -> EmittedLiteral(
+                "Color(0x" + value.argb.toHexString().substring(1) + ")",
+                listOf(ComposeColor),
+            )
+            is Value.Dp -> EmittedLiteral(floatText(value.v.toDouble()) + ".dp", listOf(DpUnit))
+            is Value.Sp -> EmittedLiteral(floatText(value.v.toDouble()) + ".sp", listOf(SpUnit))
+            // An enum entry spells itself through the symbol its `EnumTypeSpec` declares, and
+            // this printer is given nothing but the value, so the generator answers those.
+            is Value.Enum -> null
+            is Value.Token -> tokenOf(token, theme)
+            is Value.Ref -> null
+            is Value.Icon -> null
+            is Value.ListOf -> null
+            is Value.Obj -> null
+            is Value.MapOf -> null
+        }
+        return emitted
+    }
+
+    // §9.2's codegen column, read against the provenance analysis already decided: Material's
+    // own token is a member off the matching group, and the document's is the value its theme
+    // wrote down.
+    private fun tokenOf(token: ResolvedToken?, theme: ThemeDecl?): EmittedLiteral? {
+        if (token == null) return null
+        return when (token.source) {
+            TokenSource.Material -> materialToken(token)
+            TokenSource.Custom -> customToken(token, theme)
+        }
+    }
+
+    // `md.typography.bodyLarge` → `MaterialTheme.typography.bodyLarge`. The `md.<kind>.` prefix
+    // is the document's spelling of "Material's" and is not part of the member name, so a token
+    // whose name is not shaped like one is refused rather than pasted into the group — except
+    // on a typography-typed property, where the runtime answers the same name with the plain
+    // default instead of refusing, and the member-or-default pair below keeps the two backends
+    // reading the same name the same way.
+    private fun materialToken(token: ResolvedToken): EmittedLiteral? {
+        val addressed: Pair<String, String> = MaterialGroups[token.kind] ?: return null
+        val role: String = materialRole(token, addressed.first) ?: return typographyDefault(token.kind)
+        if (token.kind == TokenKind.Typography && role !in MaterialTextRoles) {
+            return typographyDefault(token.kind)
+        }
+        return EmittedLiteral(
+            "MaterialTheme." + addressed.second + "." + role,
+            listOf(MaterialTheme),
+        )
+    }
+
+    /**
+     * What a typography miss on a `md.*` name is instead of a refusal: the plain default.
+     *
+     * A second segment that is not the kind's own (`md.color.primary` read as a typography
+     * role) and a role Material does not publish both return null from the role arithmetic —
+     * but on the runtime side a null is never the end of the lookup: `materialRoleOf` and
+     * `materialTextStyle` both answer null to their callers, and the caller draws
+     * `TextStyle.Default` for that null. The row the runtime renders is therefore the default
+     * whatever the name was, and generated code spells the value rendered rather than refusing
+     * the spelling of a screen that runs anyway. The default is typography's answer
+     * alone: colour and shape keep refusing, for a reason the `customToken` KDoc names.
+     */
+    private fun typographyDefault(kind: TokenKind): EmittedLiteral? =
+        if (kind == TokenKind.Typography) DefaultTextStyle else null
+
+    /**
+     * The typography answer for a name the theme's role map does not declare: the runtime's own
+     * next step, taken in the same order.
+     *
+     * `DefaultThemeHandle.textStyle` is map-first and then Material: after the map misses it
+     * hands the name to `materialRoleOf`/`materialTextStyle`, which answers a member for a role
+     * Material publishes and null for everything else — and the null lands on the plain
+     * default. [materialToken] writes that member and returns null on the same misses, so the
+     * fallthrough is one call with the default as its fallback, and the two backends keep
+     * drawing the same style from the same name without a single new fact.
+     */
+    private fun textStyleFallthrough(token: ResolvedToken): EmittedLiteral =
+        materialToken(token) ?: DefaultTextStyle
+
+    private fun materialRole(token: ResolvedToken, segment: String): String? {
+        if (!token.name.startsWith(MaterialPrefix)) return null
+        val body: String = token.name.removePrefix(MaterialPrefix)
+        val separator: Int = body.indexOf('.')
+        if (separator <= 0 || separator == body.length - 1) return null
+        if (body.substring(0, separator) != segment) return null
+        return body.substring(separator + 1)
+    }
+
+    /**
+     * The document's own token, as the value its theme declares — inlined rather than looked up.
+     *
+     * §32 names a generated `AppTokens` object as the means; the acceptance is that a token
+     * resolves *identically* on both backends, and a literal satisfies that structurally, because
+     * there is no lookup here for the runtime's answer to drift from. Generating an object would
+     * give the runtime something to look up and create the one place the two could drift — the
+     * failure the conformance suite exists to catch, paid for once.
+     *
+     * A typography token is answered by *name*, in the order the runtime answers the same
+     * question — the compose runtime's `DefaultThemeHandle.textStyle` looks the role map up
+     * first, then asks `materialRoleOf` for a `md.<kind>.<role>` Material member, and draws the
+     * plain default when neither answers — so a role inside the map reads [textStyle]'s
+     * literal of exactly what `textStyleOf` would build, a name the map does not declare reads
+     * [textStyleFallthrough], and those are the whole of the typography readings the runtime
+     * has. The kind is decided by the *property* a token sits on, never by the name —
+     * `themeKnows` accepts a name declared under any of the theme's five maps, so
+     * `gen.primary` can lawfully sit on a typography-typed property and reads as the default.
+     *
+     * A theme's `colors` and `shapes` maps refuse, and the reasons are the same kind of fact:
+     * a colour role is a light/dark pair and codegen cannot see which one is in force, and a
+     * shape role is an open map with no agreed key set. Neither has a literal to write, so
+     * neither gets a guessed one — and the refusal's message names that boundary, because the
+     * gap it names is a design the engine has not built (`ThemeHandle` answers text styles
+     * only), not a value this printer dropped.
+     */
+    private fun customToken(token: ResolvedToken, theme: ThemeDecl?): EmittedLiteral? {
+        val declared: ThemeDecl = theme ?: return null
+        if (token.kind == TokenKind.Typography) {
+            val role: TextStyleSpec = declared.typography.entries
+                .firstOrNull { it.key.value == token.name }?.value
+                ?: return textStyleFallthrough(token)
+            return textStyle(role)
+        }
+        // The spacing scale is a dimension token's home and the brand map is every kind's, in
+        // that order: `ThemeDecl.dimensions` is the one place §14.1 says a scale lives, and a
+        // `custom` entry may hold a `Dp` under a name a document chose.
+        val scale: Value? = if (token.kind == TokenKind.Dimension) {
+            named(declared.dimensions, token.name)
+        } else {
+            null
+        }
+        return literalFor(token, scale ?: named(declared.custom, token.name))
+    }
+
+    /**
+     * The value [name] addresses in [scale], or null.
+     *
+     * An entry walk rather than a subscript because the key is a `TokenName` — a value class
+     * whose constructor rejects a blank name — and a token name is a bare `String` a document
+     * wrote. Subscripting would throw on the one name that is not there.
+     */
+    private fun <V> named(scale: Map<TokenName, V>, name: String): V? =
+        scale.entries.firstOrNull { it.key.value == name }?.value
+
+    /**
+     * A brand value has to be of the kind the token says it is.
+     *
+     * Nothing upstream checks it — `ThemeDecl.custom` is a `Map<TokenName, Value>` and a document
+     * can write any variant under any name — and a `str` inlined where a colour belongs is code
+     * that does not compile. Typography and shape have no `Value` at all: a `TextStyle` is
+     * composed and a shape is a corner set, which is why the typography arm above reads the role
+     * map instead and why a shape token has nothing to inline.
+     */
+    private fun literalFor(token: ResolvedToken, value: Value?): EmittedLiteral? {
+        if (token.kind == TokenKind.Color && value is Value.Color) return emit(value)
+        if (token.kind == TokenKind.Dimension && value is Value.Dp) return emit(value)
+        return null
+    }
+
+    // `TextStyle(fontSize = 28.0.sp, color = Color(0xFF00695C))`: the theme's own entry, written
+    // out rather than looked up, so the runtime can build the same style from the same numbers.
+    // Sorted for determinism, and sifted through the same four keys the runtime's `textStyleOf`
+    // reads — `fontSize`, `lineHeight`, `letterSpacing` and `color`. Two facts have the same
+    // miss there: a key outside those four, and one of the four whose value is not the kind
+    // its key names. Both land on `?: TextStyle.Default` in `DefaultThemeHandle.textStyle`, and
+    // the screen runs — so the printed answer is the value drawn, [DefaultTextStyle], rather
+    // than a refusal of the spelling. A key of the four left out is a different fact, and an
+    // unspecified argument is what an absent one is, so the call writes only present keys.
+    private fun textStyle(spec: TextStyleSpec): EmittedLiteral {
+        val arguments = mutableListOf<String>()
+        val symbols = mutableListOf<KotlinSymbol>()
+        for (entry in spec.entries.sortedBy { it.key.value }) {
+            val emitted: EmittedLiteral = styleValue(entry.key, entry.value) ?: return DefaultTextStyle
+            arguments += entry.key.value + " = " + emitted.text
+            symbols += emitted.symbols
+        }
+        if (arguments.isEmpty()) return DefaultTextStyle
+        return EmittedLiteral(
+            "TextStyle(" + arguments.joinToString(", ") + ")",
+            listOf(ComposeTextStyle) + symbols,
+        )
+    }
+
+    private fun styleValue(key: PropertyKey, value: Value): EmittedLiteral? = when (key.value) {
+        "fontSize", "lineHeight", "letterSpacing" -> if (value is Value.Sp) emit(value) else null
+        "color" -> if (value is Value.Color) emit(value) else null
+        else -> null
+    }
+
+    /**
+     * A `Double` written the way §5.4 writes it.
+     *
+     * **Not `value.toString()`.** That is the one call §10.6's hazard row exists about, and the
+     * old version of this function called it — while its own comment claimed canonical magnitudes
+     * never print in scientific notation, which `Double.toString()` has done since forever:
+     * it switches below `1e-3`. `Value.Dp(0.0001f)` is a legal document value and was emitting
+     * `1.0E-4.dp` — a `Double` literal, where `.dp` is declared on `Float` and `Int`, so the
+     * generated file did not compile in the consumer's tree. `Value.Dp(0.1f)` emitted
+     * `0.10000000149011612.dp`: equal in value, non-canonical, and the widened spelling §18
+     * refuses to write.
+     *
+     * [fixedDecimalText] is public where [dev.rotalex.lutter.model.value.canonicalText] is
+     * `internal`, and it is total where `canonicalText` refuses a value it cannot scale — which is
+     * what a formatter emitting a literal needs. It answers a width the caller asked for rather
+     * than trimming to the last non-zero digit, so the trim is done here, exactly as
+     * `CanonicalNumbers.textOf` does it: at [MAX_FRACTIONAL_DIGITS] places, then trailing zeros
+     * cut, then a bare integer given back its `.0` so it is still a floating-point literal.
+     */
+    private fun floatText(value: Double): String {
+        val text: String = fixedDecimalText(value, MAX_FRACTIONAL_DIGITS).trimEnd('0').trimEnd('.')
+        return if ('.' in text) text else text + ".0"
+    }
+
+    // Kotlin escaping: quotes, backslashes, control chars and `$` (template Marker).
+    internal fun escape(text: String): String = buildString {
+        for (char in text) {
+            if (char == '"') append("\\\"")
+            else if (char == '\\') append("\\\\")
+            else if (char == '\n') append("\\n")
+            else if (char == '\r') append("\\r")
+            else if (char == '\t') append("\\t")
+            else if (char == '$') append("\\$")
+            else if (char < ' ') appendUnicode(char)
+            else append(char)
+        }
+    }
+
+    private fun StringBuilder.appendUnicode(char: Char): Unit {
+        val code: Int = char.code
+        append("\\u")
+        append(HexDigits[(code ushr 12) and 0xF])
+        append(HexDigits[(code ushr 8) and 0xF])
+        append(HexDigits[(code ushr 4) and 0xF])
+        append(HexDigits[code and 0xF])
+    }
+}

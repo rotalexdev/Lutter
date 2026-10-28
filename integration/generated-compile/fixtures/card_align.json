@@ -1,0 +1,43 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "CardAlign"},
+    "nodes": {
+      "n_body": {
+        "id": "n_body",
+        "modifiers": [
+          {
+            "type": "layout.align",
+            "args": {"alignment": {"type": "const", "value": {"type": "enum", "entry": "Center"}}}
+          }
+        ],
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Card body"}}},
+        "type": "m3.Text"
+      },
+      "n_card": {
+        "id": "n_card",
+        "slots": {"content": ["n_body"]},
+        "type": "m3.Card"
+      },
+      "n_root": {
+        "id": "n_root",
+        "modifiers": [
+          {"type": "layout.fillMaxWidth"},
+          {
+            "type": "layout.padding",
+            "args": {"all": {"type": "const", "value": {"type": "dp", "v": 12}}}
+          }
+        ],
+        "slots": {"children": ["n_card"]},
+        "type": "core.Column"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

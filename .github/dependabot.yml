@@ -1,0 +1,18 @@
+# Dependabot is scoped to the GitHub Actions this repository owns.
+#
+# It does not and cannot manage the Gradle dependency versions: those live in the shared
+# catalog, io.github.alexanderrotela20.catalog, and a version bump here would be a second
+# place to change something that has exactly one home. Dependabot cannot see inside a Maven
+# artifact, so leaving it on `gradle` here would only produce PRs that fight the catalog.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "build(deps)"
+    groups:
+      actions:
+        patterns: ["*"]

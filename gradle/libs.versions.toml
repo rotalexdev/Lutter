@@ -1,0 +1,48 @@
+# NOT a project catalog.
+#
+# This project takes every version from the shared, org-wide catalog published at
+# io.github.alexanderrotela20.catalog:version-catalog, consumed in settings.gradle.kts as
+# `rootLibs`. This file exists only to carry the coordinates that catalog does not have yet,
+# and it exists to be deleted.
+#
+# Nothing here may duplicate a version that `rootLibs` already owns: Kotlin, AGP, Compose
+# Multiplatform, kotlinx-serialization, kotlinx-coroutines and the Android SDK levels all
+# belong to the shared catalog, and a second copy of any of them is a second thing to forget
+# to update.
+#
+# Add the entries below to the shared catalog and delete this file. Until then, keep it
+# to the smallest possible gap.
+
+[versions]
+# Test-only, absent from rootLibs 1.2.7, and covered by the upstream pull request that
+# will retire this file.
+junit = "5.14.0"
+
+# The Android host UI-test stack for PLAN §36.1 bullet 7 (`RuntimeSemanticsTest`), absent from
+# rootLibs 1.2.7. Robolectric boots an Android runtime for the unit runner without a device.
+# The compose test version is the one the Compose Multiplatform android artifacts themselves
+# resolve to (`org.jetbrains.compose.ui:ui` 1.11.1's android variant depends on
+# `androidx.compose.ui:ui` 1.11.2), so the runtime and the test rule see exactly one compose
+# version rather than the BOM's answer to a different release line.
+androidx-compose = "1.11.2"
+robolectric = "4.17"
+
+[libraries]
+junit-jupiter = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+androidx-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "androidx-compose" }
+# `RuntimeSemanticsTest` composes under Robolectric, and the test rule launches the
+# `TestActivity` this manifest-only artifact registers. `ui-test-junit4` needs it to exist but
+# does not carry it, so declaring it is required, not redundant.
+androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "androidx-compose" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+# `NodeTable`'s backing persistent map, PLAN §33.1. The version is on the library line rather
+# than in `[versions]` only because a `version.ref` here does not fit in 120 columns.
+#
+# PLAN §33.1:2405 says this version must come from `rootLibs`; catalog 1.2.7 carries no such
+# entry, so that requirement cannot be met and this file — whose stated purpose is
+# "coordinates that catalog does not have yet" — is where it goes meanwhile. The *coordinate*
+# is the thing that must not drift, and it is spelled the shared catalog's way.
+kotlinx-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version = "0.5.2" }

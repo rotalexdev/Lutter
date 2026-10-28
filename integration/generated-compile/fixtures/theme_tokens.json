@@ -1,0 +1,59 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "ThemeTokens"},
+    "themes": {
+      "t_brand": {
+        "id": "t_brand",
+        "name": "Brand",
+        "typography": {
+          "md.typography.labelLarge": {"fontSize": {"type": "sp", "v": 30}},
+          "caption": {"fontSize": {"type": "sp", "v": 12}}
+        }
+      }
+    },
+    "theme": "t_brand",
+    "nodes": {
+      "n_root": {
+        "id": "n_root",
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 8}}},
+        "slots": {"children": ["n_heading", "n_shadowed", "n_own"]},
+        "type": "core.Column"
+      },
+      "n_heading": {
+        "id": "n_heading",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Tokens"}}},
+        "type": "m3.Text"
+      },
+      "n_shadowed": {
+        "id": "n_shadowed",
+        "props": {
+          "text": {"type": "const", "value": {"type": "str", "v": "Shadowed"}},
+          "style": {
+            "type": "const",
+            "value": {"type": "token", "kind": "typography", "name": "md.typography.labelLarge"}
+          }
+        },
+        "type": "m3.Text"
+      },
+      "n_own": {
+        "id": "n_own",
+        "props": {
+          "text": {"type": "const", "value": {"type": "str", "v": "Brand caption"}},
+          "style": {
+            "type": "const",
+            "value": {"type": "token", "kind": "typography", "name": "caption"}
+          }
+        },
+        "type": "m3.Text"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

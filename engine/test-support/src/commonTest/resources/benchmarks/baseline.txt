@@ -1,0 +1,37 @@
+# Forge benchmark baseline — PLAN §29's five rows, on a document of at least 10000 nodes.
+#
+# No timings are recorded here, and that is a deliberate state rather than an oversight.
+# A wall-clock number is a fact about the machine that recorded it: a CI runner is shared,
+# throttled and virtualized, and one that is busy today and idle tomorrow will fail an
+# absolute threshold on the first and pass on the second. A baseline that behaves that way
+# is not a regression detector, it is a coin toss with a stack trace.
+#
+# So the workload keys below — which are facts about the code, not about any machine — are
+# the part that is asserted, by LargeDocumentTest, against what the composer actually
+# builds. The baselineNs keys are the machine's half. They are compared only as a ratio
+# against another run of the same workload on the same machine, never against §29's
+# millisecond targets, which are stated here for reference and as the plan's own claim.
+#
+# They are all zero because this work unit had no machine to measure on. A fabricated
+# millisecond would be worse than a missing one: the nightly alert W7 builds on this would
+# then compare against numbers that were never taken.
+#
+# To record: run the harness with -Dforge.benchmark=record and paste what it prints.
+#
+forge-benchmark-baseline 1
+baseSeed 1
+targetNodes 10000
+nodeIdPrefix bench_n_
+pageIdPrefix bench_p
+basePackage com.example.benchmark
+machine unrecorded
+decode.targetMs 250
+decode.baselineNs 0
+encode.targetMs 200
+encode.baselineNs 0
+analyze.targetMs 200
+analyze.baselineNs 0
+codegen.targetMs 300
+codegen.baselineNs 0
+command.targetMs 15
+command.baselineNs 0

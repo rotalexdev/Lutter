@@ -1,0 +1,156 @@
+package dev.rotalex.lutter.codegen
+
+import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.schema.SchemaView
+import dev.rotalex.lutter.schema.action.ActionEmit
+import dev.rotalex.lutter.schema.action.ActionSpec
+import dev.rotalex.lutter.schema.component.CodegenBinding
+import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.component.SpecOrigin
+import dev.rotalex.lutter.schema.component.ValueEmit
+import dev.rotalex.lutter.schema.modifier.ModifierSpec
+
+/**
+ * The §4.5 fail-fast for generation: every spec emits, or construction refuses.
+ *
+ * Each refusal mirrors a generator diagnostic lifted to build time, so a gap
+ * fails when the generator is created rather than when a document arrives.
+ */
+public object CodegenCoverage {
+    /** Every component in [schema] must emit through [extensions]; otherwise throws. */
+    public fun check(
+        schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
+        extensions: CodegenExtensions = CodegenExtensions.None,
+    ): Unit {
+        val missing = schema.components.all().mapNotNull { spec -> problem(spec, extensions) } +
+            actionProblems(schema)
+        if (missing.isNotEmpty()) {
+            throw IllegalStateException(
+                "Codegen has no binding for " + missing.joinToString { "'${it.first}': ${it.second}" },
+            )
+        }
+    }
+
+    /**
+     * An action that claims engine-owned emission must find an emitter for its id.
+     *
+     * The same lift to build time the component rules make, over the one gap they cannot: the
+     * generator throws for an intrinsic action nothing emits, so a schema carrying one would fail
+     * on its first document instead of on its construction.
+     */
+    private fun actionProblems(schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>): List<Pair<String, String>> {
+        val missing = mutableListOf<Pair<String, String>>()
+        for (registered in schema.actions.all()) {
+            // An assembly binding a stub in the actions slot has no spec to read, and the action
+            // pass already reports a step such a schema cannot describe as an unknown action.
+            val spec = registered as? ActionSpec ?: continue
+            if (spec.emit !is ActionEmit.Intrinsic) continue
+            if (IntrinsicActions.kindOf(spec.id) != null) continue
+            missing += spec.id.value to "emits nothing yet"
+        }
+        return missing
+    }
+
+    private fun problem(
+        spec: ComponentSpec,
+        extensions: CodegenExtensions,
+    ): Pair<String, String>? {
+        val binding = spec.codegen
+        if (binding is CodegenBinding.ComposeCall) {
+            val reason = callProblem(spec, binding) ?: return null
+            return spec.type.value to reason
+        }
+        if (binding is CodegenBinding.Custom) {
+            if (extensions.emitters.containsKey(binding.emitterId)) return null
+            return spec.type.value to "custom emitter '${binding.emitterId}' is not registered"
+        }
+        val reason = intrinsicProblem(spec) ?: return null
+        return spec.type.value to reason
+    }
+
+    // The engine-owned path reads a node's properties and the synthesis around it; a slot or an
+    // event on the spec is one that path has nowhere to put, so it fails rather than vanishes.
+    //
+    // A `doc.*` spec is the one exemption, and it is an exemption rather than a gap: an instance's
+    // params and slots are emitted — passed at the call site, declared on the function — so the
+    // rule below would refuse the very shape the document path depends on. It is keyed on
+    // [SpecOrigin] rather than on the `doc.` spelling because that is the field that says the spec
+    // was synthesized, and the two would otherwise be two answers to one question.
+    //
+    // `core.SlotOutlet` is **not** exempt: its emitter writes a call to a slot parameter and
+    // nothing else, so a slot or an event added to that spec would still have nowhere to go. It
+    // passes today because it declares neither, which is the correct reason.
+    private fun intrinsicProblem(spec: ComponentSpec): String? {
+        if (spec.origin is SpecOrigin.Document) return null
+        spec.slots.firstOrNull()?.let { return "slot '${it.name.value}' emits nothing yet" }
+        spec.events.firstOrNull()?.let { return "event '${it.key.value}' emits nothing yet" }
+        return null
+    }
+
+    // One reason per spec: the first gap is the fix, the rest is the same fix repeated.
+    private fun callProblem(spec: ComponentSpec, binding: CodegenBinding.ComposeCall): String? {
+        for (param in binding.params) {
+            paramProblem(spec, param.param, param.from)?.let { return it }
+            val cases = param.emit as? ValueEmit.Cases ?: continue
+            if (cases.cases.isEmpty()) return "param '${param.param}' has no emission case"
+            for (cased in cases.cases) {
+                for (key in cased.whenPresent) {
+                    if (spec.properties.none { it.key == key }) {
+                        return "param '${param.param}' matches on undeclared '${key.value}'"
+                    }
+                }
+                patternProblem(spec, param.param, cased.pattern)?.let { return it }
+            }
+        }
+        for (slot in binding.slots) {
+            if (spec.slots.none { it.name == slot.slot }) {
+                return "slot '${slot.slot}' is not declared"
+            }
+            if (slot.receiver != null) return "scoped slots emit nothing yet"
+        }
+        // The same rule as a slot: a parameter fed by an event the spec does not raise is written
+        // into a call whose signature nothing in this repository declares.
+        for (event in binding.events) {
+            if (spec.events.none { it.key == event.event }) {
+                return "event '${event.event}' is not declared"
+            }
+        }
+        return null
+    }
+
+    private fun paramProblem(
+        spec: ComponentSpec,
+        param: String,
+        from: List<PropertyKey>,
+    ): String? {
+        if (from.isEmpty()) return "param '$param' binds no property"
+        for (key in from) {
+            if (spec.properties.none { it.key == key }) {
+                return "param '$param' reads undeclared '${key.value}'"
+            }
+        }
+        return null
+    }
+
+    // Same `{key}` scan as the generator: an unclosed brace is text, not a key.
+    private fun patternProblem(spec: ComponentSpec, param: String, pattern: String): String? {
+        var index = 0
+        while (index < pattern.length) {
+            val open = pattern.indexOf('{', index)
+            if (open < 0) return null
+            val close = pattern.indexOf('}', open)
+            if (close < 0) return null
+            val raw = pattern.substring(open + 1, close)
+            val key = try {
+                PropertyKey(raw)
+            } catch (_: IllegalArgumentException) {
+                return "param '$param' has a bad pattern key '{$raw}'"
+            }
+            if (spec.properties.none { it.key == key }) {
+                return "param '$param' fills undeclared '{$raw}'"
+            }
+            index = close + 1
+        }
+        return null
+    }
+}

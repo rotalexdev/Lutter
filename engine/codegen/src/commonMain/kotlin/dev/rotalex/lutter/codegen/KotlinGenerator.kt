@@ -1,0 +1,1518 @@
+package dev.rotalex.lutter.codegen
+
+import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCodes
+import dev.rotalex.lutter.analysis.resolved.PropOrigin
+import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
+import dev.rotalex.lutter.analysis.resolved.ResolvedModifier
+import dev.rotalex.lutter.analysis.resolved.ResolvedNode
+import dev.rotalex.lutter.analysis.resolved.ResolvedPage
+import dev.rotalex.lutter.analysis.resolved.ResolvedProp
+import dev.rotalex.lutter.analysis.resolved.ResolvedState
+import dev.rotalex.lutter.analysis.resolved.ResolvedToken
+import dev.rotalex.lutter.model.action.ActionSequence
+import dev.rotalex.lutter.model.diagnostic.Diagnostic
+import dev.rotalex.lutter.model.diagnostic.DiagnosticCode
+import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
+import dev.rotalex.lutter.model.diagnostic.Severity
+import dev.rotalex.lutter.model.doc.HostFunctionDecl
+import dev.rotalex.lutter.model.doc.ThemeDecl
+import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.expr.TypedExpr
+import dev.rotalex.lutter.model.ids.ComponentDeclId
+import dev.rotalex.lutter.model.ids.NodeId
+import dev.rotalex.lutter.model.ids.PageId
+import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.SlotName
+import dev.rotalex.lutter.model.ids.StateId
+import dev.rotalex.lutter.model.ids.TypeId
+import dev.rotalex.lutter.model.type.TokenKind
+import dev.rotalex.lutter.model.type.TypeRef
+import dev.rotalex.lutter.model.value.Value
+import dev.rotalex.lutter.schema.SchemaView
+import dev.rotalex.lutter.schema.component.CodegenBinding
+import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.component.EmitterId
+import dev.rotalex.lutter.schema.component.EmitCase
+import dev.rotalex.lutter.schema.component.EventBinding
+import dev.rotalex.lutter.schema.component.KotlinSymbol
+import dev.rotalex.lutter.schema.component.LambdaTarget
+import dev.rotalex.lutter.schema.component.ParamBinding
+import dev.rotalex.lutter.schema.component.Positional
+import dev.rotalex.lutter.schema.component.PropertySpec
+import dev.rotalex.lutter.schema.component.ScopeId
+import dev.rotalex.lutter.schema.component.SlotBinding
+import dev.rotalex.lutter.schema.component.ValueEmit
+import dev.rotalex.lutter.schema.function.FunctionSpec
+import dev.rotalex.lutter.schema.modifier.ModifierSpec
+import dev.rotalex.lutter.schema.overlay.documentDeclIdOf
+import dev.rotalex.lutter.schema.types.EnumEntrySpec
+import dev.rotalex.lutter.schema.types.EnumTypeSpec
+
+/** Plugin-owned emission, consulted only for `Custom` bindings. */
+public fun interface CustomEmitter {
+    public fun emit(node: ResolvedNode): KtExpr
+}
+
+/** Override table for `Custom` bindings; empty means none are provided. */
+public class CodegenExtensions(public val emitters: Map<EmitterId, CustomEmitter>) {
+    public companion object {
+        /** No overrides: every `Custom` binding fails as `codegen.no_binding`. */
+        public val None: CodegenExtensions = CodegenExtensions(emptyMap())
+    }
+}
+
+/**
+ * Resolved documents to Kotlin, driven by `CodegenBinding` data, never per-type code.
+ *
+ * Refuses error-carrying input and unemittable documents with diagnostics, not exceptions;
+ * a thrown [CodegenBug] always means the generator or a spec is wrong, never the document.
+ *
+ * The function registry is [FunctionSpec] rather than a type parameter: `schema.functions` is
+ * how an expression call resolves, so a generator bound to anything else could not emit one.
+ */
+private const val ESCAPED_OPEN: String = "\uE050"
+private const val ESCAPED_CLOSE: String = "\uE051"
+
+public class KotlinGenerator<A : Any, T : Any>(
+    private val schema: SchemaView<ComponentSpec, ModifierSpec, A, FunctionSpec, T>,
+    private val options: CodegenOptions,
+    private val extensions: CodegenExtensions = CodegenExtensions.None,
+) {
+    private val composable: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "Composable")
+    private val modifierType: KotlinSymbol = KotlinSymbol("androidx.compose.ui", "Modifier")
+    private val printer: KtPrinter = KtPrinter(ImportPolicy(), options.formatting)
+    // Per-run scratch, cleared on entry: the recursion below shares one collector.
+    private val diagnostics: MutableList<Diagnostic> = mutableListOf()
+    // §12.2's seam: one emitter per document, built on entry and rebuilt per run so a second
+    // `generate` over another document cannot read the first one's declarations.
+    private var state: StateEmitter? = null
+    // The screen-site [StateRead], built per run beside [state]. A state class member builds its
+    // own reader over its siblings, because `state.count` inside one compiles and reads nothing.
+    private var expressions: ExprEmitter? = null
+    // Per-run beside the two above. Reads the generator's own diagnostics list, so a refused step
+    // is the finding and not a second one beside it.
+    private var actions: ActionEmitter? = null
+    // The document's selected theme, per run beside the three above. Carried rather than reached
+    // for from a [ResolvedToken], because provenance says *whose* a token is and not what it is
+    // worth: a document-owned token is a name until someone reads the value out of the theme that
+    // declared it, and this is the only thing in the generator holding one. One generator serves
+    // many documents, so a theme left over from the previous run would be another document's
+    // brand map.
+    private var theme: ThemeDecl? = null
+    // §8.4's specs, carried on the resolved document rather than read from this generator's own
+    // schema: a `doc.*` type is per-document by construction, so the static registry never holds
+    // one. Set per run beside the three above, for the same reason — one generator serves many
+    // documents and a component of the previous one is not a component of this one.
+    private var componentSpecs: Map<ComponentDeclId, ComponentSpec> = emptyMap()
+    // What each emitted component function asks of its caller, filled in as the component files
+    // are written and read at every instantiation site. A call has to know the callee's signature
+    // before it is written, which is why `generate` orders component files ahead of their callers.
+    private val componentReceivers: MutableMap<ComponentDeclId, List<ActionReceiver>> = mutableMapOf()
+
+    private val rememberCoroutineScope: KotlinSymbol =
+        KotlinSymbol("androidx.compose.runtime", "rememberCoroutineScope")
+
+    // Fail fast on missing bindings, like UiRuntime does on missing renderers.
+    init {
+        CodegenCoverage.check(schema, extensions)
+    }
+
+    /** Generates [document]; empty files plus errors is the refusal, never partial output. */
+    public fun generate(document: ResolvedDocument, incoming: List<Diagnostic> = emptyList()): CodegenResult {
+        if (incoming.any { it.severity == Severity.Error }) {
+            return CodegenResult(GeneratedFiles(emptyList()), incoming)
+        }
+        diagnostics.clear()
+        screenReceivers.clear()
+        componentReceivers.clear()
+        appStateHoist = null
+        componentSpecs = document.componentSpecs
+        theme = document.theme.theme
+        // Before the plan and before any emitter: §16.7 asks for a located finding rather than a
+        // red compile harness, and the reserved set is the one thing a document cannot know.
+        diagnostics += ReservedCodegenNames.findings(document, options)
+        state = StateEmitter(document, options, schema.functions)
+        val reader: ExprEmitter = ExprEmitter(schema.functions, StateRead { id -> state?.readInScreen(id) })
+        expressions = reader
+        // An argument's reads go through their own reader, because every statement [ActionEmitter]
+        // emits lands inside a lambda — the event lambda the caller builds, or its `launched(…)`
+        // wrapper — and only an app-scope read spells differently there. [reader]'s spelling is
+        // right for the composable positions the same document's properties are emitted into, so
+        // the two readers differ in their [StateRead] alone.
+        actions = ActionEmitter(
+            schema.actions,
+            ExprEmitter(schema.functions, StateRead { id -> lambdaBoundStateRead(id) }),
+            document.pages,
+            HostDecl { name -> document.hostFunctions.firstOrNull { it.name == name } },
+            options,
+            diagnostics,
+        )
+        val plan: GenPlan = planDocument(document, options.basePackage)
+        refuseCollisions(plan)
+        val files: MutableList<GeneratedFile> = mutableListOf()
+        if (diagnostics.none { it.severity == Severity.Error }) {
+            // Three passes over one plan, because emission order is a dependency order and not a
+            // presentation order. Components go first: an instantiation site has to know the
+            // component function's declared params and the environment receivers its handlers
+            // reached for, and neither is known until that function has been written.
+            // [componentOrder] puts a component after every component it instantiates, so a
+            // component calling a component resolves the same way. `App.kt` is planned first but
+            // calls every screen, so it is emitted last, for the same reason one level up.
+            // The output order stays the plan's, so nothing downstream sees a different file list.
+            val order: List<ComponentDeclId>? = componentOrder(document)
+            val written: MutableMap<String, GeneratedFile> = LinkedHashMap()
+            val components: List<PlannedFile> = order.orEmpty()
+                .mapNotNull { id -> plan.files.firstOrNull { it.componentId == id } }
+            // Components first, in the order [componentOrder] gives: `componentReceivers` is
+            // filled when a component is written and read when an instantiation site is written,
+            // so a screen emitted before its callee reads an empty map and silently emits a call
+            // that passes nothing for a receiver the callee declares. The comment above this
+            // block said "components go first" while the loops said the other way round, and the
+            // symptom is a screen missing a parameter rather than a refusal.
+            for (planned in components) emitPlanned(planned, document)?.let { written[it.path] = it }
+            for (planned in plan.files) {
+                if (planned.kind == PlannedFileKind.App || planned in components) continue
+                emitPlanned(planned, document)?.let { written[it.path] = it }
+            }
+            for (planned in plan.files) {
+                if (planned.kind != PlannedFileKind.App) continue
+                emitPlanned(planned, document)?.let { written[it.path] = it }
+            }
+            for (planned in plan.files) written[planned.path]?.let { files += it }
+        }
+        if (diagnostics.any { it.severity == Severity.Error }) {
+            return CodegenResult(GeneratedFiles(emptyList()), incoming + diagnostics)
+        }
+        return CodegenResult(GeneratedFiles(files), incoming + diagnostics)
+    }
+
+    // One function name per file: two pages called Home would emit the same screen twice.
+    private fun refuseCollisions(plan: GenPlan): Unit {
+        val names: List<String> = plan.files.map { it.path }
+        if (names.size != names.toSet().size) {
+            diagnostics += Diagnostic(
+                Severity.Error,
+                DiagnosticCodes.CodegenNameCollision,
+                DiagnosticLocation(),
+                "Generated file paths collide: " + names.sorted().toString(),
+            )
+        }
+    }
+
+    // The kind decides which emitter owns the file, because the id fields alone cannot:
+    // `App.kt`, `Navigation.kt`, `AppHost.kt` and `state/AppState.kt` all carry no id.
+    private fun emitPlanned(planned: PlannedFile, document: ResolvedDocument): GeneratedFile? {
+        val file: KtFile? = when (planned.kind) {
+            PlannedFileKind.App -> options.navigation.emitAppRoot(document, fileContext())
+            PlannedFileKind.Navigation -> emitNavigation(planned, document)
+            PlannedFileKind.AppHost -> emitAppHost(planned, document)
+            PlannedFileKind.AppState -> emitAppState(planned, document)
+            PlannedFileKind.Screen -> {
+                val pageId = checkNotNull(planned.pageId) { "Plan marked '${planned.path}' with no page" }
+                val page: ResolvedPage = checkNotNull(document.pages[pageId]) {
+                    "Plan reached page '$pageId' outside the document"
+                }
+                emitScreen(page, planned)
+            }
+
+            PlannedFileKind.Component -> {
+                val componentId = checkNotNull(planned.componentId) {
+                    "Plan marked '${planned.path}' with no component declaration"
+                }
+                val root: ResolvedNode = checkNotNull(document.components[componentId]) {
+                    "Plan reached component '$componentId' outside the document"
+                }
+                emitComponent(componentId, root, planned, document)
+            }
+        }
+        return file?.let { GeneratedFile(planned.path, printer.print(it)) }
+    }
+
+    /**
+     * The context one emitted file is written into.
+     *
+     * Every file that has one sits in the base package, which is what `pkg` can be a constant;
+     * `receivers` is read by `AppRoot` alone and is empty for the rest. The app-state wrapper is
+     * offered to all of them because §12.1's provider belongs to whichever file declares it, and a
+     * document with no app state makes the wrapper the identity.
+     */
+    private fun fileContext(): FileContext = FileContext(
+        pkg = options.basePackage,
+        header = headerText(),
+        receivers = screenReceivers.mapValues { (_, held) -> held.sortedBy(ActionReceiver::member) },
+        appState = { content -> stateEmitter()?.appProvider(content) ?: listOf(content) },
+    )
+
+    /**
+     * §16.5's `Navigation.kt`, the strategy's own declarations.
+     *
+     * Refused for a document with no page: the navigator's stack is seeded with a route, and a
+     * document that declares none has nothing to seed it with.
+     */
+    private fun emitNavigation(planned: PlannedFile, document: ResolvedDocument): KtFile? {
+        val pages: List<ResolvedPage> = document.pages.entries.sortedBy { it.key.value }.map { it.value }
+        if (pages.isEmpty()) {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                DiagnosticLocation(),
+                "A document with no page has no route for its navigator to start on",
+            )
+            return null
+        }
+        return KtFile(planned.packageName, headerText(), options.navigation.emitRoutes(pages, fileContext()))
+    }
+
+    /**
+     * §16.5's `AppHost.kt`: the interfaces the embedding app implements.
+     *
+     * `SnackbarHost` sits here rather than in `Navigation.kt` because it is not strategy-owned: a
+     * different navigation strategy would have to re-declare a presentation host it has no stake
+     * in. §16.5 lists no file for it, which is a gap in the plan rather than a decision.
+     */
+    private fun emitAppHost(planned: PlannedFile, document: ResolvedDocument): KtFile? {
+        val declarations: List<HostFunctionDecl> = document.hostFunctions
+        val repeated: String? = declarations.groupBy { it.name }
+            .filterValues { it.size > 1 }.keys.firstOrNull()
+        if (repeated != null) {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                DiagnosticLocation(),
+                "Host function '" + repeated + "' is declared twice, and one member cannot hold both",
+            )
+            return null
+        }
+        val members: MutableList<KtDeclaration.Function> = mutableListOf()
+        for (declaration in declarations) {
+            members += hostMember(declaration) ?: return null
+        }
+        return KtFile(
+            planned.packageName,
+            headerText(),
+            listOf(
+                KtDeclaration.Interface(ReservedCodegenNames.AppHostName, emptyList(), false, members),
+                KtDeclaration.Interface(
+                    ReservedCodegenNames.SnackbarHostName,
+                    emptyList(),
+                    false,
+                    listOf(snackbarShow()),
+                ),
+            ),
+        )
+    }
+
+    /**
+     * One `HostFunctionDecl` as the member `host.call` calls.
+     *
+     * The return type is written only when the declaration names one, and a type nothing can
+     * spell is a finding rather than a guess: a member declared `Unit` that the hand-written
+     * implementation returns something from does not compile, which is loud but late.
+     */
+    private fun hostMember(declaration: HostFunctionDecl): KtDeclaration.Function? {
+        val parameters: MutableList<KtParam> = mutableListOf()
+        for (param in declaration.params) {
+            val label: String = "Host function '" + declaration.name + "' parameter '" + param.name.value + "'"
+            val spelled: KtExpr = spelledType(label, param.type) ?: return null
+            parameters += KtParam(param.name.value, spelled, null)
+        }
+        val returned: KtExpr? = declaration.returns?.let {
+            spelledType("Host function '" + declaration.name + "' return", it) ?: return null
+        }
+        return KtDeclaration.Function(
+            name = declaration.name,
+            annotations = emptyList(),
+            type = returned,
+            params = parameters,
+            body = emptyList(),
+            suspending = declaration.suspend,
+        )
+    }
+
+    /** The interpreter's own one operation, so the two sides of a snackbar are the same call. */
+    private fun snackbarShow(): KtDeclaration.Function = KtDeclaration.Function(
+        name = "show",
+        annotations = emptyList(),
+        type = null,
+        params = listOf(KtParam("message", KtExpr.Name("String"), null)),
+        body = emptyList(),
+    )
+
+    /**
+     * A `TypeRef` as a declared parameter type, or null once a finding is recorded.
+     *
+     * Shared by the three places a document names a type the generator has to spell out — a host
+     * function's parameters and return, and a document component's declared params — because they
+     * ask one question and three copies of the refusal would be three wordings of one finding.
+     * [label] is what the message names, so the caller says which declaration it is about.
+     */
+    private fun spelledType(label: String, typeRef: TypeRef): KtExpr? =
+        when (val spelling = KotlinTypes.spellingFor(typeRef)) {
+            is TypeSpelling.Spelled -> spelling.expr
+            is TypeSpelling.Unspelled -> {
+                refuse(
+                    DiagnosticCodes.CodegenNoTypeSpelling,
+                    DiagnosticLocation(),
+                    label + " is typed '" + typeRef.serialTag +
+                        "', which has no Kotlin spelling: " + spelling.reason,
+                )
+                null
+            }
+        }
+
+    /** §16.5's `state/AppState.kt`: the holder and the composition local, in their own package. */
+    private fun emitAppState(planned: PlannedFile, document: ResolvedDocument): KtFile? {
+        val emitter: StateEmitter = stateEmitter() ?: return null
+        if (refuseState(document.appState, DiagnosticLocation())) return null
+        val declarations: List<KtDeclaration> = emitter.appState() ?: return null
+        return KtFile(planned.packageName, headerText(), declarations)
+    }
+
+    // §12.1's page row: the state class, the remember function and the screen's parameter.
+    private fun emitScreen(page: ResolvedPage, planned: PlannedFile): KtFile? {
+        val at: DiagnosticLocation = DiagnosticLocation(pageId = page.id)
+        if (refuseState(page.state, at)) return null
+        val emitter: StateEmitter = stateEmitter() ?: return null
+        // Per this function, before the tree is emitted: the hoist is read once the root is built,
+        // so a leftover from a previous file cannot claim this one.
+        appStateHoist = null
+        val root: KtExpr = emitNode(page.root, true, emptyList()) ?: return null
+        val reads: Set<ActionReceiver> = drainReads()
+        recordDemand(page.id, reads)
+        val declarations: MutableList<KtDeclaration> = mutableListOf()
+        val params: MutableList<KtParam> = mutableListOf()
+        params += environmentParams(reads)
+        params += modifierParam()
+        val held: List<KtDeclaration>? = emitter.pageState(page)
+        if (held != null) {
+            declarations += held
+            params += emitter.pageParameter(page)
+        }
+        declarations += KtDeclaration.Function(
+            page.name + ReservedCodegenNames.ScreenSuffix,
+            listOf(composable),
+            null,
+            params,
+            // First: reading the accessor is composable work, and the composable must own it
+            // before any lambda it hands to a component runs — including `scope`'s launches.
+            hoistAppState() + actionLocals(reads) + listOf(KtStmt.Expr(root)),
+        )
+        return KtFile(planned.packageName, headerText(), declarations)
+    }
+
+    // Component functions take no page chrome: same node emission, their own file.
+    private fun emitComponent(
+        componentId: ComponentDeclId,
+        root: ResolvedNode,
+        planned: PlannedFile,
+        document: ResolvedDocument,
+    ): KtFile? {
+        val emitter: StateEmitter = stateEmitter() ?: return null
+        val at: DiagnosticLocation = DiagnosticLocation(componentDeclId = componentId)
+        val held: List<ResolvedState> = document.componentState[componentId].orEmpty()
+        if (refuseState(held, at)) return null
+        // Per this function, for the same reason [emitScreen] clears before its tree is emitted.
+        appStateHoist = null
+        val body: KtExpr = emitNode(root, true, emptyList()) ?: return null
+        // Recorded rather than drained away: a component function now has a caller — §5.5 makes an
+        // instance a call, and every instantiation site has to pass the receivers this body closed
+        // over. The set is written before the caller is emitted, which is what `generate`'s file
+        // order exists for.
+        val reads: Set<ActionReceiver> = drainReads()
+        componentReceivers[componentId] = reads.filter { it.type != null }.sortedBy { it.member }
+        val declared: List<KtParam> = componentParams(componentId, document) ?: return null
+        val statements: List<KtStmt> = hoistAppState() +
+            emitter.componentLocals(held).orEmpty() +
+            actionLocals(reads) + listOf(KtStmt.Expr(body))
+        val function: KtDeclaration.Function = KtDeclaration.Function(
+            componentId.value,
+            listOf(composable),
+            null,
+            declared + environmentParams(reads) + modifierParam() + slotParams(document, componentId),
+            statements,
+        )
+        return KtFile(planned.packageName, headerText(), listOf(function))
+    }
+
+    /**
+     * §5.5's declared params, as the function's own parameters, or null once a finding is recorded.
+     *
+     * Declaration order rather than the sorted order pass 7 stores props in, because the order a
+     * document wrote is the order a reader expects and the instantiation sites read the same spec —
+     * so the two agree by construction rather than by two sorts happening to match.
+     *
+     * A declared parameter gets **no Kotlin default**, which is a decision and not an omission.
+     * `ParamDecl` carries no default value, so there is nothing to write one from, and the
+     * alternative — making an omitted parameter nullable — would change what the body's expression
+     * against it typechecks as. An instance that omits one is refused at its own call site
+     * ([emitInstance]) rather than producing a file that does not compile.
+     */
+    private fun componentParams(
+        componentId: ComponentDeclId,
+        document: ResolvedDocument,
+    ): List<KtParam>? {
+        val spec: ComponentSpec = document.componentSpecs[componentId] ?: return emptyList()
+        val params: MutableList<KtParam> = mutableListOf()
+        for (declared in spec.properties) {
+            val label: String = "Component '${componentId.value}' parameter '${declared.key.value}'"
+            val spelled: KtExpr = spelledType(label, declared.type) ?: return null
+            params += KtParam(declared.key.value, spelled, null)
+        }
+        return params
+    }
+
+    /**
+     * One `@Composable () -> Unit` per declared slot, each defaulting to an empty one.
+     *
+     * The default is what makes an unfilled slot and an empty one the same drawing on both
+     * backends: the runtime renders nothing for a slot no instance filled, and `{}` renders
+     * nothing. Last in the signature so the first declared slot can be passed as a trailing
+     * lambda, which is what every other slot binding in this generator does.
+     */
+    private fun slotParams(document: ResolvedDocument, componentId: ComponentDeclId): List<KtParam> {
+        val spec: ComponentSpec = document.componentSpecs[componentId] ?: return emptyList()
+        return spec.slots.map { slot ->
+            KtParam(slot.name.value, slotContentType(), KtExpr.Lambda(emptyList(), emptyList()))
+        }
+    }
+
+    /**
+     * `@Composable () -> Unit`, as a type expression.
+     *
+     * A literal rather than a `Ref` because it is a type, not a symbol: `KtRef` would name one
+     * identifier and record one import, and the annotation is what has to travel beside it. The
+     * import rides on the literal's symbol list, which is how `KtPrinter` finds every symbol an
+     * emitted file needs — including inside a parameter type.
+     */
+    private fun slotContentType(): KtExpr = KtExpr.Literal("@Composable () -> Unit", listOf(composable))
+
+    /** The receivers the handlers in the file just written closed over, emptied by reading. */
+    private fun drainReads(): Set<ActionReceiver> = actionEmitter()?.drainReads() ?: emptySet()
+
+    /**
+     * Component declarations in the order their files may be written, or null once a finding is
+     * recorded.
+     *
+     * An instantiation site writes the callee's signature into the call, so the callee has to be
+     * emitted first — and "the callee" is not `planDocument`'s alphabetical order when one
+     * component instantiates another. Depth-first over the `doc.*` edges, which is a total order
+     * for an acyclic declaration graph and the same one two runs over one document take.
+     *
+     * A cycle is the case the runtime reports at render time (a declaration's body is not a node
+     * of the tree that instantiates it, so pass 1's cycle check never sees it) and the generator
+     * reports here for the same reason: there is no order to write them in, and an order that
+     * silently picked one would emit a component passing a receiver it never declared.
+     */
+    private fun componentOrder(document: ResolvedDocument): List<ComponentDeclId>? {
+        val ids: List<ComponentDeclId> = document.components.keys.sortedBy { it.value }
+        val out: MutableList<ComponentDeclId> = mutableListOf()
+        val done: MutableSet<ComponentDeclId> = mutableSetOf()
+        val onStack: MutableSet<ComponentDeclId> = mutableSetOf()
+        fun visit(id: ComponentDeclId) {
+            if (id in done) return
+            if (!onStack.add(id)) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    DiagnosticLocation(componentDeclId = id),
+                    "Component '${id.value}' is part of an instantiation cycle, and no file order " +
+                        "writes it",
+                )
+                return
+            }
+            for (next in instantiatedIn(document, id)) visit(next)
+            onStack.remove(id)
+            done += id
+            out += id
+        }
+        for (id in ids) {
+            // One finding is the refusal: a result carrying an error is empty files, so a second
+            // would change nothing about what the caller does with it.
+            if (diagnostics.any { it.severity == Severity.Error }) break
+            visit(id)
+        }
+        return if (diagnostics.any { it.severity == Severity.Error }) null else out
+    }
+
+    /**
+     * The components one declaration's own body instantiates, in id order.
+     *
+     * Walked over the body rather than the whole node table: two declarations sharing a subtree is
+     * not a thing a document can express (§5.6 gives every node exactly one parent), and reading
+     * the table would make one component's demand another's.
+     */
+    private fun instantiatedIn(
+        document: ResolvedDocument,
+        id: ComponentDeclId,
+    ): List<ComponentDeclId> {
+        val root: ResolvedNode = document.components[id] ?: return emptyList()
+        val found: MutableSet<ComponentDeclId> = linkedSetOf()
+        val seen: MutableSet<NodeId> = mutableSetOf()
+        fun walk(node: ResolvedNode) {
+            if (!seen.add(node.id)) return
+            documentDeclIdOf(node.type.value)?.let { found += it }
+            for (children in node.slots.values) children.forEach(::walk)
+        }
+        walk(root)
+        return found.filter { it in document.components }.sortedBy { it.value }
+    }
+
+    /**
+     * What every screen written so far needs its caller to supply, per page.
+     *
+     * Recorded per page rather than as one set because `AppRoot` calls every screen: a receiver
+     * only one page's handlers reached for is not a parameter of another page's screen, so it
+     * cannot be handed to one. Emitted last and handed to the strategy, which declares each
+     * receiver as a parameter and passes it down under the same name — §11.6 already routes the
+     * generated `AppHost` that way. Cleared per run beside [diagnostics], because one generator
+     * serves many documents and a receiver the previous document's handlers used is not one this
+     * one's screens declare.
+     */
+    private fun recordDemand(page: PageId, reads: Set<ActionReceiver>): Unit {
+        screenReceivers.getOrPut(page) { mutableSetOf() } += reads
+    }
+
+    private val screenReceivers: MutableMap<PageId, MutableSet<ActionReceiver>> = mutableMapOf()
+
+    // The hoist a handler's lambda made necessary, for the file being assembled. Set on the
+    // first app-scope argument [ActionEmitter] reads, consumed once by the screen or component
+    // function when its statements are put together, and cleared at the top of both — so the
+    // `val` is exactly one per function that needs it, and a file that needs none emits none.
+    private var appStateHoist: KtStmt.LocalProperty? = null
+
+    private fun actionEmitter(): ActionEmitter? = actions
+
+    /**
+     * One parameter per environment receiver the file's handlers used, sorted by name.
+     *
+     * Demand-driven because these parameters have no default: a document with no event would
+     * otherwise be handed three it never passes, and a required parameter nothing supplies is a
+     * screen its own `AppRoot` cannot call. Sorted so two runs over one document agree.
+     */
+    private fun environmentParams(reads: Set<ActionReceiver>): List<KtParam> =
+        reads.filter { it.type != null }
+            .sortedBy { it.member }
+            .map { receiver ->
+                val type: KtExpr =
+                    KtExpr.Ref(KtSymbolRef(KotlinSymbol(options.basePackage, checkNotNull(receiver.type))))
+                KtParam(receiver.member, type, null)
+            }
+
+    /**
+     * `val scope = rememberCoroutineScope()` when a handler launched a coroutine.
+     *
+     * The one receiver that is a local rather than a parameter: §11.5's scope is owned by the
+     * composition, so a screen reads it out of itself the way it reads its own state.
+     */
+    private fun actionLocals(reads: Set<ActionReceiver>): List<KtStmt> {
+        if (ActionReceiver.Scope !in reads) return emptyList()
+        return listOf(
+            KtStmt.LocalProperty(
+                name = ActionReceiver.Scope.member,
+                type = null,
+                mutable = false,
+                initializer = KtExpr.Call(KtExpr.Ref(KtSymbolRef(rememberCoroutineScope)), emptyList()),
+                delegate = null,
+            ),
+        )
+    }
+
+    /**
+     * [id]'s read, spelled the way a handler's lambda needs it.
+     *
+     * Every statement [ActionEmitter] emits lands inside a lambda — the event lambda the caller
+     * builds, or its own `launched(…)` wrapper — and a lambda is not a composable, so the app
+     * scope's `LocalAppState.current` cannot be invoked where the statement runs. That is only a
+     * spelling question at the argument boundary, which is why this sits at the [StateRead]
+     * [ActionEmitter] is handed: [StateEmitter.readInScreen] still spells every read, and this
+     * rewrites the accessor the app scope's receiver carries into
+     * [ReservedCodegenNames.HoistedAppStateName], recording [appStateHoist] on the first hit so
+     * the enclosing composable declares it. A page or component scope keeps its spelling —
+     * `state` and a bare name bind to the lambda as lexically as they bind to the composable,
+     * and rewriting either would leave a parameter nothing reads. The read answers with the
+     * member [StateEmitter.readInScreen] spells, and the member a document re-spells over the
+     * same reference meets it only at the argument's own boundary — where
+     * [collapseAppStateRead] answers it, so one field is what reaches the file.
+     */
+    private fun lambdaBoundStateRead(id: StateId): KtExpr? {
+        val bound: KtExpr = state?.readInScreen(id) ?: return null
+        return hoistedAppStateRead(bound)
+    }
+
+    /**
+     * [expr] with every app-scope accessor spelled out of it.
+     *
+     * The descent covers the shapes [ExprEmitter] hands an argument — a member chain over the
+     * accessors, a binary or unary over one of them, an `if`, a template, the calls an argument
+     * can resolve to. A `snippet` filled by a header's pattern is text and never reaches here;
+     * the remaining node kinds are screen assembly this reader is not given, so they are carried
+     * over unchanged rather than recursed into.
+     */
+    private fun hoistedAppStateRead(expr: KtExpr): KtExpr {
+        if (isAppStateAccessor(expr)) {
+            if (appStateHoist == null) {
+                appStateHoist = KtStmt.LocalProperty(
+                    name = ReservedCodegenNames.HoistedAppStateName,
+                    type = null,
+                    mutable = false,
+                    // The accessor as [StateEmitter.readInScreen] spelled it, verbatim: the hoist
+                    // and the reads that demanded it name their `LocalAppState` through one
+                    // expression, and the import rides only on the statement that needs it.
+                    initializer = expr,
+                    delegate = null,
+                )
+            }
+            return KtExpr.Name(ReservedCodegenNames.HoistedAppStateName)
+        }
+        return when (expr) {
+            is KtExpr.Member -> KtExpr.Member(hoistedAppStateRead(expr.receiver), expr.name, expr.safe)
+            is KtExpr.Binary -> KtExpr.Binary(
+                expr.op,
+                hoistedAppStateRead(expr.left),
+                hoistedAppStateRead(expr.right),
+            )
+            is KtExpr.Unary -> KtExpr.Unary(expr.op, hoistedAppStateRead(expr.operand))
+            is KtExpr.IfElse -> KtExpr.IfElse(
+                hoistedAppStateRead(expr.cond),
+                hoistedAppStateRead(expr.then),
+                hoistedAppStateRead(expr.otherwise),
+            )
+            is KtExpr.Call -> KtExpr.Call(
+                hoistedAppStateRead(expr.callee),
+                expr.args.map { arg -> KtArg(arg.name, hoistedAppStateRead(arg.value)) },
+                expr.trailing?.let { lambda -> KtExpr.Lambda(lambda.params, lambda.body) },
+            )
+            is KtExpr.PatternCall -> KtExpr.PatternCall(
+                expr.pattern,
+                expr.args.map { arg -> hoistedAppStateRead(arg) },
+                expr.imports,
+                expr.precedence,
+            )
+            is KtExpr.StringTemplate -> KtExpr.StringTemplate(
+                expr.parts.map { part ->
+                    if (part is KtTemplatePart.Interpolation) {
+                        KtTemplatePart.Interpolation(hoistedAppStateRead(part.expr))
+                    } else {
+                        part
+                    }
+                },
+            )
+            else -> expr
+        }
+    }
+
+    /**
+     * A body with a re-spelled field dropped, statement for statement.
+     *
+     * The arguments a handler runs carry both member layers the read is spelled in —
+     * [collapseAppStateRead] walks them wherever they nest.
+     */
+    private fun collapseAppStateRead(statements: List<KtStmt>): List<KtStmt> =
+        statements.map { collapseAppStateRead(it) }
+
+    /**
+     * [statement] with [collapseAppStateRead] applied to every expression it holds.
+     *
+     * Statements are the runs a handler becomes: the calls and assignments a step emits, the
+     * conditionals whose arms are statements again, the `scope.launch` wrapper whose trailing
+     * lambda carries more of them. Nothing here builds a member of its own — the walk is pure
+     * descent, so a body with nothing to collapse is rebuilt equal to itself.
+     */
+    private fun collapseAppStateRead(statement: KtStmt): KtStmt = when (statement) {
+        is KtStmt.Expr -> KtStmt.Expr(collapseAppStateRead(statement.expr))
+        is KtStmt.LocalProperty -> KtStmt.LocalProperty(
+            name = statement.name,
+            type = statement.type?.let { collapseAppStateRead(it) },
+            mutable = statement.mutable,
+            initializer = statement.initializer?.let { collapseAppStateRead(it) },
+            delegate = statement.delegate?.let { collapseAppStateRead(it) },
+        )
+        is KtStmt.Assign -> KtStmt.Assign(
+            collapseAppStateRead(statement.target),
+            collapseAppStateRead(statement.value),
+        )
+        is KtStmt.When -> KtStmt.When(
+            subject = collapseAppStateRead(statement.subject),
+            branches = statement.branches.map { branch ->
+                KtStmt.When.Branch(
+                    collapseAppStateRead(branch.value),
+                    collapseAppStateRead(branch.body),
+                )
+            },
+            otherwise = statement.otherwise?.let { collapseAppStateRead(it) },
+        )
+    }
+
+    /**
+     * A re-spelled field dropped, and every other shape carried over.
+     *
+     * A read the argument-bound reader answered carries the member [StateEmitter.readInScreen]
+     * spells (`lutterAppState.greeting`), and the document that binds the same reference through
+     * its own `Expr.Member` can spell that member again once [ExprEmitter] wraps it — one field
+     * named twice over one value, `lutterAppState.greeting.greeting`, which compiles against
+     * nothing. A bare reference carries no wrapper, so the member the read carries is what
+     * supplies the field there; the wrapper is what duplicates it. The read cannot see a wrapper
+     * that follows and [ExprEmitter] cannot know the read carried the member, so the answer is
+     * answered where both layers stand: a member whose name equals the one its receiver spells,
+     * over the hoisted name, is the same field bound a second time, and the wrapper yields.
+     * The descent recurses only into a structurally smaller subtree and answers every leaf as
+     * itself, so it terminates on any input.
+     */
+    private fun collapseAppStateRead(expr: KtExpr): KtExpr = when (expr) {
+        is KtExpr.Member -> {
+            val receiver: KtExpr = collapseAppStateRead(expr.receiver)
+            val doubled: KtExpr.Member? = (receiver as? KtExpr.Member)
+                ?.takeIf { it.name == expr.name && isHoistedAppStateRead(it.receiver) }
+            doubled ?: KtExpr.Member(receiver, expr.name, expr.safe)
+        }
+        is KtExpr.Binary -> KtExpr.Binary(
+            expr.op,
+            collapseAppStateRead(expr.left),
+            collapseAppStateRead(expr.right),
+        )
+        is KtExpr.Unary -> KtExpr.Unary(expr.op, collapseAppStateRead(expr.operand))
+        is KtExpr.IfElse -> KtExpr.IfElse(
+            collapseAppStateRead(expr.cond),
+            collapseAppStateRead(expr.then),
+            collapseAppStateRead(expr.otherwise),
+        )
+        is KtExpr.Call -> KtExpr.Call(
+            collapseAppStateRead(expr.callee),
+            expr.args.map { arg -> KtArg(arg.name, collapseAppStateRead(arg.value)) },
+            expr.trailing?.let { lambda -> KtExpr.Lambda(lambda.params, collapseAppStateRead(lambda.body)) },
+        )
+        is KtExpr.Lambda -> KtExpr.Lambda(expr.params, collapseAppStateRead(expr.body))
+        is KtExpr.PatternCall -> KtExpr.PatternCall(
+            expr.pattern,
+            expr.args.map { arg -> collapseAppStateRead(arg) },
+            expr.imports,
+            expr.precedence,
+        )
+        is KtExpr.StringTemplate -> KtExpr.StringTemplate(
+            expr.parts.map { part ->
+                if (part is KtTemplatePart.Interpolation) {
+                    KtTemplatePart.Interpolation(collapseAppStateRead(part.expr))
+                } else {
+                    part
+                }
+            },
+        )
+        else -> expr
+    }
+
+    /**
+     * True when [expr] is the hoisted app read itself: the accessor renamed, spelled bare.
+     * [ReservedCodegenNames.HoistedAppStateName] is what the rewrite spells and this match
+     * names, so a rename there moves the two together.
+     */
+    private fun isHoistedAppStateRead(expr: KtExpr): Boolean =
+        expr is KtExpr.Name && expr.name == ReservedCodegenNames.HoistedAppStateName
+
+    /**
+     * True when [expr] is the accessor [StateStrategy.receiver] spells for the app scope: a
+     * member read named `current` over the reference the strategy renders `LocalAppState` as.
+     * [StateEmitter]'s own constant is what the comparison names, so a rename of the generated
+     * local in `state/AppState.kt` moves this check and the spelling it answers together.
+     */
+    private fun isAppStateAccessor(expr: KtExpr): Boolean {
+        if (expr !is KtExpr.Member || expr.name != "current") return false
+        val receiver: KtExpr.Ref = expr.receiver as? KtExpr.Ref ?: return false
+        return receiver.symbol.symbol.name == StateEmitter.LocalAppStateName
+    }
+
+    /** The hoist the function already needed, or nothing in front of it. */
+    private fun hoistAppState(): List<KtStmt> = appStateHoist?.let { listOf(it) } ?: emptyList()
+
+    /**
+     * Records the first declaration in [declarations] the strategy cannot emit; true when it did.
+     *
+     * One finding and a null file, the same shape every other refusal here takes: the result is
+     * empty files once any error is recorded, so a second finding would change nothing.
+     */
+    private fun refuseState(declarations: List<ResolvedState>, at: DiagnosticLocation): Boolean {
+        val emitter: StateEmitter = stateEmitter() ?: return true
+        for (declaration in declarations) {
+            val finding: Diagnostic = emitter.refusal(declaration, at) ?: continue
+            diagnostics += finding
+            return true
+        }
+        return false
+    }
+
+    private fun stateEmitter(): StateEmitter? = state
+
+    private fun modifierParam(): KtParam =
+        KtParam(
+            "modifier",
+            KtExpr.Ref(KtSymbolRef(modifierType)),
+            KtExpr.Ref(KtSymbolRef(modifierType)),
+        )
+
+    private fun headerText(): String? =
+        if (options.header == HeaderPolicy.Minimal) "// Generated by Forge. Do not edit." else null
+
+    // The whole emitter: a registry lookup plus the binding's params, slots and events.
+    // `scopes` are the receivers the ancestors opened, innermost first: what the node's own
+    // modifiers resolve against, and read from this walk rather than from `ResolvedNode.scopes`
+    // because a set has no innermost.
+    private fun emitNode(node: ResolvedNode, isRoot: Boolean, scopes: List<ScopeId>): KtExpr? {
+        val declared: ComponentDeclId? = documentDeclIdOf(node.type.value)
+        if (declared != null) return emitInstance(node, declared, isRoot, scopes)
+        val spec: ComponentSpec? = schema.components[node.type]
+        if (spec == null) {
+            refuse(DiagnosticCodes.CodegenNoBinding, node, "No spec for '${node.type}'")
+            return null
+        }
+        val binding: CodegenBinding = spec.codegen
+        if (binding is CodegenBinding.Custom) {
+            val emitter: CustomEmitter? = extensions.emitters[binding.emitterId]
+            if (emitter == null) {
+                refuse(DiagnosticCodes.CodegenNoBinding, node, "No emitter for '${binding.emitterId}'")
+                return null
+            }
+            return emitter.emit(node)
+        }
+        if (binding is CodegenBinding.Intrinsic) return emitIntrinsic(node, spec)
+        // The third variant is the only one left, and the sealed interface has three: a binding
+        // that is neither a custom emitter nor an intrinsic is a Compose call. This has to be
+        // *written* as a narrowing check and not left to the two returns above: Kotlin cannot
+        // smart-cast to "whatever is left over", so dropping this line leaves `binding` typed as
+        // the sealed interface and every `binding.events` / `.slots` / `.function` below it is an
+        // error. It is unreachable for a three-variant sealed hierarchy, which is why it refuses
+        // rather than throws — the same answer the old check gave for a fourth variant that does
+        // not exist.
+        if (binding !is CodegenBinding.ComposeCall) {
+            refuse(DiagnosticCodes.CodegenNoBinding, node, "No compose call for '${node.type}'")
+            return null
+        }
+        val args: MutableList<KtArg> = mutableListOf()
+        val kept: List<KeptParam> = keptParams(binding, node)
+        for (keptParam in kept) {
+            val value: KtExpr = paramValue(keptParam, spec, node) ?: return null
+            val positional: Boolean = keptParam.binding.positional == Positional.WhenSole &&
+                kept.size == 1 && keptParam.present.size == 1
+            args += KtArg(if (positional) null else keptParam.binding.param, value)
+        }
+        // A handler argument is always named and a positional value argument has to precede every
+        // named one, so the handlers land between the values and `modifier`: the component's own
+        // argument comes first, and `modifier` stays where the rest of the file expects it.
+        //
+        // A node event no binding here receives is left out of the call, and that is parity and
+        // not a dropped feature: the interpreter runs such a handler nowhere. `TextFieldRenderer`
+        // passes an inert `onValueChange = {}`, and nothing dispatches a sequence the binding
+        // cannot receive (`Dispatch` is reached only by renderers that bind the parameter), so
+        // the document's handler is a no-op on the runtime side and the generated call leaving it
+        // out is what the two backends do alike. This used to refuse as `codegen.no_binding`.
+        for (event in binding.events) {
+            args += KtArg(event.param, eventLambda(event, node) ?: return null)
+        }
+        // `modifier` is always named and Compose declares it after the value arguments, so a
+        // positional one has to precede it: `Text("Left", modifier = …)`, never the reverse.
+        modifierArg(binding.modifierParam, node, isRoot, scopes, required = binding.modifierRequired)
+            ?.let { args += it }
+        var trailing: KtExpr.Lambda? = null
+        for (slot in binding.slots) {
+            val lambda: KtExpr.Lambda = slotLambda(slot, node, spec, scopes) ?: return null
+            val target = slot.target
+            if (target is LambdaTarget.Trailing && trailing == null) {
+                trailing = lambda
+            } else if (target is LambdaTarget.NamedParam) {
+                args += KtArg(target.name, lambda)
+            } else {
+                refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Two trailing slots")
+                return null
+            }
+        }
+        return KtExpr.Call(KtExpr.Ref(KtSymbolRef(binding.function)), args, trailing)
+    }
+
+    /**
+     * A `doc.*` node as the call §5.5 says it is: the component function, its declared params, the
+     * receivers its body closed over, and its filled slots.
+     *
+     * The whole of the difference from a `ComposeCall` is where the answer comes from. A library
+     * component's signature is `CodegenBinding.ComposeCall` data in this generator's own schema; a
+     * document component's is §8.4's synthesized spec, which only exists on the resolved document —
+     * so the callee is named from the declaration id and the arguments are read off that spec.
+     *
+     * Arguments are **named**, not positional. A component call always mixes value arguments, a
+     * `modifier` argument and slot lambdas, and a positional argument is only unambiguous while it
+     * is the first of them; naming each one is what lets the list grow without a call site moving.
+     */
+    private fun emitInstance(
+        node: ResolvedNode,
+        componentId: ComponentDeclId,
+        isRoot: Boolean,
+        scopes: List<ScopeId>,
+    ): KtExpr? {
+        val spec: ComponentSpec = componentSpecs[componentId] ?: run {
+            refuse(
+                DiagnosticCodes.CodegenNoBinding,
+                node,
+                "No synthesized spec for component '${componentId.value}'",
+            )
+            return null
+        }
+        val args: MutableList<KtArg> = mutableListOf()
+        for (declared in spec.properties) {
+            val prop: ResolvedProp? = node.props[declared.key]
+            if (prop == null) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Component '${node.type}' omits parameter '${declared.key.value}', which its " +
+                        "declaration gives no default to omit it with",
+                )
+                return null
+            }
+            args += KtArg(declared.key.value, valueOf(prop, spec.properties, node) ?: return null)
+        }
+        // What the callee's own handlers reached for. Recorded on this file as well, because the
+        // argument is a name that resolves to *this* function's parameter — one it has to declare
+        // now that it is a caller rather than only a declaration.
+        for (receiver in componentReceivers[componentId].orEmpty()) {
+            args += KtArg(receiver.member, KtExpr.Name(receiver.member))
+            actionEmitter()?.require(receiver)
+        }
+        // Always spelled. A document instance's callee declares its modifier parameter without
+        // looking at the call site, so an omitted argument here is the "No value passed for
+        // parameter 'modifier'" the fuzz batch's leaf calls compile into — while an intrinsic
+        // callee reads the argument through its own renderer's `scope.modifierFor(node)`, which
+        // falls through to the untouched `Modifier` when the node carries no entries. The
+        // fallback is the same `Modifier` base a leaf with an update chain builds its call on.
+        args += modifierArg("modifier", node, isRoot, scopes)
+            ?: KtArg("modifier", KtExpr.Ref(KtSymbolRef(modifierType)))
+        var trailing: KtExpr.Lambda? = null
+        val lastSlot: String? = spec.slots.lastOrNull()?.name?.value
+        for (slot in spec.slots) {
+            val lambda: KtExpr.Lambda =
+                slotLambda(SlotBinding(slot.name, LambdaTarget.Trailing), node, spec, scopes)
+                    ?: return null
+            // Kotlin binds a trailing lambda to the signature's last parameter, so only the
+            // last slot may go trailing: a first-slot trailing under a named last one is the
+            // call-stray "Too many arguments" the fuzz batch's slot-heavy components trip.
+            if (slot.name.value == lastSlot && trailing == null) {
+                trailing = lambda
+            } else {
+                args += KtArg(slot.name.value, lambda)
+            }
+        }
+        return KtExpr.Call(KtExpr.Ref(KtSymbolRef(componentSymbol(componentId))), args, trailing)
+    }
+
+    /**
+     * Where a document component's function is written, which is the plan's own path.
+     *
+     * `GenPlan` decides the file, and the file's package is the only thing that can say where its
+     * declaration lives — so the two are read from one place rather than the package being spelled
+     * a second time here.
+     */
+    private fun componentSymbol(componentId: ComponentDeclId): KotlinSymbol =
+        KotlinSymbol(options.basePackage + ".components", componentId.value)
+
+    /**
+     * An engine-owned intrinsic: the one the generator knows how to write.
+     *
+     * `core.SlotOutlet` draws a slot the *instance* filled, and in generated code that slot is the
+     * component function's own parameter — so the outlet is the call `content()`. It is a bare call
+     * rather than an inlined copy of the children because the children were written in a different
+     * tree, in the caller's scope; the runtime draws them by asking the open instance, and this is
+     * the same question asked of a function parameter.
+     *
+     * Anything else declaring intrinsic emission is a gap on this side of the line, and §16.7 says
+     * a gap throws rather than refusing the document — which is what [CodegenCoverage] already
+     * does at construction for everything in the static schema. The two arms are the two cases
+     * there are: a table hit and a miss, so a new `IntrinsicNode` fails to compile here rather
+     * than falling into the throw.
+     */
+    private fun emitIntrinsic(node: ResolvedNode, spec: ComponentSpec): KtExpr? =
+        when (IntrinsicNodes.kindOf(spec)) {
+            IntrinsicNode.SlotOutlet -> emitSlotOutlet(node)
+            null -> throw CodegenBug(
+                "Component '${spec.type}' declares intrinsic emission and has no emitter",
+            )
+        }
+
+    /**
+     * `content()` — the named slot's parameter, invoked.
+     *
+     * The slot name is a `PropertyKey`, so it is the node's own property rather than a name chosen
+     * here: the document decides which of the declaration's slots an outlet draws, exactly as it
+     * decides on the runtime side. Read as a name and not as a property because the value is the
+     * function's parameter name, and the two are the same string only because `SlotName` and
+     * `PropertyKey` are both simple ids — which is what `InstanceScope` relies on too.
+     */
+    private fun emitSlotOutlet(node: ResolvedNode): KtExpr? {
+        val written: ResolvedProp = node.props[IntrinsicNodes.slotName] ?: run {
+            refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "A slot outlet names no slot")
+            return null
+        }
+        val constant: Value? = (written.value as? PropertyValue.Const)?.value
+        if (constant == null) {
+            // The runtime evaluates the name at render time, so a computed one works there. The
+            // generated parameter has to be named in the source, and §16.2 has no way to spell a
+            // name that is only known at run time — so this is the one row where the two backends
+            // do not agree, and it is a refusal rather than a silently frozen name.
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                node,
+                "A slot outlet names a computed slot, and a generated parameter has to be named in the source",
+            )
+            return null
+        }
+        val named: Value.Str = constant as? Value.Str ?: run {
+            refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "A slot outlet's slot is not a string")
+            return null
+        }
+        val name = try {
+            SlotName(named.v)
+        } catch (_: IllegalArgumentException) {
+            refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "'${named.v}' is not a slot name")
+            return null
+        }
+        return KtExpr.Call(KtExpr.Name(name.value), emptyList())
+    }
+
+    // Present, valueful and not defaulted away; absent reads as omitted, never as null.
+    //
+    // Valueful is the word the addendum to that sentence needs: the fuzz batch mints
+    // `Value.Null` on nullable Dp properties about a quarter of the time, and the renderers
+    // answer a null the way they answer an absence (`ArrangementMaps` falls through, the
+    // padding applier reads its `?: 0f` fallbacks). A null-valued arrival left `present`
+    // would carry the key into a case whose pattern splices it, and the generated call would
+    // name a `Dp` it holds no value for — the compiler's `Null cannot be a value of a
+    // non-null type 'Dp'`. Reading the null as absent keeps the call the shape the renderer
+    // draws: the parameter left off when nothing the node carries has a value.
+    private fun keptParams(
+        binding: CodegenBinding.ComposeCall,
+        node: ResolvedNode,
+    ): List<KeptParam> {
+        val kept: MutableList<KeptParam> = mutableListOf()
+        for (param in binding.params) {
+            val present: List<PropertyKey> = param.from.filter { key -> valueful(node, key) }
+            if (present.isEmpty()) continue
+            if (param.omitWhenDefault && present.all { isDefault(node, it) }) continue
+            kept += KeptParam(param, present)
+        }
+        return kept
+    }
+
+    /** True when [key]'s arrival exists and is not a `Value.Null` the renderers fall through. */
+    private fun valueful(node: ResolvedNode, key: PropertyKey): Boolean =
+        node.props[key]?.let { carriesValue(it) } == true
+
+    private fun isDefault(node: ResolvedNode, key: PropertyKey): Boolean {
+        val prop: ResolvedProp? = node.props[key]
+        if (prop == null) return false
+        return prop.origin == PropOrigin.Default
+    }
+
+    // One parameter's value: the single property the node carries, or the case they select.
+    private fun paramValue(
+        kept: KeptParam,
+        spec: ComponentSpec,
+        node: ResolvedNode,
+    ): KtExpr? {
+        val binding: ParamBinding = kept.binding
+        val emit = binding.emit
+        if (emit is ValueEmit.Direct) {
+            // `from` is a preference list, not an order to fill from: only a property the node
+            // carries can supply the value, and two of them say nothing about which one meant.
+            if (kept.present.size > 1) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Param '" + binding.param + "' has several present sources",
+                )
+                return null
+            }
+            val key: PropertyKey = kept.present.singleOrNull()
+                ?: throw CodegenBug("Param '${binding.param}' binds no present property")
+            val prop: ResolvedProp = checkNotNull(node.props[key]) {
+                "Present property '${key.value}' left the node"
+            }
+            return valueOf(prop, spec.properties, node)
+        }
+        if (emit is ValueEmit.Cases) {
+            // The same presence the parameter was kept by: the from-list keys that carry a
+            // value. A key the node still holds as a `Value.Null` arrival does not select a
+            // case, so no pattern ever looks up a fill the renderers fall through.
+            val match = emit.cases.firstOrNull { kase ->
+                kase.whenPresent.all { key -> key in kept.present }
+            }
+            if (match == null) {
+                refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "No emission case matches")
+                return null
+            }
+            val filled = fillPattern(match.pattern, node.props, spec.properties, node) ?: return null
+            return KtExpr.Snippet(filled.first, match.imports + filled.second)
+        }
+        throw CodegenBug("Unknown ValueEmit: " + emit)
+    }
+
+    // Every `{key}` becomes the property's literal, spliced into text: an unknown key and a
+    // computed one both refuse here, the second because a pattern has no place to put a read.
+    // Returns the text plus the literals' imports: a `dp` inside `Arrangement.spacedBy({spacing})`
+    // still needs its own symbols recorded.
+    private fun fillPattern(
+        pattern: String,
+        values: Map<PropertyKey, ResolvedProp>,
+        declared: List<PropertySpec<*>>,
+        node: ResolvedNode,
+        entries: Map<String, KotlinSymbol> = emptyMap(),
+    ): Pair<String, List<KotlinSymbol>>? {
+        // Doubling is the pattern's one spelling of a literal brace: a lambda's own pair is not
+        // a `{key}` placeholder. The sentinels stand in for the braces here, so the walk below
+        // runs exactly as it always ran for every pattern without them — no placeholder body
+        // ever sees a doubled pair, and the collapse-back is fill time's last step.
+        val spelled: String = pattern.replace("{{", ESCAPED_OPEN).replace("}}", ESCAPED_CLOSE)
+        val filled: StringBuilder = StringBuilder()
+        val symbols: MutableList<KotlinSymbol> = mutableListOf()
+        var index: Int = 0
+        while (index < spelled.length) {
+            val open: Int = spelled.indexOf('{', index)
+            if (open < 0) {
+                filled.append(spelled.substring(index))
+                break
+            }
+            val close: Int = spelled.indexOf('}', open)
+            if (close < 0) {
+                filled.append(spelled.substring(index))
+                break
+            }
+            filled.append(spelled.substring(index, open))
+            val raw: String = spelled.substring(open + 1, close)
+            val key: PropertyKey = try {
+                PropertyKey(raw)
+            } catch (_: IllegalArgumentException) {
+                refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Bad pattern key '{$raw}'")
+                return null
+            }
+            val prop: ResolvedProp? = values[key]
+            if (prop == null) {
+                refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Pattern key '{$raw}' is absent")
+                return null
+            }
+            val value: KtExpr? = valueOf(prop, declared, node, entries)
+            if (value == null) return null
+            // A pattern is text and the value is spliced into it, so only a literal fills one: a
+            // computed read has no spelling here, and §16.2's symbols are references, not text.
+            if (value !is KtExpr.Literal) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Pattern key '{$raw}' holds a computed value, and a pattern is text",
+                )
+                return null
+            }
+            filled.append(value.text)
+            symbols.addAll(value.imports)
+            index = close + 1
+        }
+        return filled.toString().replace(ESCAPED_OPEN, "{").replace(ESCAPED_CLOSE, "}") to symbols
+    }
+
+    /**
+     * A property's value as a Kotlin expression, or a refusal.
+     *
+     * A computed value is §10.5's codegen column: the checked expression, spelled by [ExprEmitter]
+     * against the [StateRead] for the site the read appears in. A constant emits exactly as it
+     * did before either arm existed, which is what keeps a document with no computed property
+     * byte-identical.
+     *
+     * A constant token is the one place [LiteralPrinter] is handed anything but the value, and
+     * it is handed it from [ResolvedProp.token]: pass 7 resolved that token against the selected
+     * theme and attached what it decided, so this generator never re-derives it — it only has to
+     * carry it one call deeper, plus the theme to read a document-owned value out of.
+     */
+    private fun valueOf(
+        prop: ResolvedProp,
+        declared: List<PropertySpec<*>>,
+        node: ResolvedNode,
+        entries: Map<String, KotlinSymbol> = emptyMap(),
+    ): KtExpr? {
+        val constant: Value = when (val stored = prop.value) {
+            is PropertyValue.Computed -> return computedOf(prop)
+            is PropertyValue.Const -> stored.value
+        }
+        if (constant is Value.Enum) return enumLiteral(constant.entry, declared, prop.key, node, entries)
+        // Null for everything that is not a token, and refused for a token whose provenance is
+        // gone: pass 7 attaches one to every constant token, so a null here is a lost record
+        // rather than a document fault, and the printer answers a token with no provenance by
+        // emitting nothing rather than by assuming it is Material's.
+        val provenance: ResolvedToken? = prop.token
+        if (constant is Value.Token && provenance == null) {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                node,
+                "Token '" + constant.name + "' carries no resolved provenance, and pass 7 " +
+                    "attaches one to every token a document uses",
+            )
+            return null
+        }
+        val literal = LiteralPrinter.emit(constant, provenance, theme)
+        if (literal == null) {
+            // The colour and shape sentences name the design their refusal rests on:
+            // `ThemeHandle` answers text styles only, a colour role is a light/dark
+            // pair and nothing decides which half draws, and a shape role is an open map with
+            // no agreed key set — so there is no runtime drawing to mirror, and the gap is a
+            // design the engine has not built rather than a value this printer dropped. The
+            // kinds without a literal keep the flat class wording.
+            val message: String = when (constant) {
+                is Value.Token -> when (constant.kind) {
+                    TokenKind.Color ->
+                        "Token '" + constant.name + "' has no runtime drawing to mirror: no " +
+                            "ThemeHandle answers colour tokens, and a colour role is a " +
+                            "light/dark pair codegen cannot see which half draws"
+                    TokenKind.Shape ->
+                        "Token '" + constant.name + "' has no runtime drawing to mirror: no " +
+                            "ThemeHandle answers shape tokens, and a shape role has no agreed " +
+                            "key set"
+                    else -> "Value kind emits nothing yet"
+                }
+                else -> "Value kind emits nothing yet"
+            }
+            refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, message)
+            return null
+        }
+        return KtExpr.Literal(literal.text, literal.symbols)
+    }
+
+    /**
+     * A computed value as its checked expression, read the way a screen reads state.
+     *
+     * Both nulls are breaches rather than findings, and §16.7 is why: pass 5 typechecks every
+     * computed value, pass 7 attaches what it produced, and pass 7 runs only over a document no
+     * pass has errored on. A `Computed` reaching here without one is a lost record.
+     */
+    private fun computedOf(prop: ResolvedProp): KtExpr {
+        // `checkNotNull` would answer a plain IllegalStateException, and §16.7 reserves this
+        // throw for CodegenBug so a caller can tell a breach from a domain refusal.
+        val key: String = prop.key.value
+        val typed: TypedExpr = prop.typed ?: throw CodegenBug(
+            "Computed property '" + key + "' carries no checked expression; " +
+                "pass 5 refused an unchecked one",
+        )
+        val emitter: ExprEmitter = expressions ?: throw CodegenBug(
+            "Computed property '" + key + "' reached emission with no reader",
+        )
+        return emitter.emit(typed)
+    }
+
+    // PLAN §16.6: an enum entry emits `EnumEntrySpec.kotlin`, which is the only place the symbol
+    // is known. Text rather than a reference, because a filled pattern is text as well. An
+    // enclosing scope that narrows the axis declares its own symbol for the entry and wins.
+    private fun enumLiteral(
+        entry: String,
+        declared: List<PropertySpec<*>>,
+        key: PropertyKey,
+        node: ResolvedNode,
+        entries: Map<String, KotlinSymbol>,
+    ): KtExpr.Literal? {
+        val id: TypeId? = enumIdOf(declared.firstOrNull { it.key == key }?.type)
+        val symbol: KotlinSymbol? = entries[entry] ?: id?.let { typeId ->
+            enumEntries(typeId).firstOrNull { it.name == entry }?.kotlin
+        }
+        if (symbol == null) {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                node,
+                "Enum entry '" + entry + "' has no registered symbol",
+            )
+            return null
+        }
+        // A member-qualified name splits in two: the owner is what the import names.
+        val owner: KotlinSymbol = KotlinSymbol(symbol.packageName, symbol.name.substringBeforeLast('.'))
+        return KtExpr.Literal(symbol.name, listOf(owner))
+    }
+
+    // A `Value.Enum` carries no type id: the property's declared type is where it lives, through
+    // a nullable wrapper when the property is one.
+    private fun enumIdOf(declared: TypeRef?): TypeId? {
+        val inner: TypeRef? = (declared as? TypeRef.Nullable)?.inner ?: declared
+        return (inner as? TypeRef.Enum)?.id
+    }
+
+    // The enum spec behind a type id. The types registry is generic over the assembly's own type
+    // slot, so this reads it as a downcast: an assembly binding a stub there gets no entries and
+    // the entry refuses rather than emitting an unqualified name.
+    @Suppress("UNCHECKED_CAST")
+    private fun enumEntries(id: TypeId): List<EnumEntrySpec> =
+        (schema.types[id] as? EnumTypeSpec)?.entries ?: emptyList()
+
+    /**
+     * One `EventBinding` as the lambda its Compose parameter receives.
+     *
+     * The three fields are three different facts and the sequence is the join: `event` selects it
+     * out of [ResolvedNode.events], `lambdaParams` names the lambda's own parameters, and `param`
+     * names the parameter it is written as.
+     *
+     * A binding whose event the node carries no sequence for emits an empty lambda rather than
+     * refusing. That is what the runtime draws for the same absence: the renderer binds the
+     * parameter unconditionally — `ButtonRenderer` passes
+     * `onClick = { scope.Dispatch(node, ON_CLICK) }` whether the document wrote a handler or not —
+     * and `Dispatch` answers a node holding nothing for the event by running nothing, so a
+     * missing handler is a *running* no-op. `{}` is that no-op spelled, and a handler parameter
+     * has no default to omit it with: a call without it would not compile.
+     */
+    private fun eventLambda(binding: EventBinding, node: ResolvedNode): KtExpr.Lambda? {
+        val emitter: ActionEmitter = actionEmitter() ?: return null
+        val sequence: ActionSequence = node.events[binding.event]
+            ?: return KtExpr.Lambda(binding.lambdaParams, emptyList())
+        val at: DiagnosticLocation = DiagnosticLocation(nodeId = node.id, event = binding.event)
+        // A refused step recorded the finding itself, so the null here adds nothing of its own.
+        // Here is where the two member layers one app-scope read arrives in meet: the read the
+        // argument-bound [StateRead] answered and the document's own member over the same
+        // reference. What the document re-spelled once and the read spelled once is one field,
+        // so [collapseAppStateRead] drops the second layer before the lambda is built, and a
+        // body with no doubled shape is rebuilt equal to itself.
+        val body: List<KtStmt> = emitter.emit(sequence, at) ?: return null
+        return KtExpr.Lambda(binding.lambdaParams, collapseAppStateRead(body))
+    }
+
+    private fun slotLambda(
+        binding: SlotBinding,
+        node: ResolvedNode,
+        spec: ComponentSpec,
+        scopes: List<ScopeId>,
+    ): KtExpr.Lambda? {
+        if (binding.receiver != null) {
+            refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Scoped slots emit nothing yet")
+            return null
+        }
+        val children: List<ResolvedNode> = node.slots[binding.slot] ?: emptyList()
+        // The slot's own scopes go in front: a row inside a box is aligned by the row.
+        val provided: Set<ScopeId> =
+            spec.slots.firstOrNull { it.name == binding.slot }?.provides ?: emptySet()
+        val inner: List<ScopeId> = provided.toList() + scopes
+        val body: MutableList<KtStmt> = mutableListOf()
+        for (child in children) {
+            body += KtStmt.Expr(emitNode(child, false, inner) ?: return null)
+        }
+        return KtExpr.Lambda(emptyList(), body)
+    }
+
+    // Roots thread the caller's modifier; leaves start from `Modifier`. A chain that answers
+    // empty (root) stays the caller's `modifier` parameter; an empty chain anywhere else omits
+    // the argument, the defaulted parameter reading as the untouched `Modifier`. A callee whose
+    // modifier parameter takes no default ([required]) still spells the untouched `Modifier`
+    // base for an empty or all-dropped chain — the same fallback the document-instance path
+    // spells — while a refusal above it keeps the `null`.
+    private fun modifierArg(
+        param: String?,
+        node: ResolvedNode,
+        isRoot: Boolean,
+        scopes: List<ScopeId>,
+        required: Boolean = false,
+    ): KtArg? {
+        val calls: MutableList<KtExpr> = mutableListOf()
+        for (entry in node.modifiers) {
+            when (val frag: ModifierFrag = emitModifier(entry, node, scopes) ?: return null) {
+                is ModifierFrag.Written -> calls += frag.expr
+                ModifierFrag.Dropped -> {}
+            }
+        }
+        if (param == null) {
+            if (calls.isEmpty()) return null
+            refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Modifiers without a parameter")
+            return null
+        }
+        if (isRoot && calls.isEmpty()) return KtArg(param, KtExpr.Name("modifier"))
+        if (calls.isEmpty()) {
+            return if (required) KtArg(param, KtExpr.Ref(KtSymbolRef(modifierType))) else null
+        }
+        val root: KtExpr = if (isRoot) KtExpr.Name("modifier") else KtExpr.Ref(KtSymbolRef(modifierType))
+        return KtArg(param, KtExpr.Chain(root, calls))
+    }
+
+    /**
+     * One modifier entry's per-shape answer: the chained call it writes, or a drop.
+     *
+     * [Dropped] is the answer the appliers give a modifier nothing applies: an argument the
+     * renderers read as absent (`Value.Null`, which the fuzz batch mints on nullable Dp
+     * properties) leaves the whole entry out of the chain rather than carrying `null` into a
+     * `Dp` parameter, the same fall-through `PaddingApplier` and the size family spell with
+     * `?: return modifier`. A case list whose every shape fails the null-aware walk drops the
+     * entry for the same reason — an unmatched case once refused the document, which turned a
+     * generated file into a refusal for what the runtime treats as an untouched modifier.
+     */
+    private sealed class ModifierFrag {
+        class Written(val expr: KtExpr) : ModifierFrag()
+
+        object Dropped : ModifierFrag()
+    }
+
+    private fun emitModifier(entry: ResolvedModifier, node: ResolvedNode, scopes: List<ScopeId>): ModifierFrag? {
+        val spec: ModifierSpec? = schema.modifiers[entry.type]
+        if (spec == null) {
+            refuse(DiagnosticCodes.CodegenNoBinding, node, "No spec for '${entry.type}'")
+            return null
+        }
+        val emit = spec.emit
+        // The nearest open scope narrows an enum argument, and a modifier that needs one refuses
+        // outside every scope it declares: there is no receiver to emit the call against.
+        val scope: ScopeId? = scopes.firstOrNull { it in emit.scopeEntries }
+        if (emit.scopeEntries.isNotEmpty() && scope == null) {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                node,
+                "Modifier '" + entry.type + "' has no enclosing scope to read through",
+            )
+            return null
+        }
+        val entries: Map<String, KotlinSymbol> = scope?.let { emit.scopeEntries.getValue(it) } ?: emptyMap()
+        if (emit.cases.isEmpty()) {
+            // A modifier with no cases reads its arguments bare, and any argument that is a
+            // `Value.Null` the renderer would fall through makes the applier leave the entry
+            // out — `?: return modifier` over the whole apply. Spell the drop before the value
+            // walk, so no argument ever splices a null into a typed parameter.
+            if (entry.args.values.any { !carriesValue(it) }) return ModifierFrag.Dropped
+            val args: MutableList<KtArg> = mutableListOf()
+            for (key in entry.args.keys.sortedBy { it.value }) {
+                val prop: ResolvedProp = checkNotNull(entry.args[key]) {
+                    "Present modifier arg '${key.value}' left the entry"
+                }
+                args += KtArg(key.value, valueOf(prop, spec.params, node, entries) ?: return null)
+            }
+            // A scope member's name resolves through the receiver, so it is not an import.
+            return ModifierFrag.Written(KtCall(emit.function, args, imported = !emit.scopeMember))
+        }
+        // First declared case whose keys the entry carries with values, so the order a spec
+        // writes is the precedence it means: `padding`'s `all` wins when a document also names
+        // an axis. A null-valued key does not count as carried, which walks an entry with a
+        // null axis onto the per-axis shape the applier's `?: 0f` fallback reads.
+        val match: EmitCase? = emit.cases.firstOrNull { cased ->
+            cased.whenPresent.all { key -> entry.args[key]?.let { carriesValue(it) } == true }
+        }
+        if (match == null) return ModifierFrag.Dropped
+        val filled = fillPattern(match.pattern, entry.args, spec.params, node, entries) ?: return null
+        // The pattern spells the whole call, so the chained function is an import of its own
+        // unless it is a scope member, whose name the parent content lambda already resolves.
+        val imported: List<KotlinSymbol> = if (emit.scopeMember) emptyList() else listOf(emit.function)
+        return ModifierFrag.Written(KtExpr.Snippet(filled.first, imported + match.imports + filled.second))
+    }
+
+    /** True when [prop]'s value would emit as something, never as the `null` the printer spells. */
+    private fun carriesValue(prop: ResolvedProp): Boolean = when (val stored = prop.value) {
+        is PropertyValue.Computed -> true
+        is PropertyValue.Const -> stored.value != Value.Null
+    }
+
+    private fun refuse(code: DiagnosticCode, node: ResolvedNode, message: String): Unit {
+        diagnostics += Diagnostic(
+            Severity.Error,
+            code,
+            DiagnosticLocation(nodeId = node.id),
+            message + " at '" + node.id + "'",
+        )
+    }
+
+    /**
+     * The same refusal for a fault about the document rather than about one node.
+     *
+     * A file with no node of its own — `App.kt`, `Navigation.kt` — has nowhere to point, so the
+     * location is the caller's and the message stands on its own without a node to name.
+     */
+    private fun refuse(code: DiagnosticCode, at: DiagnosticLocation, message: String): Unit {
+        diagnostics += Diagnostic(Severity.Error, code, at, message)
+    }
+
+    private class KeptParam(val binding: ParamBinding, val present: List<PropertyKey>)
+}
