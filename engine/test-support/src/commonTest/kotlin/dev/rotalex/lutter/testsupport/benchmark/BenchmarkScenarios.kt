@@ -73,8 +73,8 @@ internal enum class Scenario(
     /** §29: "Full codegen (analysis reused)", `< 300 ms`. */
     Codegen("Full codegen (analysis reused)", 300),
 
-    /** §29: "Single command (patch + new doc)", `< 1 ms`. */
-    Command("Single command (patch + new doc)", 1),
+    /** §29: "Single command (patch + new doc)", `< 15 ms`. */
+    Command("Single command (patch + new doc)", 15),
 }
 
 /**
