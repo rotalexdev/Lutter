@@ -254,8 +254,8 @@ class ExpressionCorpusTest {
             "k3: true",
             "k4: false",
             "k5: true",
-            "k6: true",
-            "k7: true",
+            "k6: 1",
+            "k7: 3",
             "k8: -1",
             "k9: true",
             "k10: a",
@@ -466,8 +466,8 @@ class ExpressionCorpusTest {
                     Text("k3: ${'$'}{listOf(1, 2, 3).contains(2)}")
                     Text("k4: ${'$'}{listOf(1, 2, 3).isEmpty()}")
                     Text("k5: ${'$'}{listOf(1, 2, 3).isNotEmpty()}")
-                    Text("k6: ${'$'}{listOf(1, 2, 3).getOrNull(0) == 1}")
-                    Text("k7: ${'$'}{listOf(1, 2, 3).getOrNull(2) == 3}")
+                    Text("k6: ${'$'}{listOf(1, 2, 3).getOrNull(0) ?: 0}")
+                    Text("k7: ${'$'}{listOf(1, 2, 3).getOrNull(2) ?: 0}")
                     Text("k8: ${'$'}{listOf(1, 2, 3).getOrNull(7) ?: -1}")
                     Text("k9: ${'$'}{listOf(1, 2, 3).getOrNull(7) == null}")
                     Text("k10: ${'$'}{listOf("x").getOrNull(0) ?: "gone"}")

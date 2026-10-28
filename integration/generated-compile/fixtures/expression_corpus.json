@@ -5561,54 +5561,56 @@
                   }
                 },
                 {
-                  "type": "binary",
-                  "op": "eq",
-                  "left": {
-                    "type": "call",
-                    "function": "list.get",
-                    "args": [
-                      {
-                        "type": "list",
-                        "items": [
-                          {
-                            "type": "const",
-                            "value": {
-                              "type": "i32",
-                              "v": 1
+                  "type": "call",
+                  "function": "core.coalesce",
+                  "args": [
+                    {
+                      "type": "call",
+                      "function": "list.get",
+                      "args": [
+                        {
+                          "type": "list",
+                          "items": [
+                            {
+                              "type": "const",
+                              "value": {
+                                "type": "i32",
+                                "v": 1
+                              }
+                            },
+                            {
+                              "type": "const",
+                              "value": {
+                                "type": "i32",
+                                "v": 2
+                              }
+                            },
+                            {
+                              "type": "const",
+                              "value": {
+                                "type": "i32",
+                                "v": 3
+                              }
                             }
-                          },
-                          {
-                            "type": "const",
-                            "value": {
-                              "type": "i32",
-                              "v": 2
-                            }
-                          },
-                          {
-                            "type": "const",
-                            "value": {
-                              "type": "i32",
-                              "v": 3
-                            }
+                          ]
+                        },
+                        {
+                          "type": "const",
+                          "value": {
+                            "type": "i32",
+                            "v": 0
                           }
-                        ]
-                      },
-                      {
-                        "type": "const",
-                        "value": {
-                          "type": "i32",
-                          "v": 0
                         }
+                      ]
+                    },
+                    {
+                      "type": "const",
+                      "value": {
+                        "type": "i32",
+                        "v": 0
                       }
-                    ]
-                  },
-                  "right": {
-                    "type": "const",
-                    "value": {
-                      "type": "i32",
-                      "v": 1
                     }
-                  }
+                  ]
                 }
               ]
             }
@@ -5632,54 +5634,56 @@
                   }
                 },
                 {
-                  "type": "binary",
-                  "op": "eq",
-                  "left": {
-                    "type": "call",
-                    "function": "list.get",
-                    "args": [
-                      {
-                        "type": "list",
-                        "items": [
-                          {
-                            "type": "const",
-                            "value": {
-                              "type": "i32",
-                              "v": 1
+                  "type": "call",
+                  "function": "core.coalesce",
+                  "args": [
+                    {
+                      "type": "call",
+                      "function": "list.get",
+                      "args": [
+                        {
+                          "type": "list",
+                          "items": [
+                            {
+                              "type": "const",
+                              "value": {
+                                "type": "i32",
+                                "v": 1
+                              }
+                            },
+                            {
+                              "type": "const",
+                              "value": {
+                                "type": "i32",
+                                "v": 2
+                              }
+                            },
+                            {
+                              "type": "const",
+                              "value": {
+                                "type": "i32",
+                                "v": 3
+                              }
                             }
-                          },
-                          {
-                            "type": "const",
-                            "value": {
-                              "type": "i32",
-                              "v": 2
-                            }
-                          },
-                          {
-                            "type": "const",
-                            "value": {
-                              "type": "i32",
-                              "v": 3
-                            }
+                          ]
+                        },
+                        {
+                          "type": "const",
+                          "value": {
+                            "type": "i32",
+                            "v": 2
                           }
-                        ]
-                      },
-                      {
-                        "type": "const",
-                        "value": {
-                          "type": "i32",
-                          "v": 2
                         }
+                      ]
+                    },
+                    {
+                      "type": "const",
+                      "value": {
+                        "type": "i32",
+                        "v": 0
                       }
-                    ]
-                  },
-                  "right": {
-                    "type": "const",
-                    "value": {
-                      "type": "i32",
-                      "v": 3
                     }
-                  }
+                  ]
                 }
               ]
             }
