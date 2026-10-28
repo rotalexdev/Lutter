@@ -47,7 +47,7 @@ jobs:
       # the evidence survives a flake that passed on the rerun.
       - name: Upload the test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: '**/build/test-results/**/*.xml'

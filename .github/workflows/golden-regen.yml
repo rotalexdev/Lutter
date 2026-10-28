@@ -53,7 +53,7 @@ jobs:
         run: gradle :integration:generated-compile:generateCodegenGoldens
 
       - name: Commit the regenerated goldens
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           file_pattern: integration/generated-compile/src/commonTest/resources/goldens/**
           commit_message: "chore(build): record the reference codegen goldens"

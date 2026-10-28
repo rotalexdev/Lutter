@@ -64,7 +64,7 @@ jobs:
       # `(JVM Desktop ... )` machine lines before assuming the engine is slower -
       # plus the report artifact attached below.
       - name: Restore the previous run's medians
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: bench-previous
           key: bench-previous-${{ github.run_number }}
@@ -134,7 +134,7 @@ jobs:
       # next run's comparison and hide exactly the alert this job exists to raise.
       - name: Keep these medians for the next run
         if: success() && steps.compare.outcome == 'success'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: bench-previous
           key: bench-previous-${{ github.run_number }}
@@ -181,7 +181,7 @@ jobs:
       # run's own artifact; test XMLs ride along for shape parity with fuzz-batch.
       - name: Upload the measured report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-report
           path: |

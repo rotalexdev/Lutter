@@ -84,7 +84,7 @@ jobs:
       # here for the shape every other workflow in this repository shares.
       - name: Upload the test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: '**/build/test-results/**/*.xml'
@@ -97,7 +97,7 @@ jobs:
       # of it stays manual: it is an artifact of a failure, not a golden material.
       - name: Upload the generated sources on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: generated-sources
           path: integration/generated-compile/build/generated/

@@ -327,7 +327,7 @@ jobs:
       # ---------------------------------------------------------------------------
       - name: Upload the screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: preview-screenshots-${{ matrix.os }}
           path: 'samples/desktop-preview/build/screenshots/'
@@ -338,7 +338,7 @@ jobs:
       # directory meant the `.msi` arrived wrapped around the app-image.
       - name: Upload the installer
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: preview-installer-${{ matrix.os }}
           path: |
@@ -350,7 +350,7 @@ jobs:
       # The app-image alone, for a maintainer who would rather not install anything.
       - name: Upload the app image
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: preview-app-image-${{ matrix.os }}
           path: 'samples/desktop-preview/build/compose/binaries/main/app/'
@@ -363,7 +363,7 @@ jobs:
       # one of them exported for the other.
       - name: Upload the launch probe log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: preview-launch-log-${{ matrix.os }}
           path: 'samples/desktop-preview/build/preview-probe/'

@@ -132,7 +132,7 @@ jobs:
       - name: Commit the regenerated ABI dumps
         id: baseline
         if: failure() && steps.verify.outcome == 'failure' && steps.regenerate.outcome == 'success'
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           file_pattern: '**/api/**'
           commit_message: "chore(build): record the reference ABI dumps"
@@ -187,7 +187,7 @@ jobs:
       # dumps were produced.
       - name: Publish the regenerated ABI dumps
         if: failure() && steps.verify.outcome == 'failure' && steps.regenerate.outcome == 'success' && (steps.baseline.outputs.changes_detected != 'true' || steps.converge.outputs.converged != 'true')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: abi-baseline
           path: '**/api/**'
@@ -303,7 +303,7 @@ jobs:
       # at all. The report has the message, so it is uploaded whenever anything failed.
       - name: Upload the Gradle problems report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: problems-report
           path: '**/build/reports/problems/'
@@ -321,7 +321,7 @@ jobs:
       # rerun, which is the one case where you most want the evidence and least have it.
       - name: Upload the test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: '**/build/test-results/**/*.xml'
