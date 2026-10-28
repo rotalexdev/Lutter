@@ -161,6 +161,131 @@ class ExpressionCorpusTest {
             "CoalesceEq: false",
             "EqCoalesce: false",
             "CoalesceLt: true",
+            "a1: 5",
+            "a2: 6",
+            "a3: 7",
+            "a4: 8",
+            "a5: 9",
+            "a6: 11",
+            "a7: 12",
+            "a8: 13",
+            "a9: 14",
+            "a10: 15",
+            "b1: 7",
+            "b2: 6",
+            "b3: 5",
+            "b4: 4",
+            "b5: 3",
+            "b6: 2",
+            "b7: 1",
+            "c1: 6",
+            "c2: 8",
+            "c3: 9",
+            "c4: 10",
+            "c5: 12",
+            "c6: 14",
+            "c7: 15",
+            "d1: 18014398509481986",
+            "d2: 27021597764222979",
+            "d3: 9007199254740992",
+            "d4: 9007199254740991",
+            "d5: 9007199254740995",
+            "d6: 9007199254740993",
+            "d7: -9007199254740994",
+            "e1: 3",
+            "e2: 1",
+            "e3: 4",
+            "e4: 9",
+            "e5: 10",
+            "e6: 16",
+            "e7: 5",
+            "e8: 6",
+            "f1: true",
+            "f2: false",
+            "f3: true",
+            "f4: false",
+            "f5: true",
+            "f6: false",
+            "f7: true",
+            "f8: false",
+            "f9: true",
+            "f10: false",
+            "f11: false",
+            "f12: true",
+            "g1: true",
+            "g2: false",
+            "g3: true",
+            "g4: true",
+            "g5: true",
+            "g6: false",
+            "g7: false",
+            "g8: true",
+            "h1: TAPS",
+            "h2: taps",
+            "h3:   TAPS  ",
+            "h4:   taps  ",
+            "h5: 8",
+            "h6: 8",
+            "h7: 4",
+            "h8: true",
+            "h9: true",
+            "h10: true",
+            "i1: true",
+            "i2: true",
+            "i3: true",
+            "i4: false",
+            "i5: true",
+            "i6: true",
+            "i7: true",
+            "i8: true",
+            "i9: true",
+            "i10: true",
+            "j1: y",
+            "j2: n",
+            "j3: on",
+            "j4: two",
+            "j5: b",
+            "j6: t",
+            "j7: a",
+            "j8: x",
+            "j9: lt",
+            "k1: 1",
+            "k2: true",
+            "k3: true",
+            "k4: false",
+            "k5: true",
+            "k6: 4",
+            "k7: 0",
+            "k8: -1",
+            "k9: true",
+            "k10: x",
+            "k11: gone",
+            "l1: 1.25",
+            "l2: 1.250",
+            "l3: 1.2500",
+            "l4: 2.0",
+            "l5: 2.000",
+            "l6: 8.00",
+            "m1: -2",
+            "m2: -3",
+            "m3: 1",
+            "m4: -6",
+            "m5: -4",
+            "n1: true",
+            "n2: true",
+            "n3: true",
+            "n4: false",
+            "o1: c=2 b=   ",
+            "o2: L8B3C2",
+            "o3: flag=true w=9007199254740993",
+            "o4:   taps     ",
+            "o5: s=  TAPS  ",
+            "o6: n=   /",
+            "p1: 8",
+            "p2: 8",
+            "p3: 8",
+            "p4: true",
+            "p5: eq",
         )
     }
 
@@ -248,6 +373,131 @@ class ExpressionCorpusTest {
                     Text("CoalesceEq: ${'$'}{listOf("a").getOrNull(7) ?: "d" == "a"}")
                     Text("EqCoalesce: ${'$'}{"a" == listOf("a").getOrNull(7) ?: "d"}")
                     Text("CoalesceLt: ${'$'}{listOf(5).getOrNull(7) ?: 0 < 3}")
+                    Text("a1: ${'$'}{2 + 3}")
+                    Text("a2: ${'$'}{2 + 4}")
+                    Text("a3: ${'$'}{2 + 5}")
+                    Text("a4: ${'$'}{3 + 5}")
+                    Text("a5: ${'$'}{4 + 5}")
+                    Text("a6: ${'$'}{5 + 6}")
+                    Text("a7: ${'$'}{3 + 9}")
+                    Text("a8: ${'$'}{6 + 7}")
+                    Text("a9: ${'$'}{8 + 6}")
+                    Text("a10: ${'$'}{9 + 6}")
+                    Text("b1: ${'$'}{9 - 2}")
+                    Text("b2: ${'$'}{9 - 3}")
+                    Text("b3: ${'$'}{9 - 4}")
+                    Text("b4: ${'$'}{9 - 5}")
+                    Text("b5: ${'$'}{9 - 6}")
+                    Text("b6: ${'$'}{9 - 7}")
+                    Text("b7: ${'$'}{9 - 8}")
+                    Text("c1: ${'$'}{2 * 3}")
+                    Text("c2: ${'$'}{2 * 4}")
+                    Text("c3: ${'$'}{3 * 3}")
+                    Text("c4: ${'$'}{2 * 5}")
+                    Text("c5: ${'$'}{3 * 4}")
+                    Text("c6: ${'$'}{2 * 7}")
+                    Text("c7: ${'$'}{3 * 5}")
+                    Text("d1: ${'$'}{state.wide + state.wide}")
+                    Text("d2: ${'$'}{state.wide * 3L}")
+                    Text("d3: ${'$'}{state.wide - 1L}")
+                    Text("d4: ${'$'}{state.wide - 2L}")
+                    Text("d5: ${'$'}{state.wide + 2L}")
+                    Text("d6: ${'$'}{state.wide * 1L}")
+                    Text("d7: ${'$'}{-(state.wide + 1L)}")
+                    Text("e1: ${'$'}{state.count + 1}")
+                    Text("e2: ${'$'}{state.count - 1}")
+                    Text("e3: ${'$'}{state.count * 2}")
+                    Text("e4: ${'$'}{state.label.length + 1}")
+                    Text("e5: ${'$'}{state.label.length + state.count}")
+                    Text("e6: ${'$'}{state.label.length * state.count}")
+                    Text("e7: ${'$'}{state.blank.length + state.count}")
+                    Text("e8: ${'$'}{state.blank.length * 2}")
+                    Text("f1: ${'$'}{2 < 3}")
+                    Text("f2: ${'$'}{3 < 2}")
+                    Text("f3: ${'$'}{2 <= 2}")
+                    Text("f4: ${'$'}{3 <= 2}")
+                    Text("f5: ${'$'}{3 > 2}")
+                    Text("f6: ${'$'}{2 > 3}")
+                    Text("f7: ${'$'}{2 >= 2}")
+                    Text("f8: ${'$'}{1 >= 2}")
+                    Text("f9: ${'$'}{2 == 2}")
+                    Text("f10: ${'$'}{2 != 2}")
+                    Text("f11: ${'$'}{8 == 9}")
+                    Text("f12: ${'$'}{8 != 9}")
+                    Text("g1: ${'$'}{state.label.trim() == "taps"}")
+                    Text("g2: ${'$'}{state.label == "taps"}")
+                    Text("g3: ${'$'}{state.blank == "   "}")
+                    Text("g4: ${'$'}{state.label.uppercase() == "  TAPS  "}")
+                    Text("g5: ${'$'}{"a" == "a"}")
+                    Text("g6: ${'$'}{"a" != "a"}")
+                    Text("g7: ${'$'}{state.label.trim() != "taps"}")
+                    Text("g8: ${'$'}{state.blank.trim() == ""}")
+                    Text("h1: ${'$'}{state.label.trim().uppercase()}")
+                    Text("h2: ${'$'}{state.label.trim().lowercase()}")
+                    Text("h3: ${'$'}{state.label.uppercase()}")
+                    Text("h4: ${'$'}{state.label.lowercase()}")
+                    Text("h5: ${'$'}{state.label.uppercase().length}")
+                    Text("h6: ${'$'}{state.label.lowercase().length}")
+                    Text("h7: ${'$'}{state.label.trim().length}")
+                    Text("h8: ${'$'}{state.blank.trim().isBlank()}")
+                    Text("h9: ${'$'}{state.label.contains("ps")}")
+                    Text("h10: ${'$'}{state.label.uppercase().contains("TA")}")
+                    Text("i1: ${'$'}{2 < 3 && 3 < 4}")
+                    Text("i2: ${'$'}{2 > 3 || 3 < 4}")
+                    Text("i3: ${'$'}{!(2 > 3)}")
+                    Text("i4: ${'$'}{!state.flag}")
+                    Text("i5: ${'$'}{state.flag && true}")
+                    Text("i6: ${'$'}{state.flag || false}")
+                    Text("i7: ${'$'}{state.count == state.count && state.count != 3}")
+                    Text("i8: ${'$'}{state.count < 1 || state.count < 3}")
+                    Text("i9: ${'$'}{!(state.count < 1) && state.flag}")
+                    Text("i10: ${'$'}{1 < 2 || 3 < 2 && 4 < 5}")
+                    Text("j1: ${'$'}{if (2 < 3) "y" else "n"}")
+                    Text("j2: ${'$'}{if (2 > 3) "y" else "n"}")
+                    Text("j3: ${'$'}{if (state.flag) "on" else "off"}")
+                    Text("j4: ${'$'}{if (state.count == 2) "two" else "more"}")
+                    Text("j5: ${'$'}{if (state.blank.isBlank()) "b" else "nb"}")
+                    Text("j6: ${'$'}{if (state.label.trim() == "taps") "t" else "f"}")
+                    Text("j7: ${'$'}{if (state.flag) if (2 < 3) "a" else "b" else "c"}")
+                    Text("j8: ${'$'}{if (1 < 2) "x" else if (2 < 3) "y" else "z"}")
+                    Text("j9: ${'$'}{if (state.count < 3) "lt" else "ge"}")
+                    Text("k1: ${'$'}{listOf(4).size}")
+                    Text("k2: ${'$'}{listOf("x").contains("x")}")
+                    Text("k3: ${'$'}{listOf(4).contains(4)}")
+                    Text("k4: ${'$'}{listOf(4).isEmpty()}")
+                    Text("k5: ${'$'}{listOf(4).isNotEmpty()}")
+                    Text("k6: ${'$'}{listOf(4).getOrNull(0) ?: 0}")
+                    Text("k7: ${'$'}{listOf(4).getOrNull(2) ?: 0}")
+                    Text("k8: ${'$'}{listOf(4).getOrNull(7) ?: -1}")
+                    Text("k9: ${'$'}{listOf(4).getOrNull(7) == null}")
+                    Text("k10: ${'$'}{listOf("x").getOrNull(0) ?: "gone"}")
+                    Text("k11: ${'$'}{listOf("x").getOrNull(7) ?: "gone"}")
+                    Text("l1: ${'$'}{fixedDecimalText(state.ratio, 2)}")
+                    Text("l2: ${'$'}{fixedDecimalText(state.ratio, 3)}")
+                    Text("l3: ${'$'}{fixedDecimalText(state.ratio, 4)}")
+                    Text("l4: ${'$'}{fixedDecimalText(state.count.toDouble(), 1)}")
+                    Text("l5: ${'$'}{fixedDecimalText(state.count.toDouble(), 3)}")
+                    Text("l6: ${'$'}{fixedDecimalText(state.label.length.toDouble(), 2)}")
+                    Text("m1: ${'$'}{-state.count}")
+                    Text("m2: ${'$'}{-(state.count + 1)}")
+                    Text("m3: ${'$'}{-(state.count - 3)}")
+                    Text("m4: ${'$'}{-(2 * 3)}")
+                    Text("m5: ${'$'}{-(state.count * 2)}")
+                    Text("n1: ${'$'}{state.wide > 1L}")
+                    Text("n2: ${'$'}{state.wide == state.wide}")
+                    Text("n3: ${'$'}{state.wide != 1L}")
+                    Text("n4: ${'$'}{state.wide < 2L}")
+                    Text("o1: ${'$'}{"c=${'$'}{state.count} b=${'$'}{state.blank}"}")
+                    Text("o2: ${'$'}{"L${'$'}{8}B${'$'}{3}C${'$'}{state.count}"}")
+                    Text("o3: ${'$'}{"flag=${'$'}{state.flag} w=${'$'}{state.wide}"}")
+                    Text("o4: ${'$'}{"${'$'}{state.label}${'$'}{state.blank}"}")
+                    Text("o5: ${'$'}{"s=${'$'}{state.shout}"}")
+                    Text("o6: ${'$'}{"n=${'$'}{state.blank}/"}")
+                    Text("p1: ${'$'}{4 + 4}")
+                    Text("p2: ${'$'}{10 - 2}")
+                    Text("p3: ${'$'}{2 * 4}")
+                    Text("p4: ${'$'}{state.label.length >= 3}")
+                    Text("p5: ${'$'}{if (state.blank.length == 3) "eq" else "ne"}")
                 }
             }
 
