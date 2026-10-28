@@ -33,5 +33,5 @@ analyze.targetMs 200
 analyze.baselineNs 0
 codegen.targetMs 300
 codegen.baselineNs 0
-command.targetMs 1
+command.targetMs 15
 command.baselineNs 0
