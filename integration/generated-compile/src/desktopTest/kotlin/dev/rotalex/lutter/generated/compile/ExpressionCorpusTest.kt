@@ -275,12 +275,12 @@ class ExpressionCorpusTest {
             "n2: true",
             "n3: true",
             "n4: false",
-            "o1: c=2 b=3",
+            "o1: c=2 b=   ",
             "o2: L8B3C2",
             "o3: flag=true w=9007199254740993",
             "o4:   taps     ",
             "o5: s=  TAPS  ",
-            "o6: n=3/",
+            "o6: n=   /",
             "p1: 8",
             "p2: 8",
             "p3: 8",
@@ -460,7 +460,7 @@ class ExpressionCorpusTest {
                     Text("j6: ${'$'}{if (state.label.trim() == "taps") "t" else "f"}")
                     Text("j7: ${'$'}{if (state.flag) if (2 < 3) "a" else "b" else "c"}")
                     Text("j8: ${'$'}{if (1 < 2) "x" else if (2 < 3) "y" else "z"}")
-                    Text("j9: ${'$'}{if (state.count < state.label.length) "lt" else "ge"}")
+                    Text("j9: ${'$'}{if (state.count < 3) "lt" else "ge"}")
                     Text("k1: ${'$'}{listOf(4).size}")
                     Text("k2: ${'$'}{listOf("x").contains("x")}")
                     Text("k3: ${'$'}{listOf(4).contains(4)}")

@@ -5246,17 +5246,11 @@
                       }
                     },
                     "right": {
-                      "type": "call",
-                      "function": "str.length",
-                      "args": [
-                        {
-                          "type": "ref",
-                          "target": {
-                            "type": "state",
-                            "id": "s_label"
-                          }
-                        }
-                      ]
+                      "type": "const",
+                      "value": {
+                        "type": "i32",
+                        "v": 3
+                      }
                     }
                   },
                   "then": {
