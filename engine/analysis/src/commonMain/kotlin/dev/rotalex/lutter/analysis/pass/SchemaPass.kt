@@ -167,7 +167,8 @@ internal class SchemaPass(
             val nameValue: String = constString(node, emit.nameKey) ?: continue
             if (schema.icons[setValue]?.get(nameValue) == null) {
                 diags += Diagnostic(
-                    Severity.Error, DiagnosticCodes.PropIconUnregistered, location(),
+                    Severity.Error, DiagnosticCodes.PropIconUnregistered,
+                    DiagnosticLocation(nodeId = node.id, property = emit.setKey),
                     "Icon '" + setValue + "/" + nameValue + "' is not in a registered set (node '" + node.id + "')",
                     mapOf("node" to node.id.value, "property" to param.param),
                 )
