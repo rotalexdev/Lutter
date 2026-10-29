@@ -136,6 +136,11 @@ public final class dev/rotalex/lutter/builtins/PaddingModifier {
 	public final fun getVertical ()Ldev/rotalex/lutter/schema/component/PropertySpec;
 }
 
+public final class dev/rotalex/lutter/builtins/ProgressIndicatorSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/ProgressIndicatorSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
 public final class dev/rotalex/lutter/builtins/RowSpec {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/RowSpec;
 	public final fun getArrangementId-7JNyzJc ()Ljava/lang/String;
