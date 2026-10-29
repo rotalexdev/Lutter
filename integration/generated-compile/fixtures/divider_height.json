@@ -17,7 +17,7 @@
         "modifiers": [
           {"type": "layout.height", "args": {"height": {"type": "const", "value": {"type": "dp", "v": 2}}}}
         ],
-        "type": "core.Divider"
+        "type": "m3.Divider"
       },
       "n_b": {
         "id": "n_b",
