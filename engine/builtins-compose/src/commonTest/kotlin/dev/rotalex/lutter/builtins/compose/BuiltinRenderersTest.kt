@@ -4,6 +4,7 @@ import dev.rotalex.lutter.builtins.BoxSpec
 import dev.rotalex.lutter.builtins.ButtonSpec
 import dev.rotalex.lutter.builtins.CardSpec
 import dev.rotalex.lutter.builtins.ColumnSpec
+import dev.rotalex.lutter.builtins.DividerSpec
 import dev.rotalex.lutter.builtins.RowSpec
 import dev.rotalex.lutter.builtins.SlotOutletSpec
 import dev.rotalex.lutter.builtins.SpacerSpec
