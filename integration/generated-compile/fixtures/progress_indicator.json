@@ -1,0 +1,37 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "ProgressIndicatorBar"},
+    "nodes": {
+      "n_a": {
+        "id": "n_a",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Loading"}}},
+        "type": "m3.Text"
+      },
+      "n_bar": {
+        "id": "n_bar",
+        "modifiers": [
+          {"type": "layout.height", "args": {"height": {"type": "const", "value": {"type": "dp", "v": 8}}}}
+        ],
+        "type": "m3.ProgressIndicator"
+      },
+      "n_b": {
+        "id": "n_b",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Please wait"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "slots": {"children": ["n_a", "n_bar", "n_b"]},
+        "type": "core.Column"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}
