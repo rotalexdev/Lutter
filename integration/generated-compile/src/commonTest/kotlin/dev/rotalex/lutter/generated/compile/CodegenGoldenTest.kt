@@ -428,6 +428,7 @@ class CodegenGoldenTest {
             "divider_height",
             "expression_corpus",
             "material_token",
+            "progress_indicator",
             "row_weight",
             "spacer_size",
             "text_field_state",

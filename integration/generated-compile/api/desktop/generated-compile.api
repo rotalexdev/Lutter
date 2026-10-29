@@ -449,6 +449,7 @@ public final class dev/rotalex/lutter/generated/compile/ComposableSingletons$Gen
 	public final fun getLambda$1797654935$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda$1981353511$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda$343801297$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$427609446$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda$527499873$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda$53980930$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda$560796682$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
@@ -704,6 +705,42 @@ public abstract interface class dev/rotalex/lutter/generated/nested_depth3/Snack
 }
 
 public final class dev/rotalex/lutter/generated/nested_depth3/screens/HomeScreenKt {
+	public static final fun HomeScreen (Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/progress_indicator/AppHost {
+}
+
+public final class dev/rotalex/lutter/generated/progress_indicator/AppKt {
+	public static final fun AppRoot (Ldev/rotalex/lutter/generated/progress_indicator/AppNavigator;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class dev/rotalex/lutter/generated/progress_indicator/AppNavigator {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun <init> (Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun back ()Z
+	public final fun getCurrent ()Ldev/rotalex/lutter/generated/progress_indicator/Route;
+	public final fun navigate (Ldev/rotalex/lutter/generated/progress_indicator/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/progress_indicator/Route {
+}
+
+public final class dev/rotalex/lutter/generated/progress_indicator/Route$Home : dev/rotalex/lutter/generated/progress_indicator/Route {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/generated/progress_indicator/Route$Home;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/rotalex/lutter/generated/progress_indicator/SnackbarHost {
+	public abstract fun show (Ljava/lang/String;)V
+}
+
+public final class dev/rotalex/lutter/generated/progress_indicator/screens/HomeScreenKt {
 	public static final fun HomeScreen (Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 }
 

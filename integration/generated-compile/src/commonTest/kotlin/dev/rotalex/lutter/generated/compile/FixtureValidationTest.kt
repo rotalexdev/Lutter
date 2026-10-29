@@ -52,6 +52,7 @@ class FixtureValidationTest {
                 "expression_corpus",
                 "material_token",
                 "nested_depth3",
+                "progress_indicator",
                 "row_align",
                 "row_padding",
                 "row_weight",
