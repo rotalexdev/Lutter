@@ -425,6 +425,7 @@ class CodegenGoldenTest {
             "column_color",
             "column_text",
             "component_param_slot",
+            "divider_height",
             "expression_corpus",
             "material_token",
             "row_weight",
