@@ -91,15 +91,30 @@ public object CodegenCoverage {
     private fun callProblem(spec: ComponentSpec, binding: CodegenBinding.ComposeCall): String? {
         for (param in binding.params) {
             paramProblem(spec, param.param, param.from)?.let { return it }
-            val cases = param.emit as? ValueEmit.Cases ?: continue
-            if (cases.cases.isEmpty()) return "param '${param.param}' has no emission case"
-            for (cased in cases.cases) {
-                for (key in cased.whenPresent) {
-                    if (spec.properties.none { it.key == key }) {
-                        return "param '${param.param}' matches on undeclared '${key.value}'"
+            when (val emit = param.emit) {
+                is ValueEmit.Cases -> {
+                    if (emit.cases.isEmpty()) return "param '${param.param}' has no emission case"
+                    for (cased in emit.cases) {
+                        for (key in cased.whenPresent) {
+                            if (spec.properties.none { it.key == key }) {
+                                return "param '${param.param}' matches on undeclared '${key.value}'"
+                            }
+                        }
+                        patternProblem(spec, param.param, cased.pattern)?.let { return it }
                     }
                 }
-                patternProblem(spec, param.param, cased.pattern)?.let { return it }
+                is ValueEmit.Icon -> {
+                    // Both keys are the emission's inputs: an undeclared one resolves nothing.
+                    for (key in listOf(emit.setKey, emit.nameKey)) {
+                        if (spec.properties.none { it.key == key }) {
+                            return "param '${param.param}' resolves undeclared '${key.value}'"
+                        }
+                    }
+                }
+                is ValueEmit.Literal -> {
+                    if (emit.text.isBlank()) return "param '${param.param}' emits a blank literal"
+                }
+                is ValueEmit.Direct -> {} // the from-list check above owns it
             }
         }
         for (slot in binding.slots) {

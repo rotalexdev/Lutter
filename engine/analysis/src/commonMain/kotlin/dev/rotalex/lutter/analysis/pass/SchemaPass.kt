@@ -17,9 +17,11 @@ import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.Cardinality
 import dev.rotalex.lutter.schema.component.ChildFilter
+import dev.rotalex.lutter.schema.component.CodegenBinding
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.PropertyRule
 import dev.rotalex.lutter.schema.component.ScopeId
+import dev.rotalex.lutter.schema.component.ValueEmit
 import dev.rotalex.lutter.schema.kind.ValueKinds
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import dev.rotalex.lutter.schema.types.EnumTypeSpec
@@ -51,6 +53,7 @@ internal class SchemaPass(
             }
             checkProps(document, node, spec, diags)
             checkRules(node, spec, diags)
+            checkIcons(node, spec, diags)
             checkSlots(document, node, spec, diags)
             checkModifiers(document, node, scopes[id] ?: emptySet(), diags)
         }
@@ -150,6 +153,32 @@ internal class SchemaPass(
     private fun enumEntries(document: UiDocument, id: TypeId): List<String>? =
         (schema.types[id] as? EnumTypeSpec)?.entries?.map { it.name }
             ?: document.enums[id]?.entries?.map { it.name }
+
+    // §10:796's validation column: an icon is valid when the (set, name) pair its spec resolves
+    // is in the registered set. The declaration this walks is the same `ValueEmit.Icon` the
+    // generator resolves, so validation and emission cannot disagree about which pair names an
+    // icon. Constant strings only: a computed name is pass 5's business, and unresolvable ones
+    // are refused there with the same registry.
+    private fun checkIcons(node: Node, spec: ComponentSpec, diags: MutableList<Diagnostic>) {
+        val binding = spec.codegen as? CodegenBinding.ComposeCall ?: return
+        for (param in binding.params) {
+            val emit = param.emit as? ValueEmit.Icon ?: continue
+            val setValue: String = constString(node, emit.setKey) ?: continue
+            val nameValue: String = constString(node, emit.nameKey) ?: continue
+            if (schema.icons[setValue]?.get(nameValue) == null) {
+                diags += Diagnostic(
+                    Severity.Error, DiagnosticCodes.PropIconUnregistered, location(),
+                    "Icon '" + setValue + "/" + nameValue + "' is not in a registered set (node '" + node.id + "')",
+                    mapOf("node" to node.id.value, "property" to param.param),
+                )
+            }
+        }
+    }
+
+    private fun constString(node: Node, key: PropertyKey): String? {
+        val prop = node.props[key] as? PropertyValue.Const ?: return null
+        return (prop.value as? Value.Str)?.v
+    }
 
     private fun checkRules(node: Node, spec: ComponentSpec, diags: MutableList<Diagnostic>) {
         val present = node.props.keys

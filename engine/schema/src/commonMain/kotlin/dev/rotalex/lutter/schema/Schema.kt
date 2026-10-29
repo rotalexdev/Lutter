@@ -6,9 +6,10 @@ import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.ids.ModifierType
 import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.schema.registry.Registry
+import dev.rotalex.lutter.schema.types.IconSet
 
 /**
- * What consumers read: five registries, nothing mutable.
+ * What consumers read: six registries, nothing mutable.
  *
  * Analysis, runtime and codegen take this rather than [Schema] so document components can
  * later resolve through an overlay without touching the static schema (§8.4, S4).
@@ -19,14 +20,18 @@ public interface SchemaView<C : Any, M : Any, A : Any, F : Any, T : Any> {
     public val actions: Registry<ActionId, A>
     public val functions: Registry<FunctionId, F>
     public val types: Registry<TypeId, T>
+
+    /** The icon sets, keyed by name. §20:1599's "backed by an `IconSet` in the `TypeRegistry`". */
+    public val icons: Registry<String, IconSet>
 }
 
 /**
- * The immutable schema: five registries built once through [SchemaBuilder].
+ * The immutable schema: six registries built once through [SchemaBuilder].
  *
  * Generic over the spec types because they arrive in later units (S2–S4); binding them
  * here would drag those units into this one. The keys and the read-only shape are the
- * contract and do not move when the values do.
+ * contract and do not move when the values do. The icon registry is concrete, not generic:
+ * icon sets are data-defined extension points (D3), never spec-shaped.
  */
 public class Schema<C : Any, M : Any, A : Any, F : Any, T : Any> internal constructor(
     override public val components: Registry<ComponentType, C>,
@@ -34,6 +39,7 @@ public class Schema<C : Any, M : Any, A : Any, F : Any, T : Any> internal constr
     override public val actions: Registry<ActionId, A>,
     override public val functions: Registry<FunctionId, F>,
     override public val types: Registry<TypeId, T>,
+    override public val icons: Registry<String, IconSet>,
 ) : SchemaView<C, M, A, F, T> {
     public companion object {
         /** Builds a schema. Duplicates fail as [SchemaBuildException], never silently. */
