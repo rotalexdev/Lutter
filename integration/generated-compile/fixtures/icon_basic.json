@@ -1,0 +1,28 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "IconBasic"},
+    "nodes": {
+      "n_icon": {
+        "id": "n_icon",
+        "props": {
+          "set": {"type": "const", "value": {"type": "str", "v": "material"}},
+          "name": {"type": "const", "value": {"type": "str", "v": "home"}}
+        },
+        "type": "m3.Icon"
+      },
+      "n_root": {
+        "id": "n_root",
+        "slots": {"children": ["n_icon"]},
+        "type": "core.Box"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}
