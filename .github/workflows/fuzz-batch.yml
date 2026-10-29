@@ -6,19 +6,20 @@ name: fuzz-batch
 # eleven documents were all chosen by somebody, so a defect that only one generated document in two
 # hundred has is invisible to it. This generates them.
 #
-# `push`, not `schedule`. GitHub runs a scheduled event from the default branch and from nowhere
-# else, and this repository's default branch is `main` — four files, no build, 55 commits behind
-# `dev`, which is where every line of this job lives. A `schedule:` here would never fire. A push
-# runs from the ref that was pushed, so this fires where the code is, and fires on every merge
-# rather than once a night: a defect lands on the integration line sooner, which is the whole point
-# of a detector that eleven hand-written documents cannot see.
-#
-# `workflow_dispatch` stays for when `main` catches up, and until then it answers HTTP 404 because
-# dispatch carries the same default-branch restriction as `schedule`. It is written down here so the
-# next reader does not spend an afternoon finding that out again.
+# Three triggers, each with its own job. `push` to dev is the primary detector: it fires on
+# every merge rather than once a night, so a defect lands on the integration line sooner than
+# any nightly could catch it. `schedule` exists because PLAN §36 names the nightly batch
+# literally, and since the MVP release merge (PR #117) the default branch carries these
+# workflows — a scheduled event now fires from `main`, the way GitHub always intended a
+# schedule to work. `workflow_dispatch` answers the manual run; before the release it
+# answered HTTP 404 under the same default-branch restriction `schedule` had, and it is
+# written down here so the next reader does not spend an afternoon finding that out again.
 on:
   push:
     branches: [ dev ]
+  schedule:
+    # 03:00 UTC nightly, over the promoted default branch.
+    - cron: '0 3 * * *'
   workflow_dispatch:
 
 concurrency:
