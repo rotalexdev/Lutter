@@ -4,6 +4,7 @@ import dev.rotalex.lutter.builtins.BoxSpec
 import dev.rotalex.lutter.builtins.ButtonSpec
 import dev.rotalex.lutter.builtins.CardSpec
 import dev.rotalex.lutter.builtins.ColumnSpec
+import dev.rotalex.lutter.builtins.DividerSpec
 import dev.rotalex.lutter.builtins.RowSpec
 import dev.rotalex.lutter.builtins.SlotOutletSpec
 import dev.rotalex.lutter.builtins.SpacerSpec
@@ -29,6 +30,7 @@ class BuiltinRenderersTest {
         assertNotNull(registry[RowSpec.spec.type])
         assertNotNull(registry[BoxSpec.spec.type])
         assertNotNull(registry[SpacerSpec.spec.type])
+        assertNotNull(registry[DividerSpec.spec.type])
         assertNotNull(registry[TextSpec.spec.type])
         assertNotNull(registry[ButtonSpec.spec.type])
         assertNotNull(registry[TextFieldSpec.spec.type])
@@ -38,7 +40,7 @@ class BuiltinRenderersTest {
         // the pack rather than only failing where a document happens to use one.
         assertNotNull(registry[SlotOutletSpec.spec.type])
         // Pinned so a spec registered without its renderer fails here rather than at coverage.
-        assertEquals(9, registry.types().size)
+        assertEquals(10, registry.types().size)
     }
 
     @Test

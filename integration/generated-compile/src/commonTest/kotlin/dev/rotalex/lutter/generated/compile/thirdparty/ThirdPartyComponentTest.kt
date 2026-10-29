@@ -121,7 +121,7 @@ class ThirdPartyComponentTest {
         assertEquals(
             BUILTIN_COUNT + 1,
             schema.components.all().size,
-            "the pack has nine components and the plugin added a tenth",
+            "the pack has ten components and the plugin added an eleventh",
         )
         // Side by side, not instead. A contribution that replaced the pack would satisfy the two
         // lines above, and "registry-driven extensibility" is a claim about addition.
@@ -614,8 +614,8 @@ class ThirdPartyComponentTest {
         const val BASE_PACKAGE: String = "com.example.app"
         const val SCREEN: String = "screens/HomeScreen.kt"
 
-        /** `registerBuiltinSpecs` registers nine components; §7.5's MVP layout row. */
-        const val BUILTIN_COUNT: Int = 9
+        /** `registerBuiltinSpecs` registers ten components; §7.5's MVP layout row plus wave 2's first. */
+        const val BUILTIN_COUNT: Int = 10
 
         val HOME: PageId = PageId("p_home")
         val TEXT: ComponentType = ComponentType("m3.Text")

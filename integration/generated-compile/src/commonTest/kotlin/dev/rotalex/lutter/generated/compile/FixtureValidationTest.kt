@@ -48,6 +48,7 @@ class FixtureValidationTest {
                 "column_padding",
                 "column_text",
                 "component_param_slot",
+                "divider_height",
                 "expression_corpus",
                 "material_token",
                 "nested_depth3",

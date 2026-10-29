@@ -85,6 +85,11 @@ public final class dev/rotalex/lutter/builtins/DecorationModifiers {
 	public final fun getAll ()Ljava/util/List;
 }
 
+public final class dev/rotalex/lutter/builtins/DividerSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/DividerSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
 public final class dev/rotalex/lutter/builtins/FillMaxHeightModifier {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/FillMaxHeightModifier;
 	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
