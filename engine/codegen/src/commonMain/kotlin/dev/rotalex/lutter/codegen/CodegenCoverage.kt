@@ -90,7 +90,7 @@ public object CodegenCoverage {
     // One reason per spec: the first gap is the fix, the rest is the same fix repeated.
     private fun callProblem(spec: ComponentSpec, binding: CodegenBinding.ComposeCall): String? {
         for (param in binding.params) {
-            paramProblem(spec, param.param, param.from)?.let { return it }
+            paramProblem(spec, param.param, param.from, param.emit)?.let { return it }
             when (val emit = param.emit) {
                 is ValueEmit.Cases -> {
                     if (emit.cases.isEmpty()) return "param '${param.param}' has no emission case"
@@ -137,8 +137,11 @@ public object CodegenCoverage {
         spec: ComponentSpec,
         param: String,
         from: List<PropertyKey>,
+        emit: ValueEmit? = null,
     ): String? {
-        if (from.isEmpty()) return "param '$param' binds no property"
+        // A literal is intentionally property-free: it exists to fill a required argument the
+        // spec declares no property for, so an empty source list is its shape, not a dead bind.
+        if (from.isEmpty() && emit !is ValueEmit.Literal) return "param '$param' binds no property"
         for (key in from) {
             if (spec.properties.none { it.key == key }) {
                 return "param '$param' reads undeclared '${key.value}'"
