@@ -15,9 +15,16 @@
         },
         "type": "m3.Icon"
       },
+      "n_label": {
+        "id": "n_label",
+        "props": {
+          "text": {"type": "const", "value": {"type": "str", "v": "Home"}}
+        },
+        "type": "core.Text"
+      },
       "n_root": {
         "id": "n_root",
-        "slots": {"children": ["n_icon"]},
+        "slots": {"children": ["n_label", "n_icon"]},
         "type": "core.Box"
       }
     },
