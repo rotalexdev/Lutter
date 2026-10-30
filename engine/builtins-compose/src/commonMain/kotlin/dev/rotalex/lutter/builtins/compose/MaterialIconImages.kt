@@ -2,7 +2,7 @@ package dev.rotalex.lutter.builtins.compose
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -32,7 +32,7 @@ internal object MaterialIconImages {
         "check" to Icons.Filled.Check,
         "delete" to Icons.Filled.Delete,
         "menu" to Icons.Filled.Menu,
-        "arrow_back" to Icons.Filled.ArrowBack,
+        "arrow_back" to Icons.AutoMirrored.Filled.ArrowBack,
         "favorite" to Icons.Filled.Favorite,
         "star" to Icons.Filled.Star,
         "share" to Icons.Filled.Share,

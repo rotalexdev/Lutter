@@ -22,6 +22,7 @@ import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import dev.rotalex.lutter.schema.registry.Registry
 import dev.rotalex.lutter.schema.registry.RegistryBuilder
+import dev.rotalex.lutter.schema.types.IconSet
 import dev.rotalex.lutter.schema.types.TypeSpec
 
 // The codegen corpus: a schema the generator can emit from, one run's worth of output, and
@@ -602,6 +603,7 @@ internal class EmittableView(
     override val actions: Registry<ActionId, ActionSpec> = delegate.actions
     override val functions: Registry<FunctionId, FunctionSpec> = delegate.functions
     override val types: Registry<TypeId, TypeSpec> = delegate.types
+    override val icons: Registry<String, IconSet> = delegate.icons
 }
 
 /** Stands in for a diagnostic location field that is not set. */
