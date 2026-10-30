@@ -20,7 +20,7 @@
         "props": {
           "text": {"type": "const", "value": {"type": "str", "v": "Home"}}
         },
-        "type": "core.Text"
+        "type": "m3.Text"
       },
       "n_root": {
         "id": "n_root",
