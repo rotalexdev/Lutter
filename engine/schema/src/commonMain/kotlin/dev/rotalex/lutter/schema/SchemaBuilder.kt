@@ -7,6 +7,7 @@ import dev.rotalex.lutter.model.ids.ModifierType
 import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.schema.registry.DuplicateKeyException
 import dev.rotalex.lutter.schema.registry.RegistryBuilder
+import dev.rotalex.lutter.schema.types.IconSet
 
 /**
  * A schema build failure: always a duplicate key, always naming the registry and the key.
@@ -27,6 +28,7 @@ public class SchemaBuilder<C : Any, M : Any, A : Any, F : Any, T : Any> {
     private val actions: RegistryBuilder<ActionId, A> = RegistryBuilder()
     private val functions: RegistryBuilder<FunctionId, F> = RegistryBuilder()
     private val types: RegistryBuilder<TypeId, T> = RegistryBuilder()
+    private val icons: RegistryBuilder<String, IconSet> = RegistryBuilder()
 
     /** Registers a component spec. Only the key and value; S2 adds the spec-typed overload. */
     public fun component(type: ComponentType, spec: C): Unit {
@@ -53,6 +55,11 @@ public class SchemaBuilder<C : Any, M : Any, A : Any, F : Any, T : Any> {
         add("types", types, id, entry)
     }
 
+    /** Registers an icon set under its own name. §20:1599's TypeRegistry hook, now wired. */
+    public fun iconSet(set: IconSet): Unit {
+        add("icons", icons, set.name, set)
+    }
+
     /** Freezes the schema. Infallible: duplicates already threw at registration. */
     public fun build(): Schema<C, M, A, F, T> = Schema(
         components = components.build(),
@@ -60,6 +67,7 @@ public class SchemaBuilder<C : Any, M : Any, A : Any, F : Any, T : Any> {
         actions = actions.build(),
         functions = functions.build(),
         types = types.build(),
+        icons = icons.build(),
     )
 
     private fun <K : Any, V : Any> add(

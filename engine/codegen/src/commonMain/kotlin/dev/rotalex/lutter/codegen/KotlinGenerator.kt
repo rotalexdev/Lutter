@@ -1087,7 +1087,13 @@ public class KotlinGenerator<A : Any, T : Any>(
         val kept: MutableList<KeptParam> = mutableListOf()
         for (param in binding.params) {
             val present: List<PropertyKey> = param.from.filter { key -> valueful(node, key) }
-            if (present.isEmpty()) continue
+            if (present.isEmpty()) {
+                // A literal has nothing to be valueful about: it exists to name a required
+                // argument the spec declares no property for, so absence of sources is its
+                // normal shape and the parameter stays.
+                if (param.emit is ValueEmit.Literal) kept += KeptParam(param, present)
+                continue
+            }
             if (param.omitWhenDefault && present.all { isDefault(node, it) }) continue
             kept += KeptParam(param, present)
         }
@@ -1144,7 +1150,53 @@ public class KotlinGenerator<A : Any, T : Any>(
             val filled = fillPattern(match.pattern, node.props, spec.properties, node) ?: return null
             return KtExpr.Snippet(filled.first, match.imports + filled.second)
         }
+        if (emit is ValueEmit.Icon) {
+            // §10:796's row: the pair resolves through the set, and the case transformation
+            // lives in the registry rather than in a text pattern — "home" is nobody's literal.
+            val symbol: KotlinSymbol? = iconSymbol(emit, node)
+            if (symbol == null) return null
+            // Material's icon families expose each glyph as an extension property on a receiver
+            // the package tail names: `...icons.filled` hangs `Home` off `Icons.Filled`. A bare
+            // extension name does not resolve, so the call reads the receiver chain and imports
+            // both the receiver and the extension. That convention belongs to the icon registry
+            // the symbol comes from; MaterialIconSet is the only family registered.
+            val family = symbol.packageName.substringAfterLast('.').replaceFirstChar { it.uppercaseChar() }
+            val receiver = KotlinSymbol(
+                symbol.packageName.substringBeforeLast('.', missingDelimiterValue = symbol.packageName),
+                "Icons",
+            )
+            return KtExpr.Literal("Icons." + family + "." + symbol.name, listOf(receiver, symbol))
+        }
+        if (emit is ValueEmit.Literal) {
+            return KtExpr.Snippet(emit.text, emptyList())
+        }
         throw CodegenBug("Unknown ValueEmit: " + emit)
+    }
+
+    // The icon emission's resolver: the (set, name) the node carries becomes the symbol the
+    // schema's icon registry holds. Constant strings only — a computed name would need a
+    // runtime read the printer cannot splice, the same reason a pattern refuses one.
+    private fun iconSymbol(emit: ValueEmit.Icon, node: ResolvedNode): KotlinSymbol? {
+        val setValue: String? = (node.props[emit.setKey]?.value as? PropertyValue.Const)?.let { it.value as? Value.Str }?.v
+        val nameValue: String? = (node.props[emit.nameKey]?.value as? PropertyValue.Const)?.let { it.value as? Value.Str }?.v
+        if (setValue == null || nameValue == null) {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                node,
+                "Icon emission needs constant 'set' and 'name' strings",
+            )
+            return null
+        }
+        val symbol: KotlinSymbol? = schema.icons[setValue]?.get(nameValue)
+        if (symbol == null) {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                node,
+                "Icon '" + setValue + "/" + nameValue + "' is not in a registered set",
+            )
+            return null
+        }
+        return symbol
     }
 
     // Every `{key}` becomes the property's literal, spliced into text: an unknown key and a

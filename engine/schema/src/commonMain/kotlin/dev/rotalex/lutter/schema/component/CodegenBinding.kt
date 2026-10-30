@@ -67,7 +67,10 @@ public data class ParamBinding(
 
 /**
  * How a parameter's value emits. Direct delegates to the value kind; cases pick a template
- * by which properties are present (§7.2's arrangement-vs-spacing shape, D7).
+ * by which properties are present (§7.2's arrangement-vs-spacing shape, D7); icon resolves
+ * the (set, name) pair through the schema's icon registry (§10:796), because `Icons.Filled.Home`
+ * is a case transformation no text pattern can spell; literal writes a constant, for a required
+ * argument the spec has no property for (`Icon`'s `contentDescription` has no default).
  */
 @Serializable
 @JsonClassDiscriminator("type")
@@ -79,6 +82,19 @@ public sealed interface ValueEmit {
     @Serializable
     @SerialName("cases")
     public data class Cases(public val cases: List<EmitCase>) : ValueEmit
+
+    /** The set names the icon set, the name key the icon inside it (§20:1599). */
+    @Serializable
+    @SerialName("icon")
+    public data class Icon(
+        public val setKey: PropertyKey,
+        public val nameKey: PropertyKey,
+    ) : ValueEmit
+
+    /** A constant, spelled as Kotlin source text. Kept even with no property behind it. */
+    @Serializable
+    @SerialName("literal")
+    public data class Literal(public val text: String) : ValueEmit
 }
 
 /**

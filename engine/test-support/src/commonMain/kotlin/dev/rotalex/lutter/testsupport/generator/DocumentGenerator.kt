@@ -54,12 +54,14 @@ import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.action.ActionSpec
 import dev.rotalex.lutter.schema.component.Cardinality
 import dev.rotalex.lutter.schema.component.ChildFilter
+import dev.rotalex.lutter.schema.component.CodegenBinding
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.EventSpec
 import dev.rotalex.lutter.schema.component.PropertyRule
 import dev.rotalex.lutter.schema.component.PropertySpec
 import dev.rotalex.lutter.schema.component.ScopeId
 import dev.rotalex.lutter.schema.component.SlotSpec
+import dev.rotalex.lutter.schema.component.ValueEmit
 import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import dev.rotalex.lutter.schema.overlay.documentDeclIdOf
@@ -798,11 +800,33 @@ public class DocumentGenerator(
         }
 
         val props = linkedMapOf<PropertyKey, PropertyValue>()
+        // An icon arm fills its pair from the registry, not from the Str filler: SchemaPass
+        // refuses a (set, name) outside a registered set, and "gen-48213" is always outside.
+        // The pair travels together, so both keys override or neither does.
+        val iconFills = iconFillsFor(spec)
         for (key in wanted) {
-            val value = propertyValueFor(declared.getValue(key), scope, bounds[key])
+            val value = iconFills?.get(key)
+                ?.let { PropertyValue.Const(Value.Str(it)) }
+                ?: propertyValueFor(declared.getValue(key), scope, bounds[key])
             if (value != null) props[key] = value
         }
         return props
+    }
+
+    /**
+     * The (set, name) fills a component's icon arm wants, when it has one.
+     *
+     * Read from the component's own binding: the `ValueEmit.Icon` declaration names the two
+     * properties the pair rides on, and the schema's icon registry supplies a pair that passes
+     * `checkIcons` — the first set's first name, deterministic so a seed regenerates the same
+     * document. Components without an icon arm get null and keep the ordinary filler.
+     */
+    private fun iconFillsFor(spec: ComponentSpec): Map<PropertyKey, String>? {
+        val binding = spec.codegen as? CodegenBinding.ComposeCall ?: return null
+        val emit = binding.params.firstNotNullOfOrNull { it.emit as? ValueEmit.Icon } ?: return null
+        val set = view.icons.all().firstOrNull() ?: return null
+        val name = set.icons.keys.firstOrNull() ?: return null
+        return mapOf(emit.setKey to set.name, emit.nameKey to name)
     }
 
     private fun takeOneOf(

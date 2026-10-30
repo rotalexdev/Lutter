@@ -27,6 +27,7 @@ public object DiagnosticCodes {
     public val PropEnumEntryInvalid: DiagnosticCode = DiagnosticCode("prop.enum_entry_invalid")
     public val PropRange: DiagnosticCode = DiagnosticCode("prop.range")
     public val PropNotBindable: DiagnosticCode = DiagnosticCode("prop.not_bindable")
+    public val PropIconUnregistered: DiagnosticCode = DiagnosticCode("prop.icon_unregistered")
     public val ValueNonFinite: DiagnosticCode = DiagnosticCode("value.non_finite")
     public val ModifierUnknown: DiagnosticCode = DiagnosticCode("modifier.unknown")
     public val ModifierScopeMissing: DiagnosticCode = DiagnosticCode("modifier.scope_missing")
