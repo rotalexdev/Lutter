@@ -51,6 +51,11 @@ jobs:
             echo "::notice::branch 'dev' is the promotion head; the type rule names topic branches"
             exit 0
           fi
+          
+          if [[ "$BRANCH" == dependabot/* ]]; then
+            echo "::notice::Dependabot branch; conventional branch naming rule exempt"
+            exit 0
+          fi
 
           pattern='^(feat|fix|chore|refactor|perf|docs|test|build|ci|style|revert)/[a-z0-9][a-z0-9._-]*$'
           if [[ ! "$BRANCH" =~ $pattern ]]; then
