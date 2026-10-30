@@ -1155,8 +1155,17 @@ public class KotlinGenerator<A : Any, T : Any>(
             // lives in the registry rather than in a text pattern — "home" is nobody's literal.
             val symbol: KotlinSymbol? = iconSymbol(emit, node)
             if (symbol == null) return null
-            // A member-qualified name splits in two: the owner is what the import names.
-            return KtExpr.Literal(symbol.name, listOf(KotlinSymbol(symbol.packageName, symbol.name)))
+            // Material's icon families expose each glyph as an extension property on a receiver
+            // the package tail names: `...icons.filled` hangs `Home` off `Icons.Filled`. A bare
+            // extension name does not resolve, so the call reads the receiver chain and imports
+            // both the receiver and the extension. That convention belongs to the icon registry
+            // the symbol comes from; MaterialIconSet is the only family registered.
+            val family = symbol.packageName.substringAfterLast('.').replaceFirstChar { it.uppercaseChar() }
+            val receiver = KotlinSymbol(
+                symbol.packageName.substringBeforeLast('.', missingDelimiterValue = symbol.packageName),
+                "Icons",
+            )
+            return KtExpr.Literal("Icons." + family + "." + symbol.name, listOf(receiver, symbol))
         }
         if (emit is ValueEmit.Literal) {
             return KtExpr.Snippet(emit.text, emptyList())
