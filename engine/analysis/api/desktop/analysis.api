@@ -34,6 +34,7 @@ public final class dev/rotalex/lutter/analysis/diagnostic/DiagnosticCodes {
 	public final fun getNameReserved-a0Ipk4o ()Ljava/lang/String;
 	public final fun getNavArgsMismatch-a0Ipk4o ()Ljava/lang/String;
 	public final fun getPropEnumEntryInvalid-a0Ipk4o ()Ljava/lang/String;
+	public final fun getPropIconUnregistered-a0Ipk4o ()Ljava/lang/String;
 	public final fun getPropNotBindable-a0Ipk4o ()Ljava/lang/String;
 	public final fun getPropRange-a0Ipk4o ()Ljava/lang/String;
 	public final fun getPropRequiredMissing-a0Ipk4o ()Ljava/lang/String;
