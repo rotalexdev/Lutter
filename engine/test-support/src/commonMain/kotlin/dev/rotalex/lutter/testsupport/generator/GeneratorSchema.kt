@@ -2,6 +2,7 @@ package dev.rotalex.lutter.testsupport.generator
 
 import dev.rotalex.lutter.builtins.registerBuiltinActions
 import dev.rotalex.lutter.builtins.registerBuiltinEnums
+import dev.rotalex.lutter.builtins.registerBuiltinIconSets
 import dev.rotalex.lutter.builtins.registerBuiltinFunctions
 import dev.rotalex.lutter.builtins.registerBuiltinModifiers
 import dev.rotalex.lutter.builtins.registerBuiltinSpecs
@@ -100,6 +101,7 @@ public fun generatorSchema(): Schema<ComponentSpec, ModifierSpec, ActionSpec, Fu
         registerBuiltinSpecs()
         registerBuiltinModifiers()
         registerBuiltinEnums()
+        registerBuiltinIconSets()
         registerBuiltinFunctions()
         registerBuiltinActions()
         generatorVocabulary()

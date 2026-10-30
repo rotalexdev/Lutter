@@ -27,10 +27,12 @@ dependencies {
     commonMainApi(project(":engine:builtins"))
     commonMainApi(project(":engine:builtins-compose"))
     // Generated screens call Column/Text directly, so the module compiling them needs more
-    // than the compiler plugin's runtime: the same three artifacts builtins-compose uses.
+    // than the compiler plugin's runtime: the same artifacts builtins-compose uses. The icons
+    // one joined when the generator started emitting `Icons.Filled.*` for `m3.Icon`.
     commonMainImplementation(rootLibs.jetbrains.compose.ui)
     commonMainImplementation(rootLibs.jetbrains.compose.foundation)
     commonMainImplementation(rootLibs.jetbrains.compose.material3)
+    commonMainImplementation(rootLibs.jetbrains.compose.material.icons.extended)
     // Desktop-only UI test runner; commonTest stays pure so Android host tests keep running.
     desktopTestImplementation(compose.desktop.uiTestJUnit4)
     // Plan §36.1 bullet 7's Android half: `RuntimeSemanticsTest` composes under Robolectric on

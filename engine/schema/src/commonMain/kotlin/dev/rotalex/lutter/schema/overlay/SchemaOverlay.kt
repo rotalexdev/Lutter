@@ -12,6 +12,7 @@ import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.Cardinality
 import dev.rotalex.lutter.schema.component.Category
+import dev.rotalex.lutter.schema.types.IconSet
 import dev.rotalex.lutter.schema.component.CodegenBinding
 import dev.rotalex.lutter.schema.component.ComponentMetadata
 import dev.rotalex.lutter.schema.component.ComponentSpec
@@ -87,7 +88,8 @@ public fun documentDeclIdOf(type: String): ComponentDeclId? {
  *
  * Takes a `SchemaView` and returns one, so analysis, runtime and codegen treat document
  * components as first-class without the static schema ever naming them. Only components
- * merge; the other four registries delegate untouched.
+ * merge; the other registries delegate untouched. Icon sets are registry data, not merged
+ * specs: a document-defined set arrives with the plugin machinery (D3), not here.
  */
 public class SchemaOverlay<M : Any, A : Any, F : Any, T : Any>(
     schema: SchemaView<ComponentSpec, M, A, F, T>,
@@ -103,6 +105,8 @@ public class SchemaOverlay<M : Any, A : Any, F : Any, T : Any>(
     override public val functions: Registry<FunctionId, F> = schema.functions
 
     override public val types: Registry<TypeId, T> = schema.types
+
+    override public val icons: Registry<String, IconSet> = schema.icons
 
     private companion object {
         /**

@@ -90,16 +90,31 @@ public object CodegenCoverage {
     // One reason per spec: the first gap is the fix, the rest is the same fix repeated.
     private fun callProblem(spec: ComponentSpec, binding: CodegenBinding.ComposeCall): String? {
         for (param in binding.params) {
-            paramProblem(spec, param.param, param.from)?.let { return it }
-            val cases = param.emit as? ValueEmit.Cases ?: continue
-            if (cases.cases.isEmpty()) return "param '${param.param}' has no emission case"
-            for (cased in cases.cases) {
-                for (key in cased.whenPresent) {
-                    if (spec.properties.none { it.key == key }) {
-                        return "param '${param.param}' matches on undeclared '${key.value}'"
+            paramProblem(spec, param.param, param.from, param.emit)?.let { return it }
+            when (val emit = param.emit) {
+                is ValueEmit.Cases -> {
+                    if (emit.cases.isEmpty()) return "param '${param.param}' has no emission case"
+                    for (cased in emit.cases) {
+                        for (key in cased.whenPresent) {
+                            if (spec.properties.none { it.key == key }) {
+                                return "param '${param.param}' matches on undeclared '${key.value}'"
+                            }
+                        }
+                        patternProblem(spec, param.param, cased.pattern)?.let { return it }
                     }
                 }
-                patternProblem(spec, param.param, cased.pattern)?.let { return it }
+                is ValueEmit.Icon -> {
+                    // Both keys are the emission's inputs: an undeclared one resolves nothing.
+                    for (key in listOf(emit.setKey, emit.nameKey)) {
+                        if (spec.properties.none { it.key == key }) {
+                            return "param '${param.param}' resolves undeclared '${key.value}'"
+                        }
+                    }
+                }
+                is ValueEmit.Literal -> {
+                    if (emit.text.isBlank()) return "param '${param.param}' emits a blank literal"
+                }
+                is ValueEmit.Direct -> {} // the from-list check above owns it
             }
         }
         for (slot in binding.slots) {
@@ -122,8 +137,11 @@ public object CodegenCoverage {
         spec: ComponentSpec,
         param: String,
         from: List<PropertyKey>,
+        emit: ValueEmit? = null,
     ): String? {
-        if (from.isEmpty()) return "param '$param' binds no property"
+        // A literal is intentionally property-free: it exists to fill a required argument the
+        // spec declares no property for, so an empty source list is its shape, not a dead bind.
+        if (from.isEmpty() && emit !is ValueEmit.Literal) return "param '$param' binds no property"
         for (key in from) {
             if (spec.properties.none { it.key == key }) {
                 return "param '$param' reads undeclared '${key.value}'"

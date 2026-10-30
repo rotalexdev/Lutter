@@ -40,6 +40,9 @@ public fun <M : Any, A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, M, 
     component(RowSpec.spec)
     component(BoxSpec.spec)
     component(SpacerSpec.spec)
+    component(DividerSpec.spec)
+    component(ProgressIndicatorSpec.spec)
+    component(IconSpec.spec)
     component(TextSpec.spec)
     component(ButtonSpec.spec)
     component(TextFieldSpec.spec)
@@ -60,6 +63,11 @@ public fun <C : Any, M : Any, A : Any, F : Any> SchemaBuilder<C, M, A, F, TypeSp
     type(ShapeSpec.spec)
     type(VerticalArrangementSpec.spec)
     type(HorizontalArrangementSpec.spec)
+}
+
+/** Registers §20:1599's builtin icon set. The runtime resolver half is `MaterialIconImages`. */
+public fun <C : Any, M : Any, A : Any, F : Any, T : Any> SchemaBuilder<C, M, A, F, T>.registerBuiltinIconSets(): Unit {
+    iconSet(MaterialIconSet.set)
 }
 
 /**

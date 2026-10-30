@@ -2398,6 +2398,71 @@ Size legend: S ≤ 1 week, M 1–2 weeks, L 2–4 weeks (single senior developer
 | 17 | iOS/wasm *runtime* support |
 | 18 | Visual editor, in this repository (D28) — modules consuming `:editing`, `:runtime`, `:analysis`, `:codegen`, following the AGP 9 structure: the editor's platform-neutral code in `:app:editor`, its entry points in the root-level `androidApp/` and `desktopApp/`. A generated project keeps JetBrains' own `shared/` name, because that project *is* a generated app and the name is its convention, not this repo's |
 
+The table above is the index; the sections below expand each row into the phase format, grounded in the design sections and D-decisions this plan already carries. Per §4.6, any phase that forces a decision the plan does not already hold amends itself with an ADR before implementation continues — the two phases that already need one say so in their own text.
+
+### Phase 11 — Component wave 2 (L)
+- **Objective:** the interactive and data-bound component set, and the one new mechanism wave 2 needs — iteration scopes (`LazyColumn`); `Image`/`Font`/`File` resources go from modeled to implemented (§20:1598).
+- **Components:** `m3.Checkbox`, `m3.Switch`, `m3.RadioButton`, `m3.Slider`, `m3.ProgressIndicator`, `m3.Divider`, `m3.Icon`, `m3.Image`, `core.LazyColumn`/`core.LazyRow`, `core.FlowRow`/`core.FlowColumn` (§10 wave table).
+- **APIs:** `IterationSpec` on the model (§10.2's slot: the `iteration: IterationSpec? = null` field) with the typed item variable (`RefTarget.Item`, §10.8:844); `ResourceKind.Image/Font/File` implemented end-to-end in runtime and codegen; editing's `ExtractComponent` command (§27:1862); actions `state.toggle`, `list.append/remove`, `ui.showDialog`, `ui.showBottomSheet` (§12:964 — the dialog actions exist before the wave-3 components they most naturally pair with, since a `SlotOutlet`-hosted dialog is legal).
+- **Tasks:** component renderers + bindings per §7's recipe; the runtime renders `LazyColumn` with Compose virtualization (the plain `Column` still does not — `perf.large_column` stays the steer); codegen emits `items(...)` blocks from `IterationSpec`; resource loading per kind on both targets.
+- **Tests:** render/codegen parity per component (the `CoverageTests` pattern); iteration-scope rows in the expression corpus and the fuzz generator's draws; resource fixtures on both runners; `ExtractComponent` command tests.
+- **Acceptance:** conformance wave-2 fixtures green; every new component passes the coverage rows of §36.1; ABI dump updated.
+- **Depends on:** P0–P10.
+
+### Phase 12 — Component wave 3 and `componentDefaults` (M–L)
+- **Objective:** the structural/screen components and theme-level defaults.
+- **Components:** `m3.Scaffold`, `m3.Surface`, `m3.Dialog`, `m3.BottomSheet`, navigation components (bar/rail/drawer), `core.BoxWithConstraints` (§10 wave table).
+- **APIs:** `componentDefaults` on `ThemeDecl` (§14:1090) — applied in the **resolver** so both backends see the same effective properties (§14.5:1149's rule), never re-implemented per backend.
+- **Tasks:** renderers, bindings, coverage rows; resolver default-application with diagnostics where a default collides with an explicit property.
+- **Tests:** parity per component; a resolver test per default-vs-explicit case; fuzz draws wave-3 components into screens.
+- **Acceptance:** conformance wave-3 fixtures; coverage rows hold.
+- **Depends on:** P11.
+
+### Phase 13 — Incremental analysis, expression compilation, textual expressions (L)
+- **Objective:** §29's row — incremental re-analysis after a single-property edit in under 10 ms on 10,000 nodes — plus §29.1's two post-MVP mechanisms and §10.8's text view.
+- **APIs:** the dirty set formed as the union of `patch.touchedNodes` paths (§26.2:1881 types the set; §6.2:514 forms it via `ancestorsOf`/`pathTo`); a `ResolvedNode` cache keyed by `(node identity, inherited scope, schema revision)` — structural sharing keeps unchanged subtrees reference-identical, which is also what gives Compose skip-ability (§29.1); `TypedExpr` precompiled into closures at resolve time (§29.1); `ExprParser`/`ExprPrinter` (`user.name`, `items.isNotEmpty()`) for the editor's expression field and CLI diagnostics — **the AST is the source of truth; text is a view** (§10.8).
+- **Tasks:** dirty-set plumbing from `DocumentDiff` into the analyzer; cache invalidation on revision; the closure compiler behind the existing interpreter interface so semantics do not fork; parser/printer with a canonical printing form.
+- **Tests:** **full-vs-incremental equality**: for generated documents and random patches, incremental re-analysis yields a `ResolvedDocument` equal to a from-scratch analysis (property test — this is the row's correctness spine); the benchmark's incremental row measured on the 10,000-node harness; parser round-trip property `parse(print(ast)) == ast` and corpus rows re-expressed through the parser; memoization checked against schema-revision bumps (an overlay bump must not serve stale resolutions).
+- **Acceptance:** the §29 incremental row measured and met; conformance and corpus green with compilation enabled.
+- **Depends on:** P12 (per the roadmap's dependency order; the work itself is analysis-internal).
+
+### Phase 14 — `:engine:scaffold` — project scaffolding (M)
+- **Objective:** a generated app's Gradle structure from a `ProjectSpec`, separate from UI codegen (§33's post-MVP row: `ProjectSpec` → `settings.gradle.kts`, `shared/`, `androidApp/`, `desktopApp/`, `libs.versions.toml`).
+- **Modules:** `:engine:scaffold` (new — §23's graph is amended to place it; it reads model/codegen types and is consumed by the CLI).
+- **Shape:** D28's decision is the contract: per-platform app modules (`androidApp/`, `desktopApp/`) because AGP 9 forbids `com.android.application` beside `kotlin.multiplatform` in one module; the `composeApp/` shape is gone; a generated project keeps JetBrains' `shared/` name because that project *is* a generated app.
+- **Tasks:** `ProjectSpec` + generator from `GeneratedFiles`; the version catalog emitted from the build's own catalog so a generated app never pins a version the engine did not test; CLI command (`scaffold`).
+- **Tests:** a generated project's Gradle build compiles in CI as a fixture (a golden of the scaffolded shape, compiled); regeneration is byte-stable.
+- **Acceptance:** `cli scaffold` produces a project that builds on the first try on both runners.
+- **Depends on:** P13.
+
+### Phase 15 — Alternative strategies (M–L)
+- **Objective:** the strategy seams the MVP stubbed: navigation beyond `SimpleBackStack`, and state beyond process memory.
+- **APIs:** `NavigationCompose` and `Navigation3` strategies (§16:1071 — components never know navigation; only `nav.*` actions and the generated `AppRoot` do); a ViewModel-state strategy; persistent state through the `PersistentStore` hook (`StateDecl.persistence` → store-backed properties, §19:992); external state through `HostFunctions`/`Flow` adapters as the state holder's constructor parameter (§19:993).
+- **Tasks:** one strategy per seam, each behind the existing strategy interface; documentation of the selection point in the plugin guide's strategy section.
+- **Tests:** semantics dumps equal per strategy for the conformance set (a strategy changes wiring, not meaning); persistent-store round-trip on Android and Desktop (process death simulation).
+- **Acceptance:** a conformance document runs under every strategy with equal dumps; `SimpleBackStack` stays the zero-dependency default.
+- **Depends on:** P14 (generated projects carry the strategies).
+
+### Phase 16 — Plugin manifest, discovery, publishing (M)
+- **Objective:** dynamic plugin loading per §7.4/§8.2, closing the debt D35 recorded rather than fixed.
+- **APIs:** the loader reads `PluginDescriptor` (declared and carried since the MVP, read by nothing — D35's exact wording) and `Schema.contributors` (the field D35 found missing on the real `Schema`, to be added now); `dependsOn` is satisfied or refused; the registration shape stays D35's builder-plus-extension (`RendererRegistryBuilder`/`ModifierApplierRegistryBuilder` + `registerX()`).
+- **Tasks:** manifest format + discovery; the refusal diagnostics for unsatisfied `dependsOn` and duplicate registration; the third-party publishing guide in `docs/` (§7.4's four-step recipe stays the registration path).
+- **Tests:** a fixture plugin loading through the public path (the `ThirdPartyComponentTest` pattern, loaded dynamically); negative tests for each refusal diagnostic.
+- **Acceptance:** a fixture plugin loads, contributes, and reports its identity; the guide documents the whole path.
+- **Depends on:** P15.
+
+### Phase 17 — iOS/wasm runtime support (L, gated on a platform decision)
+- **Objective:** runtime (not canary) support for the remaining KMP targets — explicitly **gated**: Critical Refinement C1 narrowed the platform scope to Android and Desktop/JVM and retired live iOS/wasmJs canary compilation (§21.1, §28.7), so this phase does not open until a new ADR revisits platform scope. Its content — runtime renderers, codegen targets, CI runners, resource paths per platform — is designed in that ADR, not here.
+- **Depends on:** P16 **and** the platform-scope ADR; starting it without the ADR violates §4.6.
+
+### Phase 18 — Visual editor (L)
+- **Objective:** the editor, in this repository — D28's amended decision, which resolved Phase 18's original "separate repository" row into a statement about release cadence, not architecture.
+- **Modules:** `:app:editor` (platform-neutral editor code); root-level `androidApp/` and `desktopApp/` as entry points; all three consume `:engine:editing`, `:engine:runtime`, `:engine:analysis`, `:engine:codegen` — and **no `:engine:*` module may ever name any `:app:*` in `ModuleGraphRules.ALLOWED`**, so the engine cannot reach the editor even by accident (§23's graph check fails the build rather than a reviewer catching it).
+- **Tasks:** expression field over P13's `ExprParser` (text is a view; the AST is the document's truth); property/component pickers per §9.2; live preview through the runtime's `DocumentStorage` hot-reload path proven in P10; persistence of the editing session.
+- **Tests:** the editor exercises public APIs only (the module graph enforces what the tests assert); parser-backed expression editing round-trips through the corpus.
+- **Acceptance:** a document authored in the editor renders and generates identically to its JSON form.
+- **Depends on:** P16 (P17 is orthogonal and may complete before, after, or never — the editor does not wait on it).
+
 ---
 
 ## 33. File-Level Implementation Plan

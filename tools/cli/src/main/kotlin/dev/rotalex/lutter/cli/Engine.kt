@@ -4,6 +4,7 @@ import dev.rotalex.lutter.analysis.AnalysisResult
 import dev.rotalex.lutter.analysis.Analyzer
 import dev.rotalex.lutter.builtins.registerBuiltinActions
 import dev.rotalex.lutter.builtins.registerBuiltinEnums
+import dev.rotalex.lutter.builtins.registerBuiltinIconSets
 import dev.rotalex.lutter.builtins.registerBuiltinFunctions
 import dev.rotalex.lutter.builtins.registerBuiltinModifiers
 import dev.rotalex.lutter.builtins.registerBuiltinSpecs
@@ -80,6 +81,7 @@ internal object Engine {
             registerBuiltinSpecs()
             registerBuiltinModifiers()
             registerBuiltinEnums()
+            registerBuiltinIconSets()
             registerBuiltinFunctions()
             registerBuiltinActions()
         }
