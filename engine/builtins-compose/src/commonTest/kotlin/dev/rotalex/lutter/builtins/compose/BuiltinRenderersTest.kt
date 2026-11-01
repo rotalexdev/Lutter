@@ -65,6 +65,8 @@ class BuiltinRenderersTest {
             .apply { registerBuiltinRenderers() }
             .build()
 
-        assertNull(registry[ComponentType("core.FlowRow")])
+        // Wave 2 registered the flow layouts; the virtualizing lazy layouts are the iteration
+        // mechanism's own unit (T7) and stay unregistered until it lands.
+        assertNull(registry[ComponentType("core.LazyColumn")])
     }
 }
