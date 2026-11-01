@@ -46,6 +46,9 @@ public fun <M : Any, A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, M, 
     component(TextSpec.spec)
     component(ButtonSpec.spec)
     component(TextFieldSpec.spec)
+    component(CheckboxSpec.spec)
+    component(SwitchSpec.spec)
+    component(RadioButtonSpec.spec)
     component(CardSpec.spec)
     component(SlotOutletSpec.spec)
 }
