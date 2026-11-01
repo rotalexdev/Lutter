@@ -113,6 +113,24 @@ public final class dev/rotalex/lutter/builtins/FillMaxWidthModifier {
 	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
 }
 
+public final class dev/rotalex/lutter/builtins/FlowColumnSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/FlowColumnSpec;
+	public final fun getArrangementId-7JNyzJc ()Ljava/lang/String;
+	public final fun getChildren ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getSpacing ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+	public final fun getVerticalArrangement ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+}
+
+public final class dev/rotalex/lutter/builtins/FlowRowSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/FlowRowSpec;
+	public final fun getArrangementId-7JNyzJc ()Ljava/lang/String;
+	public final fun getChildren ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getHorizontalArrangement ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpacing ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
 public final class dev/rotalex/lutter/builtins/HeightModifier {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/HeightModifier;
 	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
@@ -191,6 +209,13 @@ public final class dev/rotalex/lutter/builtins/SizeModifier {
 	public final fun getHeight ()Ldev/rotalex/lutter/schema/component/PropertySpec;
 	public final fun getSpec ()Ldev/rotalex/lutter/schema/modifier/ModifierSpec;
 	public final fun getWidth ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+}
+
+public final class dev/rotalex/lutter/builtins/SliderSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/SliderSpec;
+	public final fun getOnValueChange ()Ldev/rotalex/lutter/schema/component/EventSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+	public final fun getValue ()Ldev/rotalex/lutter/schema/component/PropertySpec;
 }
 
 public final class dev/rotalex/lutter/builtins/SlotOutletSpec {
