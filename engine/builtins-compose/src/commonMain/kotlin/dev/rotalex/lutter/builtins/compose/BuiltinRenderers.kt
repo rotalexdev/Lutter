@@ -11,6 +11,7 @@ import dev.rotalex.lutter.builtins.SlotOutletSpec
 import dev.rotalex.lutter.builtins.DividerSpec
 import dev.rotalex.lutter.builtins.IconSpec
 import dev.rotalex.lutter.builtins.ProgressIndicatorSpec
+import dev.rotalex.lutter.builtins.SliderSpec
 import dev.rotalex.lutter.builtins.SpacerSpec
 import dev.rotalex.lutter.builtins.SwitchSpec
 import dev.rotalex.lutter.builtins.TextFieldSpec
@@ -39,6 +40,7 @@ public fun RendererRegistryBuilder.registerBuiltinRenderers(): Unit {
     register(CheckboxSpec.spec.type, CheckboxRenderer)
     register(SwitchSpec.spec.type, SwitchRenderer)
     register(RadioButtonSpec.spec.type, RadioButtonRenderer)
+    register(SliderSpec.spec.type, SliderRenderer)
     register(CardSpec.spec.type, CardRenderer)
     register(SlotOutletSpec.spec.type, SlotOutletRenderer)
 }
