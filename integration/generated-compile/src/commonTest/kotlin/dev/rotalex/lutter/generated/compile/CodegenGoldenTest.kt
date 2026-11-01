@@ -430,6 +430,7 @@ class CodegenGoldenTest {
             "icon_basic",
             "material_token",
             "progress_indicator",
+            "selection_basic",
             "row_weight",
             "spacer_size",
             "text_field_state",

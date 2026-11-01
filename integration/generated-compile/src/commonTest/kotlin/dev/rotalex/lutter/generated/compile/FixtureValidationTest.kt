@@ -57,6 +57,7 @@ class FixtureValidationTest {
                 "row_align",
                 "row_padding",
                 "row_weight",
+                "selection_basic",
                 "slot_outlet",
                 "spacer_flex",
                 "spacer_size",
