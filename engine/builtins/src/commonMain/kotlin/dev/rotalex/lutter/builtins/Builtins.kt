@@ -50,6 +50,8 @@ public fun <M : Any, A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, M, 
     component(SwitchSpec.spec)
     component(RadioButtonSpec.spec)
     component(SliderSpec.spec)
+    component(FlowRowSpec.spec)
+    component(FlowColumnSpec.spec)
     component(CardSpec.spec)
     component(SlotOutletSpec.spec)
 }

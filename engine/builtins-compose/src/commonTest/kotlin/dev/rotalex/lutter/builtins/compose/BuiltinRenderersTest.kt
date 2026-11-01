@@ -6,6 +6,8 @@ import dev.rotalex.lutter.builtins.CardSpec
 import dev.rotalex.lutter.builtins.CheckboxSpec
 import dev.rotalex.lutter.builtins.ColumnSpec
 import dev.rotalex.lutter.builtins.DividerSpec
+import dev.rotalex.lutter.builtins.FlowColumnSpec
+import dev.rotalex.lutter.builtins.FlowRowSpec
 import dev.rotalex.lutter.builtins.IconSpec
 import dev.rotalex.lutter.builtins.ProgressIndicatorSpec
 import dev.rotalex.lutter.builtins.RadioButtonSpec
@@ -46,13 +48,15 @@ class BuiltinRenderersTest {
         assertNotNull(registry[SwitchSpec.spec.type])
         assertNotNull(registry[RadioButtonSpec.spec.type])
         assertNotNull(registry[SliderSpec.spec.type])
+        assertNotNull(registry[FlowRowSpec.spec.type])
+        assertNotNull(registry[FlowColumnSpec.spec.type])
         assertNotNull(registry[CardSpec.spec.type])
         // An intrinsic is a schema component like any other: `UiRuntime`'s coverage check walks
         // the component registry, so an outlet without a renderer stops every runtime built over
         // the pack rather than only failing where a document happens to use one.
         assertNotNull(registry[SlotOutletSpec.spec.type])
         // Pinned so a spec registered without its renderer fails here rather than at coverage.
-        assertEquals(16, registry.types().size)
+        assertEquals(18, registry.types().size)
     }
 
     @Test
