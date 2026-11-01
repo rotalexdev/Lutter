@@ -51,6 +51,7 @@ class FixtureValidationTest {
                 "divider_height",
                 "expression_corpus",
                 "flow_basic",
+                "image_basic",
                 "icon_basic",
                 "material_token",
                 "nested_depth3",

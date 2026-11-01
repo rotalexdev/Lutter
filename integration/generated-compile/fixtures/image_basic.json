@@ -1,0 +1,45 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "ImageBasic"},
+    "nodes": {
+      "n_label": {
+        "id": "n_label",
+        "props": {
+          "text": {"type": "const", "value": {"type": "str", "v": "Hero"}}
+        },
+        "type": "m3.Text"
+      },
+      "n_image": {
+        "id": "n_image",
+        "props": {
+          "source": {"type": "const", "value": {"type": "ref", "kind": "resource", "id": "r_hero"}},
+          "contentDescription": {"type": "const", "value": {"type": "str", "v": "Hero image"}}
+        },
+        "type": "m3.Image"
+      },
+      "n_root": {
+        "id": "n_root",
+        "slots": {"children": ["n_label", "n_image"]},
+        "type": "core.Column"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    },
+    "resources": {
+      "r_hero": {
+        "id": "r_hero",
+        "name": "hero",
+        "kind": "image",
+        "variants": [
+          {"qualifiers": [], "source": {"type": "bundled", "path": "drawable/hero.png"}}
+        ]
+      }
+    }
+  }
+}
