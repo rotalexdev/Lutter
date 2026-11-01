@@ -427,6 +427,7 @@ class CodegenGoldenTest {
             "component_param_slot",
             "divider_height",
             "expression_corpus",
+            "flow_basic",
             "icon_basic",
             "material_token",
             "progress_indicator",

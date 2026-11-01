@@ -9,6 +9,8 @@ import dev.rotalex.lutter.builtins.RadioButtonSpec
 import dev.rotalex.lutter.builtins.RowSpec
 import dev.rotalex.lutter.builtins.SlotOutletSpec
 import dev.rotalex.lutter.builtins.DividerSpec
+import dev.rotalex.lutter.builtins.FlowColumnSpec
+import dev.rotalex.lutter.builtins.FlowRowSpec
 import dev.rotalex.lutter.builtins.IconSpec
 import dev.rotalex.lutter.builtins.ProgressIndicatorSpec
 import dev.rotalex.lutter.builtins.SliderSpec
@@ -41,6 +43,8 @@ public fun RendererRegistryBuilder.registerBuiltinRenderers(): Unit {
     register(SwitchSpec.spec.type, SwitchRenderer)
     register(RadioButtonSpec.spec.type, RadioButtonRenderer)
     register(SliderSpec.spec.type, SliderRenderer)
+    register(FlowRowSpec.spec.type, FlowRowRenderer)
+    register(FlowColumnSpec.spec.type, FlowColumnRenderer)
     register(CardSpec.spec.type, CardRenderer)
     register(SlotOutletSpec.spec.type, SlotOutletRenderer)
 }

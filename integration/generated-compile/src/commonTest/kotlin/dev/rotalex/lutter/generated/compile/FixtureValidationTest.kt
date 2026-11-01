@@ -50,6 +50,7 @@ class FixtureValidationTest {
                 "component_param_slot",
                 "divider_height",
                 "expression_corpus",
+                "flow_basic",
                 "icon_basic",
                 "material_token",
                 "nested_depth3",
