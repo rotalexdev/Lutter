@@ -25,7 +25,8 @@ import kotlinx.coroutines.withContext
  * because a ref is not a string and the reader's decode would be the wrong question. The
  * load runs once per id: a resource's bytes do not change while a node is on screen, so a
  * re-render subscribes the same loaded value rather than re-reading the provider.
- *
+ */
+
 /**
  * The tag a not-yet-loaded image's placeholder carries while the provider's load is in
  * flight. Observable loading state: a host's tests can wait for it to disappear instead of
