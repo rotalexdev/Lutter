@@ -1238,7 +1238,11 @@ public class KotlinGenerator<A : Any, T : Any>(
                 )
                 return null
             }
-            val res = KotlinSymbol(resPackage, "Res")
+            // The star import is load-bearing: the plugin's accessors are TOP-LEVEL extensions
+            // on the empty Res.drawable / Res.string objects, and an extension resolves only
+            // through a package import — `import …Res` alone leaves `Res.drawable.<name>`
+            // unresolved. The star covers Res and every accessor chunk in one line.
+            val res = KotlinSymbol(resPackage, "*")
             return when (decl.kind) {
                 ResourceKind.Image -> KtExpr.Snippet(
                     "painterResource(Res.drawable." + name + ")",
