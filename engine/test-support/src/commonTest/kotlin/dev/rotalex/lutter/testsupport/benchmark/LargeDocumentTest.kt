@@ -1,6 +1,7 @@
 package dev.rotalex.lutter.testsupport.benchmark
 
 import dev.rotalex.lutter.codegen.CodegenOptions
+import dev.rotalex.lutter.codegen.ComposeResourceStrategy
 import dev.rotalex.lutter.codegen.KotlinGenerator
 import dev.rotalex.lutter.codegen.planDocument
 import dev.rotalex.lutter.model.diagnostic.Diagnostic
@@ -274,7 +275,10 @@ class LargeDocumentTest {
                     workload.analysis.diagnostics.joinToString("\n") { it.code.value + " " + it.message },
             )
 
-        val options = CodegenOptions(BENCHMARK_BASE_PACKAGE)
+        val options = CodegenOptions(
+            BENCHMARK_BASE_PACKAGE,
+            resources = ComposeResourceStrategy("dev.rotalex.lutter.testsupport.resources"),
+        )
         val planned = planDocument(resolved, BENCHMARK_BASE_PACKAGE)
         val emitted = KotlinGenerator(codegenCorpusView, options).generate(resolved, workload.analysis.diagnostics)
 

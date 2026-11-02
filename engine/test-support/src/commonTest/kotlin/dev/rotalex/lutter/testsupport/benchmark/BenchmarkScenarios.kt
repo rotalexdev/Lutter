@@ -4,6 +4,7 @@ import dev.rotalex.lutter.analysis.Analyzer
 import dev.rotalex.lutter.analysis.AnalysisResult
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.codegen.CodegenOptions
+import dev.rotalex.lutter.codegen.ComposeResourceStrategy
 import dev.rotalex.lutter.codegen.KotlinGenerator
 import dev.rotalex.lutter.editing.command.Command
 import dev.rotalex.lutter.editing.command.CommandPlanner
@@ -189,7 +190,10 @@ internal fun scenarioBodies(workload: BenchmarkWorkload): List<ScenarioBody> {
         )
 
     val view = codegenCorpusView
-    val options = CodegenOptions(BENCHMARK_BASE_PACKAGE)
+    val options = CodegenOptions(
+        BENCHMARK_BASE_PACKAGE,
+        resources = ComposeResourceStrategy("dev.rotalex.lutter.testsupport.resources"),
+    )
     val ids = SequentialIdGenerator(BENCHMARK_NODE_PREFIX)
     val hole = Blackhole()
 
