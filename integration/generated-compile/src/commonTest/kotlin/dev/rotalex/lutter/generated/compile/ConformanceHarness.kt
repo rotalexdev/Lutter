@@ -1,7 +1,7 @@
 package dev.rotalex.lutter.generated.compile
 
-import androidx.compose.ui.graphics.Image
 import dev.rotalex.lutter.generated.resources.Res
+import org.jetbrains.compose.resources.decodeToImageBitmap
 import dev.rotalex.lutter.analysis.AnalysisResult
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.interpreter.env.Destination
@@ -64,7 +64,7 @@ internal object ConformanceHarness {
         // and decoding through the same compose-resources API the generated screens use keeps
         // both paths on one pipeline.
         override suspend fun load(id: ResourceId): LoadedResource =
-            LoadedResource.Image(Image.makeFromEncoded(Res.readBytes("drawable/hero.png")))
+            LoadedResource.Image(Res.readBytes("drawable/hero.png").decodeToImageBitmap())
 
         override suspend fun stringFor(id: ResourceId, locale: String): String? = null
     }
