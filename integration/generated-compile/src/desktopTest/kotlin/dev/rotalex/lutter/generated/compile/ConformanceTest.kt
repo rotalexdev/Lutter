@@ -16,6 +16,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.codegen.CodegenOptions
+import dev.rotalex.lutter.codegen.ComposeResourceStrategy
 import dev.rotalex.lutter.codegen.KotlinGenerator
 import dev.rotalex.lutter.generated.button_navigate.AppNavigator
 import dev.rotalex.lutter.generated.button_navigate.AppRoot
@@ -355,7 +356,15 @@ class ConformanceTest {
             "fixture '$id': ${result.diagnostics}"
         }
         val resolved = checkNotNull(result.resolved) { "fixture '$id' resolved nothing" }
-        val generated = KotlinGenerator(schema, CodegenOptions(PACKAGE + id))
+        // The package is the build script's ResPkgs.PACKAGE spelled here: a fixture that uses
+        // a resource refuses generation without one, which is the strategy's own contract.
+        val generated = KotlinGenerator(
+            schema,
+            CodegenOptions(
+                PACKAGE + id,
+                resources = ComposeResourceStrategy("dev.rotalex.lutter.generated.resources"),
+            ),
+        )
             .generate(resolved, result.diagnostics)
         check(generated.diagnostics.none { it.severity == Severity.Error }) {
             "fixture '$id': ${generated.diagnostics}"
