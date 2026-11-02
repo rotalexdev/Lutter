@@ -1,5 +1,6 @@
 package dev.rotalex.lutter.schema.component
 
+import dev.rotalex.lutter.model.doc.ResourceKind
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.PropertyKey
@@ -20,6 +21,7 @@ public fun <T> prop(
     bindable: Boolean = true,
     editor: EditorHints = EditorHints.None,
     doc: String = "",
+    resourceKind: ResourceKind? = null,
 ): PropertySpec<T> = PropertySpec(
     key = PropertyKey(key),
     type = type,
@@ -28,6 +30,7 @@ public fun <T> prop(
     bindable = bindable,
     editor = editor,
     doc = doc,
+    resourceKind = resourceKind,
 )
 
 /**

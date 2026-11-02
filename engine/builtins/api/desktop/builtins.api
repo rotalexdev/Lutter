@@ -144,6 +144,14 @@ public final class dev/rotalex/lutter/builtins/IconSpec {
 	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
 }
 
+public final class dev/rotalex/lutter/builtins/ImageSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/ImageSpec;
+	public final fun getContentDescription ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getFit ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSource ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
 public final class dev/rotalex/lutter/builtins/InteractionModifiers {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/InteractionModifiers;
 	public final fun getAll ()Ljava/util/List;
@@ -292,6 +300,14 @@ public final class dev/rotalex/lutter/builtins/actions/UiActions {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/actions/UiActions;
 	public final fun getAll ()Ljava/util/List;
 	public final fun getShowSnackbar ()Ldev/rotalex/lutter/schema/action/ActionSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/enums/ContentScaleSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/enums/ContentScaleSpec;
+	public final fun getEntries ()Ljava/util/List;
+	public final fun getId-7JNyzJc ()Ljava/lang/String;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/types/EnumTypeSpec;
+	public final fun getType ()Ldev/rotalex/lutter/model/type/TypeRef;
 }
 
 public final class dev/rotalex/lutter/builtins/enums/HorizontalArrangementSpec {

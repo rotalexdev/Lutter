@@ -1,5 +1,6 @@
 package dev.rotalex.lutter.schema.component
 
+import dev.rotalex.lutter.model.doc.ResourceKind
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.type.TypeRef
@@ -20,6 +21,7 @@ public class PropertySpec<T>(
     public val bindable: Boolean = true,
     public val editor: EditorHints = EditorHints.None,
     public val doc: String = "",
+    public val resourceKind: ResourceKind? = null,
 )
 
 /**

@@ -1,9 +1,11 @@
 package dev.rotalex.lutter.analysis.resolved
 
 import dev.rotalex.lutter.model.doc.HostFunctionDecl
+import dev.rotalex.lutter.model.doc.ResourceDecl
 import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
+import dev.rotalex.lutter.model.ids.ResourceId
 import dev.rotalex.lutter.schema.component.ComponentSpec
 
 /**
@@ -50,4 +52,5 @@ public data class ResolvedDocument(
     public val componentState: Map<ComponentDeclId, List<ResolvedState>> = emptyMap(),
     public val hostFunctions: List<HostFunctionDecl> = emptyList(),
     public val componentSpecs: Map<ComponentDeclId, ComponentSpec> = emptyMap(),
+    public val resources: Map<ResourceId, ResourceDecl> = emptyMap(),
 )

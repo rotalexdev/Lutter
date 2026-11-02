@@ -335,8 +335,8 @@ public final class dev/rotalex/lutter/schema/component/ComponentSpecBuilder {
 
 public final class dev/rotalex/lutter/schema/component/ComponentSpecDslKt {
 	public static final fun componentSpec-4sAO-_g (Ljava/lang/String;ILkotlin/jvm/functions/Function1;)Ldev/rotalex/lutter/schema/component/ComponentSpec;
-	public static final fun prop (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;ZZLdev/rotalex/lutter/schema/component/EditorHints;Ljava/lang/String;)Ldev/rotalex/lutter/schema/component/PropertySpec;
-	public static synthetic fun prop$default (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;ZZLdev/rotalex/lutter/schema/component/EditorHints;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public static final fun prop (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;ZZLdev/rotalex/lutter/schema/component/EditorHints;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ResourceKind;)Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public static synthetic fun prop$default (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;ZZLdev/rotalex/lutter/schema/component/EditorHints;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ResourceKind;ILjava/lang/Object;)Ldev/rotalex/lutter/schema/component/PropertySpec;
 }
 
 public final class dev/rotalex/lutter/schema/component/ComponentSpecKt {
@@ -727,14 +727,15 @@ public final class dev/rotalex/lutter/schema/component/PropertyRule$SlotRequires
 }
 
 public final class dev/rotalex/lutter/schema/component/PropertySpec {
-	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;ZZLdev/rotalex/lutter/schema/component/EditorHints;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;ZZLdev/rotalex/lutter/schema/component/EditorHints;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;ZZLdev/rotalex/lutter/schema/component/EditorHints;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ResourceKind;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;ZZLdev/rotalex/lutter/schema/component/EditorHints;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ResourceKind;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun getBindable ()Z
 	public final fun getDefault ()Ldev/rotalex/lutter/model/value/Value;
 	public final fun getDoc ()Ljava/lang/String;
 	public final fun getEditor ()Ldev/rotalex/lutter/schema/component/EditorHints;
 	public final fun getKey-ciGozWU ()Ljava/lang/String;
 	public final fun getRequired ()Z
+	public final fun getResourceKind ()Ldev/rotalex/lutter/model/doc/ResourceKind;
 	public final fun getType ()Ldev/rotalex/lutter/model/type/TypeRef;
 }
 
@@ -912,6 +913,14 @@ public final synthetic class dev/rotalex/lutter/schema/component/ValueEmit$Liter
 
 public final class dev/rotalex/lutter/schema/component/ValueEmit$Literal$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/schema/component/ValueEmit$Resource : dev/rotalex/lutter/schema/component/ValueEmit {
+	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/ValueEmit$Resource;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class dev/rotalex/lutter/schema/function/FunctionEmit {

@@ -36,6 +36,7 @@ public object DiagnosticCodes {
     public val RefKindMismatch: DiagnosticCode = DiagnosticCode("ref.kind_mismatch")
     public val TokenUnknown: DiagnosticCode = DiagnosticCode("token.unknown")
     public val ResourceUnknown: DiagnosticCode = DiagnosticCode("resource.unknown")
+    public val ResourceKindMismatch: DiagnosticCode = DiagnosticCode("resource.kind_mismatch")
 
     /**
      * The expression rows (§17.3), emitted by pass 5. A fourth member of the same family —

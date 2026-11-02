@@ -114,6 +114,20 @@ public object CodegenCoverage {
                 is ValueEmit.Literal -> {
                     if (emit.text.isBlank()) return "param '${param.param}' emits a blank literal"
                 }
+                is ValueEmit.Resource -> {
+                    // One bound property, and one whose spec makes a reference legal: a
+                    // property that does not declare a resource kind is a `Str` whose ref
+                    // would fail analysis, and two sources say nothing about which one meant.
+                    if (param.from.size != 1) {
+                        return "param '${param.param}' emits a resource reference from " +
+                            "${param.from.size} properties"
+                    }
+                    val bound = spec.properties.firstOrNull { it.key == param.from.single() }
+                    if (bound?.resourceKind == null) {
+                        return "param '${param.param}' emits a resource reference from a property " +
+                            "that declares no resource kind"
+                    }
+                }
                 is ValueEmit.Direct -> {} // the from-list check above owns it
             }
         }

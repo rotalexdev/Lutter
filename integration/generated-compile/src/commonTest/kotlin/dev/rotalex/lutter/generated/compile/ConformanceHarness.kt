@@ -1,5 +1,7 @@
 package dev.rotalex.lutter.generated.compile
 
+import dev.rotalex.lutter.generated.resources.Res
+import org.jetbrains.compose.resources.decodeToImageBitmap
 import dev.rotalex.lutter.analysis.AnalysisResult
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.interpreter.env.Destination
@@ -7,7 +9,10 @@ import dev.rotalex.lutter.interpreter.env.Navigator
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.ParamName
+import dev.rotalex.lutter.model.ids.ResourceId
 import dev.rotalex.lutter.model.value.Value
+import dev.rotalex.lutter.runtime.LoadedResource
+import dev.rotalex.lutter.runtime.ResourceProvider
 import dev.rotalex.lutter.runtime.RuntimeEnvironment
 import dev.rotalex.lutter.runtime.UiRuntime
 import dev.rotalex.lutter.schema.Schema
@@ -38,8 +43,31 @@ internal object ConformanceHarness {
     ): UiRuntime = BuiltinEngine.runtime(schema)
 
     /** A host that records nothing: the fixtures navigate nowhere and hold no state. */
-    fun environment(): RuntimeEnvironment =
-        RuntimeEnvironment(navigator = TestNavigator, diagnostics = {})
+    fun environment(): RuntimeEnvironment = RuntimeEnvironment(
+        navigator = TestNavigator,
+        diagnostics = {},
+        resources = StubResources,
+    )
+
+    /**
+     * The interpreter path's resource provider: any image-kind load answers a small decoded
+     * bitmap, because what the conformance dump reads is the wiring — reference, provider,
+     * renderer — and not the pixels. A real host implements its own loaders (§20:1598 puts
+     * them per platform); the generated path's spelling is compose-resources' and is proven
+     * by compiling the generated screens against this module's own `composeResources`.
+     */
+    private object StubResources : ResourceProvider {
+        // The decode is the fixture asset's own bytes, not a stand-in: intrinsic size is what
+        // layout reads and the pixels check compares what the two paths painted, so a stub
+        // bitmap of any other size or color lays and paints the same fixture differently on
+        // the runtime and generated sides, which those checks would read as a break. Reading
+        // and decoding through the same compose-resources API the generated screens use keeps
+        // both paths on one pipeline.
+        override suspend fun load(id: ResourceId): LoadedResource =
+            LoadedResource.Image(Res.readBytes("drawable/hero.png").decodeToImageBitmap())
+
+        override suspend fun stringFor(id: ResourceId, locale: String): String? = null
+    }
 
     /**
      * The fixture decoded and analyzed, diagnostics included for the tests to assert on.

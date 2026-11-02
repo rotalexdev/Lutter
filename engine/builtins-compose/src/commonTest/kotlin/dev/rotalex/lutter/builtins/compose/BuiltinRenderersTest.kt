@@ -9,6 +9,7 @@ import dev.rotalex.lutter.builtins.DividerSpec
 import dev.rotalex.lutter.builtins.FlowColumnSpec
 import dev.rotalex.lutter.builtins.FlowRowSpec
 import dev.rotalex.lutter.builtins.IconSpec
+import dev.rotalex.lutter.builtins.ImageSpec
 import dev.rotalex.lutter.builtins.ProgressIndicatorSpec
 import dev.rotalex.lutter.builtins.RadioButtonSpec
 import dev.rotalex.lutter.builtins.RowSpec
@@ -48,6 +49,7 @@ class BuiltinRenderersTest {
         assertNotNull(registry[SwitchSpec.spec.type])
         assertNotNull(registry[RadioButtonSpec.spec.type])
         assertNotNull(registry[SliderSpec.spec.type])
+        assertNotNull(registry[ImageSpec.spec.type])
         assertNotNull(registry[FlowRowSpec.spec.type])
         assertNotNull(registry[FlowColumnSpec.spec.type])
         assertNotNull(registry[CardSpec.spec.type])
@@ -56,7 +58,7 @@ class BuiltinRenderersTest {
         // the pack rather than only failing where a document happens to use one.
         assertNotNull(registry[SlotOutletSpec.spec.type])
         // Pinned so a spec registered without its renderer fails here rather than at coverage.
-        assertEquals(18, registry.types().size)
+        assertEquals(19, registry.types().size)
     }
 
     @Test

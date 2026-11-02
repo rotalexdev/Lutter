@@ -5,6 +5,7 @@ import dev.rotalex.lutter.builtins.actions.HostActions
 import dev.rotalex.lutter.builtins.actions.NavActions
 import dev.rotalex.lutter.builtins.actions.StateActions
 import dev.rotalex.lutter.builtins.actions.UiActions
+import dev.rotalex.lutter.builtins.enums.ContentScaleSpec
 import dev.rotalex.lutter.builtins.enums.HorizontalArrangementSpec
 import dev.rotalex.lutter.builtins.enums.VerticalArrangementSpec
 import dev.rotalex.lutter.builtins.functions.CoreFunctions
@@ -43,6 +44,7 @@ public fun <M : Any, A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, M, 
     component(DividerSpec.spec)
     component(ProgressIndicatorSpec.spec)
     component(IconSpec.spec)
+    component(ImageSpec.spec)
     component(TextSpec.spec)
     component(ButtonSpec.spec)
     component(TextFieldSpec.spec)
@@ -69,6 +71,7 @@ public fun <C : Any, M : Any, A : Any, F : Any> SchemaBuilder<C, M, A, F, TypeSp
     type(ShapeSpec.spec)
     type(VerticalArrangementSpec.spec)
     type(HorizontalArrangementSpec.spec)
+    type(ContentScaleSpec.spec)
 }
 
 /** Registers §20:1599's builtin icon set. The runtime resolver half is `MaterialIconImages`. */

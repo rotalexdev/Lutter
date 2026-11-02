@@ -1,7 +1,9 @@
 package dev.rotalex.lutter.cli
 
 import dev.rotalex.lutter.codegen.CodegenOptions
+import dev.rotalex.lutter.codegen.ComposeResourceStrategy
 import dev.rotalex.lutter.codegen.KotlinGenerator
+import dev.rotalex.lutter.codegen.ResourceStrategy
 import dev.rotalex.lutter.model.doc.UiDocument
 import java.io.File
 
@@ -29,6 +31,7 @@ internal object GenerateCommand {
         flags = mapOf(
             "--out" to Arity.Value,
             "--package" to Arity.Value,
+            "--resources-package" to Arity.Value,
             "--help" to Arity.None,
             "-h" to Arity.None,
         ),
@@ -55,7 +58,12 @@ internal object GenerateCommand {
                 "forge ${spec.name}: analysis reported no errors and resolved nothing",
             )
 
-        val options = CodegenOptions(line.option("--package") ?: document.app.packageName)
+        val options = CodegenOptions(
+            line.option("--package") ?: document.app.packageName,
+            // §20:1598: the scaffold owns the Res package; the command is told rather than
+            // guessing. Absent, a resource emission is refused with a finding instead.
+            resources = line.option("--resources-package")?.let(::ComposeResourceStrategy) ?: ResourceStrategy.None,
+        )
         val result = KotlinGenerator(schema, options).generate(resolved, analysis.diagnostics)
         // `CodegenResult.diagnostics` is the incoming list *plus* the generator's own, so the
         // findings printed above are in there already and printing the list wholesale would

@@ -429,6 +429,7 @@ class CodegenGoldenTest {
             "expression_corpus",
             "flow_basic",
             "icon_basic",
+            "image_basic",
             "material_token",
             "progress_indicator",
             "selection_basic",

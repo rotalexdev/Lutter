@@ -2,6 +2,7 @@ package dev.rotalex.lutter.testsupport.generator
 
 import dev.rotalex.lutter.analysis.Analyzer
 import dev.rotalex.lutter.codegen.CodegenOptions
+import dev.rotalex.lutter.codegen.ComposeResourceStrategy
 import dev.rotalex.lutter.codegen.ImportPolicy
 import dev.rotalex.lutter.codegen.KotlinGenerator
 import dev.rotalex.lutter.codegen.PlannedFile
@@ -324,7 +325,13 @@ internal fun outcomeOf(seed: Long, document: UiDocument): CorpusOutcome {
         )
 
     val plan = planDocument(resolved, CORPUS_BASE_PACKAGE)
-    val result = KotlinGenerator(codegenCorpusView, CodegenOptions(CORPUS_BASE_PACKAGE))
+    val result = KotlinGenerator(
+        codegenCorpusView,
+        CodegenOptions(
+            CORPUS_BASE_PACKAGE,
+            resources = ComposeResourceStrategy("dev.rotalex.lutter.testsupport.resources"),
+        ),
+    )
         .generate(resolved, analysis.diagnostics)
 
     return CorpusOutcome(

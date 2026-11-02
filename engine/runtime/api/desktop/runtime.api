@@ -24,6 +24,53 @@ public final class dev/rotalex/lutter/runtime/Implementations$Companion {
 	public final fun getNone ()Ldev/rotalex/lutter/runtime/Implementations;
 }
 
+public abstract interface class dev/rotalex/lutter/runtime/LoadedResource {
+}
+
+public final class dev/rotalex/lutter/runtime/LoadedResource$File : dev/rotalex/lutter/runtime/LoadedResource {
+	public static final field $stable I
+	public fun <init> ([B)V
+	public final fun component1 ()[B
+	public final fun copy ([B)Ldev/rotalex/lutter/runtime/LoadedResource$File;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/runtime/LoadedResource$File;[BILjava/lang/Object;)Ldev/rotalex/lutter/runtime/LoadedResource$File;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBytes ()[B
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/runtime/LoadedResource$Font : dev/rotalex/lutter/runtime/LoadedResource {
+	public static final field $stable I
+	public fun <init> (Landroidx/compose/ui/text/font/FontFamily;)V
+	public final fun component1 ()Landroidx/compose/ui/text/font/FontFamily;
+	public final fun copy (Landroidx/compose/ui/text/font/FontFamily;)Ldev/rotalex/lutter/runtime/LoadedResource$Font;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/runtime/LoadedResource$Font;Landroidx/compose/ui/text/font/FontFamily;ILjava/lang/Object;)Ldev/rotalex/lutter/runtime/LoadedResource$Font;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFamily ()Landroidx/compose/ui/text/font/FontFamily;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/runtime/LoadedResource$Image : dev/rotalex/lutter/runtime/LoadedResource {
+	public static final field $stable I
+	public fun <init> (Landroidx/compose/ui/graphics/ImageBitmap;)V
+	public final fun component1 ()Landroidx/compose/ui/graphics/ImageBitmap;
+	public final fun copy (Landroidx/compose/ui/graphics/ImageBitmap;)Ldev/rotalex/lutter/runtime/LoadedResource$Image;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/runtime/LoadedResource$Image;Landroidx/compose/ui/graphics/ImageBitmap;ILjava/lang/Object;)Ldev/rotalex/lutter/runtime/LoadedResource$Image;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBitmap ()Landroidx/compose/ui/graphics/ImageBitmap;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/runtime/LoadedResource$Missing : dev/rotalex/lutter/runtime/LoadedResource {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/runtime/LoadedResource$Missing;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public abstract interface class dev/rotalex/lutter/runtime/ModifierApplier {
 	public abstract fun apply (Landroidx/compose/ui/Modifier;Ljava/util/Map;Ldev/rotalex/lutter/runtime/ScopeBag;)Landroidx/compose/ui/Modifier;
 }
@@ -97,10 +144,18 @@ public final class dev/rotalex/lutter/runtime/RendererRegistryBuilder {
 
 public abstract interface class dev/rotalex/lutter/runtime/ResourceProvider {
 	public static final field Companion Ldev/rotalex/lutter/runtime/ResourceProvider$Companion;
+	public abstract fun load-Lifgo-E (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun stringFor-zJRNY5A (Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class dev/rotalex/lutter/runtime/ResourceProvider$Companion {
 	public final fun getEmpty ()Ldev/rotalex/lutter/runtime/ResourceProvider;
+}
+
+public final class dev/rotalex/lutter/runtime/ResourceSelector {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/runtime/ResourceSelector;
+	public final fun select (Ldev/rotalex/lutter/model/doc/ResourceDecl;Ljava/util/Set;)Ldev/rotalex/lutter/model/doc/ResourceVariant;
 }
 
 public final class dev/rotalex/lutter/runtime/RuntimeCoverage {

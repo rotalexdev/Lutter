@@ -10,6 +10,11 @@ import dev.rotalex.lutter.model.doc.DataModelDecl
 import dev.rotalex.lutter.model.doc.DocumentMeta
 import dev.rotalex.lutter.model.doc.EnumEntryDecl
 import dev.rotalex.lutter.model.doc.EnumTypeDecl
+import dev.rotalex.lutter.model.doc.ResourceDecl
+import dev.rotalex.lutter.model.doc.ResourceKind
+import dev.rotalex.lutter.model.doc.ResourceSource
+import dev.rotalex.lutter.model.doc.ResourceVariant
+import dev.rotalex.lutter.model.ids.ResourceId
 import dev.rotalex.lutter.model.doc.FieldDecl
 import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.ModifierEntry
@@ -68,6 +73,26 @@ import dev.rotalex.lutter.schema.overlay.documentDeclIdOf
 import dev.rotalex.lutter.schema.types.EnumTypeSpec
 import dev.rotalex.lutter.schema.types.TypeSpec
 import kotlin.random.Random
+
+/**
+ * The one resource the seeded documents' resource-kind props reference, and the declaration
+ * that makes the reference real.
+ *
+ * The ordinary Str filler writes literals, and a literal is one thing a resource-kind property
+ * may not carry: the schema's value check reads the reference against the document's resource
+ * map, and codegen's resource spelling needs the same map to name the accessor. So the seeded
+ * documents carry one declaration — deterministic, so a seed regenerates the same document —
+ * and the fill arm below points every resource-kind prop at it. Image is the only resource
+ * kind a registered spec declares today; a second kind needs its own declaration here.
+ */
+private val GENERATED_RESOURCE = ResourceDecl(
+    id = ResourceId("gen_hero"),
+    name = "hero",
+    kind = ResourceKind.Image,
+    variants = listOf(
+        ResourceVariant(qualifiers = emptySet(), source = ResourceSource.Bundled("drawable/hero.png")),
+    ),
+)
 
 /**
  * Builds `UiDocument`s from a seed, and reports what it meant to build.
@@ -271,6 +296,7 @@ public class DocumentGenerator(
             hostFunctions = hosts,
             themes = themes,
             theme = selection,
+            resources = mapOf(GENERATED_RESOURCE.id to GENERATED_RESOURCE),
         )
 
         return GeneratedDocument(seed, document, planFor(mode))
@@ -804,9 +830,13 @@ public class DocumentGenerator(
         // refuses a (set, name) outside a registered set, and "gen-48213" is always outside.
         // The pair travels together, so both keys override or neither does.
         val iconFills = iconFillsFor(spec)
+        // The same logic puts a real reference on a resource-kind prop: the filler's literal
+        // is a shape the value check refuses, and the declaration above is what answers it.
+        val resourceFills = resourceFillsFor(spec)
         for (key in wanted) {
             val value = iconFills?.get(key)
                 ?.let { PropertyValue.Const(Value.Str(it)) }
+                ?: resourceFills?.get(key)
                 ?: propertyValueFor(declared.getValue(key), scope, bounds[key])
             if (value != null) props[key] = value
         }
@@ -827,6 +857,24 @@ public class DocumentGenerator(
         val set = view.icons.all().firstOrNull() ?: return null
         val name = set.icons.keys.firstOrNull() ?: return null
         return mapOf(emit.setKey to set.name, emit.nameKey to name)
+    }
+
+    /**
+     * The fill a component's resource-kind props want, when it has any.
+     *
+     * Read from the component's own binding: every `ValueEmit.Resource` param gets the one
+     * reference [GENERATED_RESOURCE] answers, deterministic so a seed regenerates the same
+     * document. Components without a resource arm get null and keep the ordinary filler.
+     */
+    private fun resourceFillsFor(spec: ComponentSpec): Map<PropertyKey, PropertyValue>? {
+        val binding = spec.codegen as? CodegenBinding.ComposeCall ?: return null
+        val fills = binding.params
+            .filter { it.emit is ValueEmit.Resource }
+            .flatMap { param ->
+                param.from.map { key -> key to PropertyValue.Const(Value.Ref(RefKind.Resource, GENERATED_RESOURCE.id.value)) }
+            }
+            .toMap()
+        return if (fills.isEmpty()) null else fills
     }
 
     private fun takeOneOf(

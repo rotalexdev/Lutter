@@ -15,6 +15,8 @@ import dev.rotalex.lutter.model.diagnostic.DiagnosticCode
 import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
 import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.doc.HostFunctionDecl
+import dev.rotalex.lutter.model.doc.ResourceDecl
+import dev.rotalex.lutter.model.doc.ResourceKind
 import dev.rotalex.lutter.model.doc.ThemeDecl
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.expr.TypedExpr
@@ -22,9 +24,11 @@ import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.ResourceId
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.ids.StateId
 import dev.rotalex.lutter.model.ids.TypeId
+import dev.rotalex.lutter.model.type.RefKind
 import dev.rotalex.lutter.model.type.TokenKind
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
@@ -108,6 +112,10 @@ public class KotlinGenerator<A : Any, T : Any>(
     // are written and read at every instantiation site. A call has to know the callee's signature
     // before it is written, which is why `generate` orders component files ahead of their callers.
     private val componentReceivers: MutableMap<ComponentDeclId, List<ActionReceiver>> = mutableMapOf()
+    // The document's resource declarations, per run beside the others above: a resource reference
+    // resolves to the declaration its id names, and one generator serves many documents, so a
+    // leftover map would emit the previous document's names.
+    private var resources: Map<ResourceId, ResourceDecl> = emptyMap()
 
     private val rememberCoroutineScope: KotlinSymbol =
         KotlinSymbol("androidx.compose.runtime", "rememberCoroutineScope")
@@ -128,6 +136,7 @@ public class KotlinGenerator<A : Any, T : Any>(
         appStateHoist = null
         componentSpecs = document.componentSpecs
         theme = document.theme.theme
+        resources = document.resources
         // Before the plan and before any emitter: §16.7 asks for a located finding rather than a
         // red compile harness, and the reserved set is the one thing a document cannot know.
         diagnostics += ReservedCodegenNames.findings(document, options)
@@ -1169,6 +1178,101 @@ public class KotlinGenerator<A : Any, T : Any>(
         }
         if (emit is ValueEmit.Literal) {
             return KtExpr.Snippet(emit.text, emptyList())
+        }
+        if (emit is ValueEmit.Resource) {
+            // §20:1598's row: the reference resolves through the document's declarations, and
+            // the vocabulary the kind names is compose-resources' own — drawable for images,
+            // string for strings. The Res package is the scaffold's (§33), carried by the
+            // strategy; without one the generator refuses rather than spell against nothing.
+            val resPackage = options.resources.resPackage
+            if (resPackage == null) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Param '" + binding.param + "' emits a resource reference and no resources " +
+                        "package is configured",
+                )
+                return null
+            }
+            if (kept.present.size > 1) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Param '" + binding.param + "' has several present sources",
+                )
+                return null
+            }
+            val key: PropertyKey = kept.present.singleOrNull()
+                ?: throw CodegenBug("Param '${binding.param}' binds no present property")
+            val prop: ResolvedProp = checkNotNull(node.props[key]) {
+                "Present property '${key.value}' left the node"
+            }
+            val ref = ((prop.value as? PropertyValue.Const)?.value as? Value.Ref)
+            if (ref == null || ref.kind != RefKind.Resource) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Param '" + binding.param + "' emits a resource reference and the property " +
+                        "holds something else",
+                )
+                return null
+            }
+            val decl = resources[ResourceId(ref.id)]
+            if (decl == null) {
+                // `ReferencePass` reports the unknown id; a resolve here would be a second
+                // answer to the same fact, so the generator refuses quietly instead.
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Param '" + binding.param + "' references resource '" + ref.id + "', which the " +
+                        "document does not declare",
+                )
+                return null
+            }
+            val name = decl.name
+            if (!name.matches(Regex("[A-Za-z][A-Za-z0-9_]*"))) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Resource '" + ref.id + "' has a name that is not a Kotlin identifier: '" + name + "'",
+                )
+                return null
+            }
+            // Two imports are load-bearing: the plugin's accessors are TOP-LEVEL extensions
+            // on the empty Res.drawable / Res.string objects, and an extension resolves only
+            // through a package import of its own name — `import …Res` alone leaves
+            // `Res.drawable.<name>` unresolved. The printer forbids the wildcard that would
+            // cover every accessor at once, so each spelling imports the one name it uses.
+            if (resources.values.count { it.name == name } > 1) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Resource name '" + name + "' is declared by more than one resource, so the " +
+                        "accessor import would be ambiguous",
+                )
+                return null
+            }
+            val res = KotlinSymbol(resPackage, "Res")
+            val accessor = KotlinSymbol(resPackage, name)
+            return when (decl.kind) {
+                ResourceKind.Image -> KtExpr.Snippet(
+                    "painterResource(Res.drawable." + name + ")",
+                    listOf(res, accessor, KotlinSymbol("org.jetbrains.compose.resources", "painterResource")),
+                )
+                ResourceKind.String -> KtExpr.Snippet(
+                    "stringResource(Res.string." + name + ")",
+                    listOf(res, accessor, KotlinSymbol("androidx.compose.ui.res", "stringResource")),
+                )
+                else -> {
+                    refuse(
+                        DiagnosticCodes.CodegenStrategyUnsupported,
+                        node,
+                        "Resource '" + ref.id + "' is a " + decl.kind.name + " resource, which has no " +
+                            "property-position spelling",
+                    )
+                    null
+                }
+            }
         }
         throw CodegenBug("Unknown ValueEmit: " + emit)
     }

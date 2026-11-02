@@ -52,6 +52,7 @@ class FixtureValidationTest {
                 "expression_corpus",
                 "flow_basic",
                 "icon_basic",
+                "image_basic",
                 "material_token",
                 "nested_depth3",
                 "progress_indicator",
