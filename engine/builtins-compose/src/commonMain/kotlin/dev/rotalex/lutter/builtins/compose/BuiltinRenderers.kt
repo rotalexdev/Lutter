@@ -12,6 +12,7 @@ import dev.rotalex.lutter.builtins.DividerSpec
 import dev.rotalex.lutter.builtins.FlowColumnSpec
 import dev.rotalex.lutter.builtins.FlowRowSpec
 import dev.rotalex.lutter.builtins.IconSpec
+import dev.rotalex.lutter.builtins.ImageSpec
 import dev.rotalex.lutter.builtins.ProgressIndicatorSpec
 import dev.rotalex.lutter.builtins.SliderSpec
 import dev.rotalex.lutter.builtins.SpacerSpec
@@ -36,6 +37,7 @@ public fun RendererRegistryBuilder.registerBuiltinRenderers(): Unit {
     register(DividerSpec.spec.type, DividerRenderer)
     register(ProgressIndicatorSpec.spec.type, ProgressIndicatorRenderer)
     register(IconSpec.spec.type, IconRenderer)
+    register(ImageSpec.spec.type, ImageRenderer)
     register(TextSpec.spec.type, TextRenderer)
     register(ButtonSpec.spec.type, ButtonRenderer)
     register(TextFieldSpec.spec.type, TextFieldRenderer)

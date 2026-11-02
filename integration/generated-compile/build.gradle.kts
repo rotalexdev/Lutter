@@ -15,6 +15,17 @@ plugins {
     id("forge.kmp.compose")
 }
 
+// The resources package the fixtures' generated code imports `Res` from (§20:1598): the
+// compose-resources plugin generates the class here, and every generator run — fixtures and
+// goldens — spells the same import, so the wiring and the emission cannot disagree.
+val RESOURCES_PACKAGE = "dev.rotalex.lutter.generated.resources"
+
+compose {
+    resources {
+        packageOfRes = RESOURCES_PACKAGE
+    }
+}
+
 dependencies {
     commonMainApi(project(":engine:model"))
     commonMainApi(project(":engine:schema"))
@@ -33,6 +44,11 @@ dependencies {
     commonMainImplementation(rootLibs.jetbrains.compose.foundation)
     commonMainImplementation(rootLibs.jetbrains.compose.material3)
     commonMainImplementation(rootLibs.jetbrains.compose.material.icons.extended)
+    // The resources half of §20:1598: generated screens spell painterResource(Res.drawable.*),
+    // and this module is the scaffold that generates the `Res` class the import names. The
+    // shorthand is the deprecated spelling, but the catalog carries no resources alias and the
+    // coordinate is the plugin's own.
+    commonMainImplementation(compose.components.resources)
     // Desktop-only UI test runner; commonTest stays pure so Android host tests keep running.
     desktopTestImplementation(compose.desktop.uiTestJUnit4)
     // Plan §36.1 bullet 7's Android half: `RuntimeSemanticsTest` composes under Robolectric on
@@ -124,7 +140,7 @@ abstract class GenerateFixtures : DefaultTask() {
             exec.javaexec {
                 classpath = cliClasspath
                 mainClass.set("dev.rotalex.lutter.cli.MainKt")
-                args("generate", file.absolutePath, "--out", File(out, id).absolutePath, "--package", pkg)
+                args("generate", file.absolutePath, "--out", File(out, id).absolutePath, "--package", pkg, "--resources-package", RESOURCES_PACKAGE)
             }
             val text = file.readText()
             require(!text.contains("\"\"\"")) { "Fixture '$id' holds a triple quote, which raw strings cannot carry" }
@@ -248,7 +264,7 @@ abstract class GenerateCodegenGoldens : DefaultTask() {
             exec.javaexec {
                 classpath = cliClasspath
                 mainClass.set("dev.rotalex.lutter.cli.MainKt")
-                args("generate", document.absolutePath, "--out", out.absolutePath, "--package", packageName(id))
+                args("generate", document.absolutePath, "--out", out.absolutePath, "--package", packageName(id), "--resources-package", RESOURCES_PACKAGE)
             }
             val files = generatedIn(out)
             check(files.isNotEmpty()) { "Fixture '$id' generated no files, so there is nothing to pin" }

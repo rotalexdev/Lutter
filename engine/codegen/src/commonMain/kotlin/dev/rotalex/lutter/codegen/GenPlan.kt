@@ -30,6 +30,7 @@ public data class CodegenOptions(
     // it from, and a navigator that cannot say where `Route` lives cannot name it in a screen.
     public val navigation: NavigationStrategy = SimpleBackStack(basePackage),
     public val state: StateStrategy = ComposeSnapshotState,
+    public val resources: ResourceStrategy = ResourceStrategy.None,
     public val header: HeaderPolicy = HeaderPolicy.Minimal,
     public val formatting: FormattingOptions = FormattingOptions(),
     public val targetPlatforms: Set<PlatformTag> = PlatformTag.ALL,

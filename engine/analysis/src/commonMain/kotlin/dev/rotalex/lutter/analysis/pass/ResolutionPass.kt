@@ -121,6 +121,7 @@ internal class ResolutionPass(
             componentState,
             document.hostFunctions,
             componentSpecs,
+            document.resources,
         )
     }
 

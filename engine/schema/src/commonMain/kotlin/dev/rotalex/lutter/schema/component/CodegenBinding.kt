@@ -95,6 +95,19 @@ public sealed interface ValueEmit {
     @Serializable
     @SerialName("literal")
     public data class Literal(public val text: String) : ValueEmit
+
+    /**
+     * A resource reference, spelled as a compose-resources `Res` lookup (§20:1598).
+     *
+     * The property's value is a `Value.Ref(kind=resource, id)`; the generator resolves the
+     * id through the document's declarations and emits the vocabulary the kind names —
+     * `painterResource(Res.drawable.<name>)` for an image, `stringResource(Res.string.<name>)`
+     * for a string. Font and file resources have no prop-position spelling: they are
+     * runtime-loaded data, so no spec binds them with this arm.
+     */
+    @Serializable
+    @SerialName("resource")
+    public data object Resource : ValueEmit
 }
 
 /**

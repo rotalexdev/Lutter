@@ -6,12 +6,14 @@ import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
 import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.doc.ModifierEntry
+import dev.rotalex.lutter.model.doc.ResourceKind
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.TypeId
+import dev.rotalex.lutter.model.type.RefKind
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.SchemaView
@@ -77,7 +79,7 @@ internal class SchemaPass(
                 )
                 continue
             }
-            checkValue(document, node.id, key, declared.type, declared.bindable, actual, null, diags)
+            checkValue(document, node.id, key, declared, actual, null, diags)
         }
         for (declared in spec.properties) {
             if (declared.required && declared.key !in node.props) {
@@ -97,6 +99,7 @@ internal class SchemaPass(
         key: PropertyKey,
         declared: TypeRef,
         bindable: Boolean,
+        resourceKind: ResourceKind?,
         actual: PropertyValue,
         modifierIndex: Int?,
         diags: MutableList<Diagnostic>,
@@ -114,6 +117,24 @@ internal class SchemaPass(
                     "Property '${key.value}' does not accept a computed value (node '$nodeId')",
                     mapOf("node" to nodeId.value, "property" to key.value),
                 )
+            }
+            return
+        }
+        // §10:795's resource row: a spec that declares a resource kind accepts a resource
+        // reference where its type says `Str`, and the kind the reference names must match
+        // the declaration. Existence is `ReferencePass`'s check — a missing declaration is
+        // reported there once, so a kind mismatch is only asked of one that exists.
+        if (const is Value.Ref && const.kind == RefKind.Resource && resourceKind != null) {
+            val decl = document.resources.keys.firstOrNull { it.value == const.id }
+            if (decl != null) {
+                val kind = document.resources.getValue(decl).kind
+                if (kind != resourceKind) {
+                    diags += Diagnostic(
+                        Severity.Error, DiagnosticCodes.ResourceKindMismatch, location(),
+                        "Property '${key.value}' wants a ${resourceKind.name} resource but '${const.id}' is a ${kind.name} (node '$nodeId')",
+                        mapOf("node" to nodeId.value, "property" to key.value, "expected" to resourceKind.name, "found" to kind.name),
+                    )
+                }
             }
             return
         }
@@ -330,7 +351,7 @@ internal class SchemaPass(
                 )
                 continue
             }
-            checkValue(document, node.id, key, param.type, param.bindable, actual, index, diags)
+            checkValue(document, node.id, key, param.type, param.bindable, null, actual, index, diags)
         }
         // A required argument the entry does not carry is the modifier's problem, not the value's,
         // so it reports as `arg_invalid` like its other two failures: unknown, or wrongly typed.
