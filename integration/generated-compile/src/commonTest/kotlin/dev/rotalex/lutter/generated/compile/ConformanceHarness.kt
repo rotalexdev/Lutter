@@ -1,6 +1,7 @@
 package dev.rotalex.lutter.generated.compile
 
-import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Image
+import dev.rotalex.lutter.generated.resources.Res
 import dev.rotalex.lutter.analysis.AnalysisResult
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.interpreter.env.Destination
@@ -56,12 +57,14 @@ internal object ConformanceHarness {
      * by compiling the generated screens against this module's own `composeResources`.
      */
     private object StubResources : ResourceProvider {
+        // The decode is the fixture asset's own bytes, not a stand-in: intrinsic size is what
+        // layout reads and the pixels check compares what the two paths painted, so a stub
+        // bitmap of any other size or color lays and paints the same fixture differently on
+        // the runtime and generated sides, which those checks would read as a break. Reading
+        // and decoding through the same compose-resources API the generated screens use keeps
+        // both paths on one pipeline.
         override suspend fun load(id: ResourceId): LoadedResource =
-            // The 32x32 is the fixture asset's own dimensions, not a tolerance: intrinsic size
-            // is what layout reads, and the generated path decodes the real 32x32 bytes. A
-            // stub of any other size lays the same fixture out differently on the two sides
-            // of the runtime/generated comparison, which that check would read as a break.
-            LoadedResource.Image(ImageBitmap(32, 32))
+            LoadedResource.Image(Image.makeFromEncoded(Res.readBytes("drawable/hero.png")))
 
         override suspend fun stringFor(id: ResourceId, locale: String): String? = null
     }
