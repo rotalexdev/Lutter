@@ -22,7 +22,7 @@ val RESOURCES_PACKAGE = "dev.rotalex.lutter.generated.resources"
 
 compose {
     resources {
-        packageOfRes = RESOURCES_PACKAGE
+        packageOfResClass = RESOURCES_PACKAGE
     }
 }
 
