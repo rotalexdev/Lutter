@@ -12,9 +12,9 @@ import dev.rotalex.lutter.model.doc.EnumEntryDecl
 import dev.rotalex.lutter.model.doc.EnumTypeDecl
 import dev.rotalex.lutter.model.doc.ResourceDecl
 import dev.rotalex.lutter.model.doc.ResourceKind
-import dev.rotalex.lutter.model.doc.ResourceId
 import dev.rotalex.lutter.model.doc.ResourceSource
 import dev.rotalex.lutter.model.doc.ResourceVariant
+import dev.rotalex.lutter.model.ids.ResourceId
 import dev.rotalex.lutter.model.doc.FieldDecl
 import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.ModifierEntry
