@@ -17,8 +17,10 @@ plugins {
 
 // The resources package the fixtures' generated code imports `Res` from (§20:1598): the
 // compose-resources plugin generates the class here, and every generator run — fixtures and
-// goldens — spells the same import, so the wiring and the emission cannot disagree.
-val RESOURCES_PACKAGE = "dev.rotalex.lutter.generated.resources"
+// goldens — spells the same import, so the wiring and the emission cannot disagree. A script
+// constant, not a task reference: a task class that reads a script-level val compiles as a
+// non-static inner class, which Gradle refuses.
+const val RESOURCES_PACKAGE = "dev.rotalex.lutter.generated.resources"
 
 compose {
     resources {
