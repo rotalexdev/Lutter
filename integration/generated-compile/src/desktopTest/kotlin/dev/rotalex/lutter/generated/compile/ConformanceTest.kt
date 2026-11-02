@@ -73,7 +73,7 @@ class ConformanceTest {
             setContent {
                 UiScreen(ConformanceHarness.runtime(ConformanceHarness.schema()), resolved, HOME, ConformanceHarness.environment())
             }
-            awaitSettled()
+            awaitSettled(resolved)
             val runtimeDump = dumpSemantics()
 
             setContent { GeneratedFixtures.all.getValue(id)(Modifier) }
@@ -88,7 +88,7 @@ class ConformanceTest {
             setContent {
                 UiScreen(ConformanceHarness.runtime(ConformanceHarness.schema()), resolved, HOME, ConformanceHarness.environment())
             }
-            awaitSettled()
+            awaitSettled(resolved)
             val runtimePixels = pixelBytes()
 
             setContent { GeneratedFixtures.all.getValue(id)(Modifier) }
@@ -379,23 +379,25 @@ class ConformanceTest {
         buildString { render(firstContent(onRoot().fetchSemanticsNode())) }
 
     /**
-     * Waits until the tree stops changing between frames.
+     * Waits for the runtime's async resource load to land, for fixtures that have resources.
      *
      * The runtime path's resource provider is suspend by design (§20:1598), so an image-bearing
      * fixture composes a placeholder first and swaps the loaded content in a frame of its own —
-     * the generated path's painterResource never has that gap. The comparison that follows wants
-     * the settled tree on both sides, and waitForIdle cannot promise it: the load completes on a
-     * dispatcher the frame clock does not drive. Two consecutive identical dumps is the settled
-     * signal, whatever settled it.
+     * the generated path's painterResource never has that gap, and waitForIdle cannot promise
+     * the swap landed: the load completes on a dispatcher the frame clock does not drive.
+     *
+     * The signal is geometric on purpose. The semantics dump cannot see a placeholder-to-image
+     * swap — a contentless Box and a loaded Image read the same from above it — so a dump that
+     * is stable twice proves nothing. The loaded image moves the root's own size, which no
+     * frame keeps still. A fixture without resources never composes a placeholder, so it skips
+     * the wait; if a future resource kind loads without moving the root, this wait fails loudly
+     * instead of comparing a placeholder, which is the failure mode that would matter.
      */
-    private fun ComposeUiTest.awaitSettled() {
-        var previous: String? = null
-        waitUntil {
-            val current = dumpSemantics()
-            val settled = previous == current
-            previous = current
-            settled
-        }
+    private fun ComposeUiTest.awaitSettled(resolved: ResolvedDocument) {
+        if (resolved.resources.isEmpty()) return
+        val placeholderSize = onRoot().fetchSemanticsNode().size
+        waitUntil { onRoot().fetchSemanticsNode().size != placeholderSize }
+        waitForIdle()
     }
 
     private fun ComposeUiTest.pixelBytes(): Pair<Pair<Int, Int>, IntArray> {
