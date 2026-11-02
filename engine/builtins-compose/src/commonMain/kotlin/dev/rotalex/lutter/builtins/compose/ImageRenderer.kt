@@ -73,6 +73,5 @@ private val ContentScaleMap: Map<String, ContentScale> = mapOf(
     "FillWidth" to ContentScale.FillWidth,
     "FillHeight" to ContentScale.FillHeight,
     "Fit" to ContentScale.Fit,
-    "FillMaxDimensions" to ContentScale.FillMaxDimensions,
     "Inside" to ContentScale.Inside,
 )

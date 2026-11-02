@@ -21,8 +21,7 @@ public object ContentScaleSpec {
 
     /** Every entry, in reading order. */
     public val entries: List<EnumEntrySpec> =
-        listOf("Crop", "FillBounds", "FillWidth", "FillHeight", "Fit", "FillMaxDimensions", "Inside")
-            .map(::onContentScale)
+        listOf("Crop", "FillBounds", "FillWidth", "FillHeight", "Fit", "Inside").map(::onContentScale)
 
     /** The schema-side declaration of the enum. */
     public val spec: EnumTypeSpec = EnumTypeSpec(Id, entries)
