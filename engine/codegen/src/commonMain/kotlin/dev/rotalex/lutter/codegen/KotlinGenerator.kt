@@ -1243,7 +1243,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             // through a package import of its own name — `import …Res` alone leaves
             // `Res.drawable.<name>` unresolved. The printer forbids the wildcard that would
             // cover every accessor at once, so each spelling imports the one name it uses.
-            if (document.resources.values.count { it.name == name } > 1) {
+            if (resources.values.count { it.name == name } > 1) {
                 refuse(
                     DiagnosticCodes.CodegenStrategyUnsupported,
                     node,
