@@ -870,7 +870,10 @@ public class DocumentGenerator(
         val binding = spec.codegen as? CodegenBinding.ComposeCall ?: return null
         val fills = binding.params
             .filter { it.emit is ValueEmit.Resource }
-            .associate { it.from to PropertyValue.Const(Value.Ref(RefKind.Resource, GENERATED_RESOURCE.id.value)) }
+            .flatMap { param ->
+                param.from.map { key -> key to PropertyValue.Const(Value.Ref(RefKind.Resource, GENERATED_RESOURCE.id.value)) }
+            }
+            .toMap()
         return if (fills.isEmpty()) null else fills
     }
 
