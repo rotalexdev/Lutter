@@ -57,7 +57,11 @@ internal object ConformanceHarness {
      */
     private object StubResources : ResourceProvider {
         override suspend fun load(id: ResourceId): LoadedResource =
-            LoadedResource.Image(ImageBitmap(1, 1))
+            // The 32x32 is the fixture asset's own dimensions, not a tolerance: intrinsic size
+            // is what layout reads, and the generated path decodes the real 32x32 bytes. A
+            // stub of any other size lays the same fixture out differently on the two sides
+            // of the runtime/generated comparison, which that check would read as a break.
+            LoadedResource.Image(ImageBitmap(32, 32))
 
         override suspend fun stringFor(id: ResourceId, locale: String): String? = null
     }
