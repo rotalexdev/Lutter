@@ -1,6 +1,7 @@
 package dev.rotalex.lutter.builtins.compose
 
 import dev.rotalex.lutter.builtins.AlignmentSpec
+import dev.rotalex.lutter.builtins.ContentScaleSpec
 import dev.rotalex.lutter.builtins.ShapeSpec
 import dev.rotalex.lutter.builtins.enums.HorizontalArrangementSpec
 import dev.rotalex.lutter.builtins.enums.VerticalArrangementSpec
@@ -73,7 +74,7 @@ class CoverageTests {
     }
 
     @Test
-    fun `the registered enum types are the four specs the runtimes map`() {
+    fun `the registered enum types are the five specs the runtimes map`() {
         val registered = schema.types.all()
             .filterIsInstance<EnumTypeSpec>()
             .map { it.id }
@@ -85,9 +86,10 @@ class CoverageTests {
                 ShapeSpec.Id,
                 VerticalArrangementSpec.Id,
                 HorizontalArrangementSpec.Id,
+                ContentScaleSpec.Id,
             ),
             registered,
-            "a fifth enum registered without a runtime mapping, or a spec declared without registration",
+            "a sixth enum registered without a runtime mapping, or a spec declared without registration",
         )
     }
 
