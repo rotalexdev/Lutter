@@ -79,7 +79,7 @@ internal class SchemaPass(
                 )
                 continue
             }
-            checkValue(document, node.id, key, declared, actual, null, diags)
+            checkValue(document, node.id, key, declared.type, declared.bindable, declared.resourceKind, actual, null, diags)
         }
         for (declared in spec.properties) {
             if (declared.required && declared.key !in node.props) {
