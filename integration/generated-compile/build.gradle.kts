@@ -20,11 +20,13 @@ plugins {
 // goldens — spells the same import, so the wiring and the emission cannot disagree. A script
 // constant, not a task reference: a task class that reads a script-level val compiles as a
 // non-static inner class, which Gradle refuses.
-const val RESOURCES_PACKAGE = "dev.rotalex.lutter.generated.resources"
+private object ResPkgs {
+    const val PACKAGE = "dev.rotalex.lutter.generated.resources"
+}
 
 compose {
     resources {
-        packageOfResClass = RESOURCES_PACKAGE
+        packageOfResClass = ResPkgs.PACKAGE
     }
 }
 
@@ -142,7 +144,7 @@ abstract class GenerateFixtures : DefaultTask() {
             exec.javaexec {
                 classpath = cliClasspath
                 mainClass.set("dev.rotalex.lutter.cli.MainKt")
-                args("generate", file.absolutePath, "--out", File(out, id).absolutePath, "--package", pkg, "--resources-package", RESOURCES_PACKAGE)
+                args("generate", file.absolutePath, "--out", File(out, id).absolutePath, "--package", pkg, "--resources-package", ResPkgs.PACKAGE)
             }
             val text = file.readText()
             require(!text.contains("\"\"\"")) { "Fixture '$id' holds a triple quote, which raw strings cannot carry" }
@@ -266,7 +268,7 @@ abstract class GenerateCodegenGoldens : DefaultTask() {
             exec.javaexec {
                 classpath = cliClasspath
                 mainClass.set("dev.rotalex.lutter.cli.MainKt")
-                args("generate", document.absolutePath, "--out", out.absolutePath, "--package", packageName(id), "--resources-package", RESOURCES_PACKAGE)
+                args("generate", document.absolutePath, "--out", out.absolutePath, "--package", packageName(id), "--resources-package", ResPkgs.PACKAGE)
             }
             val files = generatedIn(out)
             check(files.isNotEmpty()) { "Fixture '$id' generated no files, so there is nothing to pin" }
