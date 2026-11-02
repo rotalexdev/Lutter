@@ -388,15 +388,18 @@ class ConformanceTest {
      *
      * The signal is geometric on purpose. The semantics dump cannot see a placeholder-to-image
      * swap — a contentless Box and a loaded Image read the same from above it — so a dump that
-     * is stable twice proves nothing. The loaded image moves the root's own size, which no
-     * frame keeps still. A fixture without resources never composes a placeholder, so it skips
-     * the wait; if a future resource kind loads without moving the root, this wait fails loudly
-     * instead of comparing a placeholder, which is the failure mode that would matter.
+     * is stable twice proves nothing. The loaded image moves the first content node's bounds,
+     * which the comparison below reads anyway. A fixture without resources never composes a
+     * placeholder, so it skips the wait; if a future resource kind loads without moving the
+     * content, this wait fails loudly instead of comparing a placeholder, which is the failure
+     * mode that would matter.
      */
     private fun ComposeUiTest.awaitSettled(resolved: ResolvedDocument) {
         if (resolved.resources.isEmpty()) return
-        val placeholderSize = onRoot().fetchSemanticsNode().size
-        waitUntil { onRoot().fetchSemanticsNode().size != placeholderSize }
+        // The root is the fixed test window, so its size never moves; the swap moves the
+        // first content node's bounds, which the comparison below reads anyway.
+        val placeholderBounds = firstContent(onRoot().fetchSemanticsNode()).boundsInRoot
+        waitUntil { firstContent(onRoot().fetchSemanticsNode()).boundsInRoot != placeholderBounds }
         waitForIdle()
     }
 
