@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
+import dev.rotalex.lutter.builtins.compose.ImageLoadingTag
 import dev.rotalex.lutter.codegen.CodegenOptions
 import dev.rotalex.lutter.codegen.ComposeResourceStrategy
 import dev.rotalex.lutter.codegen.KotlinGenerator
@@ -384,22 +385,16 @@ class ConformanceTest {
      * The runtime path's resource provider is suspend by design (§20:1598), so an image-bearing
      * fixture composes a placeholder first and swaps the loaded content in a frame of its own —
      * the generated path's painterResource never has that gap, and waitForIdle cannot promise
-     * the swap landed: the load completes on a dispatcher the frame clock does not drive.
-     *
-     * The signal is geometric on purpose. The semantics dump cannot see a placeholder-to-image
-     * swap — a contentless Box and a loaded Image read the same from above it — so a dump that
-     * is stable twice proves nothing. The loaded image moves the first content node's bounds,
-     * which the comparison below reads anyway. A fixture without resources never composes a
-     * placeholder, so it skips the wait; if a future resource kind loads without moving the
-     * content, this wait fails loudly instead of comparing a placeholder, which is the failure
-     * mode that would matter.
+     * the swap landed: the load completes on a dispatcher the frame clock does not drive. The
+     * renderer says what is loading, though: its placeholders carry a tag the dump prints, so
+     * "no node carries the tag" is a settled tree no frame-timing guess can fake.
      */
     private fun ComposeUiTest.awaitSettled(resolved: ResolvedDocument) {
         if (resolved.resources.isEmpty()) return
-        // The root is the fixed test window, so its size never moves; the swap moves the
-        // first content node's bounds, which the comparison below reads anyway.
-        val placeholderBounds = firstContent(onRoot().fetchSemanticsNode()).boundsInRoot
-        waitUntil { firstContent(onRoot().fetchSemanticsNode()).boundsInRoot != placeholderBounds }
+        // The runtime marks its not-yet-loaded placeholders with the tag, and the dump
+        // prints tags; when no node carries it, every load has landed and the tree is the
+        // settled one. No frame-timing guess can mistake a placeholder for the result.
+        waitUntil { !dumpSemantics().contains(ImageLoadingTag) }
         waitForIdle()
     }
 

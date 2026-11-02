@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.builtins.ImageSpec
 import dev.rotalex.lutter.model.expr.PropertyValue
@@ -25,6 +26,14 @@ import kotlinx.coroutines.withContext
  * load runs once per id: a resource's bytes do not change while a node is on screen, so a
  * re-render subscribes the same loaded value rather than re-reading the provider.
  *
+/**
+ * The tag a not-yet-loaded image's placeholder carries while the provider's load is in
+ * flight. Observable loading state: a host's tests can wait for it to disappear instead of
+ * guessing at frame timing, which is what the conformance harness does.
+ */
+public const val ImageLoadingTag: String = "lutter.resource.loading"
+
+/**
  * A load that misses draws nothing: a renderer cannot invent pixels, and the missing
  * resource is analysis's to have refused (a reference to nothing is `resource.unknown`).
  */
@@ -51,8 +60,9 @@ internal object ImageRenderer : ComponentRenderer {
             )
         } else {
             // Nothing yet (or a miss): hold the node's place so the layout does not jump
-            // when the bytes arrive.
-            Box(modifier = scope.modifierFor(node))
+            // when the bytes arrive, and say loading, so a reader can wait for the real
+            // content rather than race it.
+            Box(modifier = scope.modifierFor(node).testTag(ImageLoadingTag))
         }
     }
 
