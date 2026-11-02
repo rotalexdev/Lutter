@@ -1238,19 +1238,30 @@ public class KotlinGenerator<A : Any, T : Any>(
                 )
                 return null
             }
-            // The star import is load-bearing: the plugin's accessors are TOP-LEVEL extensions
+            // Two imports are load-bearing: the plugin's accessors are TOP-LEVEL extensions
             // on the empty Res.drawable / Res.string objects, and an extension resolves only
-            // through a package import — `import …Res` alone leaves `Res.drawable.<name>`
-            // unresolved. The star covers Res and every accessor chunk in one line.
-            val res = KotlinSymbol(resPackage, "*")
+            // through a package import of its own name — `import …Res` alone leaves
+            // `Res.drawable.<name>` unresolved. The printer forbids the wildcard that would
+            // cover every accessor at once, so each spelling imports the one name it uses.
+            if (document.resources.values.count { it.name == name } > 1) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Resource name '" + name + "' is declared by more than one resource, so the " +
+                        "accessor import would be ambiguous",
+                )
+                return null
+            }
+            val res = KotlinSymbol(resPackage, "Res")
+            val accessor = KotlinSymbol(resPackage, name)
             return when (decl.kind) {
                 ResourceKind.Image -> KtExpr.Snippet(
                     "painterResource(Res.drawable." + name + ")",
-                    listOf(res, KotlinSymbol("org.jetbrains.compose.resources", "painterResource")),
+                    listOf(res, accessor, KotlinSymbol("org.jetbrains.compose.resources", "painterResource")),
                 )
                 ResourceKind.String -> KtExpr.Snippet(
                     "stringResource(Res.string." + name + ")",
-                    listOf(res, KotlinSymbol("androidx.compose.ui.res", "stringResource")),
+                    listOf(res, accessor, KotlinSymbol("androidx.compose.ui.res", "stringResource")),
                 )
                 else -> {
                     refuse(
