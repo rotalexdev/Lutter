@@ -73,6 +73,7 @@ class ConformanceTest {
             setContent {
                 UiScreen(ConformanceHarness.runtime(ConformanceHarness.schema()), resolved, HOME, ConformanceHarness.environment())
             }
+            awaitSettled()
             val runtimeDump = dumpSemantics()
 
             setContent { GeneratedFixtures.all.getValue(id)(Modifier) }
@@ -87,6 +88,7 @@ class ConformanceTest {
             setContent {
                 UiScreen(ConformanceHarness.runtime(ConformanceHarness.schema()), resolved, HOME, ConformanceHarness.environment())
             }
+            awaitSettled()
             val runtimePixels = pixelBytes()
 
             setContent { GeneratedFixtures.all.getValue(id)(Modifier) }
@@ -375,6 +377,26 @@ class ConformanceTest {
 
     private fun ComposeUiTest.dumpSemantics(): String =
         buildString { render(firstContent(onRoot().fetchSemanticsNode())) }
+
+    /**
+     * Waits until the tree stops changing between frames.
+     *
+     * The runtime path's resource provider is suspend by design (§20:1598), so an image-bearing
+     * fixture composes a placeholder first and swaps the loaded content in a frame of its own —
+     * the generated path's painterResource never has that gap. The comparison that follows wants
+     * the settled tree on both sides, and waitForIdle cannot promise it: the load completes on a
+     * dispatcher the frame clock does not drive. Two consecutive identical dumps is the settled
+     * signal, whatever settled it.
+     */
+    private fun ComposeUiTest.awaitSettled() {
+        var previous: String? = null
+        waitUntil {
+            val current = dumpSemantics()
+            val settled = previous == current
+            previous = current
+            settled
+        }
+    }
 
     private fun ComposeUiTest.pixelBytes(): Pair<Pair<Int, Int>, IntArray> {
         val image = onRoot().captureToImage()
