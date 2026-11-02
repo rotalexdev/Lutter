@@ -57,9 +57,9 @@ public object ImageSpec {
         composeCall(KotlinSymbol("androidx.compose.foundation", "Image")) {
             // Material 3 has no Image of its own — the call is Foundation's, whose Kotlin
             // parameters differ from this spec's document names: the source prop binds
-            // `bitmap` (spelled painterResource(Res.drawable.<name>) by the resource
-            // strategy), and the fit prop binds `contentScale`.
-            param("bitmap", from = source, emit = ValueEmit.Resource)
+            // `painter` (spelled painterResource(Res.drawable.<name>) by the resource
+            // strategy — a painter, not a bitmap), and the fit prop binds `contentScale`.
+            param("painter", from = source, emit = ValueEmit.Resource)
             param("contentDescription", from = contentDescription)
             param("contentScale", from = fit)
         }
