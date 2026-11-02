@@ -1,7 +1,7 @@
 package dev.rotalex.lutter.builtins.compose
 
 import dev.rotalex.lutter.builtins.AlignmentSpec
-import dev.rotalex.lutter.builtins.ContentScaleSpec
+import dev.rotalex.lutter.builtins.enums.ContentScaleSpec
 import dev.rotalex.lutter.builtins.ShapeSpec
 import dev.rotalex.lutter.builtins.enums.HorizontalArrangementSpec
 import dev.rotalex.lutter.builtins.enums.VerticalArrangementSpec
