@@ -135,4 +135,41 @@ public object EditCodes {
      * node the author never put there.
      */
     public val RootMismatch: DiagnosticCode = DiagnosticCode("edit.root_mismatch")
+
+    /**
+     * An `ExtractComponent` whose [Command.ExtractComponent.name] is not already a Kotlin
+     * identifier. The name is the declaration's id and the generated composable's name — see
+     * the command's KDoc for why one string does both jobs — so a name the compiler could not
+     * accept is a declaration the codegen could not emit.
+     */
+    public val ComponentName: DiagnosticCode = DiagnosticCode("edit.component_name")
+
+    /**
+     * An `ExtractComponent` whose name the document's components already hold. The declaration
+     * map is keyed by the id the name derives to, so a second declaration with the same name
+     * would be a second component the instances of the first could not be told apart from.
+     */
+    public val ComponentExists: DiagnosticCode = DiagnosticCode("edit.component_exists")
+
+    /**
+     * An `ExtractComponent` whose subtree reads an iteration item bound outside it. A component
+     * body reads its params, its slots and the document's app state, and an item variable
+     * survives none of those — promoting it to a param needs the item's type, which §23.3
+     * keeps in analysis. The planner refuses rather than guess.
+     */
+    public val DanglingItem: DiagnosticCode = DiagnosticCode("edit.dangling_item")
+
+    /**
+     * An `ExtractComponent` planned against a node inside a component's body. The outer body's
+     * `RefTarget.Param` reads would dangle differently than an item would, and the extraction
+     * surface for now is page-owned subtrees — one scope per work unit, not a rule forever.
+     */
+    public val InComponentBody: DiagnosticCode = DiagnosticCode("edit.in_component_body")
+
+    /**
+     * An `ExtractComponent` whose body names a `core.SlotOutlet` with a computed string. The
+     * declaration's slots are the body's outlets, and a name the renderer computes at render
+     * time is a name the declaration cannot carry statically.
+     */
+    public val OutletName: DiagnosticCode = DiagnosticCode("edit.outlet_name")
 }
