@@ -8,8 +8,11 @@ import dev.rotalex.lutter.editing.patch.Record
 import dev.rotalex.lutter.editing.patch.RecordRef
 import dev.rotalex.lutter.editing.patch.RemovedSubtree
 import dev.rotalex.lutter.editing.template.NodeTemplate
+import dev.rotalex.lutter.model.doc.ComponentDecl
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.UiDocument
+import dev.rotalex.lutter.model.ids.ComponentDeclId
+import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.IdGenerator
 import kotlin.reflect.KClass
 import kotlin.test.Test
@@ -72,7 +75,7 @@ class CommandPlannerRoundTripTest {
     }
 
     /**
-     * The table names every command it claims to, and now it is all twelve of them.
+     * The table names every command it claims to, and now it is all thirteen of them.
      *
      * `CommandLegalityTest` reads this set to assert that the two tables together cover §25.3's
      * closed set, so a command planned by neither would have no test at all while the `when`
@@ -81,7 +84,7 @@ class CommandPlannerRoundTripTest {
     @Test
     fun `the table names every command it claims to`() {
         assertEquals(CASES.map { it.command::class }.toSet(), PLANNED_COMMANDS)
-        assertEquals(12, PLANNED_COMMANDS.size, "the table plans ${PLANNED_COMMANDS.size} commands")
+        assertEquals(13, PLANNED_COMMANDS.size, "the table plans ${PLANNED_COMMANDS.size} commands")
     }
 
     /**
@@ -482,6 +485,55 @@ private val CASES: List<PlanCase> = listOf(
         after = plannerDocument(
             rows = BASE_ROWS + Node(id = MINTED_ONE, type = COLUMN),
             pages = mapOf(HOME to homePage(), NEW to newPage()),
+        ),
+    ),
+    PlanCase(
+        // One child out, one instance in, and the body's rows never leave the table: the
+        // RemoveSubtree→PutNodes pair moves them from "reachable from a slot" to "reachable
+        // from the declaration", which is the same row set with a different reason. The
+        // extracted leaf keeps its id; the fresh mint belongs to the instance.
+        name = "extract a leaf into a document component",
+        before = BASE,
+        command = Command.ExtractComponent(DELTA, "Hero"),
+        ids = ::freshIds,
+        ops = listOf(
+            PatchOp.RemoveSubtree(DELTA, RemovedSubtree(BETA, CHILDREN, 0, listOf(deltaNode())), slotExisted = true),
+            PatchOp.PutNodes(listOf(deltaNode())),
+            PatchOp.PutRecord(
+                RecordRef.Component(ComponentDeclId("Hero")),
+                null,
+                Record.Component(
+                    ComponentDecl(
+                        id = ComponentDeclId("Hero"),
+                        name = "Hero",
+                        params = emptyList(),
+                        slots = emptyList(),
+                        root = DELTA,
+                    ),
+                ),
+            ),
+            PatchOp.InsertNodes(
+                BETA,
+                CHILDREN,
+                0,
+                listOf(Node(id = MINTED_ONE, type = ComponentType("doc.Hero"))),
+                slotExisted = true,
+            ),
+        ),
+        after = plannerDocument(
+            rows = BASE_ROWS - betaNode() +
+                Node(id = BETA, type = COLUMN, slots = mapOf(CHILDREN to listOf(MINTED_ONE, ECHO))) +
+                deltaNode() +
+                Node(id = MINTED_ONE, type = ComponentType("doc.Hero")),
+            components = mapOf(
+                ComponentDeclId("Hero") to ComponentDecl(
+                    id = ComponentDeclId("Hero"),
+                    name = "Hero",
+                    params = emptyList(),
+                    slots = emptyList(),
+                    root = DELTA,
+                ),
+            ),
         ),
     ),
     PlanCase(

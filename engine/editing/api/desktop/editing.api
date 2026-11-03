@@ -83,6 +83,19 @@ public final class dev/rotalex/lutter/editing/command/Command$DuplicateNode : de
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/editing/command/Command$ExtractComponent : dev/rotalex/lutter/editing/command/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-owchrTU (Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/editing/command/Command$ExtractComponent;
+	public static synthetic fun copy-owchrTU$default (Ldev/rotalex/lutter/editing/command/Command$ExtractComponent;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/Command$ExtractComponent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getName ()Ljava/lang/String;
+	public final fun getRoot-qw1I0Vk ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/rotalex/lutter/editing/command/Command$InsertNode : dev/rotalex/lutter/editing/command/Command {
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILdev/rotalex/lutter/editing/template/NodeTemplate;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1-qw1I0Vk ()Ljava/lang/String;
@@ -242,13 +255,18 @@ public final class dev/rotalex/lutter/editing/command/CommandResult$Rejected : d
 
 public final class dev/rotalex/lutter/editing/command/EditCodes {
 	public static final field INSTANCE Ldev/rotalex/lutter/editing/command/EditCodes;
+	public final fun getComponentExists-a0Ipk4o ()Ljava/lang/String;
+	public final fun getComponentName-a0Ipk4o ()Ljava/lang/String;
 	public final fun getCycle-a0Ipk4o ()Ljava/lang/String;
+	public final fun getDanglingItem-a0Ipk4o ()Ljava/lang/String;
 	public final fun getDuplicateId-a0Ipk4o ()Ljava/lang/String;
 	public final fun getEmptySubtree-a0Ipk4o ()Ljava/lang/String;
+	public final fun getInComponentBody-a0Ipk4o ()Ljava/lang/String;
 	public final fun getIndexOutOfRange-a0Ipk4o ()Ljava/lang/String;
 	public final fun getMultipleParents-a0Ipk4o ()Ljava/lang/String;
 	public final fun getNoParent-a0Ipk4o ()Ljava/lang/String;
 	public final fun getNothingToUnwrap-a0Ipk4o ()Ljava/lang/String;
+	public final fun getOutletName-a0Ipk4o ()Ljava/lang/String;
 	public final fun getRootMismatch-a0Ipk4o ()Ljava/lang/String;
 	public final fun getSlotCardinality-a0Ipk4o ()Ljava/lang/String;
 	public final fun getSlotChildNotAllowed-a0Ipk4o ()Ljava/lang/String;

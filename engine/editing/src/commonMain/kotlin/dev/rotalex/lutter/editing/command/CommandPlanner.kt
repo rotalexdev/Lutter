@@ -3,6 +3,7 @@ package dev.rotalex.lutter.editing.command
 import dev.rotalex.lutter.editing.command.planners.planAddPage
 import dev.rotalex.lutter.editing.command.planners.planApplyPatch
 import dev.rotalex.lutter.editing.command.planners.planDuplicateNode
+import dev.rotalex.lutter.editing.command.planners.planExtractComponent
 import dev.rotalex.lutter.editing.command.planners.planInsertNode
 import dev.rotalex.lutter.editing.command.planners.planMoveNode
 import dev.rotalex.lutter.editing.command.planners.planRemoveNode
@@ -115,6 +116,7 @@ public object CommandPlanner {
             is Command.SetEventHandler -> planSetEventHandler(command, document, components, ids)
             is Command.RenameNode -> planRenameNode(command, document, components, ids)
             is Command.AddPage -> planAddPage(command, document, components, ids)
+            is Command.ExtractComponent -> planExtractComponent(command, document, components, ids)
             is Command.ApplyPatch -> planApplyPatch(command, document, components, ids)
         }
     }
