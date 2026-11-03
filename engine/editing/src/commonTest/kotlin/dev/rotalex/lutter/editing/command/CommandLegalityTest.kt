@@ -244,6 +244,36 @@ private fun pageFor(id: PageId, root: NodeId): Page =
 
 private val PAGE_SUBTREE = NodeTemplate(listOf(Node(id = MINTED_ONE, type = COLUMN)))
 
+/**
+ * A component the existing-declaration rows plant in the document.
+ *
+ * Its root is [BETA] so the same document also answers the in-body question: a node under
+ * [BETA] is owned by this declaration, and `ownerOf` says so without a second fixture.
+ */
+private val OUTER_DECL = ComponentDecl(
+    id = ComponentDeclId("Outer"),
+    name = "Outer",
+    params = emptyList(),
+    slots = emptyList(),
+    root = BETA,
+)
+
+/** DELTA whose text is computed from an iteration item — the dangling read, spelled. */
+private fun itemReadingDelta(): Node = Node(
+    id = DELTA,
+    type = TEXT,
+    props = mapOf(TEXT_KEY to PropertyValue.Computed(Expr.Ref(RefTarget.Item("i")))),
+)
+
+/** The id the computed-outlet row lists under [BETA], and the outlet that carries it. */
+private val OUTLET: NodeId = NodeId("n_outlet")
+
+private fun outletNode(): Node = Node(
+    id = OUTLET,
+    type = ComponentType("core.SlotOutlet"),
+    props = mapOf(PropertyKey("slot") to PropertyValue.Computed(Expr.Const(Value.Str("content")))),
+)
+
 private val REFUSALS: List<RejectionCase> = listOf(
     // -----------------------------------------------------------------------------------
     // Slots: the policies §25.3 names, and the shape of each refusal
@@ -672,33 +702,4 @@ private val REFUSALS: List<RejectionCase> = listOf(
         expected = EditCodes.SlotChildNotAllowed,
         only = true,
     ),
-)
-/**
- * A component the existing-declaration rows plant in the document.
- *
- * Its root is [BETA] so the same document also answers the in-body question: a node under
- * [BETA] is owned by this declaration, and `ownerOf` says so without a second fixture.
- */
-private val OUTER_DECL = ComponentDecl(
-    id = ComponentDeclId("Outer"),
-    name = "Outer",
-    params = emptyList(),
-    slots = emptyList(),
-    root = BETA,
-)
-
-/** DELTA whose text is computed from an iteration item — the dangling read, spelled. */
-private fun itemReadingDelta(): Node = Node(
-    id = DELTA,
-    type = TEXT,
-    props = mapOf(TEXT_KEY to PropertyValue.Computed(Expr.Ref(RefTarget.Item("i")))),
-)
-
-/** The id the computed-outlet row lists under [BETA], and the outlet that carries it. */
-private val OUTLET: NodeId = NodeId("n_outlet")
-
-private fun outletNode(): Node = Node(
-    id = OUTLET,
-    type = ComponentType("core.SlotOutlet"),
-    props = mapOf(PropertyKey("slot") to PropertyValue.Computed(Expr.Const(Value.Str("content")))),
 )
