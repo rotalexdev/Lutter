@@ -676,7 +676,7 @@ private val REFUSALS: List<RejectionCase> = listOf(
     ),
     RejectionCase(
         name = "extract a subtree that reads an item bound outside it",
-        document = plannerDocument(rows = BASE_ROWS - deltaNode() + itemReadingDelta()),
+        document = plannerDocument(rows = baseRows() - deltaNode() + itemReadingDelta()),
         command = Command.ExtractComponent(BETA, "Hero"),
         ids = ::freshIds,
         expected = EditCodes.DanglingItem,
@@ -685,7 +685,7 @@ private val REFUSALS: List<RejectionCase> = listOf(
     RejectionCase(
         name = "extract a body that names an outlet with a computed string",
         document = plannerDocument(
-            rows = BASE_ROWS - betaNode() +
+            rows = baseRows() - betaNode() +
                 Node(id = BETA, type = COLUMN, slots = mapOf(CHILDREN to listOf(DELTA, ECHO, OUTLET))) +
                 outletNode(),
         ),
