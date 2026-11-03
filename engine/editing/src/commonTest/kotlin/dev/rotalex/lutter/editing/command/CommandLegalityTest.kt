@@ -652,7 +652,10 @@ private val REFUSALS: List<RejectionCase> = listOf(
     ),
     RejectionCase(
         name = "extract under a name the document already declares",
-        document = plannerDocument(components = mapOf(OUTER_DECL.id to OUTER_DECL)),
+        document = plannerDocument(
+            rootChildren = listOf(ALPHA, GAMMA, FOXTROT, GOLF),
+            components = mapOf(OUTER_DECL.id to OUTER_DECL),
+        ),
         command = Command.ExtractComponent(DELTA, OUTER_DECL.name),
         ids = ::freshIds,
         expected = EditCodes.ComponentExists,
@@ -668,7 +671,10 @@ private val REFUSALS: List<RejectionCase> = listOf(
     ),
     RejectionCase(
         name = "extract a node inside a component's body",
-        document = plannerDocument(components = mapOf(OUTER_DECL.id to OUTER_DECL)),
+        document = plannerDocument(
+            rootChildren = listOf(ALPHA, GAMMA, FOXTROT, GOLF),
+            components = mapOf(OUTER_DECL.id to OUTER_DECL),
+        ),
         command = Command.ExtractComponent(DELTA, "Hero"),
         ids = ::freshIds,
         expected = EditCodes.InComponentBody,

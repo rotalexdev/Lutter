@@ -49,9 +49,9 @@ import kotlin.test.assertTrue
  *
  * ### What "all commands" is taken to mean here, stated before the results
  *
- * §25.3 declares thirteen commands; [Command]'s own KDoc says the thirteenth,
- * `ExtractComponent`, is deferred to the wave-2 work unit and why. What is left is twelve, and
- * **"all commands" here means: every one of the twelve is planned against every generated
+ * §25.3 declares thirteen commands, and wave 2 built the thirteenth, `ExtractComponent`, out
+ * of the four decisions its own KDoc records. **"all commands" here means: every one of the
+ * thirteen is planned against every generated
  * document, and every planning that the planner accepts is checked.** It does *not* mean every
  * *instance* of every command — a document with forty nodes has forty `RemoveNode`s and about
  * eleven thousand `MoveNode`s, and §36 asks for a thousand documents, not for the cross product.
@@ -77,7 +77,7 @@ import kotlin.test.assertTrue
  *
  * The census is not decoration, it is the second half of the proof. **A loop whose every
  * instance is refused is a loop that asserts nothing while passing**, so the test refuses to go
- * green until all twelve command families have produced at least one accepted patch — and
+ * green until all thirteen command families have produced at least one accepted patch — and
  * compares that set against `CommandPlannerRoundTripTest.PLANNED_COMMANDS`, which
  * `CommandLegalityTest` already proves equal to §25.3's closed set. In the other direction, the
  * test also refuses to go green when *nothing* was refused, because a corpus that never meets a
@@ -87,7 +87,7 @@ import kotlin.test.assertTrue
  *
  * Honestly, because the corpus is generated rather than written and the differences matter:
  *
- *  * **All twelve are reachable, and all twelve are reached** — the coverage assertion above is
+ *  * **All thirteen are reachable, and all thirteen are reached** — the coverage assertion above is
  *    what says so rather than this sentence.
  *  * **`InsertNode` carries a real subtree**, captured out of the document itself and remapped
  *    through [IdRemapper], so the `InsertNodes`/`RemoveSubtree` pair is exercised on more than
@@ -97,8 +97,9 @@ import kotlin.test.assertTrue
  *    names slot `accepts` and slot `cardinality` and nothing else, so an undeclared property key
  *    is an *accepted* command. The resulting document is invalid and the inverse must still
  *    restore it — which is a stronger claim than only ever writing legal keys.
- *  * **`ExtractComponent` is not exercised at all**, because it does not exist. Its absence is
- *    recorded in [Command], not here.
+ *  * **`ExtractComponent` draws a random row and a fixed valid name.** Roots are not excluded
+ *    on purpose, for the same reason `RemoveNode` draws them: the refused draws are census
+ *    rows, and the interior rows of the same draw feed the accepted arm.
  *  * **`Command.ApplyPatch` plans to itself.** The instance this loop builds hands it a patch
  *    another command in the same document produced, which is the real use — "a diff, a
  *    migration, a collaborator's queue" — and it re-proves the same identity for that patch. It
@@ -147,7 +148,7 @@ class PatchInversePropertyTest {
      * The coverage assertions come **before** the round trip is reported, and the reason is
      * this file's whole subject. If every `UnwrapNode` in a thousand documents were refused, the
      * loop below would record zero failures and this test would pass having proved nothing
-     * about unwrapping. So the corpus is asked to account for all twelve families first, and
+     * about unwrapping. So the corpus is asked to account for all thirteen families first, and
      * only then is a failure rendered.
      */
     @Test
@@ -386,7 +387,7 @@ private fun censusOf(
     accepted: Set<KClass<out Command>>,
     refused: Map<DiagnosticCode, Int>,
 ): String = "census: $documents documents, $planned command instances planned, " +
-    "${accepted.size} of 12 command families accepted at least one patch; refusals: " +
+    "${accepted.size} of 13 command families accepted at least one patch; refusals: " +
     refused.entries
         .sortedBy { entry -> entry.key.value }
         .map { entry -> entry.key.toString() + " " + entry.value.toString() }
@@ -603,6 +604,7 @@ private fun plannedCommands(
     setModifiersCommand(document, random)?.let { commands += Candidate("setModifiers", it) }
     setEventCommand(document, registry, random)?.let { commands += Candidate("setHandler", it) }
     renameCommand(document, random)?.let { commands += Candidate("rename", it) }
+    extractComponentCommand(document, random)?.let { commands += Candidate("extract", it) }
     commands += Candidate("addPage", addPageCommand(ids, seed))
 
     return commands
@@ -661,6 +663,21 @@ private fun removeCommand(document: UiDocument, random: Random): Command? {
     val ids = document.nodes.ids().toList()
     if (ids.isEmpty()) return null
     return Command.RemoveNode(ids[random.nextInt(ids.size)])
+}
+
+/**
+ * `ExtractComponent` over a random row, roots included.
+ *
+ * The name is fixed rather than drawn: the corpus declares no components, so any valid Kotlin
+ * identifier plans the same, and a refused draw — a page root as `edit.no_parent`, a slot whose
+ * filter does not admit the new `doc.*` type as `edit.slot_child_not_allowed` — is a census
+ * row, not a failure. The interior rows of the same draw feed the accepted arm, which is the
+ * family's whole point: lift a body out of a page and leave an instance behind.
+ */
+private fun extractComponentCommand(document: UiDocument, random: Random): Command? {
+    val ids = document.nodes.ids().toList()
+    if (ids.isEmpty()) return null
+    return Command.ExtractComponent(ids[random.nextInt(ids.size)], "Extracted")
 }
 
 /**

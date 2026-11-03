@@ -84,7 +84,7 @@ class CommandPlannerRoundTripTest {
     @Test
     fun `the table names every command it claims to`() {
         assertEquals(CASES.map { it.command::class }.toSet(), PLANNED_COMMANDS)
-        assertEquals(12, PLANNED_COMMANDS.size, "the table plans ${PLANNED_COMMANDS.size} commands")
+        assertEquals(13, PLANNED_COMMANDS.size, "the table plans ${PLANNED_COMMANDS.size} commands")
     }
 
     /**
