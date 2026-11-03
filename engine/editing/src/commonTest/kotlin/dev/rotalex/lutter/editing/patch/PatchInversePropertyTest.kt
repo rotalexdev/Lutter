@@ -566,7 +566,7 @@ private class Candidate(val kind: String, val command: Command)
  * A generated document holds tens of nodes, and the instances available for `MoveNode` alone are
  * the product of "which nodes" and "which targets" and "which slots" and "which indices" —
  * thousands. §36 asks for a thousand *documents*, and a corpus of a thousand documents crossed
- * with every instance of twelve commands would be a million patches and a test nobody runs.
+ * with every instance of thirteen commands would be a million patches and a test nobody runs.
  * One instance per family per document is the reading that keeps both halves of the sentence,
  * and the number of families that produce an accepted patch is asserted rather than assumed.
  *
@@ -581,7 +581,7 @@ private class Candidate(val kind: String, val command: Command)
  * The draws are made in a fixed order inside fixed functions, so a seed names one script. That
  * is a weaker guarantee than an independent stream per command — a change to one builder's draw
  * count would move every later builder's choice — and it is the same trade `DocumentGenerator`
- * makes, taken for the same reason: one reproducible script per seed is worth more than twelve
+ * makes, taken for the same reason: one reproducible script per seed is worth more than thirteen
  * independent ones that a reader cannot line up with a seed.
  */
 private fun plannedCommands(
