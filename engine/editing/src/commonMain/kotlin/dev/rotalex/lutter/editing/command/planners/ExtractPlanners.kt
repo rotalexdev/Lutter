@@ -7,6 +7,8 @@ import dev.rotalex.lutter.editing.patch.PatchOp
 import dev.rotalex.lutter.editing.patch.Record
 import dev.rotalex.lutter.editing.patch.RecordRef
 import dev.rotalex.lutter.editing.patch.RemovedSubtree
+import dev.rotalex.lutter.editing.template.danglingChildren
+import dev.rotalex.lutter.editing.template.subtreeRows
 import dev.rotalex.lutter.model.doc.ComponentDecl
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.SlotDecl
