@@ -54,15 +54,15 @@ public object LazyColumnSpec {
         doc = "One of Top, Center, Bottom",
     )
 
+    /** The whole frame: the loop variable, the element type [items] carries, and its source. */
+    public val iteration: IterationSpec = IterationSpec("item", TypeRef.Str, items.key)
+
     /** The children, one per element of [items], each able to read [iteration]'s variable. */
     public val children: SlotSpec = SlotSpec(
         SlotName("children"),
         Cardinality.Many,
         iteration = iteration,
     )
-
-    /** The whole frame: the loop variable, the element type [items] carries, and its source. */
-    public val iteration: IterationSpec = IterationSpec("item", TypeRef.Str, items.key)
 
     /** The spec renderers, validation and codegen share. */
     public val spec: ComponentSpec = componentSpec(ComponentType("core.LazyColumn"), version = 1) {
