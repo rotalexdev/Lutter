@@ -7,6 +7,7 @@ import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.schema.component.Cardinality
 import dev.rotalex.lutter.schema.component.Category
+import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.EmitCase
 import dev.rotalex.lutter.schema.component.IterationSpec
 import dev.rotalex.lutter.schema.component.KotlinSymbol

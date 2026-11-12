@@ -7,6 +7,7 @@ import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.schema.component.Cardinality
 import dev.rotalex.lutter.schema.component.Category
+import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.EmitCase
 import dev.rotalex.lutter.schema.component.IterationSpec
 import dev.rotalex.lutter.schema.component.KotlinSymbol
@@ -48,15 +49,15 @@ public object LazyRowSpec {
         doc = "One of Start, Center, End",
     )
 
+    /** The whole frame: the loop variable, the element type [items] carries, and its source. */
+    public val iteration: IterationSpec = IterationSpec("item", TypeRef.Str, items.key)
+
     /** The children, one per element of [items], each able to read [iteration]'s variable. */
     public val children: SlotSpec = SlotSpec(
         SlotName("children"),
         Cardinality.Many,
         iteration = iteration,
     )
-
-    /** The whole frame: the loop variable and the element type [items] carries. */
-    public val iteration: IterationSpec = IterationSpec("item", TypeRef.Str, items.key)
 
     /** The spec renderers, validation and codegen share. */
     public val spec: ComponentSpec = componentSpec(ComponentType("core.LazyRow"), version = 1) {
