@@ -13,6 +13,7 @@ public final class dev/rotalex/lutter/analysis/Analyzer {
 public final class dev/rotalex/lutter/analysis/diagnostic/DiagnosticCodes {
 	public static final field INSTANCE Ldev/rotalex/lutter/analysis/diagnostic/DiagnosticCodes;
 	public final fun getActionArgInvalid-a0Ipk4o ()Ljava/lang/String;
+	public final fun getActionStateNotList-a0Ipk4o ()Ljava/lang/String;
 	public final fun getActionStateNotWritable-a0Ipk4o ()Ljava/lang/String;
 	public final fun getActionUnknown-a0Ipk4o ()Ljava/lang/String;
 	public final fun getCodegenNameCollision-a0Ipk4o ()Ljava/lang/String;

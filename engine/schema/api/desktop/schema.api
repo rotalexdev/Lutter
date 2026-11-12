@@ -104,6 +104,13 @@ public final class dev/rotalex/lutter/schema/action/ArgRule {
 public abstract interface class dev/rotalex/lutter/schema/action/ArgShape {
 }
 
+public final class dev/rotalex/lutter/schema/action/ArgShape$ElementValue : dev/rotalex/lutter/schema/action/ArgShape {
+	public static final field INSTANCE Ldev/rotalex/lutter/schema/action/ArgShape$ElementValue;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/rotalex/lutter/schema/action/ArgShape$Positional : dev/rotalex/lutter/schema/action/ArgShape {
 	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1-ciGozWU ()Ljava/lang/String;
