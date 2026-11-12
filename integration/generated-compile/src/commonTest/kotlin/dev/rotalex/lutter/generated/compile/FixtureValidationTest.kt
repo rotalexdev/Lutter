@@ -53,6 +53,7 @@ class FixtureValidationTest {
                 "flow_basic",
                 "icon_basic",
                 "image_basic",
+                "lazy_list",
                 "material_token",
                 "nested_depth3",
                 "progress_indicator",

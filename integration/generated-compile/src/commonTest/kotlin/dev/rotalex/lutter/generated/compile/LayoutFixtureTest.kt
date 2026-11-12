@@ -70,8 +70,9 @@ class LayoutFixtureTest {
         // spells the loop variable, and the renderer's own `items(elements)` draws the frames.
         val (_, screen) = proofOf("lazy_list")
 
-        assertTrue(screen.contains("items(teams) { item ->"), screen)
-        assertTrue(screen.contains("Text(item)"), screen)
+        assertTrue(screen.contains("state.teams"), "no items source in:\n$screen")
+        assertTrue(screen.contains(") { item ->"), "no frame lambda in:\n$screen")
+        assertTrue(screen.contains("Text(item)"), "no item binding in:\n$screen")
     }
 
     @Test

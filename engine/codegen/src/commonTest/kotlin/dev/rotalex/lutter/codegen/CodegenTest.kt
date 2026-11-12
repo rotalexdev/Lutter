@@ -275,6 +275,7 @@ class CodegenTest {
                     maxKey,
                     PropertyValue.Computed(Expr.Ref(RefTarget.Item("item"))),
                     PropOrigin.Specified,
+                    null,
                     TypedExpr(Expr.Ref(RefTarget.Item("item")), ExprType.Of(TypeRef.Str), emptySet()),
                 ),
             ),
@@ -284,32 +285,37 @@ class CodegenTest {
         )
         val listNode = ResolvedNode(
             NodeId("n_1"),
-            lazyType,
-            mapOf(
-                elementsKey to ResolvedProp(
-                    elementsKey,
-                    PropertyValue.Computed(Expr.Ref(RefTarget.State(count))),
-                    PropOrigin.Specified,
-                    TypedExpr(
-                        Expr.Ref(RefTarget.State(count)),
-                        ExprType.Of(TypeRef.ListOf(TypeRef.Str)),
-                        emptySet(),
-                    ),
-                ),
-            ),
-            emptyList(),
-            mapOf(SlotName("children") to listOf(row)),
-            emptySet(),
-        )
+             lazyType,
+             mapOf(
+                 elementsKey to ResolvedProp(
+                     elementsKey,
+                     PropertyValue.Computed(Expr.Ref(RefTarget.State(count))),
+                     PropOrigin.Specified,
+                     null,
+                     TypedExpr(
+                         Expr.Ref(RefTarget.State(count)),
+                         ExprType.Of(TypeRef.ListOf(TypeRef.Str)),
+                         emptySet(),
+                     ),
+                 ),
+             ),
+             emptyList(),
+             mapOf(SlotName("children") to listOf(row)),
+             emptySet(),
+         )
         val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
             Schema.build {
                 component(lazyStub)
                 component(textStub(textType, KotlinSymbol("androidx.compose.material3", "Text")))
             }
+        val pages = mapOf(PageId("p_home") to ResolvedPage(PageId("p_home"), "Home", "home", listNode))
         val result = KotlinGenerator(schema, CodegenOptions("com.example.app")).generate(
-            documentOf(
-                listNode,
-                state = listOf(
+            ResolvedDocument(
+                pages,
+                emptyMap(),
+                indexOf(pages),
+                ResolvedTheme(null),
+                appState = listOf(
                     ResolvedState(
                         StateDecl(count, "count", TypeRef.ListOf(TypeRef.Str), Value.Null),
                         null,
@@ -320,7 +326,8 @@ class CodegenTest {
 
         assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
         val screen = homeScreenOf(result)
-        assertTrue(screen.contains("items(count) { item ->"), screen)
+        assertTrue(screen.contains("state.count"), screen)
+        assertTrue(screen.contains(") { item ->"), screen)
         assertTrue(screen.contains("maxLines = item"), screen)
     }
 
