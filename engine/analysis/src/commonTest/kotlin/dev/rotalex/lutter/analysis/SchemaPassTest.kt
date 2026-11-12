@@ -453,23 +453,24 @@ class SchemaPassTest {
                 )
             }
         val bannerAnalyzer = Analyzer(bannerSchema)
-        val resources = mapOf(
-            ResourceId("r_welcome") to ResourceDecl(
-                ResourceId("r_welcome"),
-                "Welcome",
-                ResourceKind.String,
-                listOf(ResourceVariant(emptySet(), ResourceSource.Text("Hello"))),
-            ),
-        )
 
-        fun bannerCodesOf(want: ResourceKind): List<String> =
-            bannerAnalyzer.analyze(
+        fun bannerCodesOf(declKind: ResourceKind): List<String> {
+            val resources = mapOf(
+                ResourceId("r_welcome") to ResourceDecl(
+                    ResourceId("r_welcome"),
+                    "Welcome",
+                    declKind,
+                    listOf(ResourceVariant(emptySet(), ResourceSource.Text("Hello"))),
+                ),
+            )
+            return bannerAnalyzer.analyze(
                 homeDocument {
                     node(bannerType) {
                         prop("title", Value.Ref(RefKind.Resource, "r_welcome"))
                     }
                 }.copy(resources = resources),
             ).diagnostics.map { it.code.value }
+        }
 
         assertTrue(
             bannerCodesOf(ResourceKind.String).none { it == DiagnosticCodes.ResourceKindMismatch.value },
