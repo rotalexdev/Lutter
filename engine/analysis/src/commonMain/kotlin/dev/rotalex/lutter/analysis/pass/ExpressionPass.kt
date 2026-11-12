@@ -16,6 +16,7 @@ import dev.rotalex.lutter.model.index.DocumentIndex
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.component.IterationSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
 
 /**
@@ -61,7 +62,9 @@ internal class ExpressionPass(
         val checker = TypeChecker(schema, document.dataModels)
         for (id in document.nodes.ids()) {
             val node = document.nodes[id] ?: continue
-            val scope = scopeOf(document, index, id) ?: continue
+            val base = scopeOf(document, index, id) ?: continue
+            val items = itemBindingsOf(document, index, id)
+            val scope = if (items.isEmpty()) base else base.copy(items = items)
             checkNode(node, checker, scope, found, typed)
         }
         checkState(document, checker, found, derived)
@@ -86,6 +89,32 @@ internal class ExpressionPass(
                 val param = params.firstOrNull { it.key == key } ?: continue
                 visit(node, key, position, param.type, actual, checker, scope, found, typed)
             }
+        }
+    }
+
+    /**
+     * The iteration binding the node's position supplies, innermost winning.
+     *
+     * A lazy slot's children may read the slot's loop variable, so their whole subtree's scope
+     * carries the slot's [IterationSpec] as an item binding. The walk climbs the parent chain
+     * and stops at the first edge that enters an iterating slot — the innermost one when
+     * iterations nest, which is the same precedence `ItemScope`'s shadowing rule gives at
+     * runtime. Empty when no ancestor edge iterates: the scope then stays the owner's own and
+     * an item read refuses.
+     */
+    private fun itemBindingsOf(
+        document: UiDocument,
+        index: DocumentIndex,
+        id: NodeId,
+    ): Map<String, TypeRef> {
+        var current: NodeId = id
+        while (true) {
+            val parent = index.parentOf(current) ?: return emptyMap()
+            val type = document.nodes[parent.parentId]?.type ?: return emptyMap()
+            val slot = schema.components[type]?.slots?.firstOrNull { it.name == parent.slot }
+                ?: return emptyMap()
+            val iteration = slot.iteration ?: run { current = parent.parentId; continue }
+            return mapOf(iteration.itemName to iteration.itemType)
         }
     }
 
