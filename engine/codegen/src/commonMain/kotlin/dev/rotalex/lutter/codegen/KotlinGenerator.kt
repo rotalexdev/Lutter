@@ -1534,10 +1534,10 @@ public class KotlinGenerator<A : Any, T : Any>(
      * argument and the children become the content lambda's body, whose parameter is the slot's
      * [dev.rotalex.lutter.schema.component.IterationSpec.itemName] — the name [ExprEmitter]
      * spells for an item read. The source emits through [valueOf], so a computed list binds
-     * exactly like any other computed property; a constant list refuses the same way any
-     * `Value.ListOf` literal does, the pin being bindable lists only. A source the node never
-     * wrote refuses rather than emitting an empty frame, because the renderer would draw no
-     * children and codegen must not turn a silent document into silent output.
+     * exactly like any other computed property and a constant list spells as the literal its
+     * elements answer. A source the node never wrote refuses rather than emitting an empty
+     * frame, because the renderer would draw no children and codegen must not turn a silent
+     * document into silent output.
      */
     private fun slotLambda(
         binding: SlotBinding,

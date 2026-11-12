@@ -906,9 +906,9 @@ public class DocumentGenerator(
      * produce `expr.type_mismatch` on a shape it believed was fine.
      *
      * A required list always prefers its expression form when one exists: a bound list is what
-     * an iterating slot can spell, and a constant list is the pin codegen refuses there — the
-     * corpus documents a lazy list through the binding it was designed for, never through a
-     * literal the generated file cannot carry.
+     * an iterating slot is for, and the corpus documents a lazy list through the binding it was
+     * designed for — a constant list would compile, but it would exercise none of the frame
+     * machinery the corpus exists to pin.
      */
     private fun propertyValueFor(
         property: PropertySpec<*>,

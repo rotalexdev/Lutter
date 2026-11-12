@@ -14,8 +14,9 @@ import dev.rotalex.lutter.schema.component.KotlinSymbol
 /**
  * A literal's text plus the imports it needs (`dp`, `Color`, a theme member).
  *
- * Null means the value has no skeleton spelling here: containers, references, icons and enum
- * entries are refused by the generator, not guessed at.
+ * Null means the value has no skeleton spelling here: references, icons, enum entries and the
+ * non-list containers are refused by the generator, not guessed at; a list spells through the
+ * elements its own kinds answer, and one illegible element leaves the whole list null.
  */
 internal data class EmittedLiteral(val text: String, val symbols: List<KotlinSymbol>)
 
@@ -114,7 +115,21 @@ internal object LiteralPrinter {
             is Value.Token -> tokenOf(token, theme)
             is Value.Ref -> null
             is Value.Icon -> null
-            is Value.ListOf -> null
+            // A list spells as the default-imported `listOf`, each element by its own kind —
+            // and only when every element has a spelling: one illegible element leaves the
+            // whole list without one, because a partial literal is not a literal. The state
+            // scaffold is what reaches this arm: an initial list value becomes the store's
+            // opening value, and a generated file that names `listOf("Alpha", "Beta")` is the
+            // same fact the runtime store answers.
+            is Value.ListOf ->
+                value.items.map { emit(it, token, theme) }
+                    .takeIf { parts -> parts.none { it == null } }
+                    ?.let { parts ->
+                        EmittedLiteral(
+                            "listOf(" + parts.mapNotNull { it.text }.joinToString(", ") + ")",
+                            parts.flatMap { it.symbols }.distinct(),
+                        )
+                    }
             is Value.Obj -> null
             is Value.MapOf -> null
         }
