@@ -43,6 +43,7 @@ class ExpressionPassTest {
     private val analyzer: Analyzer<String, String, String> = Analyzer(testSchema())
     private val nullableAnalyzer: Analyzer<String, String, String> = Analyzer(nullableSchema())
     private val callAnalyzer: Analyzer<String, FunctionSpec, String> = Analyzer(functionSchema())
+    private val iterationAnalyzer: Analyzer<String, String, String> = Analyzer(iterationSchema())
     private val pageId: PageId = PageId("p_home")
 
     private fun codesOf(block: PageScope.() -> Unit): List<String> =
@@ -53,6 +54,9 @@ class ExpressionPassTest {
 
     private fun callCodesOf(block: PageScope.() -> Unit): List<String> =
         callAnalyzer.analyze(homeDocument(block = block)).diagnostics.map { it.code.value }
+
+    private fun iterationCodesOf(block: PageScope.() -> Unit): List<String> =
+        iterationAnalyzer.analyze(homeDocument(block = block)).diagnostics.map { it.code.value }
 
     /** The findings pass 5 emitted, apart from the other passes' codes. */
     private fun expressionFindings(document: UiDocument): List<Diagnostic> =
@@ -421,8 +425,8 @@ class ExpressionPassTest {
 
     @Test
     fun `an event argument in a property position reports unresolved ref`() {
-        // §11.2 binds an event argument and §10.1 marks an item wave 2, so neither is in scope
-        // where a property can see it. Pass 6's own scope is where they become nameable.
+        // §11.2 binds an event argument in pass 6's own scope, so neither it nor an item is in
+        // scope where a property can see it — §11.1 binds the item inside an iterating slot.
         val codes = codesOf {
             node(TextType) {
                 prop("text", Value.Str("Hi"))
@@ -431,6 +435,52 @@ class ExpressionPassTest {
         }
 
         assertTrue(codes.contains(DiagnosticCodes.ExprUnresolvedRef.value), "got $codes")
+    }
+
+    @Test
+    fun `an item outside an iterating slot reports unresolved ref`() {
+        // §11.1 binds `item` inside a lazy slot's children only, so the walk supplies a binding
+        // from the node's position and a Text reads one from no position at all.
+        val codes = codesOf {
+            node(TextType) {
+                prop("text", Value.Str("Hi"))
+                computed("maxLines", Expr.Ref(RefTarget.Item("item")))
+            }
+        }
+
+        assertTrue(codes.contains(DiagnosticCodes.ExprUnresolvedRef.value), "got $codes")
+    }
+
+    @Test
+    fun `a lazy slot child reads its item as the element type`() {
+        // §11.1: the child sits in the iterating slot, so `item` resolves — and binding it to
+        // Int32 mismatches, which is what proves the element type the slot declared is the one
+        // the read answered with.
+        val accepted = iterationCodesOf {
+            node(LazyListType) {
+                val row = node(TextType) {
+                    computed("text", Expr.Ref(RefTarget.Item("item")))
+                }
+                slot("children", listOf(row))
+            }
+        }
+        val mismatched = iterationCodesOf {
+            node(LazyListType) {
+                val row = node(TextType) {
+                    computed(
+                        "text",
+                        Expr.Binary(BinaryOp.Add, Expr.Ref(RefTarget.Item("item")), i32(1)),
+                    )
+                }
+                slot("children", listOf(row))
+            }
+        }
+
+        assertTrue(accepted.isEmpty(), "got $accepted")
+        assertTrue(
+            mismatched.contains(DiagnosticCodes.ExprTypeMismatch.value),
+            "got $mismatched",
+        )
     }
 
     // ---------------------------------------------------------------------------------

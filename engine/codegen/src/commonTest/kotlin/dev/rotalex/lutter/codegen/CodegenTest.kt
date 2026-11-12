@@ -55,6 +55,7 @@ import dev.rotalex.lutter.schema.component.Category
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.EmitCase
 import dev.rotalex.lutter.schema.component.EventArgSpec
+import dev.rotalex.lutter.schema.component.IterationSpec
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.LambdaTarget
 import dev.rotalex.lutter.schema.component.Positional
@@ -91,6 +92,7 @@ class CodegenTest {
     private val iconButtonType: ComponentType = ComponentType("test.IconButton")
     private val buttonType: ComponentType = ComponentType("test.Button")
     private val spacerType: ComponentType = ComponentType("test.Spacer")
+    private val lazyType: ComponentType = ComponentType("test.LazyList")
     private val paddingType: ModifierType = ModifierType("test.padding")
     private val casedPaddingType: ModifierType = ModifierType("test.casedPadding")
     private val weightType: ModifierType = ModifierType("test.weight")
@@ -104,6 +106,7 @@ class CodegenTest {
     private val horizontalKey: PropertyKey = PropertyKey("horizontal")
     private val verticalKey: PropertyKey = PropertyKey("vertical")
     private val weightKey: PropertyKey = PropertyKey("weight")
+    private val maxKey: PropertyKey = PropertyKey("maxLines")
     private val alignKey: PropertyKey = PropertyKey("alignment")
     private val arrangementKey: PropertyKey = PropertyKey("horizontalArrangement")
     private val childrenSlot: SlotName = SlotName("children")
@@ -239,6 +242,108 @@ class CodegenTest {
             """.trimIndent(),
             homeScreenOf(result),
         )
+    }
+
+    @Test
+    fun `an iterating slot wraps its children in the items call the list drives`() {
+        // §11.1: the source emits as the `items(...)` argument, the children become the content
+        // lambda's body, and the child's item read spells the loop variable itself.
+        val elementsKey = PropertyKey("elements")
+        val lazyStub: ComponentSpec = componentSpec(lazyType, 1) {
+            metadata("LazyList", Category.Basic)
+            property(prop<String>("elements", TypeRef.ListOf(TypeRef.Str)))
+            slot(
+                "children",
+                Cardinality.Many,
+                iteration = IterationSpec("item", TypeRef.Str, elementsKey),
+            )
+            composeCall(KotlinSymbol("androidx.compose.foundation.lazy", "LazyColumn")) {
+                slot("children", LambdaTarget.Trailing)
+            }
+        }
+        // The row's Text needs its own stub: the shared one binds only the positional text, and a
+        // second parameter there would flip `Positional.WhenSole` for every sibling test.
+        val rowStub: ComponentSpec = componentSpec(textType, 1) {
+            val text = prop<String>("text", TypeRef.Str, required = true)
+            val maxLines = prop<Int>("maxLines", TypeRef.Int32)
+            metadata("Text", Category.Basic)
+            property(text)
+            property(maxLines)
+            composeCall(KotlinSymbol("androidx.compose.material3", "Text")) {
+                param("text", from = text, positional = Positional.WhenSole)
+                param("maxLines", from = maxLines)
+            }
+        }
+        val row = ResolvedNode(
+            NodeId("n_9"),
+            textType,
+            mapOf(
+                textKey to ResolvedProp(
+                    textKey,
+                    PropertyValue.Const(Value.Str("Hi")),
+                    PropOrigin.Specified,
+                    null,
+                ),
+                maxKey to ResolvedProp(
+                    maxKey,
+                    PropertyValue.Computed(Expr.Ref(RefTarget.Item("item"))),
+                    PropOrigin.Specified,
+                    null,
+                    TypedExpr(Expr.Ref(RefTarget.Item("item")), ExprType.Of(TypeRef.Str), emptySet()),
+                ),
+            ),
+            emptyList(),
+            emptyMap(),
+            emptySet(),
+        )
+        val listNode = ResolvedNode(
+            NodeId("n_1"),
+             lazyType,
+             mapOf(
+                 elementsKey to ResolvedProp(
+                     elementsKey,
+                     PropertyValue.Computed(Expr.Ref(RefTarget.State(count))),
+                     PropOrigin.Specified,
+                     null,
+                     TypedExpr(
+                         Expr.Ref(RefTarget.State(count)),
+                         ExprType.Of(TypeRef.ListOf(TypeRef.Str)),
+                         emptySet(),
+                     ),
+                 ),
+             ),
+             emptyList(),
+             mapOf(SlotName("children") to listOf(row)),
+             emptySet(),
+         )
+        val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
+            Schema.build {
+                component(lazyStub)
+                component(rowStub)
+            }
+        val pages = mapOf(
+            PageId("p_home") to ResolvedPage(
+                PageId("p_home"),
+                "Home",
+                "home",
+                listNode,
+                listOf(
+                    ResolvedState(
+                        StateDecl(count, "count", TypeRef.ListOf(TypeRef.Str), Value.Null),
+                        null,
+                    ),
+                ),
+            ),
+        )
+        val result = KotlinGenerator(schema, CodegenOptions("com.example.app")).generate(
+            ResolvedDocument(pages, emptyMap(), indexOf(pages), ResolvedTheme(null)),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = homeScreenOf(result)
+        assertTrue(screen.contains("state.count"), screen)
+        assertTrue(screen.contains(") { item ->"), screen)
+        assertTrue(screen.contains("maxLines = item"), screen)
     }
 
     @Test

@@ -120,6 +120,7 @@ public abstract interface class dev/rotalex/lutter/runtime/RenderScope {
 	public abstract fun getTheme ()Ldev/rotalex/lutter/runtime/ThemeHandle;
 	public abstract fun modifierFor (Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;)Landroidx/compose/ui/Modifier;
 	public abstract fun props (Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;)Ldev/rotalex/lutter/runtime/PropertyReader;
+	public abstract fun withItem (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;I)V
 	public abstract fun withScope (Ldev/rotalex/lutter/runtime/ScopeHandle;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;I)V
 }
 

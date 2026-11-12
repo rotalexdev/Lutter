@@ -208,6 +208,11 @@ class CodegenGoldenTest {
         fixture("text_state_ref")
     }
 
+    @Test
+    fun `lazy_list generates the committed golden`() {
+        fixture("lazy_list")
+    }
+
     /**
      * The harness covers what is on disk, and says the count when it does not.
      *
@@ -430,6 +435,7 @@ class CodegenGoldenTest {
             "flow_basic",
             "icon_basic",
             "image_basic",
+            "lazy_list",
             "material_token",
             "progress_indicator",
             "selection_basic",

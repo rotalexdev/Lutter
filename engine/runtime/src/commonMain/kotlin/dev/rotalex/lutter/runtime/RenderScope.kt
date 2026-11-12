@@ -11,6 +11,7 @@ import dev.rotalex.lutter.model.doc.TokenName
 import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.value.Value
+import dev.rotalex.lutter.schema.component.IterationSpec
 import dev.rotalex.lutter.schema.component.PropertySpec
 
 /**
@@ -81,6 +82,18 @@ public interface RenderScope {
     /** Opens [handle] for [content], so scoped modifiers below it resolve. */
     @Composable
     public fun withScope(handle: ScopeHandle, content: @Composable RenderScope.() -> Unit)
+
+    /**
+     * Binds an iterating slot's loop variable for [content]: the frame one list element renders in.
+     *
+     * A lazy children slot repeats per element, so the renderer binds [itemName] — the
+     * [IterationSpec.itemName] the slot's spec declared — to that element's value and renders
+     * the slot's children under the frame. A read of the variable answers the element; every
+     * other read is the screen's own answer, because the frame wraps rather than owning a store,
+     * and [ItemScope]'s precedence is the innermost frame the read is inside.
+     */
+    @Composable
+    public fun withItem(itemName: String, item: Value, content: @Composable RenderScope.() -> Unit)
 
     /**
      * The `doc.*` instance whose declaration body is rendering, or null outside one.

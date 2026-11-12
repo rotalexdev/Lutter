@@ -485,14 +485,16 @@ public final class dev/rotalex/lutter/schema/component/EventSpec {
 }
 
 public final class dev/rotalex/lutter/schema/component/IterationSpec {
-	public fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;)V
+	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ldev/rotalex/lutter/model/type/TypeRef;
-	public final fun copy (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;)Ldev/rotalex/lutter/schema/component/IterationSpec;
-	public static synthetic fun copy$default (Ldev/rotalex/lutter/schema/component/IterationSpec;Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;ILjava/lang/Object;)Ldev/rotalex/lutter/schema/component/IterationSpec;
+	public final fun component3-ciGozWU ()Ljava/lang/String;
+	public final fun copy-a79b2go (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ljava/lang/String;)Ldev/rotalex/lutter/schema/component/IterationSpec;
+	public static synthetic fun copy-a79b2go$default (Ldev/rotalex/lutter/schema/component/IterationSpec;Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/schema/component/IterationSpec;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getItemName ()Ljava/lang/String;
 	public final fun getItemType ()Ldev/rotalex/lutter/model/type/TypeRef;
+	public final fun getSource-ciGozWU ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }

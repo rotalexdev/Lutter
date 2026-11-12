@@ -54,6 +54,8 @@ public fun <M : Any, A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, M, 
     component(SliderSpec.spec)
     component(FlowRowSpec.spec)
     component(FlowColumnSpec.spec)
+    component(LazyColumnSpec.spec)
+    component(LazyRowSpec.spec)
     component(CardSpec.spec)
     component(SlotOutletSpec.spec)
 }

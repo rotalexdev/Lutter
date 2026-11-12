@@ -36,6 +36,7 @@ import dev.rotalex.lutter.schema.component.Cardinality
 import dev.rotalex.lutter.schema.component.Category
 import dev.rotalex.lutter.schema.component.ChildFilter
 import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.component.IterationSpec
 import dev.rotalex.lutter.schema.component.EventArgSpec
 import dev.rotalex.lutter.schema.component.EventSpec
 import dev.rotalex.lutter.schema.component.KotlinSymbol
@@ -63,6 +64,7 @@ internal val ColumnType: ComponentType = ComponentType("core.Column")
 internal val TextType: ComponentType = ComponentType("m3.Text")
 internal val LinkType: ComponentType = ComponentType("core.Link")
 internal val CardType: ComponentType = ComponentType("m3.Card")
+internal val LazyListType: ComponentType = ComponentType("core.LazyList")
 
 /**
  * Not part of the walking skeleton: it exists because §10.4's nullability rules need a
@@ -116,6 +118,29 @@ internal fun nullableSchema(): Schema<ComponentSpec, ModifierSpec, String, Strin
                 property(prop<String>("label", TypeRef.Str, required = true))
                 property(prop<String>("caption", TypeRef.Nullable(TypeRef.Str)))
                 composeCall(KotlinSymbol("androidx.compose.material3", "Text"))
+            },
+        )
+    }
+
+/**
+ * The same vocabulary with one iterating component, so the item binding is reachable: a lazy
+ * list whose `children` slot names `item` over a string list, the shape the engine's own
+ * `LazyColumn` carries. Nothing else here binds an item read, which is what the refusal rows
+ * need the rest of the vocabulary for.
+ */
+internal fun iterationSchema(): Schema<ComponentSpec, ModifierSpec, String, String, String> =
+    Schema.build<ComponentSpec, ModifierSpec, String, String, String> {
+        walkingSkeleton()
+        component(
+            componentSpec(LazyListType, 1) {
+                metadata("LazyList", Category.Basic)
+                property(prop<String>("elements", TypeRef.ListOf(TypeRef.Str)))
+                slot(
+                    "children",
+                    Cardinality.Many,
+                    iteration = IterationSpec("item", TypeRef.Str, PropertyKey("elements")),
+                )
+                composeCall(KotlinSymbol("androidx.compose.foundation.lazy", "LazyColumn"))
             },
         )
     }

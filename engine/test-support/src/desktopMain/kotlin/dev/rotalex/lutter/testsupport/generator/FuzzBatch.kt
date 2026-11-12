@@ -2,6 +2,7 @@ package dev.rotalex.lutter.testsupport.generator
 
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.codegen.CodegenOptions
+import dev.rotalex.lutter.codegen.ComposeResourceStrategy
 import dev.rotalex.lutter.codegen.GeneratedFile
 import dev.rotalex.lutter.codegen.KotlinGenerator
 import dev.rotalex.lutter.model.diagnostic.Diagnostic
@@ -13,8 +14,11 @@ import kotlin.system.exitProcess
 /**
  * PLAN §28.5's nightly batch: seeded documents written out for a real Gradle compile.
  *
- * Arguments are `<outDir> <documentCount> <basePackage>` and the seed range is `1..documentCount`,
- * so the number a run asks for and the range it walks cannot disagree.
+ * Arguments are `<outDir> <documentCount> <basePackage> <resourcesPackage>` and the seed range is
+ * `1..documentCount`, so the number a run asks for and the range it walks cannot disagree. The
+ * resources package is the compile the batch feeds: the generated screens spell resource
+ * references through the strategy, so the wiring the compile carries and the package the batch
+ * spells must be the same fact, passed in rather than derived from the base package.
  *
  * ### Three ways this batch passes on nothing
  *
@@ -46,12 +50,13 @@ import kotlin.system.exitProcess
 @JvmName("main")
 internal fun main(args: Array<String>) {
     if (args.size != EXPECTED_ARGS) {
-        println("usage: fuzz-batch <outDir> <documentCount> <basePackage>")
+        println("usage: fuzz-batch <outDir> <documentCount> <basePackage> <resourcesPackage>")
         exitProcess(USAGE)
     }
     val out = File(args[OUT_DIR])
     val count = args[DOCUMENT_COUNT].toInt()
     val basePackage = args[BASE_PACKAGE]
+    val resourcesPackage = args[RESOURCES_PACKAGE]
     check(count > 0) { "documentCount must be positive, not $count" }
 
     // Whatever a previous run over a wider seed range wrote is still under this directory and
@@ -79,8 +84,16 @@ internal fun main(args: Array<String>) {
             continue
         }
         // One generator per document: a reused one carries per-run scratch that nothing about
-        // the next document would reset.
-        val result = KotlinGenerator(schema, CodegenOptions(basePackage + "." + id))
+        // the next document would reset. The strategy is the compile's own wiring, spelled
+        // through the package the run passed rather than `None`'s refusal: a document the
+        // corpus generated with resource references has to reach the compiler.
+        val result = KotlinGenerator(
+            schema,
+            CodegenOptions(
+                basePackage + "." + id,
+                resources = ComposeResourceStrategy(resourcesPackage),
+            ),
+        )
             .generate(resolved, analysis.diagnostics)
         val errors = result.diagnostics.filter { it.severity == Severity.Error }
         if (errors.isNotEmpty()) {
@@ -125,10 +138,11 @@ private fun write(dir: File, files: List<GeneratedFile>) {
     }
 }
 
-private const val EXPECTED_ARGS = 3
+private const val EXPECTED_ARGS = 4
 private const val OUT_DIR = 0
 private const val DOCUMENT_COUNT = 1
 private const val BASE_PACKAGE = 2
+private const val RESOURCES_PACKAGE = 3
 
 /** Findings named per document before the rest are counted, so a long run stays readable. */
 private const val SHOWN_PER_DOCUMENT = 3

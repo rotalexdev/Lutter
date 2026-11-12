@@ -120,6 +120,9 @@ public class KotlinGenerator<A : Any, T : Any>(
     private val rememberCoroutineScope: KotlinSymbol =
         KotlinSymbol("androidx.compose.runtime", "rememberCoroutineScope")
 
+    private val LazyItems: KotlinSymbol =
+        KotlinSymbol("androidx.compose.foundation.lazy", "items")
+
     // Fail fast on missing bindings, like UiRuntime does on missing renderers.
     init {
         CodegenCoverage.check(schema, extensions)
@@ -1523,6 +1526,22 @@ public class KotlinGenerator<A : Any, T : Any>(
         return KtExpr.Lambda(binding.lambdaParams, collapseAppStateRead(body))
     }
 
+    /**
+     * One `SlotBinding` as the lambda its Compose parameter receives.
+     *
+     * The slot's own scopes go in front: a row inside a box is aligned by the row. Children
+     * emit in document order, one statement each, and a refusal anywhere in the list keeps the
+     * whole slot null.
+     *
+     * An iterating slot wraps that body once: the source property emits as the `items(...)`
+     * argument and the children become the content lambda's body, whose parameter is the slot's
+     * [dev.rotalex.lutter.schema.component.IterationSpec.itemName] — the name [ExprEmitter]
+     * spells for an item read. The source emits through [valueOf], so a computed list binds
+     * exactly like any other computed property and a constant list spells as the literal its
+     * elements answer. A source the node never wrote refuses rather than emitting an empty
+     * frame, because the renderer would draw no children and codegen must not turn a silent
+     * document into silent output.
+     */
     private fun slotLambda(
         binding: SlotBinding,
         node: ResolvedNode,
@@ -1533,16 +1552,34 @@ public class KotlinGenerator<A : Any, T : Any>(
             refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Scoped slots emit nothing yet")
             return null
         }
+        val slot = spec.slots.firstOrNull { it.name == binding.slot }
         val children: List<ResolvedNode> = node.slots[binding.slot] ?: emptyList()
         // The slot's own scopes go in front: a row inside a box is aligned by the row.
-        val provided: Set<ScopeId> =
-            spec.slots.firstOrNull { it.name == binding.slot }?.provides ?: emptySet()
+        val provided: Set<ScopeId> = slot?.provides ?: emptySet()
         val inner: List<ScopeId> = provided.toList() + scopes
         val body: MutableList<KtStmt> = mutableListOf()
         for (child in children) {
             body += KtStmt.Expr(emitNode(child, false, inner) ?: return null)
         }
-        return KtExpr.Lambda(emptyList(), body)
+        val iteration = slot?.iteration ?: return KtExpr.Lambda(emptyList(), body)
+        val written: ResolvedProp = node.props[iteration.source] ?: run {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                node,
+                "Slot '" + binding.slot.value + "' iterates '" + iteration.source.value +
+                    "', which the node never wrote",
+            )
+            return null
+        }
+        val source: KtExpr = valueOf(written, spec.properties, node) ?: return null
+        // `items(list)` is an extension, not the `items(count)` member, so the callee is a
+        // library reference: the import is what makes the extension the applicable candidate.
+        val frame: KtExpr.Call = KtExpr.Call(
+            callee = KtExpr.Ref(KtSymbolRef(LazyItems)),
+            args = listOf(KtArg(null, source)),
+            trailing = KtExpr.Lambda(listOf(iteration.itemName), body),
+        )
+        return KtExpr.Lambda(emptyList(), listOf(KtStmt.Expr(frame)))
     }
 
     // Roots thread the caller's modifier; leaves start from `Modifier`. A chain that answers

@@ -13,6 +13,8 @@ import dev.rotalex.lutter.builtins.FlowColumnSpec
 import dev.rotalex.lutter.builtins.FlowRowSpec
 import dev.rotalex.lutter.builtins.IconSpec
 import dev.rotalex.lutter.builtins.ImageSpec
+import dev.rotalex.lutter.builtins.LazyColumnSpec
+import dev.rotalex.lutter.builtins.LazyRowSpec
 import dev.rotalex.lutter.builtins.ProgressIndicatorSpec
 import dev.rotalex.lutter.builtins.SliderSpec
 import dev.rotalex.lutter.builtins.SpacerSpec
@@ -47,6 +49,8 @@ public fun RendererRegistryBuilder.registerBuiltinRenderers(): Unit {
     register(SliderSpec.spec.type, SliderRenderer)
     register(FlowRowSpec.spec.type, FlowRowRenderer)
     register(FlowColumnSpec.spec.type, FlowColumnRenderer)
+    register(LazyColumnSpec.spec.type, LazyColumnRenderer)
+    register(LazyRowSpec.spec.type, LazyRowRenderer)
     register(CardSpec.spec.type, CardRenderer)
     register(SlotOutletSpec.spec.type, SlotOutletRenderer)
 }
