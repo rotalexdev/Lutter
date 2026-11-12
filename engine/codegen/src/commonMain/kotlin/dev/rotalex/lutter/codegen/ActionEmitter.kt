@@ -428,20 +428,6 @@ public class ActionEmitter(
         return Emitted(KtStmt.Expr(on(ActionReceiver.Dialogs, member, listOf(KtArg(null, title), KtArg(null, message)))))
     }
 
-    // One argument, so its count says which one is the message: the string type names a value
-    // rather than a role, and a spec declaring two would leave the choice a guess.
-    private fun messageArgument(spec: ActionSpec, at: DiagnosticLocation): PropertyKey? {
-        val key: PropertyKey? = spec.params.singleOrNull()?.key
-        if (key == null) {
-            refuse(
-                DiagnosticCodes.CodegenStrategyUnsupported,
-                at,
-                "Action '" + spec.id.value + "' declares no single message argument",
-            )
-        }
-        return key
-    }
-
     // Two arguments by name, because the dialog pair declares them and their order is the spec's:
     // counting would make the title the count's answer, which no document wrote.
     private fun namedArgument(spec: ActionSpec, step: ActionStep, name: String, at: DiagnosticLocation): KtExpr? {
