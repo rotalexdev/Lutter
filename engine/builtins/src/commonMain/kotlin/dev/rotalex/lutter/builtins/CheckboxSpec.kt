@@ -20,8 +20,9 @@ import dev.rotalex.lutter.schema.component.prop
  * The state follows [TextFieldSpec]'s split: a property the analyzer typechecks (a document
  * binds it to a `Bool` state or writes a constant) and an event the handler dispatches with the
  * new value as its one argument. Material's `onCheckedChange: ((Boolean) -> Unit)?` is nullable,
- * so a node with no handler drops the parameter and Compose renders the disabled, merely
- * indicative checkbox — the drop is the disabled state, not a gap.
+ * but the generator never drops the parameter: an event with no handler emits an empty lambda
+ * (§11's every-event-emitted rule), so the checkbox stays enabled and merely ignores taps
+ * instead of rendering Compose's disabled variant — binding the event is the user's steer.
  */
 public object CheckboxSpec {
     /** Whether the box is checked. Required: a selection control without a state renders nothing meaningful. */
