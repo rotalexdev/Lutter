@@ -199,6 +199,39 @@ internal fun actionSchema(): Schema<ComponentSpec, ModifierSpec, ActionSpec, Str
         action(ActionSpec(ActionId("nav.back"), ActionMetadata("Back"), emptyList(), emit = ActionEmit.Intrinsic))
         action(writeState)
         action(ActionSpec(ActionId("ui.showSnackbar"), ActionMetadata("Snackbar"), emptyList(), emit = ActionEmit.Intrinsic))
+        action(
+            ActionSpec(
+                ActionId("state.toggle"),
+                ActionMetadata("Toggle"),
+                emptyList(),
+                argRules = listOf(ArgRule(PropertyKey("target"), ArgShape.StateRef, required = true)),
+                emit = ActionEmit.Intrinsic,
+            ),
+        )
+        action(
+            ActionSpec(
+                ActionId("list.append"),
+                ActionMetadata("Append"),
+                emptyList(),
+                argRules = listOf(
+                    ArgRule(PropertyKey("target"), ArgShape.StateRef, required = true),
+                    ArgRule(PropertyKey("value"), ArgShape.ElementValue, required = true),
+                ),
+                emit = ActionEmit.Intrinsic,
+            ),
+        )
+        action(
+            ActionSpec(
+                ActionId("list.remove"),
+                ActionMetadata("Remove"),
+                emptyList(),
+                argRules = listOf(
+                    ArgRule(PropertyKey("target"), ArgShape.StateRef, required = true),
+                    ArgRule(PropertyKey("value"), ArgShape.ElementValue, required = true),
+                ),
+                emit = ActionEmit.Intrinsic,
+            ),
+        )
         action(branching)
         action(callHost)
     }

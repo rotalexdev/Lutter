@@ -48,6 +48,18 @@ public sealed interface ArgShape {
     public data object TargetValue : ArgShape
 
     /**
+     * An element of the list the step's [StateRef] names, typed by that list's own element.
+     *
+     * The wave-two list actions take a value that is *part* of the target, not the whole of it:
+     * `list.append(target, value)` writes one element, so typing `value` against the list type
+     * would refuse every legal document with `expects ListOf but found Str`. The shape is the
+     * one place that fact lives, which is why it exists beside [TargetValue] rather than the
+     * analysis keying off the action's id — a plugin action declaring the same pair is checked
+     * the same way.
+     */
+    public data object ElementValue : ArgShape
+
+    /**
      * A positional argument list, typed by the declaration [callee] names.
      *
      * [callee] is the key of the argument naming the declaration, because the two are separate

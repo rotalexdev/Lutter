@@ -348,6 +348,10 @@ public class DocumentGenerator(
             heldState("appText", TypeRef.Str, Value.Str("gen")),
             count,
             heldState("appFlag", TypeRef.Bool, Value.Bool(random.nextBoolean())),
+            // One held list, because `list.append` and `list.remove` have no target without one:
+            // a corpus that never declared a list state would draw neither, and the coverage
+            // test would be asking the corpus to use an action it cannot spell.
+            heldState("appItems", TypeRef.ListOf(TypeRef.Str), Value.ListOf(listOf(Value.Str("gen")))),
             derivedState(
                 label = "appTotal",
                 declared = TypeRef.Int32,
@@ -1239,16 +1243,19 @@ public class DocumentGenerator(
     }
 
     /**
-     * One action step, drawn from the six §11.4 registers analysis can check without a runtime.
+     * One action step, drawn from the eleven registers analysis can check without a runtime.
      *
-     * Every arm is written out in full rather than half: §11.4 declares six actions and all six
-     * are here, because an action a generator never writes is an action
-     * `RoundTripPropertyTest` and `PatchInversePropertyTest` would only ever meet in a
-     * hand-written fixture. `nav.navigate` is the constrained one — §13.1 makes the target's
-     * `ParamDecl`s the step's arguments, so it may only name a page with none, which is what
-     * `parameterlessPages` holds. `state.set` is the other: its `target` must be a computed read
-     * of a *writable* declaration in the handler's own scope, and §12.3 refuses a derived one
-     * as `action.state_not_writable`.
+     * Every arm is written out in full rather than half: the schema registers eleven actions —
+     * §11.4's six and §12:964's wave-two five — and all eleven are here, because an action a
+     * generator never writes is an action `RoundTripPropertyTest` and `PatchInversePropertyTest`
+     * would only ever meet in a hand-written fixture. `nav.navigate` is the constrained one —
+     * §13.1 makes the target's `ParamDecl`s the step's arguments, so it may only name a page
+     * with none, which is what `parameterlessPages` holds. `state.set` is the other: its
+     * `target` must be a computed read of a *writable* declaration in the handler's own scope,
+     * and §12.3 refuses a derived one as `action.state_not_writable`. The wave-two three are
+     * constrained the same way — `state.toggle` only over a writable `Bool`, the two list
+     * actions only over a writable list whose element a constant can spell — and the two
+     * dialog actions draw two strings, which is all their v1 contract carries.
      */
     private fun step(event: EventSpec, scope: Scope): ActionStep {
         val options: MutableList<ActionStep> = mutableListOf()
@@ -1289,6 +1296,55 @@ public class DocumentGenerator(
                 ),
             )
         }
+
+        val booleans = writable.filter { it.type == TypeRef.Bool }
+        if (booleans.isNotEmpty()) {
+            val target = booleans[random.nextInt(booleans.size)]
+            options += ActionStep(
+                action = TOGGLE,
+                args = mapOf(
+                    PropertyKey("target") to PropertyValue.Computed(Expr.Ref(RefTarget.State(target.id))),
+                ),
+            )
+        }
+
+        val lists = writable.filter { it.type is TypeRef.ListOf }
+        if (lists.isNotEmpty()) {
+            val target = lists[random.nextInt(lists.size)]
+            val value = constantFor((target.type as TypeRef.ListOf).element, scope)
+            if (value != null) {
+                options += ActionStep(
+                    action = APPEND,
+                    args = mapOf(
+                        PropertyKey("target") to PropertyValue.Computed(Expr.Ref(RefTarget.State(target.id))),
+                        PropertyKey("value") to PropertyValue.Const(value),
+                    ),
+                )
+                options += ActionStep(
+                    action = REMOVE,
+                    args = mapOf(
+                        PropertyKey("target") to PropertyValue.Computed(Expr.Ref(RefTarget.State(target.id))),
+                        PropertyKey("value") to PropertyValue.Const(value),
+                    ),
+                )
+            }
+        }
+
+        options += ActionStep(
+            action = SHOW_DIALOG,
+            args = mapOf(
+                PropertyKey("title") to PropertyValue.Computed(strExpression(scope, 1)),
+                PropertyKey("message") to PropertyValue.Computed(strExpression(scope, 1)),
+            ),
+        )
+
+        options += ActionStep(
+            action = SHOW_SHEET,
+            args = mapOf(
+                PropertyKey("title") to PropertyValue.Computed(strExpression(scope, 1)),
+                PropertyKey("message") to PropertyValue.Computed(strExpression(scope, 1)),
+            ),
+        )
 
         if (hosts.isNotEmpty()) {
             val host = hosts[random.nextInt(hosts.size)]
@@ -1476,6 +1532,11 @@ public class DocumentGenerator(
         val CONDITIONAL: ActionId = ActionId("flow.if")
         val HOST_CALL: ActionId = ActionId("host.call")
         val SHOW_SNACKBAR: ActionId = ActionId("ui.showSnackbar")
+        val TOGGLE: ActionId = ActionId("state.toggle")
+        val APPEND: ActionId = ActionId("list.append")
+        val REMOVE: ActionId = ActionId("list.remove")
+        val SHOW_DIALOG: ActionId = ActionId("ui.showDialog")
+        val SHOW_SHEET: ActionId = ActionId("ui.showBottomSheet")
 
         /** §10.2's string functions, by id. */
         val STR_TRIM: FunctionId = FunctionId("str.trim")

@@ -41,7 +41,7 @@ class ActionEnvTest {
 
     @Test
     fun `a handler sees the dialog host the environment was given`() {
-        val dialogs: DialogHost = object : DialogHost {}
+        val dialogs: DialogHost = RecordingDialogs()
         val handler = ReadingDialogs()
         val executor = executorOf(ActionId("test.read") to handler)
 

@@ -20,7 +20,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertSame
 
 /**
- * §11.4's six MVP actions: the key set, the shapes §11.2 and §13.1 spell, and the registrar.
+ * §11.4's six MVP actions plus §12:964's wave-two five: the key set, the shapes §11.2 and §13.1
+ * spell, and the registrar.
  *
  * **The handler gate is `CoverageTests` in `:engine:builtins-compose`:** it pairs every
  * registered action with the handler `IntrinsicHandlers` builds, the check this file's shape
@@ -34,11 +35,11 @@ class BuiltinActionSpecsTest {
         Schema.build<String, String, ActionSpec, String, String> { registerBuiltinActions() }
 
     @Test
-    fun `the seed set is the six ids the plan names`() {
+    fun `the seed set is the eleven ids the plan names`() {
         assertEquals(
             MVP_IDS,
             schema.actions.all().map { it.id.value },
-            "§11.4's MVP set, exactly: a seventh id or a misspelling fails here",
+            "the MVP plus wave-two sets, exactly: a twelfth id or a misspelling fails here",
         )
     }
 
@@ -74,20 +75,23 @@ class BuiltinActionSpecsTest {
     }
 
     @Test
-    fun `the typed arguments are the condition, the callee, the page and the message`() {
+    fun `the typed arguments are the condition, the callee, the page and the presentation pair`() {
         val declared = schema.actions.all().flatMap { spec -> spec.params.map { it.key to spec.id } }
 
         // The page and the condition are the plan's own examples; a callee is a string because the
         // declaration behind it is one and nothing more constrains it, and a message is a string
-        // because that is all a type can say about text. The other two declare none: `nav.back`
-        // takes nothing, and `state.set`'s two keys are shapes rather than types, asserted below.
-        // Registry order is the keys' string form, so this is sorted by action id rather than by
-        // argument: `flow.if`, `host.call`, `nav.navigate`, then `ui.showSnackbar`.
+        // because that is all a type can say about text. The other ids declare none: `nav.back`
+        // takes nothing, and the state and list actions' two keys are shapes rather than types,
+        // asserted below. Registry order is the keys' string form, so this is sorted by action id.
         assertEquals(
             listOf(
                 PropertyKey("cond") to ActionId("flow.if"),
                 PropertyKey("name") to ActionId("host.call"),
                 PropertyKey("page") to ActionId("nav.navigate"),
+                PropertyKey("title") to ActionId("ui.showBottomSheet"),
+                PropertyKey("message") to ActionId("ui.showBottomSheet"),
+                PropertyKey("title") to ActionId("ui.showDialog"),
+                PropertyKey("message") to ActionId("ui.showDialog"),
                 PropertyKey("message") to ActionId("ui.showSnackbar"),
             ),
             declared,
@@ -141,10 +145,19 @@ class BuiltinActionSpecsTest {
     }
 
     @Test
-    fun `no other spec declares a shape, so no other argument is closed`() {
+    fun `the shaped actions are the write and call families, and nothing else`() {
         val shaped = schema.actions.all().filter { it.argRules.isNotEmpty() }
 
-        assertEquals(listOf(ActionId("host.call"), ActionId("state.set")), shaped.map { it.id })
+        assertEquals(
+            listOf(
+                ActionId("host.call"),
+                ActionId("list.append"),
+                ActionId("list.remove"),
+                ActionId("state.set"),
+                ActionId("state.toggle"),
+            ),
+            shaped.map { it.id },
+        )
     }
 
     @Test
@@ -159,9 +172,10 @@ class BuiltinActionSpecsTest {
     }
 
     private companion object {
-        /** §11.4's MVP list, in registry key order. */
+        /** §11.4's MVP list plus §12:964's wave-two five, in registry key order. */
         val MVP_IDS: List<String> = listOf(
-            "flow.if", "host.call", "nav.back", "nav.navigate", "state.set", "ui.showSnackbar",
+            "flow.if", "host.call", "list.append", "list.remove", "nav.back", "nav.navigate",
+            "state.set", "state.toggle", "ui.showBottomSheet", "ui.showDialog", "ui.showSnackbar",
         )
     }
 }

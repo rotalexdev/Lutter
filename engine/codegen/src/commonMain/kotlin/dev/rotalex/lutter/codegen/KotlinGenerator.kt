@@ -308,6 +308,12 @@ public class KotlinGenerator<A : Any, T : Any>(
                     false,
                     listOf(snackbarShow()),
                 ),
+                KtDeclaration.Interface(
+                    ReservedCodegenNames.DialogHostName,
+                    emptyList(),
+                    false,
+                    listOf(dialogShow(), dialogShowSheet()),
+                ),
             ),
         )
     }
@@ -345,6 +351,32 @@ public class KotlinGenerator<A : Any, T : Any>(
         annotations = emptyList(),
         type = null,
         params = listOf(KtParam("message", KtExpr.Name("String"), null)),
+        body = emptyList(),
+    )
+
+    /**
+     * The two members the two dialog actions reach, spelled the same way `snackbarShow` is:
+     * one operation per action family, and a title-plus-message payload the v1 contract fixed.
+     */
+    private fun dialogShow(): KtDeclaration.Function = KtDeclaration.Function(
+        name = "show",
+        annotations = emptyList(),
+        type = null,
+        params = listOf(
+            KtParam("title", KtExpr.Name("String"), null),
+            KtParam("message", KtExpr.Name("String"), null),
+        ),
+        body = emptyList(),
+    )
+
+    private fun dialogShowSheet(): KtDeclaration.Function = KtDeclaration.Function(
+        name = "showSheet",
+        annotations = emptyList(),
+        type = null,
+        params = listOf(
+            KtParam("title", KtExpr.Name("String"), null),
+            KtParam("message", KtExpr.Name("String"), null),
+        ),
         body = emptyList(),
     )
 

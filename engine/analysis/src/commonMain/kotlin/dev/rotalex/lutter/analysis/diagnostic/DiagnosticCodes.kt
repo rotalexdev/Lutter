@@ -62,6 +62,7 @@ public object DiagnosticCodes {
      * argument is present and correctly shaped, and what is refused is the state it names.
      */
     public val ActionStateNotWritable: DiagnosticCode = DiagnosticCode("action.state_not_writable")
+    public val ActionStateNotList: DiagnosticCode = DiagnosticCode("action.state_not_list")
     public val NavArgsMismatch: DiagnosticCode = DiagnosticCode("nav.args_mismatch")
 
     /**

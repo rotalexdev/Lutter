@@ -15,6 +15,11 @@ public final class dev/rotalex/lutter/generated/border_text/AppNavigator {
 	public final fun navigate (Ldev/rotalex/lutter/generated/border_text/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/border_text/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/border_text/Route {
 }
 
@@ -49,6 +54,11 @@ public final class dev/rotalex/lutter/generated/box_align/AppNavigator {
 	public final fun back ()Z
 	public final fun getCurrent ()Ldev/rotalex/lutter/generated/box_align/Route;
 	public final fun navigate (Ldev/rotalex/lutter/generated/box_align/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/box_align/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
 }
 
 public abstract interface class dev/rotalex/lutter/generated/box_align/Route {
@@ -87,6 +97,11 @@ public final class dev/rotalex/lutter/generated/box_background/AppNavigator {
 	public final fun navigate (Ldev/rotalex/lutter/generated/box_background/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/box_background/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/box_background/Route {
 }
 
@@ -121,6 +136,11 @@ public final class dev/rotalex/lutter/generated/box_width_height/AppNavigator {
 	public final fun back ()Z
 	public final fun getCurrent ()Ldev/rotalex/lutter/generated/box_width_height/Route;
 	public final fun navigate (Ldev/rotalex/lutter/generated/box_width_height/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/box_width_height/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
 }
 
 public abstract interface class dev/rotalex/lutter/generated/box_width_height/Route {
@@ -158,6 +178,11 @@ public final class dev/rotalex/lutter/generated/button_host_call/AppNavigator {
 	public final fun back ()Z
 	public final fun getCurrent ()Ldev/rotalex/lutter/generated/button_host_call/Route;
 	public final fun navigate (Ldev/rotalex/lutter/generated/button_host_call/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/button_host_call/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
 }
 
 public abstract interface class dev/rotalex/lutter/generated/button_host_call/Route {
@@ -200,6 +225,11 @@ public final class dev/rotalex/lutter/generated/button_navigate/AppNavigator {
 	public final fun back ()Z
 	public final fun getCurrent ()Ldev/rotalex/lutter/generated/button_navigate/Route;
 	public final fun navigate (Ldev/rotalex/lutter/generated/button_navigate/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/button_navigate/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
 }
 
 public abstract interface class dev/rotalex/lutter/generated/button_navigate/Route {
@@ -256,6 +286,11 @@ public final class dev/rotalex/lutter/generated/card_align/AppNavigator {
 	public final fun navigate (Ldev/rotalex/lutter/generated/card_align/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/card_align/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/card_align/Route {
 }
 
@@ -298,6 +333,11 @@ public final class dev/rotalex/lutter/generated/column_color/AppNavigator {
 	public final fun navigate (Ldev/rotalex/lutter/generated/column_color/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/column_color/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/column_color/Route {
 }
 
@@ -332,6 +372,11 @@ public final class dev/rotalex/lutter/generated/column_min_height/AppNavigator {
 	public final fun back ()Z
 	public final fun getCurrent ()Ldev/rotalex/lutter/generated/column_min_height/Route;
 	public final fun navigate (Ldev/rotalex/lutter/generated/column_min_height/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/column_min_height/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
 }
 
 public abstract interface class dev/rotalex/lutter/generated/column_min_height/Route {
@@ -370,6 +415,11 @@ public final class dev/rotalex/lutter/generated/column_padding/AppNavigator {
 	public final fun navigate (Ldev/rotalex/lutter/generated/column_padding/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/column_padding/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/column_padding/Route {
 }
 
@@ -404,6 +454,11 @@ public final class dev/rotalex/lutter/generated/column_text/AppNavigator {
 	public final fun back ()Z
 	public final fun getCurrent ()Ldev/rotalex/lutter/generated/column_text/Route;
 	public final fun navigate (Ldev/rotalex/lutter/generated/column_text/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/column_text/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
 }
 
 public abstract interface class dev/rotalex/lutter/generated/column_text/Route {
@@ -506,6 +561,11 @@ public final class dev/rotalex/lutter/generated/component_param_slot/AppNavigato
 	public final fun navigate (Ldev/rotalex/lutter/generated/component_param_slot/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/component_param_slot/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/component_param_slot/Route {
 }
 
@@ -568,6 +628,11 @@ public final class dev/rotalex/lutter/generated/divider_height/AppNavigator {
 	public final fun navigate (Ldev/rotalex/lutter/generated/divider_height/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/divider_height/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/divider_height/Route {
 }
 
@@ -602,6 +667,11 @@ public final class dev/rotalex/lutter/generated/expression_corpus/AppNavigator {
 	public final fun back ()Z
 	public final fun getCurrent ()Ldev/rotalex/lutter/generated/expression_corpus/Route;
 	public final fun navigate (Ldev/rotalex/lutter/generated/expression_corpus/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/expression_corpus/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
 }
 
 public abstract interface class dev/rotalex/lutter/generated/expression_corpus/Route {
@@ -659,6 +729,11 @@ public final class dev/rotalex/lutter/generated/flow_basic/AppNavigator {
 	public final fun navigate (Ldev/rotalex/lutter/generated/flow_basic/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/flow_basic/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/flow_basic/Route {
 }
 
@@ -701,6 +776,11 @@ public final class dev/rotalex/lutter/generated/icon_basic/AppNavigator {
 	public final fun navigate (Ldev/rotalex/lutter/generated/icon_basic/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/icon_basic/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/icon_basic/Route {
 }
 
@@ -737,6 +817,11 @@ public final class dev/rotalex/lutter/generated/image_basic/AppNavigator {
 	public final fun navigate (Ldev/rotalex/lutter/generated/image_basic/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/image_basic/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/image_basic/Route {
 }
 
@@ -771,6 +856,11 @@ public final class dev/rotalex/lutter/generated/lazy_list/AppNavigator {
 	public final fun back ()Z
 	public final fun getCurrent ()Ldev/rotalex/lutter/generated/lazy_list/Route;
 	public final fun navigate (Ldev/rotalex/lutter/generated/lazy_list/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/lazy_list/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
 }
 
 public abstract interface class dev/rotalex/lutter/generated/lazy_list/Route {
@@ -817,6 +907,11 @@ public final class dev/rotalex/lutter/generated/material_token/AppNavigator {
 	public final fun navigate (Ldev/rotalex/lutter/generated/material_token/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/material_token/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/material_token/Route {
 }
 
@@ -851,6 +946,11 @@ public final class dev/rotalex/lutter/generated/nested_depth3/AppNavigator {
 	public final fun back ()Z
 	public final fun getCurrent ()Ldev/rotalex/lutter/generated/nested_depth3/Route;
 	public final fun navigate (Ldev/rotalex/lutter/generated/nested_depth3/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/nested_depth3/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
 }
 
 public abstract interface class dev/rotalex/lutter/generated/nested_depth3/Route {
@@ -889,6 +989,11 @@ public final class dev/rotalex/lutter/generated/progress_indicator/AppNavigator 
 	public final fun navigate (Ldev/rotalex/lutter/generated/progress_indicator/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/progress_indicator/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/progress_indicator/Route {
 }
 
@@ -923,6 +1028,11 @@ public final class dev/rotalex/lutter/generated/row_align/AppNavigator {
 	public final fun back ()Z
 	public final fun getCurrent ()Ldev/rotalex/lutter/generated/row_align/Route;
 	public final fun navigate (Ldev/rotalex/lutter/generated/row_align/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/row_align/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
 }
 
 public abstract interface class dev/rotalex/lutter/generated/row_align/Route {
@@ -961,6 +1071,11 @@ public final class dev/rotalex/lutter/generated/row_padding/AppNavigator {
 	public final fun navigate (Ldev/rotalex/lutter/generated/row_padding/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/row_padding/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/row_padding/Route {
 }
 
@@ -995,6 +1110,11 @@ public final class dev/rotalex/lutter/generated/row_weight/AppNavigator {
 	public final fun back ()Z
 	public final fun getCurrent ()Ldev/rotalex/lutter/generated/row_weight/Route;
 	public final fun navigate (Ldev/rotalex/lutter/generated/row_weight/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/row_weight/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
 }
 
 public abstract interface class dev/rotalex/lutter/generated/row_weight/Route {
@@ -1033,6 +1153,11 @@ public final class dev/rotalex/lutter/generated/selection_basic/AppNavigator {
 	public final fun navigate (Ldev/rotalex/lutter/generated/selection_basic/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/selection_basic/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/selection_basic/Route {
 }
 
@@ -1069,6 +1194,11 @@ public final class dev/rotalex/lutter/generated/slider_basic/AppNavigator {
 	public final fun navigate (Ldev/rotalex/lutter/generated/slider_basic/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/slider_basic/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/slider_basic/Route {
 }
 
@@ -1103,6 +1233,11 @@ public final class dev/rotalex/lutter/generated/slot_outlet/AppNavigator {
 	public final fun back ()Z
 	public final fun getCurrent ()Ldev/rotalex/lutter/generated/slot_outlet/Route;
 	public final fun navigate (Ldev/rotalex/lutter/generated/slot_outlet/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/slot_outlet/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
 }
 
 public abstract interface class dev/rotalex/lutter/generated/slot_outlet/Route {
@@ -1157,6 +1292,11 @@ public final class dev/rotalex/lutter/generated/spacer_flex/AppNavigator {
 	public final fun navigate (Ldev/rotalex/lutter/generated/spacer_flex/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/spacer_flex/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/spacer_flex/Route {
 }
 
@@ -1191,6 +1331,11 @@ public final class dev/rotalex/lutter/generated/spacer_size/AppNavigator {
 	public final fun back ()Z
 	public final fun getCurrent ()Ldev/rotalex/lutter/generated/spacer_size/Route;
 	public final fun navigate (Ldev/rotalex/lutter/generated/spacer_size/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/spacer_size/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
 }
 
 public abstract interface class dev/rotalex/lutter/generated/spacer_size/Route {
@@ -1229,6 +1374,11 @@ public final class dev/rotalex/lutter/generated/text_alpha/AppNavigator {
 	public final fun navigate (Ldev/rotalex/lutter/generated/text_alpha/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/text_alpha/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/text_alpha/Route {
 }
 
@@ -1263,6 +1413,11 @@ public final class dev/rotalex/lutter/generated/text_field_state/AppNavigator {
 	public final fun back ()Z
 	public final fun getCurrent ()Ldev/rotalex/lutter/generated/text_field_state/Route;
 	public final fun navigate (Ldev/rotalex/lutter/generated/text_field_state/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/text_field_state/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
 }
 
 public abstract interface class dev/rotalex/lutter/generated/text_field_state/Route {
@@ -1323,6 +1478,11 @@ public final class dev/rotalex/lutter/generated/text_multi_fixed/AppNavigator {
 	public final fun navigate (Ldev/rotalex/lutter/generated/text_multi_fixed/Route;)V
 }
 
+public abstract interface class dev/rotalex/lutter/generated/text_multi_fixed/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
 public abstract interface class dev/rotalex/lutter/generated/text_multi_fixed/Route {
 }
 
@@ -1357,6 +1517,11 @@ public final class dev/rotalex/lutter/generated/text_state_ref/AppNavigator {
 	public final fun back ()Z
 	public final fun getCurrent ()Ldev/rotalex/lutter/generated/text_state_ref/Route;
 	public final fun navigate (Ldev/rotalex/lutter/generated/text_state_ref/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/text_state_ref/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
 }
 
 public abstract interface class dev/rotalex/lutter/generated/text_state_ref/Route {
@@ -1401,6 +1566,11 @@ public final class dev/rotalex/lutter/generated/theme_tokens/AppNavigator {
 	public final fun back ()Z
 	public final fun getCurrent ()Ldev/rotalex/lutter/generated/theme_tokens/Route;
 	public final fun navigate (Ldev/rotalex/lutter/generated/theme_tokens/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/theme_tokens/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
 }
 
 public abstract interface class dev/rotalex/lutter/generated/theme_tokens/Route {

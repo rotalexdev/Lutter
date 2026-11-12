@@ -5,6 +5,7 @@ public final class dev/rotalex/lutter/codegen/ActionEmitter {
 }
 
 public final class dev/rotalex/lutter/codegen/ActionReceiver : java/lang/Enum {
+	public static final field Dialogs Ldev/rotalex/lutter/codegen/ActionReceiver;
 	public static final field Host Ldev/rotalex/lutter/codegen/ActionReceiver;
 	public static final field Navigator Ldev/rotalex/lutter/codegen/ActionReceiver;
 	public static final field Scope Ldev/rotalex/lutter/codegen/ActionReceiver;
@@ -773,6 +774,7 @@ public final class dev/rotalex/lutter/codegen/PlannedFileKind : java/lang/Enum {
 
 public final class dev/rotalex/lutter/codegen/ReservedCodegenNames {
 	public static final field AppHostName Ljava/lang/String;
+	public static final field DialogHostName Ljava/lang/String;
 	public static final field INSTANCE Ldev/rotalex/lutter/codegen/ReservedCodegenNames;
 	public static final field PageStateSuffix Ljava/lang/String;
 	public static final field RememberPrefix Ljava/lang/String;

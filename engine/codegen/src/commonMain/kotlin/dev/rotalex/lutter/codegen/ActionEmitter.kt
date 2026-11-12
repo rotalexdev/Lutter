@@ -145,6 +145,11 @@ public class ActionEmitter(
             ActionKind.Conditional -> conditional(step, spec, at)
             ActionKind.CallHost -> callHost(step, spec, at)
             ActionKind.ShowSnackbar -> snackbar(step, spec, at)
+            ActionKind.ToggleState -> toggleState(step, spec, at)
+            ActionKind.AppendState -> appendState(step, spec, at)
+            ActionKind.RemoveState -> removeState(step, spec, at)
+            ActionKind.ShowDialog -> presentation(step, spec, at, "show")
+            ActionKind.ShowSheet -> presentation(step, spec, at, "showSheet")
         }
     }
 
@@ -391,6 +396,74 @@ public class ActionEmitter(
         return Emitted(KtStmt.Expr(on(ActionReceiver.Snackbars, "show", listOf(KtArg(null, message)))))
     }
 
+    /** `state.flag = !state.flag`: the target read twice, once as the operand and once as the write. */
+    private fun toggleState(step: ActionStep, spec: ActionSpec, at: DiagnosticLocation): Emitted? {
+        val target: KtExpr = stateArgument(step, spec, ArgShape.StateRef, at) ?: return null
+        return Emitted(KtStmt.Assign(target, KtExpr.Unary(KtOp.Not, target)))
+    }
+
+    /** `state.items = state.items + value`, Kotlin's own collection-plus for one element. */
+    private fun appendState(step: ActionStep, spec: ActionSpec, at: DiagnosticLocation): Emitted? {
+        val target: KtExpr = stateArgument(step, spec, ArgShape.StateRef, at) ?: return null
+        val value: KtExpr = stateArgument(step, spec, ArgShape.ElementValue, at) ?: return null
+        return Emitted(KtStmt.Assign(target, KtExpr.Binary(KtOp.Add, target, value)))
+    }
+
+    /** `state.items = state.items - value`: Kotlin's minus for lists, which takes every occurrence. */
+    private fun removeState(step: ActionStep, spec: ActionSpec, at: DiagnosticLocation): Emitted? {
+        val target: KtExpr = stateArgument(step, spec, ArgShape.StateRef, at) ?: return null
+        val value: KtExpr = stateArgument(step, spec, ArgShape.ElementValue, at) ?: return null
+        return Emitted(KtStmt.Assign(target, KtExpr.Binary(KtOp.Sub, target, value)))
+    }
+
+    /** `dialogs.show(title, message)` and the sheet form, the two members the dialog host declares. */
+    private fun presentation(
+        step: ActionStep,
+        spec: ActionSpec,
+        at: DiagnosticLocation,
+        member: String,
+    ): Emitted? {
+        val title: KtExpr = namedArgument(spec, step, "title", at) ?: return null
+        val message: KtExpr = namedArgument(spec, step, "message", at) ?: return null
+        return Emitted(KtStmt.Expr(on(ActionReceiver.Dialogs, member, listOf(KtArg(null, title), KtArg(null, message)))))
+    }
+
+    // Two arguments by name, because the dialog pair declares them and their order is the spec's:
+    // counting would make the title the count's answer, which no document wrote.
+    private fun namedArgument(spec: ActionSpec, step: ActionStep, name: String, at: DiagnosticLocation): KtExpr? {
+        val key: PropertyKey? = spec.params
+            .firstOrNull { param -> param.key.value == name }
+            ?.key
+        if (key == null) {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                at,
+                "Action '" + spec.id.value + "' declares no '" + name + "' parameter",
+            )
+            return null
+        }
+        return argument(step, key, at)
+    }
+
+    /**
+     * A write-form argument through the shape its rule declares: the target is a read, the value
+     * whatever the document wrote. The same reading `writeState` makes, so all four state actions
+     * spell their arguments alike.
+     */
+    private fun stateArgument(step: ActionStep, spec: ActionSpec, shape: ArgShape, at: DiagnosticLocation): KtExpr? {
+        val key: PropertyKey = ruleArgument(spec, shape, at) ?: return null
+        val written: PropertyValue? = step.args[key]
+        if (written == null) {
+            refuse(
+                DiagnosticCodes.ActionArgInvalid,
+                at,
+                "Action '" + spec.id.value + "' carries no '" + key.value + "' argument",
+            )
+            return null
+        }
+        return argumentValue(written, key, at)
+    }
+
     // One argument, so its count says which one is the message: the string type names a value
     // rather than a role, and a spec declaring two would leave the choice a guess.
     private fun messageArgument(spec: ActionSpec, at: DiagnosticLocation): PropertyKey? {
@@ -549,6 +622,7 @@ public class ActionEmitter(
     private fun shapeName(shape: ArgShape): String = when (shape) {
         ArgShape.StateRef -> "target"
         ArgShape.TargetValue -> "value"
+        ArgShape.ElementValue -> "value"
         is ArgShape.Positional -> "positional"
     }
 
@@ -580,6 +654,11 @@ internal object IntrinsicActions {
         ActionId("flow.if") to ActionKind.Conditional,
         ActionId("host.call") to ActionKind.CallHost,
         ActionId("ui.showSnackbar") to ActionKind.ShowSnackbar,
+        ActionId("state.toggle") to ActionKind.ToggleState,
+        ActionId("list.append") to ActionKind.AppendState,
+        ActionId("list.remove") to ActionKind.RemoveState,
+        ActionId("ui.showDialog") to ActionKind.ShowDialog,
+        ActionId("ui.showBottomSheet") to ActionKind.ShowSheet,
     )
 
     /** What [id] becomes, or null when the engine has no emitter for it. */
@@ -594,6 +673,11 @@ internal enum class ActionKind {
     Conditional,
     CallHost,
     ShowSnackbar,
+    ToggleState,
+    AppendState,
+    RemoveState,
+    ShowDialog,
+    ShowSheet,
 }
 
 /**
@@ -607,6 +691,7 @@ internal enum class ActionKind {
 public enum class ActionReceiver(public val member: String, public val type: String?) {
     Navigator("navigator", SimpleBackStack.NavigatorName),
     Snackbars("snackbars", ReservedCodegenNames.SnackbarHostName),
+    Dialogs("dialogs", ReservedCodegenNames.DialogHostName),
     Host("host", ReservedCodegenNames.AppHostName),
     Scope("scope", null),
 }
