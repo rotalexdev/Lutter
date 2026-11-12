@@ -308,20 +308,22 @@ class CodegenTest {
                 component(lazyStub)
                 component(textStub(textType, KotlinSymbol("androidx.compose.material3", "Text")))
             }
-        val pages = mapOf(PageId("p_home") to ResolvedPage(PageId("p_home"), "Home", "home", listNode))
-        val result = KotlinGenerator(schema, CodegenOptions("com.example.app")).generate(
-            ResolvedDocument(
-                pages,
-                emptyMap(),
-                indexOf(pages),
-                ResolvedTheme(null),
-                appState = listOf(
+        val pages = mapOf(
+            PageId("p_home") to ResolvedPage(
+                PageId("p_home"),
+                "Home",
+                "home",
+                listNode,
+                listOf(
                     ResolvedState(
                         StateDecl(count, "count", TypeRef.ListOf(TypeRef.Str), Value.Null),
                         null,
                     ),
                 ),
             ),
+        )
+        val result = KotlinGenerator(schema, CodegenOptions("com.example.app")).generate(
+            ResolvedDocument(pages, emptyMap(), indexOf(pages), ResolvedTheme(null)),
         )
 
         assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
