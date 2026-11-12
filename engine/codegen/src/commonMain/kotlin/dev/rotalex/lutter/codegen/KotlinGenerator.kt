@@ -120,6 +120,9 @@ public class KotlinGenerator<A : Any, T : Any>(
     private val rememberCoroutineScope: KotlinSymbol =
         KotlinSymbol("androidx.compose.runtime", "rememberCoroutineScope")
 
+    private val LazyItems: KotlinSymbol =
+        KotlinSymbol("androidx.compose.foundation.lazy", "items")
+
     // Fail fast on missing bindings, like UiRuntime does on missing renderers.
     init {
         CodegenCoverage.check(schema, extensions)
@@ -1569,8 +1572,10 @@ public class KotlinGenerator<A : Any, T : Any>(
             return null
         }
         val source: KtExpr = valueOf(written, spec.properties, node) ?: return null
+        // `items(list)` is an extension, not the `items(count)` member, so the callee is a
+        // library reference: the import is what makes the extension the applicable candidate.
         val frame: KtExpr.Call = KtExpr.Call(
-            callee = KtExpr.Name("items"),
+            callee = KtExpr.Ref(KtSymbolRef(LazyItems)),
             args = listOf(KtArg(null, source)),
             trailing = KtExpr.Lambda(listOf(iteration.itemName), body),
         )
