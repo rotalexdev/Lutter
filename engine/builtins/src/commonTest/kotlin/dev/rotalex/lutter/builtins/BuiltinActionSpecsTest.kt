@@ -145,10 +145,19 @@ class BuiltinActionSpecsTest {
     }
 
     @Test
-    fun `no other spec declares a shape, so no other argument is closed`() {
+    fun `the shaped actions are the write and call families, and nothing else`() {
         val shaped = schema.actions.all().filter { it.argRules.isNotEmpty() }
 
-        assertEquals(listOf(ActionId("host.call"), ActionId("state.set")), shaped.map { it.id })
+        assertEquals(
+            listOf(
+                ActionId("host.call"),
+                ActionId("list.append"),
+                ActionId("list.remove"),
+                ActionId("state.set"),
+                ActionId("state.toggle"),
+            ),
+            shaped.map { it.id },
+        )
     }
 
     @Test
