@@ -3,11 +3,27 @@ package dev.rotalex.lutter.analysis
 import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCodes
 import dev.rotalex.lutter.model.doc.EnumEntryDecl
 import dev.rotalex.lutter.model.doc.EnumTypeDecl
+import dev.rotalex.lutter.model.doc.ResourceDecl
+import dev.rotalex.lutter.model.doc.ResourceKind
+import dev.rotalex.lutter.model.doc.ResourceSource
+import dev.rotalex.lutter.model.doc.ResourceVariant
 import dev.rotalex.lutter.model.dsl.PageScope
 import dev.rotalex.lutter.model.expr.Expr
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.ResourceId
 import dev.rotalex.lutter.model.ids.TypeId
+import dev.rotalex.lutter.model.type.RefKind
+import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
+import dev.rotalex.lutter.schema.Schema
+import dev.rotalex.lutter.schema.component.Category
+import dev.rotalex.lutter.schema.component.ComponentType
+import dev.rotalex.lutter.schema.component.KotlinSymbol
+import dev.rotalex.lutter.schema.component.ValueEmit
+import dev.rotalex.lutter.schema.component.component
+import dev.rotalex.lutter.schema.component.componentSpec
+import dev.rotalex.lutter.schema.component.prop
+import dev.rotalex.lutter.schema.types.IconSet
 import dev.rotalex.lutter.schema.types.TypeSpec
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -360,5 +376,102 @@ class SchemaPassTest {
         assertTrue(codes.none { it == DiagnosticCodes.ModifierUnknown.value }, "got $codes")
         assertTrue(codes.none { it == DiagnosticCodes.ModifierScopeMissing.value }, "got $codes")
         assertTrue(codes.none { it == DiagnosticCodes.ModifierArgInvalid.value }, "got $codes")
+    }
+
+    @Test
+    fun `an icon in the registered set is accepted and a stranger is refused`() {
+        // §10:796: the (set, name) pair resolves through the schema's icon registry — the
+        // case-shaped lookup no text pattern can spell, so the registry is the whole check.
+        val setProp = prop<String>("set", TypeRef.Str, required = true)
+        val nameProp = prop<String>("name", TypeRef.Str, required = true)
+        val iconType = ComponentType("test.Icon")
+        val iconSchema = Schema.build {
+            iconSet(
+                IconSet(
+                    "material",
+                    mapOf("Home" to KotlinSymbol("androidx.compose.material.icons.filled", "Home")),
+                ),
+            )
+            component(
+                componentSpec(iconType, 1) {
+                    metadata("Icon", Category.Basic)
+                    property(setProp)
+                    property(nameProp)
+                    composeCall(KotlinSymbol("test", "Icon")) {
+                        param(
+                            "imageVector",
+                            from = listOf(setProp.key, nameProp.key),
+                            emit = ValueEmit.Icon(setProp.key, nameProp.key),
+                        )
+                    }
+                },
+            )
+        }
+        val iconAnalyzer = Analyzer(iconSchema)
+
+        fun iconCodesOf(name: String): List<String> =
+            iconAnalyzer.analyze(
+                homeDocument {
+                    node(iconType) {
+                        prop("set", Value.Str("material"))
+                        prop("name", Value.Str(name))
+                    }
+                },
+            ).diagnostics.map { it.code.value }
+
+        assertTrue(
+            iconCodesOf("Home").none { it == DiagnosticCodes.PropIconUnregistered.value },
+            "a registered icon was refused: got ${iconCodesOf("Home")}",
+        )
+        assertTrue(
+            iconCodesOf("Ghost").contains(DiagnosticCodes.PropIconUnregistered.value),
+            "got ${iconCodesOf("Ghost")}",
+        )
+    }
+
+    @Test
+    fun `a resource reference whose kind disagrees with its property is refused`() {
+        // §10:795's resource row: a resource-typed property takes a resource reference only
+        // when the reference's kind is the one the spec declared; a matching one just passes.
+        val titleProp = prop<String>("title", TypeRef.Str, required = true, resourceKind = ResourceKind.String)
+        val bannerType = ComponentType("test.Banner")
+        val bannerSchema = Schema.build {
+            component(
+                componentSpec(bannerType, 1) {
+                    metadata("Banner", Category.Basic)
+                    property(titleProp)
+                    composeCall(KotlinSymbol("test", "Banner")) {
+                        param("title", from = titleProp)
+                    }
+                },
+            )
+        }
+        val bannerAnalyzer = Analyzer(bannerSchema)
+        val resources = mapOf(
+            ResourceId("r_welcome") to ResourceDecl(
+                ResourceId("r_welcome"),
+                "Welcome",
+                ResourceKind.String,
+                listOf(ResourceVariant(emptySet(), ResourceSource.Text("Hello"))),
+            ),
+        )
+
+        fun bannerCodesOf(want: ResourceKind): List<String> =
+            bannerAnalyzer.analyze(
+                homeDocument {
+                    node(bannerType) {
+                        prop("title", Value.Ref(RefKind.Resource, "r_welcome"))
+                    }
+                }.copy(resources = resources),
+            ).diagnostics.map { it.code.value }
+
+        assertTrue(
+            bannerCodesOf(ResourceKind.String).none { it == DiagnosticCodes.ResourceKindMismatch.value },
+            "a matching resource was refused: got ${bannerCodesOf(ResourceKind.String)}",
+        )
+        assertTrue(
+            bannerCodesOf(ResourceKind.Image).contains(DiagnosticCodes.ResourceKindMismatch.value),
+            "got ${bannerCodesOf(ResourceKind.Image)}",
+        )
     }
 }
