@@ -125,9 +125,10 @@ internal object LiteralPrinter {
                 value.items.map { emit(it, token, theme) }
                     .takeIf { parts -> parts.none { it == null } }
                     ?.let { parts ->
+                        val present: List<EmittedLiteral> = parts.filterNotNull()
                         EmittedLiteral(
-                            "listOf(" + parts.mapNotNull { it.text }.joinToString(", ") + ")",
-                            parts.flatMap { it.symbols }.distinct(),
+                            "listOf(" + present.joinToString(", ") { it.text } + ")",
+                            present.flatMap { it.symbols }.distinct(),
                         )
                     }
             is Value.Obj -> null
