@@ -261,6 +261,19 @@ class CodegenTest {
                 slot("children", LambdaTarget.Trailing)
             }
         }
+        // The row's Text needs its own stub: the shared one binds only the positional text, and a
+        // second parameter there would flip `Positional.WhenSole` for every sibling test.
+        val rowStub: ComponentSpec = componentSpec(textType, 1) {
+            val text = prop<String>("text", TypeRef.Str, required = true)
+            val maxLines = prop<Int>("maxLines", TypeRef.Int32)
+            metadata("Text", Category.Basic)
+            property(text)
+            property(maxLines)
+            composeCall(KotlinSymbol("androidx.compose.material3", "Text")) {
+                param("text", from = text, positional = Positional.WhenSole)
+                param("maxLines", from = maxLines)
+            }
+        }
         val row = ResolvedNode(
             NodeId("n_9"),
             textType,
@@ -306,7 +319,7 @@ class CodegenTest {
         val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
             Schema.build {
                 component(lazyStub)
-                component(textStub(textType, KotlinSymbol("androidx.compose.material3", "Text")))
+                component(rowStub)
             }
         val pages = mapOf(
             PageId("p_home") to ResolvedPage(
