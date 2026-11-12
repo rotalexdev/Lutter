@@ -448,7 +448,7 @@ abstract class GenerateFuzzBatch : DefaultTask() {
         exec.javaexec {
             classpath = batchClasspath
             mainClass.set("dev.rotalex.lutter.testsupport.generator.FuzzBatchKt")
-            args(out.absolutePath, documentCount.get().toString(), basePackage.get())
+            args(out.absolutePath, documentCount.get().toString(), basePackage.get(), ResPkgs.PACKAGE)
         }
     }
 }
