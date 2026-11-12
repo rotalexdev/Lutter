@@ -459,8 +459,7 @@ class ExpressionPassTest {
         val accepted = iterationCodesOf {
             node(LazyListType) {
                 val row = node(TextType) {
-                    prop("text", Value.Str("Hi"))
-                    computed("maxLines", Expr.Ref(RefTarget.Item("item")))
+                    computed("text", Expr.Ref(RefTarget.Item("item")))
                 }
                 slot("children", listOf(row))
             }
@@ -468,9 +467,8 @@ class ExpressionPassTest {
         val mismatched = iterationCodesOf {
             node(LazyListType) {
                 val row = node(TextType) {
-                    prop("text", Value.Str("Hi"))
                     computed(
-                        "maxLines",
+                        "text",
                         Expr.Binary(BinaryOp.Add, Expr.Ref(RefTarget.Item("item")), i32(1)),
                     )
                 }

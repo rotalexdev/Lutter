@@ -3,6 +3,7 @@ package dev.rotalex.lutter.builtins.compose
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
@@ -72,13 +73,19 @@ private fun LazyListScope.itemScope(
     scope: RenderScope,
     items: PropertySpec<List<String>>,
     itemName: String,
-    renderItem: (ResolvedNode, RenderScope, String, String) -> Unit,
+    renderItem: @Composable (ResolvedNode, RenderScope, String, String) -> Unit,
 ) {
     val elements: List<String> = scope.props(node)[items] ?: emptyList()
     items(elements) { element -> renderItem(node, scope, itemName, element) }
 }
 
-/** One item's frame: bind, then render the slot's children as the renderer registry does. */
+/**
+ * One item's frame: bind, then render the slot's children as the renderer registry does.
+ *
+ * Both lazy slots spell `children`, so the slot name is the same fact for either axis and the
+ * helper stays axis-blind — it renders the node's lazy slot, whichever spec brought it here.
+ */
+@Composable
 private fun renderItem(
     node: ResolvedNode,
     scope: RenderScope,
