@@ -34,6 +34,10 @@ class IntrinsicHandlersTest {
 
     private val count: StateId = StateId("s_count")
 
+    private val flag: StateId = StateId("s_flag")
+
+    private val items: StateId = StateId("s_items")
+
     private val handlers: Map<ActionId, ActionHandler> = IntrinsicHandlers.handlers(Evaluator())
 
     @Test
@@ -281,6 +285,144 @@ class IntrinsicHandlersTest {
         assertTrue(outcomeOf(writing(null, target), Going()) is ActionOutcome.Failed)
     }
 
+    @Test
+    fun `a toggle negates the Bool the target names`() {
+        val store = MapStateStore(mapOf(flag to Value.Bool(true)))
+
+        outcomeOf(toggling(), envOver(store))
+
+        assertEquals(Value.Bool(false), store.get(flag))
+    }
+
+    @Test
+    fun `a toggle of a false Bool flips it true`() {
+        val store = MapStateStore(mapOf(flag to Value.Bool(false)))
+
+        outcomeOf(toggling(), envOver(store))
+
+        assertEquals(Value.Bool(true), store.get(flag))
+    }
+
+    @Test
+    fun `a toggle of a target that is not a Boolean fails the run`() {
+        val store = MapStateStore(mapOf(flag to Value.Str("yes")))
+
+        assertTrue(outcomeOf(toggling(), envOver(store)) is ActionOutcome.Failed)
+    }
+
+    @Test
+    fun `the diagnostic for an untoggleable target names the action`() {
+        val store = MapStateStore(mapOf(flag to Value.Str("yes")))
+
+        val outcome = outcomeOf(toggling(), envOver(store)) as ActionOutcome.Failed
+
+        assertTrue(outcome.diagnostic.message.contains("state.toggle"))
+    }
+
+    @Test
+    fun `a toggle with no target fails the run`() {
+        assertTrue(outcomeOf(step("state.toggle"), Going()) is ActionOutcome.Failed)
+    }
+
+    @Test
+    fun `an append adds the value at the end of the list`() {
+        val store = MapStateStore(mapOf(items to Value.ListOf(listOf(Value.Int32(1)))))
+
+        outcomeOf(appending(literal(Value.Int32(2))), envOver(store))
+
+        assertEquals(Value.ListOf(listOf(Value.Int32(1), Value.Int32(2))), store.get(items))
+    }
+
+    @Test
+    fun `an append against a target that is not a list fails the run`() {
+        val store = MapStateStore(mapOf(items to Value.Int32(3)))
+
+        assertTrue(outcomeOf(appending(literal(Value.Int32(2))), envOver(store)) is ActionOutcome.Failed)
+    }
+
+    @Test
+    fun `the diagnostic for a non-list append target names the action`() {
+        val store = MapStateStore(mapOf(items to Value.Int32(3)))
+
+        val outcome = outcomeOf(appending(literal(Value.Int32(2))), envOver(store)) as ActionOutcome.Failed
+
+        assertTrue(outcome.diagnostic.message.contains("list.append"))
+    }
+
+    @Test
+    fun `an append with no value fails the run`() {
+        assertTrue(outcomeOf(appending(null), Going()) is ActionOutcome.Failed)
+    }
+
+    @Test
+    fun `a remove takes every occurrence of the value out of the list`() {
+        val store = MapStateStore(
+            mapOf(items to Value.ListOf(listOf(Value.Int32(1), Value.Int32(2), Value.Int32(1)))),
+        )
+
+        outcomeOf(removing(literal(Value.Int32(1))), envOver(store))
+
+        assertEquals(Value.ListOf(listOf(Value.Int32(2))), store.get(items))
+    }
+
+    @Test
+    fun `a remove of a value the list does not hold is done`() {
+        val store = MapStateStore(mapOf(items to Value.ListOf(listOf(Value.Int32(1)))))
+
+        assertEquals(
+            ActionOutcome.Done,
+            outcomeOf(removing(literal(Value.Int32(9))), envOver(store)),
+        )
+        assertEquals(Value.ListOf(listOf(Value.Int32(1))), store.get(items))
+    }
+
+    @Test
+    fun `a remove against a target that is not a list fails the run`() {
+        val store = MapStateStore(mapOf(items to Value.Str("rows")))
+
+        assertTrue(outcomeOf(removing(literal(Value.Int32(1))), envOver(store)) is ActionOutcome.Failed)
+    }
+
+    @Test
+    fun `a dialog reaches the host with the title and message the step named`() {
+        val host = RecordingDialogs()
+
+        outcomeOf(dialoging(), FakeActionEnv(dialogs = host))
+
+        assertEquals(listOf("dialog:Save|Are you sure"), host.shown)
+    }
+
+    @Test
+    fun `a sheet reaches the same host through its sheet member`() {
+        val host = RecordingDialogs()
+
+        outcomeOf(sheeting(), FakeActionEnv(dialogs = host))
+
+        assertEquals(listOf("sheet:Save|Are you sure"), host.shown)
+    }
+
+    @Test
+    fun `a dialog against the host that shows nothing is still done`() {
+        assertEquals(ActionOutcome.Done, outcomeOf(dialoging(), FakeActionEnv()))
+    }
+
+    @Test
+    fun `a dialog with no title fails the run`() {
+        val args = mapOf(PropertyKey("message") to literal(Value.Str("Are you sure")))
+
+        assertTrue(outcomeOf(step("ui.showDialog").copy(args = args), Going()) is ActionOutcome.Failed)
+    }
+
+    @Test
+    fun `a dialog title that is not a string fails the run`() {
+        val args = mapOf(
+            PropertyKey("title") to literal(Value.Int32(7)),
+            PropertyKey("message") to literal(Value.Str("Are you sure")),
+        )
+
+        assertTrue(outcomeOf(step("ui.showDialog").copy(args = args), Going()) is ActionOutcome.Failed)
+    }
+
     private fun outcomeOf(step: ActionStep, going: Going): ActionOutcome =
         outcomeOf(step, FakeActionEnv(navigator = going))
 
@@ -298,13 +440,47 @@ class IntrinsicHandlersTest {
         return step("state.set").copy(args = args)
     }
 
-    private fun reads(): PropertyValue = computed(Expr.Ref(RefTarget.State(count)))
-
     private fun envShowing(snackbars: SnackbarHost): FakeActionEnv = FakeActionEnv(snackbars = snackbars)
 
     /** `ui.showSnackbar(message = …)`, as a document writes it. */
     private fun snackbaring(message: PropertyValue = literal(Value.Str("saved"))): ActionStep =
         step("ui.showSnackbar").copy(args = mapOf(PropertyKey("message") to message))
+
+    /** `state.toggle(target = <computed state ref>)`, as a document writes it. */
+    private fun toggling(target: PropertyValue = reads(flag)): ActionStep =
+        step("state.toggle").copy(args = mapOf(PropertyKey("target") to target))
+
+    /** `list.append(target = <computed state ref>, value = …)`, as a document writes it. */
+    private fun appending(value: PropertyValue?, target: PropertyValue = reads(items)): ActionStep =
+        valueAction("list.append", value, target)
+
+    /** `list.remove(target = <computed state ref>, value = …)`, as a document writes it. */
+    private fun removing(value: PropertyValue?, target: PropertyValue = reads(items)): ActionStep =
+        valueAction("list.remove", value, target)
+
+    /** The shape the two list actions share: a state target and a value, both required. */
+    private fun valueAction(id: String, value: PropertyValue?, target: PropertyValue): ActionStep {
+        val args = mutableMapOf<PropertyKey, PropertyValue>(PropertyKey("target") to target)
+        if (value != null) args[PropertyKey("value")] = value
+        return step(id).copy(args = args)
+    }
+
+    /** `ui.showDialog(title = …, message = …)`, as a document writes it. */
+    private fun dialoging(): ActionStep = presenting("ui.showDialog")
+
+    /** `ui.showBottomSheet(title = …, message = …)`, the sheet form. */
+    private fun sheeting(): ActionStep = presenting("ui.showBottomSheet")
+
+    private fun presenting(id: String): ActionStep = step(id).copy(
+        args = mapOf(
+            PropertyKey("title") to literal(Value.Str("Save")),
+            PropertyKey("message") to literal(Value.Str("Are you sure")),
+        ),
+    )
+
+    /** The state read a target argument carries: the same computed form every write names. */
+    private fun reads(state: StateId = count): PropertyValue =
+        computed(Expr.Ref(RefTarget.State(state)))
 
     private fun literal(value: Value): PropertyValue = PropertyValue.Const(value)
 

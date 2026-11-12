@@ -735,6 +735,12 @@ class CodegenTest {
                 public fun show(message: String)
             }
 
+            public interface DialogHost {
+                public fun show(title: String, message: String)
+
+                public fun showSheet(title: String, message: String)
+            }
+
             """.trimIndent(),
             contentOf(result, "AppHost.kt"),
         )

@@ -33,6 +33,9 @@ public object ReservedCodegenNames {
     /** §16.5's `SnackbarHost`, the one presentation operation `ui.showSnackbar` reaches. */
     public const val SnackbarHostName: String = "SnackbarHost"
 
+    /** The dialog presentation host, the one the two dialog actions reach beside `SnackbarHost`. */
+    public const val DialogHostName: String = "DialogHost"
+
     /** `Route.Home -> HomeScreen(…)`: what the screen of a page is called. */
     public const val ScreenSuffix: String = "Screen"
 

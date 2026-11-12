@@ -43,6 +43,11 @@ public object IntrinsicHandlers {
         ActionId("flow.if") to Conditional(evaluator),
         ActionId("host.call") to CallHost(evaluator),
         ActionId("ui.showSnackbar") to ShowSnackbar(evaluator),
+        ActionId("state.toggle") to ToggleState(evaluator),
+        ActionId("list.append") to AppendState(evaluator),
+        ActionId("list.remove") to RemoveState(evaluator),
+        ActionId("ui.showDialog") to ShowDialog(evaluator),
+        ActionId("ui.showBottomSheet") to ShowSheet(evaluator),
     )
 }
 
@@ -73,6 +78,9 @@ private val argsArgument = PropertyKey("args")
 
 /** The text a snackbar shows: a type spells it, so the spec declares the key and it is read here. */
 private val messageArgument = PropertyKey("message")
+
+/** The title the two dialog actions show, which their specs spell and their handlers read here. */
+private val titleArgument = PropertyKey("title")
 
 /**
  * `nav.navigate`.
@@ -250,6 +258,136 @@ private class ShowSnackbar(private val evaluator: Evaluator) : ActionHandler {
 }
 
 /**
+ * `state.toggle`: negates the Bool its target names and writes it back.
+ *
+ * The read goes through the evaluator with the same expression every state read spells, so the
+ * current value is the one the frame would see — not a store's private answer. The Bool check is
+ * a run-time answer the shape cannot give: `StateRef` names a state, and what the state holds is
+ * a declaration's business.
+ */
+private class ToggleState(private val evaluator: Evaluator) : ActionHandler {
+
+    override suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome {
+        val id = step.args[targetArgument]?.stateIdOrNull()
+            ?: return refusal(step, "has no state target to toggle")
+
+        val current = runCatching { evaluator.evalUnchecked(Expr.Ref(RefTarget.State(id)), env.scope) }
+            .getOrNull()
+            ?: return refusal(step, "target names a state that produces no value")
+
+        val bool = current as? Value.Bool
+            ?: return refusal(step, "target names a ${current::class.simpleName}, not a Boolean")
+
+        val refused = runCatching { env.state.set(id, Value.Bool(!bool.v)) }.exceptionOrNull()
+        if (refused != null) return refusal(step, "could not be written: ${refused.message}")
+
+        return ActionOutcome.Done
+    }
+}
+
+/**
+ * `list.append`: adds one value at the end of the list its target names.
+ *
+ * The value lands where the document wrote it — last — because that is what append means, and
+ * no policy about ordering belongs to a handler the document did not ask to sort anything.
+ */
+private class AppendState(private val evaluator: Evaluator) : ActionHandler {
+
+    override suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome {
+        val id = step.args[targetArgument]?.stateIdOrNull()
+            ?: return refusal(step, "has no state target to append to")
+
+        val written = step.args[valueArgument]
+            ?: return refusal(step, "has no '$valueArgument' argument")
+
+        val value = written.valueOrNull(evaluator, env.scope)
+            ?: return refusal(step, "argument '$valueArgument' produces no value")
+
+        val current = runCatching { evaluator.evalUnchecked(Expr.Ref(RefTarget.State(id)), env.scope) }
+            .getOrNull()
+            ?: return refusal(step, "target names a state that produces no value")
+
+        val list = current as? Value.ListOf
+            ?: return refusal(step, "target names a ${current::class.simpleName}, not a list")
+
+        val refused = runCatching { env.state.set(id, Value.ListOf(list.items + value)) }.exceptionOrNull()
+        if (refused != null) return refusal(step, "could not be written: ${refused.message}")
+
+        return ActionOutcome.Done
+    }
+}
+
+/**
+ * `list.remove`: takes every occurrence of one value out of the list its target names.
+ *
+ * Every occurrence, because the generated form of this action is `state.items - value` and
+ * Kotlin's minus for lists removes them all — an interpreter that kept the later copies would
+ * run differently from the file it claims to run like. A removal that touches nothing is done,
+ * not failed: the list already is what the step asks it to be.
+ */
+private class RemoveState(private val evaluator: Evaluator) : ActionHandler {
+
+    override suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome {
+        val id = step.args[targetArgument]?.stateIdOrNull()
+            ?: return refusal(step, "has no state target to remove from")
+
+        val written = step.args[valueArgument]
+            ?: return refusal(step, "has no '$valueArgument' argument")
+
+        val value = written.valueOrNull(evaluator, env.scope)
+            ?: return refusal(step, "argument '$valueArgument' produces no value")
+
+        val current = runCatching { evaluator.evalUnchecked(Expr.Ref(RefTarget.State(id)), env.scope) }
+            .getOrNull()
+            ?: return refusal(step, "target names a state that produces no value")
+
+        val list = current as? Value.ListOf
+            ?: return refusal(step, "target names a ${current::class.simpleName}, not a list")
+
+        val refused = runCatching {
+            env.state.set(id, Value.ListOf(list.items.filter { it != value }))
+        }.exceptionOrNull()
+        if (refused != null) return refusal(step, "could not be written: ${refused.message}")
+
+        return ActionOutcome.Done
+    }
+}
+
+/**
+ * `ui.showDialog`: hands the step's title and message to the host and is done.
+ *
+ * The same reading `ShowSnackbar` makes of its one message: both strings are evaluated, and a
+ * host that shows nothing answers `Done` rather than failing — the environment carrying no
+ * presentation is the environment's answer, not the step's fault.
+ */
+private class ShowDialog(private val evaluator: Evaluator) : ActionHandler {
+
+    override suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome {
+        val title = step.args[titleArgument]?.strOrNull(evaluator, env.scope)
+            ?: return refusal(step, "has no '$titleArgument' argument, or it is not a string")
+        val message = step.args[messageArgument]?.strOrNull(evaluator, env.scope)
+            ?: return refusal(step, "has no '$messageArgument' argument, or it is not a string")
+
+        env.dialogs.show(title, message)
+        return ActionOutcome.Done
+    }
+}
+
+/** `ui.showBottomSheet`, the sheet form of `ui.showDialog` against the same slot. */
+private class ShowSheet(private val evaluator: Evaluator) : ActionHandler {
+
+    override suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome {
+        val title = step.args[titleArgument]?.strOrNull(evaluator, env.scope)
+            ?: return refusal(step, "has no '$titleArgument' argument, or it is not a string")
+        val message = step.args[messageArgument]?.strOrNull(evaluator, env.scope)
+            ?: return refusal(step, "has no '$messageArgument' argument, or it is not a string")
+
+        env.dialogs.showSheet(title, message)
+        return ActionOutcome.Done
+    }
+}
+
+/**
  * The state a target argument names, or null when it names none.
  *
  * A constant cannot name one: a document constant is one of the four reference kinds and none of
@@ -270,6 +408,10 @@ private fun PropertyValue.valueOrNull(evaluator: Evaluator, scope: EvalScope): V
     is PropertyValue.Const -> constantOrNull()
     is PropertyValue.Computed -> constantOrNull() ?: runCatching { evaluator.evalUnchecked(expr, scope) }.getOrNull()
 }
+
+/** A string an argument produces, or null when it produces nothing or something else. */
+private fun PropertyValue.strOrNull(evaluator: Evaluator, scope: EvalScope): String? =
+    (valueOrNull(evaluator, scope) as? Value.Str)?.v
 
 /** The refusal every failure here is, naming the action because a step carries no node id. */
 private fun refusal(step: ActionStep, reason: String): ActionOutcome.Failed =

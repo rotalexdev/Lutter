@@ -64,6 +64,7 @@ class ActionEmitterTest {
     private val nameKey: PropertyKey = PropertyKey("name")
     private val argsKey: PropertyKey = PropertyKey("args")
     private val messageKey: PropertyKey = PropertyKey("message")
+    private val titleKey: PropertyKey = PropertyKey("title")
     private val eventKey: PropertyKey = PropertyKey("event")
     private val thenArm: BranchName = BranchName("then")
     private val elseArm: BranchName = BranchName("else")
@@ -136,6 +137,81 @@ class ActionEmitterTest {
         )
 
         assertEquals("snackbars.show(\"Saved\")", body(sequenceOf(step)))
+    }
+
+    @Test
+    fun `a toggle step emits the negated read as the write`() {
+        val step = ActionStep(
+            action = ActionId("state.toggle"),
+            args = mapOf(targetKey to PropertyValue.Computed(Expr.Ref(RefTarget.State(count)))),
+        )
+
+        assertEquals("state.count = !state.count", body(sequenceOf(step)))
+    }
+
+    @Test
+    fun `an append step emits collection plus`() {
+        val step = ActionStep(
+            action = ActionId("list.append"),
+            args = mapOf(
+                targetKey to PropertyValue.Computed(Expr.Ref(RefTarget.State(count))),
+                valueKey to PropertyValue.Const(Value.Str("row")),
+            ),
+        )
+
+        assertEquals("state.count = state.count + \"row\"", body(sequenceOf(step)))
+    }
+
+    @Test
+    fun `a remove step emits collection minus`() {
+        val step = ActionStep(
+            action = ActionId("list.remove"),
+            args = mapOf(
+                targetKey to PropertyValue.Computed(Expr.Ref(RefTarget.State(count))),
+                valueKey to PropertyValue.Const(Value.Str("row")),
+            ),
+        )
+
+        assertEquals("state.count = state.count - \"row\"", body(sequenceOf(step)))
+    }
+
+    @Test
+    fun `a dialog step hands its title and message to the presentation host`() {
+        val step = ActionStep(
+            action = ActionId("ui.showDialog"),
+            args = mapOf(
+                titleKey to PropertyValue.Const(Value.Str("Save")),
+                messageKey to PropertyValue.Const(Value.Str("Are you sure")),
+            ),
+        )
+
+        assertEquals("dialogs.show(\"Save\", \"Are you sure\")", body(sequenceOf(step)))
+    }
+
+    @Test
+    fun `a sheet step hands its title and message to the same presentation host`() {
+        val step = ActionStep(
+            action = ActionId("ui.showBottomSheet"),
+            args = mapOf(
+                titleKey to PropertyValue.Const(Value.Str("Save")),
+                messageKey to PropertyValue.Const(Value.Str("Are you sure")),
+            ),
+        )
+
+        assertEquals("dialogs.showSheet(\"Save\", \"Are you sure\")", body(sequenceOf(step)))
+    }
+
+    @Test
+    fun `a dialog step with no title is refused before anything is emitted`() {
+        val step = ActionStep(
+            action = ActionId("ui.showDialog"),
+            args = mapOf(messageKey to PropertyValue.Const(Value.Str("Are you sure"))),
+        )
+
+        assertEquals(
+            listOf("action.arg_invalid"),
+            refusals(sequenceOf(step)).map { it.code.value },
+        )
     }
 
     @Test
@@ -481,8 +557,58 @@ class ActionEmitterTest {
         emit = ActionEmit.Intrinsic,
     )
 
+    private val toggle: ActionSpec = ActionSpec(
+        id = ActionId("state.toggle"),
+        metadata = ActionMetadata("Toggle state"),
+        params = emptyList(),
+        argRules = listOf(ArgRule(targetKey, ArgShape.StateRef, required = true)),
+        emit = ActionEmit.Intrinsic,
+    )
+
+    private val append: ActionSpec = ActionSpec(
+        id = ActionId("list.append"),
+        metadata = ActionMetadata("Append to list"),
+        params = emptyList(),
+        argRules = listOf(
+            ArgRule(targetKey, ArgShape.StateRef, required = true),
+            ArgRule(valueKey, ArgShape.TargetValue, required = true),
+        ),
+        emit = ActionEmit.Intrinsic,
+    )
+
+    private val remove: ActionSpec = ActionSpec(
+        id = ActionId("list.remove"),
+        metadata = ActionMetadata("Remove from list"),
+        params = emptyList(),
+        argRules = listOf(
+            ArgRule(targetKey, ArgShape.StateRef, required = true),
+            ArgRule(valueKey, ArgShape.TargetValue, required = true),
+        ),
+        emit = ActionEmit.Intrinsic,
+    )
+
+    private val showDialog: ActionSpec = ActionSpec(
+        id = ActionId("ui.showDialog"),
+        metadata = ActionMetadata("Show dialog"),
+        params = listOf(
+            prop<String>("title", TypeRef.Str, required = true),
+            prop<String>("message", TypeRef.Str, required = true),
+        ),
+        emit = ActionEmit.Intrinsic,
+    )
+
+    private val showSheet: ActionSpec = ActionSpec(
+        id = ActionId("ui.showBottomSheet"),
+        metadata = ActionMetadata("Show bottom sheet"),
+        params = listOf(
+            prop<String>("title", TypeRef.Str, required = true),
+            prop<String>("message", TypeRef.Str, required = true),
+        ),
+        emit = ActionEmit.Intrinsic,
+    )
+
     private val intrinsic: List<ActionSpec> =
-        listOf(navigate, back, setState, conditional, callHost, showSnackbar)
+        listOf(navigate, back, setState, conditional, callHost, showSnackbar, toggle, append, remove, showDialog, showSheet)
 
     /** An action the engine has no emitter for: the shape a spec gets wrong, not a document. */
     private val goto: ActionSpec = ActionSpec(
