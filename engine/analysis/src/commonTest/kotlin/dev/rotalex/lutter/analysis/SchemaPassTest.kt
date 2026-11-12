@@ -9,6 +9,7 @@ import dev.rotalex.lutter.model.doc.ResourceSource
 import dev.rotalex.lutter.model.doc.ResourceVariant
 import dev.rotalex.lutter.model.dsl.PageScope
 import dev.rotalex.lutter.model.expr.Expr
+import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.ResourceId
 import dev.rotalex.lutter.model.ids.TypeId
@@ -16,13 +17,16 @@ import dev.rotalex.lutter.model.type.RefKind
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.Schema
+import dev.rotalex.lutter.schema.action.ActionSpec
 import dev.rotalex.lutter.schema.component.Category
-import dev.rotalex.lutter.schema.component.ComponentType
+import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.ValueEmit
 import dev.rotalex.lutter.schema.component.component
 import dev.rotalex.lutter.schema.component.componentSpec
-import dev.rotalex.lutter.schema.component.prop
+import dev.rotalex.lutter.schema.component.prop as schemaProp
+import dev.rotalex.lutter.schema.function.FunctionSpec
+import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import dev.rotalex.lutter.schema.types.IconSet
 import dev.rotalex.lutter.schema.types.TypeSpec
 import kotlin.test.Test
@@ -382,18 +386,19 @@ class SchemaPassTest {
     fun `an icon in the registered set is accepted and a stranger is refused`() {
         // §10:796: the (set, name) pair resolves through the schema's icon registry — the
         // case-shaped lookup no text pattern can spell, so the registry is the whole check.
-        val setProp = prop<String>("set", TypeRef.Str, required = true)
-        val nameProp = prop<String>("name", TypeRef.Str, required = true)
+        val setProp = schemaProp<String>("set", TypeRef.Str, required = true)
+        val nameProp = schemaProp<String>("name", TypeRef.Str, required = true)
         val iconType = ComponentType("test.Icon")
-        val iconSchema = Schema.build {
-            iconSet(
-                IconSet(
-                    "material",
-                    mapOf("Home" to KotlinSymbol("androidx.compose.material.icons.filled", "Home")),
-                ),
-            )
-            component(
-                componentSpec(iconType, 1) {
+        val iconSchema =
+            Schema.build<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec> {
+                iconSet(
+                    IconSet(
+                        "material",
+                        mapOf("Home" to KotlinSymbol("androidx.compose.material.icons.filled", "Home")),
+                    ),
+                )
+                component(
+                    componentSpec(iconType, 1) {
                     metadata("Icon", Category.Basic)
                     property(setProp)
                     property(nameProp)
@@ -433,19 +438,20 @@ class SchemaPassTest {
     fun `a resource reference whose kind disagrees with its property is refused`() {
         // §10:795's resource row: a resource-typed property takes a resource reference only
         // when the reference's kind is the one the spec declared; a matching one just passes.
-        val titleProp = prop<String>("title", TypeRef.Str, required = true, resourceKind = ResourceKind.String)
+        val titleProp = schemaProp<String>("title", TypeRef.Str, required = true, resourceKind = ResourceKind.String)
         val bannerType = ComponentType("test.Banner")
-        val bannerSchema = Schema.build {
-            component(
-                componentSpec(bannerType, 1) {
-                    metadata("Banner", Category.Basic)
-                    property(titleProp)
-                    composeCall(KotlinSymbol("test", "Banner")) {
-                        param("title", from = titleProp)
-                    }
-                },
-            )
-        }
+        val bannerSchema =
+            Schema.build<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec> {
+                component(
+                    componentSpec(bannerType, 1) {
+                        metadata("Banner", Category.Basic)
+                        property(titleProp)
+                        composeCall(KotlinSymbol("test", "Banner")) {
+                            param("title", from = titleProp)
+                        }
+                    },
+                )
+            }
         val bannerAnalyzer = Analyzer(bannerSchema)
         val resources = mapOf(
             ResourceId("r_welcome") to ResourceDecl(
