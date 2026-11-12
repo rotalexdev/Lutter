@@ -315,12 +315,17 @@ public final class dev/rotalex/lutter/builtins/actions/NavActions {
 public final class dev/rotalex/lutter/builtins/actions/StateActions {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/actions/StateActions;
 	public final fun getAll ()Ljava/util/List;
+	public final fun getAppend ()Ldev/rotalex/lutter/schema/action/ActionSpec;
+	public final fun getRemove ()Ldev/rotalex/lutter/schema/action/ActionSpec;
 	public final fun getSet ()Ldev/rotalex/lutter/schema/action/ActionSpec;
+	public final fun getToggle ()Ldev/rotalex/lutter/schema/action/ActionSpec;
 }
 
 public final class dev/rotalex/lutter/builtins/actions/UiActions {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/actions/UiActions;
 	public final fun getAll ()Ljava/util/List;
+	public final fun getShowBottomSheet ()Ldev/rotalex/lutter/schema/action/ActionSpec;
+	public final fun getShowDialog ()Ldev/rotalex/lutter/schema/action/ActionSpec;
 	public final fun getShowSnackbar ()Ldev/rotalex/lutter/schema/action/ActionSpec;
 }
 

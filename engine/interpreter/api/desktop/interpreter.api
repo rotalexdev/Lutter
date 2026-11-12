@@ -114,6 +114,8 @@ public final class dev/rotalex/lutter/interpreter/env/Destination {
 
 public abstract interface class dev/rotalex/lutter/interpreter/env/DialogHost {
 	public static final field Companion Ldev/rotalex/lutter/interpreter/env/DialogHost$Companion;
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
 }
 
 public final class dev/rotalex/lutter/interpreter/env/DialogHost$Companion {
