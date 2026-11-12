@@ -587,7 +587,7 @@ class ActionEmitterTest {
         params = emptyList(),
         argRules = listOf(
             ArgRule(targetKey, ArgShape.StateRef, required = true),
-            ArgRule(valueKey, ArgShape.TargetValue, required = true),
+            ArgRule(valueKey, ArgShape.ElementValue, required = true),
         ),
         emit = ActionEmit.Intrinsic,
     )
@@ -598,7 +598,7 @@ class ActionEmitterTest {
         params = emptyList(),
         argRules = listOf(
             ArgRule(targetKey, ArgShape.StateRef, required = true),
-            ArgRule(valueKey, ArgShape.TargetValue, required = true),
+            ArgRule(valueKey, ArgShape.ElementValue, required = true),
         ),
         emit = ActionEmit.Intrinsic,
     )

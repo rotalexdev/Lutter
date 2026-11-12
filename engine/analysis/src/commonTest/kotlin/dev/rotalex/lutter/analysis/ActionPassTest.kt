@@ -348,6 +348,35 @@ class ActionPassTest {
         assertEquals("value", finding.args["property"])
     }
 
+    // ---------------------------------------------------------------------------------
+    // action.state_not_list
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun `an append to a state that is not a list reports state not list`() {
+        val finding = findingOf(
+            DiagnosticCodes.ActionStateNotList,
+            fieldWith(listOf(count, items)) { handler(append(count.id, constOf(Value.Str("gen")))) },
+        )
+
+        assertEquals("s_count", finding.args["state"])
+    }
+
+    @Test
+    fun `an element the list's own element type does not accept reports prop type mismatch`() {
+        val finding = findingOf(
+            DiagnosticCodes.PropTypeMismatch,
+            fieldWith(listOf(items)) { handler(append(items.id, constOf(Value.Int32(7)))) },
+        )
+
+        assertEquals("value", finding.args["property"])
+    }
+
+    @Test
+    fun `an element of the list's element type is accepted`() {
+        assertClean(fieldWith(listOf(items)) { handler(append(items.id, constOf(Value.Str("gen")))) })
+    }
+
     @Test
     fun `a write to a state no declaration holds reports ref dangling`() {
         val finding = findingOf(
@@ -622,6 +651,10 @@ class ActionPassTest {
     private fun write(target: StateId, value: PropertyValue): ActionStep =
         stateSet(mapOf(TargetKey to stateRead(target), ValueKey to value))
 
+    /** `list.append` with [value] into the list [target] names. */
+    private fun append(target: StateId, value: PropertyValue): ActionStep =
+        step("list.append", args = mapOf(TargetKey to stateRead(target), ValueKey to value))
+
     /** The computed read a target argument is written as, which is what names a state. */
     private fun stateRead(id: StateId): PropertyValue = PropertyValue.Computed(Expr.Ref(RefTarget.State(id)))
 
@@ -690,6 +723,7 @@ class ActionPassTest {
         assertTrue(codes.none { it == DiagnosticCodes.ActionUnknown.value }, "got $codes")
         assertTrue(codes.none { it == DiagnosticCodes.ActionArgInvalid.value }, "got $codes")
         assertTrue(codes.none { it == DiagnosticCodes.ActionStateNotWritable.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ActionStateNotList.value }, "got $codes")
         assertTrue(codes.none { it == DiagnosticCodes.NavArgsMismatch.value }, "got $codes")
     }
 
@@ -714,6 +748,14 @@ class ActionPassTest {
         val doubled: StateDecl = StateDecl(
             DOUBLED, "doubled", TypeRef.Int32,
             derived = Expr.Binary(BinaryOp.Add, Expr.Ref(RefTarget.State(COUNT)), Expr.Const(Value.Int32(1))),
+        )
+
+        /** A held list, so the two element rules have a legal target and an illegal one beside it. */
+        val ITEMS: StateId = StateId("s_items")
+
+        val items: StateDecl = StateDecl(
+            ITEMS, "items", TypeRef.ListOf(TypeRef.Str),
+            Value.ListOf(listOf(Value.Str("gen"))),
         )
     }
 }

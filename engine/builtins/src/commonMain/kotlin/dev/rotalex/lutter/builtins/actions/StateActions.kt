@@ -70,7 +70,7 @@ public object StateActions {
         params = emptyList(),
         argRules = listOf(
             ArgRule(PropertyKey("target"), ArgShape.StateRef, required = true, doc = "The list state to grow"),
-            ArgRule(PropertyKey("value"), ArgShape.TargetValue, required = true, doc = "What to add at the end"),
+            ArgRule(PropertyKey("value"), ArgShape.ElementValue, required = true, doc = "What to add at the end"),
         ),
         emit = ActionEmit.Intrinsic,
     )
@@ -90,7 +90,7 @@ public object StateActions {
         params = emptyList(),
         argRules = listOf(
             ArgRule(PropertyKey("target"), ArgShape.StateRef, required = true, doc = "The list state to shrink"),
-            ArgRule(PropertyKey("value"), ArgShape.TargetValue, required = true, doc = "What to take out"),
+            ArgRule(PropertyKey("value"), ArgShape.ElementValue, required = true, doc = "What to take out"),
         ),
         emit = ActionEmit.Intrinsic,
     )

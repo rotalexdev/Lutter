@@ -405,14 +405,14 @@ public class ActionEmitter(
     /** `state.items = state.items + value`, Kotlin's own collection-plus for one element. */
     private fun appendState(step: ActionStep, spec: ActionSpec, at: DiagnosticLocation): Emitted? {
         val target: KtExpr = stateArgument(step, spec, ArgShape.StateRef, at) ?: return null
-        val value: KtExpr = stateArgument(step, spec, ArgShape.TargetValue, at) ?: return null
+        val value: KtExpr = stateArgument(step, spec, ArgShape.ElementValue, at) ?: return null
         return Emitted(KtStmt.Assign(target, KtExpr.Binary(KtOp.Add, target, value)))
     }
 
     /** `state.items = state.items - value`: Kotlin's minus for lists, which takes every occurrence. */
     private fun removeState(step: ActionStep, spec: ActionSpec, at: DiagnosticLocation): Emitted? {
         val target: KtExpr = stateArgument(step, spec, ArgShape.StateRef, at) ?: return null
-        val value: KtExpr = stateArgument(step, spec, ArgShape.TargetValue, at) ?: return null
+        val value: KtExpr = stateArgument(step, spec, ArgShape.ElementValue, at) ?: return null
         return Emitted(KtStmt.Assign(target, KtExpr.Binary(KtOp.Sub, target, value)))
     }
 
@@ -622,6 +622,7 @@ public class ActionEmitter(
     private fun shapeName(shape: ArgShape): String = when (shape) {
         ArgShape.StateRef -> "target"
         ArgShape.TargetValue -> "value"
+        ArgShape.ElementValue -> "value"
         is ArgShape.Positional -> "positional"
     }
 
