@@ -65,6 +65,16 @@ class LayoutFixtureTest {
     }
 
     @Test
+    fun `a lazy column iterates its state list and binds the item`() {
+        // The end-to-end pin: the state list is the `items(...)` argument, the child's item read
+        // spells the loop variable, and the renderer's own `items(elements)` draws the frames.
+        val (_, screen) = proofOf("lazy_list")
+
+        assertTrue(screen.contains("items(teams) { item ->"), screen)
+        assertTrue(screen.contains("Text(item)"), screen)
+    }
+
+    @Test
     fun `a weight outside a row is refused rather than generated`() {
         val result = analyze(WEIGHT_OUTSIDE_ROW)
 

@@ -904,13 +904,20 @@ public class DocumentGenerator(
      * against the same tree. A property typed `TypeRef.Object` or `TypeRef.Icon` has no
      * expression form the checker settles without a registry, and a generator that guessed would
      * produce `expr.type_mismatch` on a shape it believed was fine.
+     *
+     * A required list always prefers its expression form when one exists: a bound list is what
+     * an iterating slot can spell, and a constant list is the pin codegen refuses there — the
+     * corpus documents a lazy list through the binding it was designed for, never through a
+     * literal the generated file cannot carry.
      */
     private fun propertyValueFor(
         property: PropertySpec<*>,
         scope: Scope,
         bounds: NumberBounds?,
     ): PropertyValue? {
-        if (property.required && random.nextInt(100) < COMPUTED_PROPERTY_PERCENT) {
+        val wantsComputed = property.required &&
+            (property.type is TypeRef.ListOf || random.nextInt(100) < COMPUTED_PROPERTY_PERCENT)
+        if (wantsComputed) {
             val computed = computedFor(property.type, scope)
             if (computed != null) {
                 computedProperties += 1
