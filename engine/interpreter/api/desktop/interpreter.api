@@ -8,6 +8,11 @@ public final class dev/rotalex/lutter/interpreter/EventArgScope : dev/rotalex/lu
 	public fun read (Ldev/rotalex/lutter/model/expr/RefTarget;)Ldev/rotalex/lutter/model/value/Value;
 }
 
+public final class dev/rotalex/lutter/interpreter/ItemScope : dev/rotalex/lutter/interpreter/EvalScope {
+	public fun <init> (Ldev/rotalex/lutter/interpreter/EvalScope;Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value;)V
+	public fun read (Ldev/rotalex/lutter/model/expr/RefTarget;)Ldev/rotalex/lutter/model/value/Value;
+}
+
 public final class dev/rotalex/lutter/interpreter/MapEvalScope : dev/rotalex/lutter/interpreter/EvalScope {
 	public fun <init> (Ldev/rotalex/lutter/interpreter/StateStore;Ljava/util/Map;)V
 	public synthetic fun <init> (Ldev/rotalex/lutter/interpreter/StateStore;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V

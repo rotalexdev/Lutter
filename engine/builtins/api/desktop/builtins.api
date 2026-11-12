@@ -169,6 +169,28 @@ public final class dev/rotalex/lutter/builtins/LayoutScopes {
 	public final fun getRow-ZWv5sfE ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/builtins/LazyColumnSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/LazyColumnSpec;
+	public final fun getArrangementId-7JNyzJc ()Ljava/lang/String;
+	public final fun getChildren ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getItems ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getIteration ()Ldev/rotalex/lutter/schema/component/IterationSpec;
+	public final fun getSpacing ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+	public final fun getVerticalArrangement ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+}
+
+public final class dev/rotalex/lutter/builtins/LazyRowSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/LazyRowSpec;
+	public final fun getArrangementId-7JNyzJc ()Ljava/lang/String;
+	public final fun getChildren ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getHorizontalArrangement ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getItems ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getIteration ()Ldev/rotalex/lutter/schema/component/IterationSpec;
+	public final fun getSpacing ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
 public final class dev/rotalex/lutter/builtins/MaterialIconSet {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/MaterialIconSet;
 	public static final field NAME Ljava/lang/String;
