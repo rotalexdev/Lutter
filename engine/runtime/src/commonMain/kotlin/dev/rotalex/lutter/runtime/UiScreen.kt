@@ -17,6 +17,7 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
 import dev.rotalex.lutter.analysis.resolved.materialRoleOf
 import dev.rotalex.lutter.interpreter.EvalScope
+import dev.rotalex.lutter.interpreter.ItemScope
 import dev.rotalex.lutter.interpreter.RuntimeDiagnostic
 import dev.rotalex.lutter.interpreter.action.ActionEnv
 import dev.rotalex.lutter.interpreter.constantOrNull
