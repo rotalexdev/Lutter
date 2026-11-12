@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.builtins.LazyColumnSpec
+import dev.rotalex.lutter.builtins.LazyRowSpec
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.component.PropertySpec
 import dev.rotalex.lutter.runtime.ComponentRenderer
