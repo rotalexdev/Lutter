@@ -47,6 +47,8 @@ public fun RendererRegistryBuilder.registerBuiltinRenderers(): Unit {
     register(SliderSpec.spec.type, SliderRenderer)
     register(FlowRowSpec.spec.type, FlowRowRenderer)
     register(FlowColumnSpec.spec.type, FlowColumnRenderer)
+    register(LazyColumnSpec.spec.type, LazyColumnRenderer)
+    register(LazyRowSpec.spec.type, LazyRowRenderer)
     register(CardSpec.spec.type, CardRenderer)
     register(SlotOutletSpec.spec.type, SlotOutletRenderer)
 }
