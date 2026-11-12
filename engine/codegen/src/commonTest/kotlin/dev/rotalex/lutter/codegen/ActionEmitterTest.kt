@@ -185,7 +185,15 @@ class ActionEmitterTest {
             ),
         )
 
-        assertEquals("dialogs.show(\"Save\", \"Are you sure\")", body(sequenceOf(step)))
+        assertEquals(
+            """
+            dialogs.show(
+                "Save",
+                "Are you sure",
+            )
+            """.trimIndent(),
+            body(sequenceOf(step)),
+        )
     }
 
     @Test
@@ -198,7 +206,15 @@ class ActionEmitterTest {
             ),
         )
 
-        assertEquals("dialogs.showSheet(\"Save\", \"Are you sure\")", body(sequenceOf(step)))
+        assertEquals(
+            """
+            dialogs.showSheet(
+                "Save",
+                "Are you sure",
+            )
+            """.trimIndent(),
+            body(sequenceOf(step)),
+        )
     }
 
     @Test
