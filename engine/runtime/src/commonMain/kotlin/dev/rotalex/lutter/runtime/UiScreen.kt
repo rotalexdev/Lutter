@@ -178,6 +178,17 @@ internal class ExpressionSource(
     /** The same evaluator with [params] bound on top — one component instance's inputs. */
     fun withParams(params: Map<ParamName, Value>): ExpressionSource =
         ExpressionSource(evaluator, InstanceScope(scope, params))
+
+    /**
+     * The same evaluator inside one item frame — an iterating slot's children for one element.
+     *
+     * The frame is the wrap, not a rebuild: state, params and event arguments are the screen's
+     * own answer and only the frame's variable is bound here, which is why [ItemScope] wraps
+     * rather than carrying one more map. A render per element costs one wrap, so a list of
+     * strings reuses the same [Evaluator] and the reads it already answers.
+     */
+    fun withItem(name: String, item: Value): ExpressionSource =
+        ExpressionSource(evaluator, ItemScope(scope, name, item))
 }
 
 /**
@@ -411,6 +422,10 @@ internal class DefaultRenderScope(
     @Composable
     override fun withScope(handle: ScopeHandle, content: @Composable RenderScope.() -> Unit): Unit =
         content(copy(handle = handle))
+
+    @Composable
+    override fun withItem(itemName: String, item: Value, content: @Composable RenderScope.() -> Unit): Unit =
+        content(copy(expressions = expressions.withItem(itemName, item)))
 
     @Composable
     override fun RenderInstance(node: ResolvedNode): Unit {

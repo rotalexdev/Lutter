@@ -104,11 +104,11 @@ class ScreenEvalScopeTest {
     }
 
     @Test
-    fun `an iteration variable refuses as post-MVP`() {
+    fun `an item ref refuses outside an iterating slot's children`() {
         val failure = assertFailsWith<IllegalStateException> {
             scopeOf().read(RefTarget.Item("item"))
         }
-        assertTrue(failure.message?.contains("post-MVP") == true, failure.message)
+        assertTrue(failure.message?.contains("Iteration variable 'item'") == true, failure.message)
     }
 
     @Test
