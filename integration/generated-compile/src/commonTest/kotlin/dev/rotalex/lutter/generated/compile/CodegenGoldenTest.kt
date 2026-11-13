@@ -462,6 +462,8 @@ class CodegenGoldenTest {
             "text_state_ref",
             "surface_basic",
             "box_with_constraints_basic",
+            "dialog_basic",
+            "bottom_sheet_basic",
         )
     }
 }

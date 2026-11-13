@@ -627,6 +627,57 @@ class CodegenTest {
     }
 
     @Test
+    fun `a guarded call renders only when the guard holds`() {
+        val visible = prop<Boolean>("visible", TypeRef.Bool)
+        val open = StateId("s_open")
+        val stub: ComponentSpec = componentSpec(textType, 1) {
+            val text = prop<String>("text", TypeRef.Str, required = true)
+            metadata("Text", Category.Basic)
+            property(text)
+            property(visible)
+            composeCall(KotlinSymbol("androidx.compose.material3", "Text")) {
+                param("text", from = text, positional = Positional.WhenSole)
+                guard(visible.key)
+            }
+        }
+        val node = ResolvedNode(
+            NodeId("n_1"),
+            textType,
+            mapOf(
+                textKey to ResolvedProp(textKey, PropertyValue.Const(Value.Str("Hi")), PropOrigin.Specified, null),
+                visible.key to ResolvedProp(
+                    visible.key,
+                    PropertyValue.Computed(Expr.Ref(RefTarget.State(open))),
+                    PropOrigin.Specified,
+                    null,
+                    TypedExpr(Expr.Ref(RefTarget.State(open)), ExprType.Of(TypeRef.Bool), emptySet()),
+                ),
+            ),
+            emptyList(),
+            emptyMap(),
+            emptySet(),
+        )
+        val pages = mapOf(
+            PageId("p_home") to ResolvedPage(
+                PageId("p_home"),
+                "Home",
+                "home",
+                node,
+                listOf(ResolvedState(StateDecl(open, "open", TypeRef.Bool, Value.Bool(false)), null)),
+            ),
+        )
+        val result = KotlinGenerator(
+            Schema.build<ComponentSpec, ModifierSpec, String, FunctionSpec, String> { component(stub) },
+            CodegenOptions("com.example.app"),
+        ).generate(ResolvedDocument(pages, emptyMap(), indexOf(pages), ResolvedTheme(null)))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = homeScreenOf(result)
+        assertTrue(screen.contains("if (state.open)"), screen)
+        assertTrue(screen.contains("Text(\"Hi\")"), screen)
+    }
+
+    @Test
     fun `every page becomes a route of its own`() {
         val nav = contentOf(
             eventResult(iconButtonNode(navigateStep()), iconButtonStub()),
