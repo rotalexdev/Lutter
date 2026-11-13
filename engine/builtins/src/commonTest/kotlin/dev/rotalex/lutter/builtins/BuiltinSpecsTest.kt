@@ -153,7 +153,7 @@ class BuiltinSpecsTest {
             listOf(PropertyKey("color"), PropertyKey("tonalElevation"), PropertyKey("shadowElevation")),
             SurfaceSpec.spec.properties.map { it.key },
         )
-        assertEquals(Cardinality.One, SurfaceSpec.content.cardinality)
+        assertEquals(Cardinality.ExactlyOne, SurfaceSpec.content.cardinality)
         assertEquals(emptySet(), SurfaceSpec.content.provides)
 
         val call = assertIs<CodegenBinding.ComposeCall>(SurfaceSpec.spec.codegen)
