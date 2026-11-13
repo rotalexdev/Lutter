@@ -568,6 +568,38 @@ class CodegenTest {
     }
 
     @Test
+    fun `a theme default emits its parameter, which Compose does not carry`() {
+        // The omit rule keys off the spec default only: the generated app holds Compose's
+        // defaults, not the theme's, so a §14.2 default must reach the call.
+        val spacing = PropertyKey("spacing")
+        val root = columnNode(
+            "n_1",
+            mapOf(spacing to ResolvedProp(spacing, PropertyValue.Const(Value.Dp(12f)), PropOrigin.Theme, null)),
+            listOf(textNode("n_2", "Hi")),
+        )
+        val result = generate(homeDocument(root))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        assertTrue(contentOf(result, "screens/HomeScreen.kt").contains("spacing = "), "emitted without the theme default")
+    }
+
+    @Test
+    fun `a spec default still omits its parameter, which Compose carries`() {
+        val spacing = PropertyKey("spacing")
+        val root = columnNode(
+            "n_1",
+            mapOf(spacing to ResolvedProp(spacing, PropertyValue.Const(Value.Dp(12f)), PropOrigin.Default, null)),
+            listOf(textNode("n_2", "Hi")),
+        )
+        val result = generate(homeDocument(root))
+
+        assertTrue(
+            !contentOf(result, "screens/HomeScreen.kt").contains("spacing"),
+            "a spec default reached the call",
+        )
+    }
+
+    @Test
     fun `every page becomes a route of its own`() {
         val nav = contentOf(
             eventResult(iconButtonNode(navigateStep()), iconButtonStub()),
