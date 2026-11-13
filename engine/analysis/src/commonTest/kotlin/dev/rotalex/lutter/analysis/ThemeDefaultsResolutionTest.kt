@@ -25,11 +25,11 @@ class ThemeDefaultsResolutionTest {
     @Test
     fun `a theme default lands when the node names nothing`() {
         val resolved = resolvedOf(
-            themedDocument {
+            themedDocument(themeBlock = {
                 componentDefaults(ComponentType("core.Column")) {
                     prop("axis", Value.Str("vertical"))
                 }
-            },
+            })
         )
 
         val root = assertNotNull(resolved.pages[pageId]).root
@@ -41,11 +41,11 @@ class ThemeDefaultsResolutionTest {
     @Test
     fun `a theme default beats the spec default`() {
         val resolved = resolvedOf(
-            themedDocument {
+            themedDocument(themeBlock = {
                 componentDefaults(ComponentType("core.Column")) {
                     prop("spacing", Value.Dp(12f))
                 }
-            },
+            })
         )
 
         val root = assertNotNull(resolved.pages[pageId]).root
@@ -57,11 +57,11 @@ class ThemeDefaultsResolutionTest {
     @Test
     fun `an explicit value beats a theme default`() {
         val resolved = resolvedOf(
-            themedDocument {
+            themedDocument(themeBlock = {
                 componentDefaults(ComponentType("core.Column")) {
                     prop("spacing", Value.Dp(12f))
                 }
-            },
+            })
         ) {
             node(ColumnType) {
                 prop("spacing", Value.Dp(4f))
@@ -77,11 +77,11 @@ class ThemeDefaultsResolutionTest {
     @Test
     fun `a prop the theme does not default falls to the spec default`() {
         val resolved = resolvedOf(
-            themedDocument {
+            themedDocument(themeBlock = {
                 componentDefaults(ComponentType("core.Column")) {
                     prop("axis", Value.Str("vertical"))
                 }
-            },
+            })
         )
 
         val root = assertNotNull(resolved.pages[pageId]).root

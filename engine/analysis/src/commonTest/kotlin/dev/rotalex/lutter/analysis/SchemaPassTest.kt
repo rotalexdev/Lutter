@@ -510,33 +510,33 @@ class SchemaPassTest {
 
     @Test
     fun `a default naming an unregistered component reports theme component unknown`() {
-        val codes = themeCodesOf {
+        val codes = themeCodesOf(themeBlock = {
             componentDefaults("m3.Ghost") {
                 prop("spacing", Value.Dp(4f))
             }
-        }
+        })
 
         assertTrue(codes.contains(DiagnosticCodes.ThemeComponentUnknown.value), "got $codes")
     }
 
     @Test
     fun `a default naming an undeclared property reports theme default unknown`() {
-        val codes = themeCodesOf {
+        val codes = themeCodesOf(themeBlock = {
             componentDefaults("core.Column") {
                 prop("nope", Value.Dp(4f))
             }
-        }
+        })
 
         assertTrue(codes.contains(DiagnosticCodes.ThemeDefaultUnknown.value), "got $codes")
     }
 
     @Test
     fun `a default of the wrong type reports theme default type mismatch`() {
-        val codes = themeCodesOf {
+        val codes = themeCodesOf(themeBlock = {
             componentDefaults("core.Column") {
                 prop("spacing", Value.Str("big"))
             }
-        }
+        })
 
         assertTrue(codes.contains(DiagnosticCodes.ThemeDefaultTypeMismatch.value), "got $codes")
     }
@@ -544,11 +544,11 @@ class SchemaPassTest {
     @Test
     fun `a default whose value is not a constant reports theme default not const`() {
         val computed = PropertyValue.Computed(Expr.Ref(RefTarget.State(dev.rotalex.lutter.model.ids.StateId("s_x"))))
-        val document = themedDocument {
+        val document = themedDocument(themeBlock = {
             componentDefaults("core.Column") {
                 prop("spacing", Value.Dp(4f))
             }
-        }
+        })
         val withComputed = document.copy(
             themes = document.themes.mapValues { (_, theme) ->
                 theme.copy(
@@ -587,12 +587,12 @@ class SchemaPassTest {
 
     @Test
     fun `a theme default the document accepts reports nothing`() {
-        val codes = themeCodesOf {
+        val codes = themeCodesOf(themeBlock = {
             componentDefaults("core.Column") {
                 prop("spacing", Value.Dp(12f))
                 prop("axis", Value.Str("vertical"))
             }
-        }
+        })
 
         assertTrue(codes.none { it == DiagnosticCodes.ThemeComponentUnknown.value }, "got $codes")
         assertTrue(codes.none { it == DiagnosticCodes.ThemeDefaultUnknown.value }, "got $codes")
