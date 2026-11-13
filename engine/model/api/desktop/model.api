@@ -1248,6 +1248,11 @@ public final class dev/rotalex/lutter/model/doc/UiDocument$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class dev/rotalex/lutter/model/dsl/ComponentDefaultScope {
+	public final fun prop (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value;)V
+	public final fun prop-GGxHel8 (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value;)V
+}
+
 public final class dev/rotalex/lutter/model/dsl/DataModelScope {
 	public final fun field (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;)V
 	public final fun field-GGxHel8 (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;)V
@@ -1330,6 +1335,8 @@ public final class dev/rotalex/lutter/model/dsl/ThemeScope {
 	public final fun color-HHGRWCg (Ljava/lang/String;ILdev/rotalex/lutter/model/value/ColorArgb;)V
 	public static synthetic fun color-HHGRWCg$default (Ldev/rotalex/lutter/model/dsl/ThemeScope;Ljava/lang/String;ILdev/rotalex/lutter/model/value/ColorArgb;ILjava/lang/Object;)V
 	public final fun color-MjRyPNE (Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ColorSpec;)V
+	public final fun componentDefaults (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+	public final fun componentDefaults-blZ4y4I (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
 	public final fun custom (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value;)V
 	public final fun custom-7q2ymmk (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value;)V
 	public final fun dimension (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value$Dp;)V

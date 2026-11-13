@@ -34,6 +34,7 @@ public final class dev/rotalex/lutter/analysis/diagnostic/DiagnosticCodes {
 	public final fun getModifierUnknown-a0Ipk4o ()Ljava/lang/String;
 	public final fun getNameReserved-a0Ipk4o ()Ljava/lang/String;
 	public final fun getNavArgsMismatch-a0Ipk4o ()Ljava/lang/String;
+	public final fun getPropDefaultShadowed-a0Ipk4o ()Ljava/lang/String;
 	public final fun getPropEnumEntryInvalid-a0Ipk4o ()Ljava/lang/String;
 	public final fun getPropIconUnregistered-a0Ipk4o ()Ljava/lang/String;
 	public final fun getPropNotBindable-a0Ipk4o ()Ljava/lang/String;
@@ -51,6 +52,10 @@ public final class dev/rotalex/lutter/analysis/diagnostic/DiagnosticCodes {
 	public final fun getStructMissingRoot-a0Ipk4o ()Ljava/lang/String;
 	public final fun getStructMultipleParents-a0Ipk4o ()Ljava/lang/String;
 	public final fun getStructOrphan-a0Ipk4o ()Ljava/lang/String;
+	public final fun getThemeComponentUnknown-a0Ipk4o ()Ljava/lang/String;
+	public final fun getThemeDefaultNotConst-a0Ipk4o ()Ljava/lang/String;
+	public final fun getThemeDefaultTypeMismatch-a0Ipk4o ()Ljava/lang/String;
+	public final fun getThemeDefaultUnknown-a0Ipk4o ()Ljava/lang/String;
 	public final fun getTokenUnknown-a0Ipk4o ()Ljava/lang/String;
 	public final fun getValueNonFinite-a0Ipk4o ()Ljava/lang/String;
 }
@@ -58,6 +63,7 @@ public final class dev/rotalex/lutter/analysis/diagnostic/DiagnosticCodes {
 public final class dev/rotalex/lutter/analysis/resolved/PropOrigin : java/lang/Enum {
 	public static final field Default Ldev/rotalex/lutter/analysis/resolved/PropOrigin;
 	public static final field Specified Ldev/rotalex/lutter/analysis/resolved/PropOrigin;
+	public static final field Theme Ldev/rotalex/lutter/analysis/resolved/PropOrigin;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/analysis/resolved/PropOrigin;
 	public static fun values ()[Ldev/rotalex/lutter/analysis/resolved/PropOrigin;

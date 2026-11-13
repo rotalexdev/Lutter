@@ -7,9 +7,15 @@ import dev.rotalex.lutter.model.doc.ResourceDecl
 import dev.rotalex.lutter.model.doc.ResourceKind
 import dev.rotalex.lutter.model.doc.ResourceSource
 import dev.rotalex.lutter.model.doc.ResourceVariant
+import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.dsl.PageScope
+import dev.rotalex.lutter.model.dsl.ThemeScope
+import dev.rotalex.lutter.model.dsl.buildDocument
 import dev.rotalex.lutter.model.expr.Expr
+import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.expr.RefTarget
 import dev.rotalex.lutter.model.ids.ComponentType
+import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.ResourceId
 import dev.rotalex.lutter.model.ids.TypeId
@@ -480,5 +486,118 @@ class SchemaPassTest {
             bannerCodesOf(ResourceKind.Image).contains(DiagnosticCodes.ResourceKindMismatch.value),
             "got ${bannerCodesOf(ResourceKind.Image)}",
         )
+    }
+
+    // ---------------------------------------------------------------------------------
+    // theme.component_unknown / theme.default_unknown / theme.default_type_mismatch /
+    // theme.default_not_const / prop.default_shadowed — §14.2's defaults against the schema
+    // ---------------------------------------------------------------------------------
+
+    /** A document whose single theme carries [themeBlock] and whose page carries [pageBlock]. */
+    private fun themedDocument(
+        themeBlock: ThemeScope.() -> Unit,
+        pageBlock: PageScope.() -> Unit = { node(ColumnType) { slot("children", emptyList()) } },
+    ): UiDocument = buildDocument("demo") {
+        theme("t", "Light", block = themeBlock)
+        page(name = "Home", route = "home", id = PageId("p_home"), block = pageBlock)
+    }
+
+    private fun themeCodesOf(
+        themeBlock: ThemeScope.() -> Unit,
+        pageBlock: PageScope.() -> Unit = { node(ColumnType) { slot("children", emptyList()) } },
+    ): List<String> =
+        analyzer.analyze(themedDocument(themeBlock, pageBlock)).diagnostics.map { it.code.value }
+
+    @Test
+    fun `a default naming an unregistered component reports theme component unknown`() {
+        val codes = themeCodesOf(themeBlock = {
+            componentDefaults("m3.Ghost") {
+                prop("spacing", Value.Dp(4f))
+            }
+        })
+
+        assertTrue(codes.contains(DiagnosticCodes.ThemeComponentUnknown.value), "got $codes")
+    }
+
+    @Test
+    fun `a default naming an undeclared property reports theme default unknown`() {
+        val codes = themeCodesOf(themeBlock = {
+            componentDefaults("core.Column") {
+                prop("nope", Value.Dp(4f))
+            }
+        })
+
+        assertTrue(codes.contains(DiagnosticCodes.ThemeDefaultUnknown.value), "got $codes")
+    }
+
+    @Test
+    fun `a default of the wrong type reports theme default type mismatch`() {
+        val codes = themeCodesOf(themeBlock = {
+            componentDefaults("core.Column") {
+                prop("spacing", Value.Str("big"))
+            }
+        })
+
+        assertTrue(codes.contains(DiagnosticCodes.ThemeDefaultTypeMismatch.value), "got $codes")
+    }
+
+    @Test
+    fun `a default whose value is not a constant reports theme default not const`() {
+        val computed = PropertyValue.Computed(Expr.Ref(RefTarget.State(dev.rotalex.lutter.model.ids.StateId("s_x"))))
+        val document = themedDocument(themeBlock = {
+            componentDefaults("core.Column") {
+                prop("spacing", Value.Dp(4f))
+            }
+        })
+        val withComputed = document.copy(
+            themes = document.themes.mapValues { (_, theme) ->
+                theme.copy(
+                    componentDefaults = mapOf(
+                        ComponentType("core.Column") to mapOf(
+                            PropertyKey("spacing") to computed,
+                        ),
+                    ),
+                )
+            },
+        )
+
+        val codes = analyzer.analyze(withComputed).diagnostics.map { it.code.value }
+
+        assertTrue(codes.contains(DiagnosticCodes.ThemeDefaultNotConst.value), "got $codes")
+    }
+
+    @Test
+    fun `a default the document shadows reports prop default shadowed`() {
+        val codes = themeCodesOf(
+            themeBlock = {
+                componentDefaults("core.Column") {
+                    prop("spacing", Value.Dp(12f))
+                }
+            },
+            pageBlock = {
+                node(ColumnType) {
+                    prop("spacing", Value.Dp(4f))
+                    slot("children", emptyList())
+                }
+            },
+        )
+
+        assertTrue(codes.contains(DiagnosticCodes.PropDefaultShadowed.value), "got $codes")
+    }
+
+    @Test
+    fun `a theme default the document accepts reports nothing`() {
+        val codes = themeCodesOf(themeBlock = {
+            componentDefaults("core.Column") {
+                prop("spacing", Value.Dp(12f))
+                prop("axis", Value.Str("vertical"))
+            }
+        })
+
+        assertTrue(codes.none { it == DiagnosticCodes.ThemeComponentUnknown.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ThemeDefaultUnknown.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ThemeDefaultTypeMismatch.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ThemeDefaultNotConst.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.PropDefaultShadowed.value }, "got $codes")
     }
 }

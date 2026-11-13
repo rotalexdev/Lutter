@@ -567,6 +567,65 @@ class CodegenTest {
         )
     }
 
+    // `Text` with a second parameter, in its own schema: the shared one binds only the
+    // positional text, and a sibling parameter there would flip `Positional.WhenSole` for
+    // every other test — the omit rule needs a parameter the call actually binds.
+    private fun maxLinesSchema(): Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> {
+        val maxLines = prop<Int>("maxLines", TypeRef.Int32)
+        val stub: ComponentSpec = componentSpec(textType, 1) {
+            val text = prop<String>("text", TypeRef.Str, required = true)
+            metadata("Text", Category.Basic)
+            property(text)
+            property(maxLines)
+            composeCall(KotlinSymbol("androidx.compose.material3", "Text")) {
+                param("text", from = text, positional = Positional.WhenSole)
+                param("maxLines", from = maxLines)
+            }
+        }
+        return Schema.build { component(stub) }
+    }
+
+    private fun maxLinesNode(origin: PropOrigin): ResolvedNode {
+        val maxLines = PropertyKey("maxLines")
+        return ResolvedNode(
+            NodeId("n_1"),
+            textType,
+            mapOf(
+                textKey to ResolvedProp(textKey, PropertyValue.Const(Value.Str("Hi")), PropOrigin.Specified, null),
+                maxLines to ResolvedProp(maxLines, PropertyValue.Const(Value.Int32(3)), origin, null),
+            ),
+            emptyList(),
+            emptyMap(),
+            emptySet(),
+        )
+    }
+
+    @Test
+    fun `a theme default emits its parameter, which Compose does not carry`() {
+        // The omit rule keys off the spec default only: the generated app holds Compose's
+        // defaults, not the theme's, so a §14.2 default must reach the call.
+        val node = maxLinesNode(PropOrigin.Theme)
+        val pages = mapOf(PageId("p_home") to ResolvedPage(PageId("p_home"), "Home", "home", node, emptyList()))
+        val result = KotlinGenerator(maxLinesSchema(), CodegenOptions("com.example.app")).generate(
+            ResolvedDocument(pages, emptyMap(), indexOf(pages), ResolvedTheme(null)),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        assertTrue(homeScreenOf(result).contains("maxLines = 3"), homeScreenOf(result))
+    }
+
+    @Test
+    fun `a spec default still omits its parameter, which Compose carries`() {
+        val node = maxLinesNode(PropOrigin.Default)
+        val pages = mapOf(PageId("p_home") to ResolvedPage(PageId("p_home"), "Home", "home", node, emptyList()))
+        val result = KotlinGenerator(maxLinesSchema(), CodegenOptions("com.example.app")).generate(
+            ResolvedDocument(pages, emptyMap(), indexOf(pages), ResolvedTheme(null)),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        assertTrue(!homeScreenOf(result).contains("maxLines"), homeScreenOf(result))
+    }
+
     @Test
     fun `every page becomes a route of its own`() {
         val nav = contentOf(

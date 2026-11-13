@@ -10,6 +10,7 @@ import dev.rotalex.lutter.model.doc.ResourceKind
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.TypeId
@@ -42,6 +43,9 @@ internal class SchemaPass(
     override fun run(document: UiDocument): List<Diagnostic> {
         val diags = mutableListOf<Diagnostic>()
         val scopes = ScopeAnalysis.computeScopes(document) { schema.components[it] }
+        // §14.2's shadowing report needs to know what the document writes explicitly, so the
+        // node walk collects one key set per component type while it validates.
+        val explicit: LinkedHashMap<ComponentType, MutableSet<PropertyKey>> = LinkedHashMap()
         for (id in document.nodes.ids()) {
             val node = document.nodes[id] ?: continue
             val spec = schema.components[node.type]
@@ -53,13 +57,79 @@ internal class SchemaPass(
                 )
                 continue
             }
+            explicit.getOrPut(node.type) { LinkedHashSet() }.addAll(node.props.keys)
             checkProps(document, node, spec, diags)
             checkRules(node, spec, diags)
             checkIcons(node, spec, diags)
             checkSlots(document, node, spec, diags)
             checkModifiers(document, node, scopes[id] ?: emptySet(), diags)
         }
+        checkThemeDefaults(document, explicit, diags)
         return diags
+    }
+
+    /**
+     * The theme's `componentDefaults` against the schema (§14.2): a default names a component
+     * type, a property that type declares and a plain constant of that property's type. Any
+     * other spelling is theme configuration the resolver would silently ignore, which is why
+     * each one fails visibly here rather than at a node that happens to consult it. A default
+     * the document shadows is not broken, only dead — that one is a warning.
+     */
+    private fun checkThemeDefaults(
+        document: UiDocument,
+        explicit: Map<ComponentType, Set<PropertyKey>>,
+        diags: MutableList<Diagnostic>,
+    ) {
+        for ((themeId, theme) in document.themes) {
+            val location = DiagnosticLocation(path = listOf("themes", themeId.value))
+            for ((type, defaults) in theme.componentDefaults) {
+                val spec = schema.components[type]
+                if (spec == null) {
+                    diags += Diagnostic(
+                        Severity.Error, DiagnosticCodes.ThemeComponentUnknown, location,
+                        "Theme '$themeId' defaults component '${type.value}', which the schema does not register",
+                        mapOf("theme" to themeId.value, "type" to type.value),
+                    )
+                    continue
+                }
+                for ((key, value) in defaults) {
+                    val keyLocation = DiagnosticLocation(
+                        path = listOf("themes", themeId.value, type.value, key.value),
+                    )
+                    if (spec.properties.none { it.key == key }) {
+                        diags += Diagnostic(
+                            Severity.Error, DiagnosticCodes.ThemeDefaultUnknown, keyLocation,
+                            "Theme '$themeId' defaults '${key.value}', which '${type.value}' does not declare",
+                            mapOf("theme" to themeId.value, "type" to type.value, "property" to key.value),
+                        )
+                        continue
+                    }
+                    if (value !is PropertyValue.Const) {
+                        diags += Diagnostic(
+                            Severity.Error, DiagnosticCodes.ThemeDefaultNotConst, keyLocation,
+                            "Theme '$themeId' defaults '${key.value}' with an expression; a default is what the resolver writes when the document wrote nothing, so only a constant can be one",
+                            mapOf("theme" to themeId.value, "type" to type.value, "property" to key.value),
+                        )
+                    } else {
+                        val declared = spec.properties.first { it.key == key }
+                        if (!acceptsValue(declared.type, value.value)) {
+                            diags += Diagnostic(
+                                Severity.Error, DiagnosticCodes.ThemeDefaultTypeMismatch, keyLocation,
+                                "Theme '$themeId' defaults '${key.value}' with ${labelOf(value.value)} but '${type.value}' declares ${labelOf(declared.type)}",
+                                mapOf("theme" to themeId.value, "type" to type.value, "property" to key.value, "expected" to labelOf(declared.type), "found" to labelOf(value.value)),
+                            )
+                        }
+                    }
+                    if (explicit[type]?.contains(key) == true) {
+                        diags += Diagnostic(
+                            Severity.Warning, DiagnosticCodes.PropDefaultShadowed, keyLocation,
+                            "Theme '$themeId' defaults '${type.value}.${key.value}', but the document writes it explicitly — the default never reaches a node",
+                            mapOf("theme" to themeId.value, "type" to type.value, "property" to key.value),
+                        )
+                    }
+                }
+            }
+        }
     }
 
     private fun checkProps(
