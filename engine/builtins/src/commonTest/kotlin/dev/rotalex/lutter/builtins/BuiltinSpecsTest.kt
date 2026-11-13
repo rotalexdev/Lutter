@@ -147,6 +147,38 @@ class BuiltinSpecsTest {
     }
 
     @Test
+    fun `surface is a themed container with one content slot`() {
+        assertEquals(ComponentType("m3.Surface"), SurfaceSpec.spec.type)
+        assertEquals(
+            listOf(PropertyKey("color"), PropertyKey("tonalElevation"), PropertyKey("shadowElevation")),
+            SurfaceSpec.spec.properties.map { it.key },
+        )
+        assertEquals(Cardinality.ExactlyOne, SurfaceSpec.content.cardinality)
+        assertEquals(emptySet(), SurfaceSpec.content.provides)
+
+        val call = assertIs<CodegenBinding.ComposeCall>(SurfaceSpec.spec.codegen)
+        assertEquals(KotlinSymbol("androidx.compose.material3", "Surface"), call.function)
+        assertEquals(
+            listOf("color", "tonalElevation", "shadowElevation"),
+            call.params.map { it.param },
+        )
+        assertEquals(LambdaTarget.Trailing, call.slots.single().target)
+    }
+
+    @Test
+    fun `box with constraints is the box shape with the constrained scope`() {
+        assertEquals(ComponentType("core.BoxWithConstraints"), BoxWithConstraintsSpec.spec.type)
+        assertEquals(emptyList(), BoxWithConstraintsSpec.spec.properties.map { it.key })
+        assertEquals(Cardinality.Many, BoxWithConstraintsSpec.content.cardinality)
+        assertEquals(setOf(LayoutScopes.BoxWithConstraints), BoxWithConstraintsSpec.content.provides)
+
+        val call = assertIs<CodegenBinding.ComposeCall>(BoxWithConstraintsSpec.spec.codegen)
+        assertEquals(KotlinSymbol("androidx.compose.foundation.layout", "BoxWithConstraints"), call.function)
+        assertEquals(emptyList(), call.params)
+        assertEquals(LambdaTarget.Trailing, call.slots.single().target)
+    }
+
+    @Test
     fun `spacer is its modifier and nothing else`() {
         assertEquals(ComponentType("core.Spacer"), SpacerSpec.spec.type)
         assertEquals(emptyList(), SpacerSpec.spec.properties.map { it.key })

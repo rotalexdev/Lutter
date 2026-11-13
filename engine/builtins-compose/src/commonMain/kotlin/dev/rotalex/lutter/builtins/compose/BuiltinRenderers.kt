@@ -1,6 +1,7 @@
 package dev.rotalex.lutter.builtins.compose
 
 import dev.rotalex.lutter.builtins.BoxSpec
+import dev.rotalex.lutter.builtins.BoxWithConstraintsSpec
 import dev.rotalex.lutter.builtins.ButtonSpec
 import dev.rotalex.lutter.builtins.CardSpec
 import dev.rotalex.lutter.builtins.CheckboxSpec
@@ -8,6 +9,7 @@ import dev.rotalex.lutter.builtins.ColumnSpec
 import dev.rotalex.lutter.builtins.RadioButtonSpec
 import dev.rotalex.lutter.builtins.RowSpec
 import dev.rotalex.lutter.builtins.SlotOutletSpec
+import dev.rotalex.lutter.builtins.SurfaceSpec
 import dev.rotalex.lutter.builtins.DividerSpec
 import dev.rotalex.lutter.builtins.FlowColumnSpec
 import dev.rotalex.lutter.builtins.FlowRowSpec
@@ -53,4 +55,6 @@ public fun RendererRegistryBuilder.registerBuiltinRenderers(): Unit {
     register(LazyRowSpec.spec.type, LazyRowRenderer)
     register(CardSpec.spec.type, CardRenderer)
     register(SlotOutletSpec.spec.type, SlotOutletRenderer)
+    register(SurfaceSpec.spec.type, SurfaceRenderer)
+    register(BoxWithConstraintsSpec.spec.type, BoxWithConstraintsRenderer)
 }

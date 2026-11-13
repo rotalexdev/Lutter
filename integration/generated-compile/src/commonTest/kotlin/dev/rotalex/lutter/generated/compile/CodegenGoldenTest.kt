@@ -460,6 +460,8 @@ class CodegenGoldenTest {
             "text_alpha",
             "text_multi_fixed",
             "text_state_ref",
+            "surface_basic",
+            "box_with_constraints_basic",
         )
     }
 }

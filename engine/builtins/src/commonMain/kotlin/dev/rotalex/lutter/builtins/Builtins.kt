@@ -58,6 +58,8 @@ public fun <M : Any, A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, M, 
     component(LazyRowSpec.spec)
     component(CardSpec.spec)
     component(SlotOutletSpec.spec)
+    component(SurfaceSpec.spec)
+    component(BoxWithConstraintsSpec.spec)
 }
 
 /** Registers every builtin modifier. The applier half is `registerBuiltinModifierAppliers`. */

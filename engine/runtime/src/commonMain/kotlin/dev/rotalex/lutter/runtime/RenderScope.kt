@@ -1,6 +1,7 @@
 package dev.rotalex.lutter.runtime
 
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.Composable
@@ -55,6 +56,9 @@ public sealed interface ScopeHandle {
 
     /** Inside a Box's content lambda. */
     public class Box(public val scope: BoxScope) : ScopeHandle
+
+    /** Inside a BoxWithConstraints's content lambda: the box scope plus the constraint members. */
+    public class BoxWithConstraints(public val scope: BoxWithConstraintsScope) : ScopeHandle
 }
 
 /**

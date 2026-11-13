@@ -38,6 +38,12 @@ public final class dev/rotalex/lutter/builtins/BoxSpec {
 	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
 }
 
+public final class dev/rotalex/lutter/builtins/BoxWithConstraintsSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/BoxWithConstraintsSpec;
+	public final fun getContent ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
 public final class dev/rotalex/lutter/builtins/BuiltinsKt {
 	public static final fun builtinFunctionImpls ()Ldev/rotalex/lutter/interpreter/eval/FunctionImpls;
 	public static final fun registerBuiltinActions (Ldev/rotalex/lutter/schema/SchemaBuilder;)V
@@ -165,6 +171,7 @@ public final class dev/rotalex/lutter/builtins/LayoutModifiers {
 public final class dev/rotalex/lutter/builtins/LayoutScopes {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/LayoutScopes;
 	public final fun getBox-ZWv5sfE ()Ljava/lang/String;
+	public final fun getBoxWithConstraints-ZWv5sfE ()Ljava/lang/String;
 	public final fun getColumn-ZWv5sfE ()Ljava/lang/String;
 	public final fun getRow-ZWv5sfE ()Ljava/lang/String;
 }
@@ -257,6 +264,15 @@ public final class dev/rotalex/lutter/builtins/SlotOutletSpec {
 public final class dev/rotalex/lutter/builtins/SpacerSpec {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/SpacerSpec;
 	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/SurfaceSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/SurfaceSpec;
+	public final fun getColor ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getContent ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getShadowElevation ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+	public final fun getTonalElevation ()Ldev/rotalex/lutter/schema/component/PropertySpec;
 }
 
 public final class dev/rotalex/lutter/builtins/SwitchSpec {
