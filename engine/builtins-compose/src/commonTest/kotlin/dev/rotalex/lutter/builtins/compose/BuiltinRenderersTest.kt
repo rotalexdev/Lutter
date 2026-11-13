@@ -1,6 +1,7 @@
 package dev.rotalex.lutter.builtins.compose
 
 import dev.rotalex.lutter.builtins.BoxSpec
+import dev.rotalex.lutter.builtins.BoxWithConstraintsSpec
 import dev.rotalex.lutter.builtins.ButtonSpec
 import dev.rotalex.lutter.builtins.CardSpec
 import dev.rotalex.lutter.builtins.CheckboxSpec
@@ -18,6 +19,7 @@ import dev.rotalex.lutter.builtins.RowSpec
 import dev.rotalex.lutter.builtins.SliderSpec
 import dev.rotalex.lutter.builtins.SlotOutletSpec
 import dev.rotalex.lutter.builtins.SpacerSpec
+import dev.rotalex.lutter.builtins.SurfaceSpec
 import dev.rotalex.lutter.builtins.SwitchSpec
 import dev.rotalex.lutter.builtins.TextFieldSpec
 import dev.rotalex.lutter.builtins.TextSpec
@@ -61,7 +63,9 @@ class BuiltinRenderersTest {
         // the component registry, so an outlet without a renderer stops every runtime built over
         // the pack rather than only failing where a document happens to use one.
         assertNotNull(registry[SlotOutletSpec.spec.type])
+        assertNotNull(registry[SurfaceSpec.spec.type])
+        assertNotNull(registry[BoxWithConstraintsSpec.spec.type])
         // Pinned so a spec registered without its renderer fails here rather than at coverage.
-        assertEquals(21, registry.types().size)
+        assertEquals(23, registry.types().size)
     }
 }
