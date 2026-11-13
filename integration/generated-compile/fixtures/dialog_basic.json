@@ -1,0 +1,45 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "DialogBasic"},
+    "nodes": {
+      "n_a": {
+        "id": "n_a",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Page"}}},
+        "type": "m3.Text"
+      },
+      "n_dialog": {
+        "id": "n_dialog",
+        "props": {
+          "visible": {"type": "expr", "expr": {"type": "ref", "target": {"type": "state", "id": "s_editOpen"}}},
+          "text": {"type": "const", "value": {"type": "str", "v": "Confirm?"}}
+        },
+        "slots": {"content": ["n_b"]},
+        "type": "m3.Dialog"
+      },
+      "n_b": {
+        "id": "n_b",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Body"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "slots": {"children": ["n_a", "n_dialog"]},
+        "type": "core.Column"
+      }
+    },
+    "pages": {
+      "p_home": {
+        "id": "p_home",
+        "name": "Home",
+        "root": "n_root",
+        "route": "home",
+        "state": [{"id": "s_editOpen", "name": "editOpen", "type": {"type": "bool"}, "initial": {"type": "bool", "v": false}}]
+      }
+    }
+  }
+}
