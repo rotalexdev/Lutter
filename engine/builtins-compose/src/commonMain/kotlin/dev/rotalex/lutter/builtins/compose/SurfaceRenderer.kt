@@ -8,7 +8,6 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.builtins.SurfaceSpec
 import dev.rotalex.lutter.runtime.ComponentRenderer
 import dev.rotalex.lutter.runtime.RenderScope
-import dev.rotalex.lutter.runtime.ScopeHandle
 import dev.rotalex.lutter.runtime.toCompose
 
 /**
@@ -16,8 +15,9 @@ import dev.rotalex.lutter.runtime.toCompose
  *
  * Every property is optional, and each absence falls back to the value Compose's own default
  * resolves to — the surface color for `color`, `0.dp` for both elevations — so the rendered
- * surface never distinguishes an absent property from an omitted parameter. The single content
- * slot renders one child deep inside the surface's own scope.
+ * surface never distinguishes an absent property from an omitted parameter. The content lambda
+ * Surface takes carries no receiver — Compose stacks its children box-style inside — so the
+ * slot renders with no scope opened and the spec provides none.
  */
 internal object SurfaceRenderer : ComponentRenderer {
     @Composable
@@ -29,7 +29,7 @@ internal object SurfaceRenderer : ComponentRenderer {
             shadowElevation = props[SurfaceSpec.shadowElevation]?.dp ?: 0.dp,
             modifier = scope.modifierFor(node),
         ) {
-            scope.withScope(ScopeHandle.Column(this)) { RenderSlot(node, SurfaceSpec.content.name) }
+            scope.RenderSlot(node, SurfaceSpec.content.name)
         }
     }
 }
