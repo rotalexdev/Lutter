@@ -594,7 +594,10 @@ class SchemaPassTest {
             }
         }
 
-        assertTrue(codes.none { it.startsWith("theme.") }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ThemeComponentUnknown.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ThemeDefaultUnknown.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ThemeDefaultTypeMismatch.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ThemeDefaultNotConst.value }, "got $codes")
         assertTrue(codes.none { it == DiagnosticCodes.PropDefaultShadowed.value }, "got $codes")
     }
 }

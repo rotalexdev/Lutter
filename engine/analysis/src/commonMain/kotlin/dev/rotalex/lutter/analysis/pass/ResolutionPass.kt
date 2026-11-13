@@ -50,10 +50,18 @@ internal class ResolutionPass(
             modifierIndex: Int?,
             actual: PropertyValue?,
             default: Value?,
+            themeDefault: PropertyValue?,
             selected: ThemeDecl?,
         ): ResolvedProp? {
-            val effective = actual ?: default?.let { PropertyValue.Const(it) } ?: return null
-            val origin = if (actual != null) PropOrigin.Specified else PropOrigin.Default
+            // §14.2's tier order: the document's own value, then the theme's default for the
+            // node's component type, then the spec's. The theme tier is its own origin so the
+            // generator can tell a value it must emit from one Compose already carries.
+            val effective = actual ?: themeDefault ?: default?.let { PropertyValue.Const(it) } ?: return null
+            val origin = when {
+                actual != null -> PropOrigin.Specified
+                themeDefault != null -> PropOrigin.Theme
+                else -> PropOrigin.Default
+            }
             val typed = if (actual is PropertyValue.Computed) {
                 checked.typed[ExprAddress(node, key, modifierIndex)]
             } else {
@@ -67,9 +75,14 @@ internal class ResolutionPass(
             val node = checkNotNull(document.nodes[id]) { "Resolution reached node '$id' outside the table" }
             val spec = checkNotNull(schema.components[node.type]) { "Resolution reached unregistered type '${node.type}'" }
             val props = LinkedHashMap<PropertyKey, ResolvedProp>()
+            // §14.2's defaults are keyed by the component type, so one lookup covers the node.
+            val themeDefaults = theme?.componentDefaults[spec.type]
             for (declared in spec.properties.sortedBy { it.key.value }) {
-                propOf(id, declared.key, null, node.props[declared.key], declared.default, theme)
-                    ?.let { props[declared.key] = it }
+                propOf(
+                    id, declared.key, null,
+                    node.props[declared.key], declared.default, themeDefaults?.get(declared.key),
+                    theme,
+                )?.let { props[declared.key] = it }
             }
             val modifiers = node.modifiers.withIndex().map { (position, entry) ->
                 val modifier = checkNotNull(schema.modifiers[entry.type]) {
@@ -78,7 +91,9 @@ internal class ResolutionPass(
                 val params = modifier.params
                 val args = LinkedHashMap<PropertyKey, ResolvedProp>()
                 for (param in params.sortedBy { it.key.value }) {
-                    propOf(id, param.key, position, entry.args[param.key], param.default, theme)
+                    // Theme defaults answer to the component's own properties; a modifier's
+                    // argument map is a different surface, keyed by the modifier, not the type.
+                    propOf(id, param.key, position, entry.args[param.key], param.default, null, theme)
                         ?.let { args[param.key] = it }
                 }
                 ResolvedModifier(entry.type, args)
