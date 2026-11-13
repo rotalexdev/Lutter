@@ -1,0 +1,39 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "SurfaceBasic"},
+    "nodes": {
+      "n_a": {
+        "id": "n_a",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Outside"}}},
+        "type": "m3.Text"
+      },
+      "n_surface": {
+        "id": "n_surface",
+        "props": {
+          "color": {"type": "const", "value": {"type": "color", "v": "#FFEEEE00"}},
+          "tonalElevation": {"type": "const", "value": {"type": "dp", "v": 4}}
+        },
+        "slots": {"content": ["n_b"]},
+        "type": "m3.Surface"
+      },
+      "n_b": {
+        "id": "n_b",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Inside"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "slots": {"children": ["n_a", "n_surface"]},
+        "type": "core.Column"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}
