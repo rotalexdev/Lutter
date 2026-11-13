@@ -598,6 +598,15 @@ public class ComponentDefaultScope internal constructor(
     public fun prop(key: String, value: Value): Unit = prop(PropertyKey(key), value)
 
     internal fun finish(): Map<PropertyKey, PropertyValue> = defaults
+
+    /** Refuses a key this component's defaults already carry. */
+    private fun <K, V> refuseDuplicate(declared: Map<K, V>, key: K, kind: String) {
+        if (declared.containsKey(key)) {
+            throw IllegalArgumentException(
+                "duplicate $kind '$key' in '${type.value}': one key one default",
+            )
+        }
+    }
 }
 
 /**
