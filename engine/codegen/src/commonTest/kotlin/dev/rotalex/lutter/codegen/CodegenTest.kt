@@ -571,30 +571,65 @@ class CodegenTest {
     fun `a theme default emits its parameter, which Compose does not carry`() {
         // The omit rule keys off the spec default only: the generated app holds Compose's
         // defaults, not the theme's, so a §14.2 default must reach the call.
-        val spacing = PropertyKey("spacing")
-        val root = columnNode(
-            "n_1",
-            mapOf(spacing to ResolvedProp(spacing, PropertyValue.Const(Value.Dp(12f)), PropOrigin.Theme, null)),
-            listOf(textNode("n_2", "Hi")),
+        val maxLines = PropertyKey("maxLines")
+        val root = ResolvedNode(
+            NodeId("n_1"),
+            textType,
+            mapOf(
+                PropertyKey("text") to ResolvedProp(
+                    PropertyKey("text"),
+                    PropertyValue.Const(Value.Str("Hi")),
+                    PropOrigin.Specified,
+                    null,
+                ),
+                maxLines to ResolvedProp(
+                    maxLines,
+                    PropertyValue.Const(Value.Int32(3)),
+                    PropOrigin.Theme,
+                    null,
+                ),
+            ),
+            emptyList(),
+            emptyMap(),
+            emptySet(),
         )
         val result = generate(homeDocument(root))
 
         assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
-        assertTrue(contentOf(result, "screens/HomeScreen.kt").contains("spacing = "), "emitted without the theme default")
+        assertTrue(
+            contentOf(result, "screens/HomeScreen.kt").contains("maxLines = 3"),
+            "emitted without the theme default",
+        )
     }
 
     @Test
     fun `a spec default still omits its parameter, which Compose carries`() {
-        val spacing = PropertyKey("spacing")
-        val root = columnNode(
-            "n_1",
-            mapOf(spacing to ResolvedProp(spacing, PropertyValue.Const(Value.Dp(12f)), PropOrigin.Default, null)),
-            listOf(textNode("n_2", "Hi")),
+        val maxLines = PropertyKey("maxLines")
+        val root = ResolvedNode(
+            NodeId("n_1"),
+            textType,
+            mapOf(
+                PropertyKey("text") to ResolvedProp(
+                    PropertyKey("text"),
+                    PropertyValue.Const(Value.Str("Hi")),
+                    PropOrigin.Specified,
+                    null,
+                ),
+                maxLines to ResolvedProp(
+                    maxLines,
+                    PropertyValue.Const(Value.Int32(3)),
+                    PropOrigin.Default,
+                    null,
+                ),
+            ),
+            emptyList(),
+            emptyMap(),
+            emptySet(),
         )
         val result = generate(homeDocument(root))
 
         assertTrue(
-            !contentOf(result, "screens/HomeScreen.kt").contains("spacing"),
+            !contentOf(result, "screens/HomeScreen.kt").contains("maxLines"),
             "a spec default reached the call",
         )
     }
