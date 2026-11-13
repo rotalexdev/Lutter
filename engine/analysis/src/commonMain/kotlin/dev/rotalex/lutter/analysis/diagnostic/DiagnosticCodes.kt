@@ -28,6 +28,13 @@ public object DiagnosticCodes {
     public val PropRange: DiagnosticCode = DiagnosticCode("prop.range")
     public val PropNotBindable: DiagnosticCode = DiagnosticCode("prop.not_bindable")
     public val PropIconUnregistered: DiagnosticCode = DiagnosticCode("prop.icon_unregistered")
+
+    /**
+     * A theme default shadowed by an explicit value. A warning, not an error: the document is
+     * legal, and what it loses is the theme's default — the kind of thing a person reading the
+     * theme wants told, not blocked by.
+     */
+    public val PropDefaultShadowed: DiagnosticCode = DiagnosticCode("prop.default_shadowed")
     public val ValueNonFinite: DiagnosticCode = DiagnosticCode("value.non_finite")
     public val ModifierUnknown: DiagnosticCode = DiagnosticCode("modifier.unknown")
     public val ModifierScopeMissing: DiagnosticCode = DiagnosticCode("modifier.scope_missing")
@@ -37,6 +44,16 @@ public object DiagnosticCodes {
     public val TokenUnknown: DiagnosticCode = DiagnosticCode("token.unknown")
     public val ResourceUnknown: DiagnosticCode = DiagnosticCode("resource.unknown")
     public val ResourceKindMismatch: DiagnosticCode = DiagnosticCode("resource.kind_mismatch")
+
+    /**
+     * The theme's `componentDefaults` rows (§14.2), where the pass that owns a theme's shape
+     * is the schema: a default names a component type, a property key and a value, and all
+     * three are checked against the schema rather than against any node.
+     */
+    public val ThemeComponentUnknown: DiagnosticCode = DiagnosticCode("theme.component_unknown")
+    public val ThemeDefaultUnknown: DiagnosticCode = DiagnosticCode("theme.default_unknown")
+    public val ThemeDefaultTypeMismatch: DiagnosticCode = DiagnosticCode("theme.default_type_mismatch")
+    public val ThemeDefaultNotConst: DiagnosticCode = DiagnosticCode("theme.default_not_const")
 
     /**
      * The expression rows (§17.3), emitted by pass 5. A fourth member of the same family —

@@ -291,12 +291,11 @@ public class DocumentScope internal constructor(private val ids: IdGenerator) {
     /**
      * A theme, keyed as `UiDocument.themes`.
      *
-     * This call plus its block covers eight of [ThemeDecl]'s nine fields. `base` is a parameter
-     * because it is a selection like `buildDocument`'s `theme`; the five token maps are calls
-     * because they are collections; and `componentDefaults` is the one left out, on purpose —
-     * §14.2 marks it post-MVP, its payload is a `PropertyValue` union keyed by a component type
-     * rather than a token role, and no pass reads it, so a call for it would claim support the
-     * engine does not have. The five maps that are here are the five token resolution consults.
+     * This call plus its block covers all nine of [ThemeDecl]'s fields. `base` is a parameter
+     * because it is a selection like `buildDocument`'s `theme`; the six maps are calls
+     * because they are collections. The five token maps that were here before
+     * [componentDefaults] joined them are the five token resolution consults; the sixth is
+     * the map the resolver consults for per-component defaults (§14.2).
      */
     public fun theme(
         id: ThemeId,
@@ -482,6 +481,24 @@ public class ThemeScope internal constructor(
 
     private val declaredCustom: LinkedHashMap<TokenName, Value> = LinkedHashMap()
 
+    private val declaredDefaults: LinkedHashMap<ComponentType, Map<PropertyKey, PropertyValue>> = LinkedHashMap()
+
+    /**
+     * One component's per-property defaults, the map the resolver consults when a node of
+     * [type] names no value of its own (§14.2). Explicit always wins: a default the document
+     * shadows is dead config, which the analysis reports rather than silently dropping.
+     */
+    public fun componentDefaults(type: ComponentType, block: ComponentDefaultScope.() -> Unit) {
+        refuseDuplicate(declaredDefaults, type, "component defaults")
+        val body = ComponentDefaultScope(type)
+        block(body)
+        declaredDefaults[type] = body.finish()
+    }
+
+    /** One component's defaults, spelling the type as a string. */
+    public fun componentDefaults(type: String, block: ComponentDefaultScope.() -> Unit): Unit =
+        componentDefaults(ComponentType(type), block)
+
     /** One colour role, as the light/dark pair §14.1 declares it. */
     public fun color(role: ColorRole, spec: ColorSpec): Unit {
         refuseDuplicate(declaredColors, role, "colour role")
@@ -544,6 +561,7 @@ public class ThemeScope internal constructor(
             shapes = declaredShapes,
             dimensions = declaredDimensions,
             custom = declaredCustom,
+            componentDefaults = declaredDefaults,
         )
 
     /** Refuses a key this theme already carries, naming the map it was declared in. */
@@ -554,6 +572,32 @@ public class ThemeScope internal constructor(
             )
         }
     }
+}
+
+/**
+ * One component's defaults inside a [ThemeScope.componentDefaults] block.
+ *
+ * The payload is a plain [Value], never a `PropertyValue.Computed`: a default is what the
+ * resolver writes when the document wrote nothing, and an expression would need the node's
+ * own scope to evaluate in — which a theme declaration has not. The analysis refuses the
+ * computed spelling a hand-written document could still carry, so the DSL never offers it.
+ */
+public class ComponentDefaultScope internal constructor(
+    private val type: ComponentType,
+) {
+
+    private val defaults: LinkedHashMap<PropertyKey, PropertyValue> = LinkedHashMap()
+
+    /** One default: what a node of [type] shows when it names no [key] of its own. */
+    public fun prop(key: PropertyKey, value: Value) {
+        refuseDuplicate(defaults, key, "default")
+        defaults[key] = PropertyValue.Const(value)
+    }
+
+    /** One default, spelling the key as a string. */
+    public fun prop(key: String, value: Value): Unit = prop(PropertyKey(key), value)
+
+    internal fun finish(): Map<PropertyKey, PropertyValue> = defaults
 }
 
 /**
