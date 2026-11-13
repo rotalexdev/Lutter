@@ -18,4 +18,7 @@ public object LayoutScopes {
 
     /** `Box.children` provide it. */
     public val Box: ScopeId = ScopeId("compose.BoxScope")
+
+    /** `BoxWithConstraints.content` provides it: the box scope plus the constraint members. */
+    public val BoxWithConstraints: ScopeId = ScopeId("compose.BoxWithConstraintsScope")
 }
