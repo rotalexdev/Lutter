@@ -15,7 +15,7 @@
       "n_surface": {
         "id": "n_surface",
         "props": {
-          "color": {"type": "const", "value": {"type": "color", "v": "#FFEEEE00"}},
+          "color": {"type": "const", "value": {"type": "color", "argb": "#FFEEEE00"}},
           "tonalElevation": {"type": "const", "value": {"type": "dp", "v": 4}}
         },
         "slots": {"content": ["n_b"]},
