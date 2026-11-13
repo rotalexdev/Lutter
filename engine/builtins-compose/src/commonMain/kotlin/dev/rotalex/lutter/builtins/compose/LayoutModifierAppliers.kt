@@ -105,6 +105,9 @@ internal object AlignApplier : ModifierApplier {
             is ScopeHandle.Row -> with(handle.scope) { modifier.align(AlignmentMaps.vertical(entry)) }
             is ScopeHandle.Column -> with(handle.scope) { modifier.align(AlignmentMaps.horizontal(entry)) }
             is ScopeHandle.Box -> with(handle.scope) { modifier.align(AlignmentMaps.box(entry)) }
+            // The constrained box's scope extends the box's, so its children align the same
+            // two-axis way: the projection is the box's, the receiver the constrained one's.
+            is ScopeHandle.BoxWithConstraints -> with(handle.scope) { modifier.align(AlignmentMaps.box(entry)) }
             null -> modifier
         }
     }
