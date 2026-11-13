@@ -154,7 +154,7 @@ class BuiltinSpecsTest {
             SurfaceSpec.spec.properties.map { it.key },
         )
         assertEquals(Cardinality.ExactlyOne, SurfaceSpec.content.cardinality)
-        assertEquals(emptySet(), SurfaceSpec.content.provides)
+        assertEquals(setOf(LayoutScopes.Column), SurfaceSpec.content.provides)
 
         val call = assertIs<CodegenBinding.ComposeCall>(SurfaceSpec.spec.codegen)
         assertEquals(KotlinSymbol("androidx.compose.material3", "Surface"), call.function)

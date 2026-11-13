@@ -8,6 +8,8 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.builtins.SurfaceSpec
 import dev.rotalex.lutter.runtime.ComponentRenderer
 import dev.rotalex.lutter.runtime.RenderScope
+import dev.rotalex.lutter.runtime.ScopeHandle
+import dev.rotalex.lutter.runtime.toCompose
 
 /**
  * The surface renderer: Material's container drawn with the document's color and elevations.
@@ -27,7 +29,7 @@ internal object SurfaceRenderer : ComponentRenderer {
             shadowElevation = props[SurfaceSpec.shadowElevation]?.dp ?: 0.dp,
             modifier = scope.modifierFor(node),
         ) {
-            RenderSlot(node, SurfaceSpec.content.name)
+            scope.withScope(ScopeHandle.Column(this)) { RenderSlot(node, SurfaceSpec.content.name) }
         }
     }
 }

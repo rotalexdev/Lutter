@@ -36,7 +36,11 @@ public object SurfaceSpec {
     public val shadowElevation: PropertySpec<Float> = prop("shadowElevation", TypeRef.Dp)
 
     /** The content, one child deep: a surface is a container, not a layout. */
-    public val content: SlotSpec = SlotSpec(SlotName("content"), Cardinality.ExactlyOne)
+    public val content: SlotSpec = SlotSpec(
+        SlotName("content"),
+        Cardinality.ExactlyOne,
+        provides = setOf(LayoutScopes.Column),
+    )
 
     /** The spec renderers, validation and codegen share. */
     public val spec: ComponentSpec = componentSpec(ComponentType("m3.Surface"), version = 1) {
