@@ -57,16 +57,19 @@ class ThemeDefaultsResolutionTest {
     @Test
     fun `an explicit value beats a theme default`() {
         val resolved = resolvedOf(
-            themedDocument(themeBlock = {
-                componentDefaults(ComponentType("core.Column")) {
-                    prop("spacing", Value.Dp(12f))
-                }
-            })
-        ) {
-            node(ColumnType) {
-                prop("spacing", Value.Dp(4f))
-            }
-        }
+            themedDocument(
+                themeBlock = {
+                    componentDefaults(ComponentType("core.Column")) {
+                        prop("spacing", Value.Dp(12f))
+                    }
+                },
+                pageBlock = {
+                    node(ColumnType) {
+                        prop("spacing", Value.Dp(4f))
+                    }
+                },
+            ),
+        )
 
         val root = assertNotNull(resolved.pages[pageId]).root
         val spacing = assertNotNull(root.props[PropertyKey("spacing")])
