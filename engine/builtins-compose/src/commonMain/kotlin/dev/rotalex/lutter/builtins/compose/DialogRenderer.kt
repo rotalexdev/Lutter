@@ -1,7 +1,7 @@
 package dev.rotalex.lutter.builtins.compose
 
-import androidx.compose.material3.Dialog
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.window.Dialog
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.builtins.DialogSpec
 import dev.rotalex.lutter.runtime.ComponentRenderer

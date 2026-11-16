@@ -1,5 +1,6 @@
 package dev.rotalex.lutter.builtins.compose
 
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.Composable
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
@@ -24,6 +25,7 @@ internal object BottomSheetRenderer : ComponentRenderer {
     /** The key [BottomSheetSpec] binds; read from the spec rather than repeated here. */
     private val ON_DISMISS: dev.rotalex.lutter.model.ids.EventKey = BottomSheetSpec.onDismiss.key
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Render(node: ResolvedNode, scope: RenderScope): Unit {
         val props = scope.props(node)
