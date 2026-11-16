@@ -39,10 +39,10 @@ class FixtureValidationTest {
         assertEquals(
             listOf(
                 "border_text",
+                "bottom_sheet_basic",
                 "box_align",
                 "box_background",
                 "box_width_height",
-                "bottom_sheet_basic",
                 "box_with_constraints_basic",
                 "card_align",
                 "column_color",
