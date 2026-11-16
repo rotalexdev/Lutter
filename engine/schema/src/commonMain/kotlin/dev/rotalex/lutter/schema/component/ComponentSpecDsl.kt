@@ -155,6 +155,7 @@ public class ComposeCallBuilder internal constructor() {
     private val params: MutableList<ParamBinding> = mutableListOf()
     private val events: MutableList<EventBinding> = mutableListOf()
     private val slots: MutableList<SlotBinding> = mutableListOf()
+    private var guard: PropertyKey? = null
 
     /** One parameter fed by a single property handle. */
     public fun param(
@@ -174,6 +175,15 @@ public class ComposeCallBuilder internal constructor() {
         omitWhenDefault: Boolean = true,
     ): Unit {
         params += ParamBinding(param, from.toList(), emit, positional, omitWhenDefault)
+    }
+
+    /**
+     * The truthy property the call renders behind: a declarative window (`m3.Dialog`,
+     * `m3.BottomSheet`) is a node whose content shows while its `visible` read holds, so both
+     * backends wrap the whole call in the same conditional rather than each spelling one.
+     */
+    public fun guard(key: PropertyKey): Unit {
+        guard = key
     }
 
     /** One event handler parameter, keyed by id or taken from the event spec. */
@@ -206,6 +216,7 @@ public class ComposeCallBuilder internal constructor() {
             params = params.toList(),
             events = events.toList(),
             slots = slots.toList(),
+            guard = guard,
             modifierRequired = modifierRequired,
         )
 }

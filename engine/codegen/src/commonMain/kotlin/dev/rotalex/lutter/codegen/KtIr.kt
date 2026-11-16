@@ -236,7 +236,16 @@ public sealed interface KtStmt {
 
         /** One `value ->` arm. The subject is compared by equality, so the value is an operand. */
         public data class Branch(public val value: KtExpr, public val body: List<KtStmt>)
-    }
+
+    /**
+     * `if (cond) { … }`, the statement shape: a call that renders only while a condition holds.
+     *
+     * A statement, not the [KtExpr.IfElse] expression, because a guarded call has no else to
+     * answer with — the node simply does not render. Kotlin accepts the missing branch in
+     * statement position, which is exactly where a slot child sits.
+     */
+    public data class If(public val cond: KtExpr, public val then: List<KtStmt>) : KtStmt
+}
 }
 
 /**

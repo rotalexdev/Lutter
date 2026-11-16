@@ -782,6 +782,10 @@ public class KotlinGenerator<A : Any, T : Any>(
             },
             otherwise = statement.otherwise?.let { collapseAppStateRead(it) },
         )
+        is KtStmt.If -> KtStmt.If(
+            cond = collapseAppStateRead(statement.cond),
+            then = statement.then.map { collapseAppStateRead(it) },
+        )
     }
 
     /**
@@ -1591,7 +1595,8 @@ public class KotlinGenerator<A : Any, T : Any>(
         val inner: List<ScopeId> = provided.toList() + scopes
         val body: MutableList<KtStmt> = mutableListOf()
         for (child in children) {
-            body += KtStmt.Expr(emitNode(child, false, inner) ?: return null)
+            val call: KtExpr = emitNode(child, false, inner) ?: return null
+            body += guardedStatement(child, call) ?: KtStmt.Expr(call)
         }
         val iteration = slot?.iteration ?: return KtExpr.Lambda(emptyList(), body)
         val written: ResolvedProp = node.props[iteration.source] ?: run {
@@ -1612,6 +1617,27 @@ public class KotlinGenerator<A : Any, T : Any>(
             trailing = KtExpr.Lambda(listOf(iteration.itemName), body),
         )
         return KtExpr.Lambda(emptyList(), listOf(KtStmt.Expr(frame)))
+    }
+
+    /**
+     * A guarded call becomes an `if` statement, not a parameter: Compose's windows (`Dialog`,
+     * `ModalBottomSheet`) render by conditional composition, so the emitted screen composes the
+     * call only while the guard's read holds. The guard names a property, not a call source:
+     * the valueful rule applies first — a `Value.Null` arrival renders nothing, the same
+     * reading the kept parameters make — and the condition is the value itself, whatever kind
+     * it is. A node whose spec binds no guard answers `null`, and so does everything else the
+     * wrap does not apply to: the caller falls through to the plain statement.
+     */
+    private fun guardedStatement(node: ResolvedNode, call: KtExpr): KtStmt? {
+        val spec: ComponentSpec = schema.components[node.type] ?: return null
+        val binding: CodegenBinding.ComposeCall = spec.codegen as? CodegenBinding.ComposeCall ?: return null
+        val guard: PropertyKey = binding.guard ?: return null
+        if (!valueful(node, guard)) return null
+        val prop: ResolvedProp = checkNotNull(node.props[guard]) {
+            "Valueful guard '${guard.value}' left the node"
+        }
+        val cond: KtExpr = valueOf(prop, spec.properties, node) ?: return null
+        return KtStmt.If(cond, listOf(KtStmt.Expr(call)))
     }
 
     // Roots thread the caller's modifier; leaves start from `Modifier`. A chain that answers

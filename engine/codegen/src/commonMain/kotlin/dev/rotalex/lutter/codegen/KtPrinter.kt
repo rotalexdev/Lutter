@@ -274,6 +274,7 @@ public class KtPrinter(
             is KtStmt.Assign -> indentOf(indent) + renderExpr(stmt.target, indent, aliases) +
                 " = " + renderExpr(stmt.value, indent, aliases)
             is KtStmt.When -> indentOf(indent) + renderWhen(stmt, indent, aliases)
+            is KtStmt.If -> indentOf(indent) + renderIf(stmt, indent, aliases)
         }
 
     // `when (subject) {` on the head, one arm per line, every arm braced: an arm holds a screen
@@ -292,6 +293,14 @@ public class KtPrinter(
             for (inner in otherwise) append(renderStmt(inner, indent + 2, aliases) + "\n")
             append(indentOf(indent + 1) + "}\n")
         }
+        append(indentOf(indent) + "}")
+    }
+
+    // The statement shape's missing else is legal in statement position: a guarded call that
+    // renders nothing is the same silence the runtime's `if` renders.
+    private fun renderIf(stmt: KtStmt.If, indent: Int, aliases: Map<String, String>): String = buildString {
+        append("if (" + renderExpr(stmt.cond, indent, aliases) + ") {\n")
+        for (inner in stmt.then) append(renderStmt(inner, indent + 1, aliases) + "\n")
         append(indentOf(indent) + "}")
     }
 
@@ -641,6 +650,10 @@ public class KtPrinter(
                 for (inner in branch.body) collectStmtSymbols(inner, filePkg, seen)
             }
             for (inner in stmt.otherwise.orEmpty()) collectStmtSymbols(inner, filePkg, seen)
+        }
+        is KtStmt.If -> {
+            collectExprSymbols(stmt.cond, filePkg, seen)
+            for (inner in stmt.then) collectStmtSymbols(inner, filePkg, seen)
         }
     }
 
