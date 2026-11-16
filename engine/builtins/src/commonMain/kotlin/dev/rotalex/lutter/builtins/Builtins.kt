@@ -60,6 +60,8 @@ public fun <M : Any, A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, M, 
     component(SlotOutletSpec.spec)
     component(SurfaceSpec.spec)
     component(BoxWithConstraintsSpec.spec)
+    component(DialogSpec.spec)
+    component(BottomSheetSpec.spec)
 }
 
 /** Registers every builtin modifier. The applier half is `registerBuiltinModifierAppliers`. */

@@ -35,6 +35,19 @@ public sealed interface CodegenBinding {
         public val events: List<EventBinding> = emptyList(),
         public val slots: List<SlotBinding> = emptyList(),
         /**
+         * The truthy property the whole call renders behind: a declarative window (`m3.Dialog`,
+         * `m3.BottomSheet`) shows while its `visible` read holds. The slot position wraps the
+         * call in an `if`; a page root renders always — a document never makes one the page.
+         */
+        public val guard: PropertyKey? = null,
+        /**
+         * The opt-in marker the generated function must carry: a callee marked
+         * `@RequiresOptIn` refuses under warnings-as-errors, and the function that composes it
+         * is where the opt-in is spelled. The marker itself is the annotation — applying a
+         * `@RequiresOptIn` annotation is the opt-in — so a bare symbol is all the file needs.
+         */
+        public val requiresOptIn: KotlinSymbol? = null,
+        /**
          * The callee's modifier parameter takes no default (Compose's `Spacer`), so an empty
          * chain still spells one.
          */

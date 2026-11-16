@@ -123,6 +123,14 @@ public class KtPrinter(
         aliases: Map<String, String>,
         abstractMember: Boolean = false,
     ): String = buildString {
+        // The opt-in first, the way Kotlin convention writes it: the `::class` form keeps the
+        // requirement local to this function, which a bare marker annotation would not.
+        if (function.optIns.isNotEmpty()) {
+            val markers: String = function.optIns
+                .sortedWith(compareBy({ it.packageName }, { it.name }))
+                .joinToString(", ") { (aliases[it.fqn()] ?: it.name) + "::class" }
+            append(indentOf(indent) + "@OptIn(" + markers + ")\n")
+        }
         append(renderAnnotations(function.annotations, indent, aliases))
         append(indentOf(indent) + "public ")
         if (function.suspending) append("suspend ")
@@ -274,6 +282,7 @@ public class KtPrinter(
             is KtStmt.Assign -> indentOf(indent) + renderExpr(stmt.target, indent, aliases) +
                 " = " + renderExpr(stmt.value, indent, aliases)
             is KtStmt.When -> indentOf(indent) + renderWhen(stmt, indent, aliases)
+            is KtStmt.If -> indentOf(indent) + renderIf(stmt, indent, aliases)
         }
 
     // `when (subject) {` on the head, one arm per line, every arm braced: an arm holds a screen
@@ -292,6 +301,14 @@ public class KtPrinter(
             for (inner in otherwise) append(renderStmt(inner, indent + 2, aliases) + "\n")
             append(indentOf(indent + 1) + "}\n")
         }
+        append(indentOf(indent) + "}")
+    }
+
+    // The statement shape's missing else is legal in statement position: a guarded call that
+    // renders nothing is the same silence the runtime's `if` renders.
+    private fun renderIf(stmt: KtStmt.If, indent: Int, aliases: Map<String, String>): String = buildString {
+        append("if (" + renderExpr(stmt.cond, indent, aliases) + ") {\n")
+        for (inner in stmt.then) append(renderStmt(inner, indent + 1, aliases) + "\n")
         append(indentOf(indent) + "}")
     }
 
@@ -642,6 +659,10 @@ public class KtPrinter(
             }
             for (inner in stmt.otherwise.orEmpty()) collectStmtSymbols(inner, filePkg, seen)
         }
+        is KtStmt.If -> {
+            collectExprSymbols(stmt.cond, filePkg, seen)
+            for (inner in stmt.then) collectStmtSymbols(inner, filePkg, seen)
+        }
     }
 
     private fun collectOptional(
@@ -664,6 +685,7 @@ public class KtPrinter(
         when (declaration) {
             is KtDeclaration.Function -> {
                 declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                declaration.optIns.forEach { recordSymbol(it, filePkg, seen) }
                 for (param in declaration.params) {
                     collectExprSymbols(param.type, filePkg, seen)
                     param.default?.let { collectExprSymbols(it, filePkg, seen) }

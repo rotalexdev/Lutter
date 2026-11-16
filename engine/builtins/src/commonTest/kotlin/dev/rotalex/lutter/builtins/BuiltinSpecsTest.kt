@@ -246,6 +246,53 @@ class BuiltinSpecsTest {
         assertEquals(LambdaTarget.Trailing, call.slots.single().target)
     }
 
+    @Test
+    fun `dialog is a guarded window whose body carries no scope`() {
+        assertEquals(ComponentType("m3.Dialog"), DialogSpec.spec.type)
+        assertEquals(
+            listOf(PropertyKey("visible")),
+            DialogSpec.spec.properties.map { it.key },
+        )
+        assertEquals(TypeRef.Bool, DialogSpec.visible.type)
+        assertEquals(Cardinality.Many, DialogSpec.content.cardinality)
+        assertEquals(emptySet(), DialogSpec.content.provides)
+
+        val call = assertIs<CodegenBinding.ComposeCall>(DialogSpec.spec.codegen)
+        // `Dialog` is a `ui.window` API: material3 does not re-export it.
+        assertEquals(KotlinSymbol("androidx.compose.ui.window", "Dialog"), call.function)
+        // A window has no modifier: the guard and the dismissal are all the call carries.
+        assertEquals(emptyList(), call.params)
+        assertEquals(PropertyKey("visible"), call.guard)
+        assertEquals(null, call.requiresOptIn)
+        assertEquals("onDismissRequest", call.events.single().param)
+        assertEquals(LambdaTarget.Trailing, call.slots.single().target)
+    }
+
+    @Test
+    fun `bottom sheet is the guarded window whose body the column scope aligns`() {
+        assertEquals(ComponentType("m3.BottomSheet"), BottomSheetSpec.spec.type)
+        assertEquals(
+            listOf(PropertyKey("visible")),
+            BottomSheetSpec.spec.properties.map { it.key },
+        )
+        assertEquals(Cardinality.Many, BottomSheetSpec.content.cardinality)
+        assertEquals(setOf(LayoutScopes.Column), BottomSheetSpec.content.provides)
+
+        val call = assertIs<CodegenBinding.ComposeCall>(BottomSheetSpec.spec.codegen)
+        assertEquals(KotlinSymbol("androidx.compose.material3", "ModalBottomSheet"), call.function)
+        assertEquals(emptyList(), call.params)
+        assertEquals(PropertyKey("visible"), call.guard)
+        // `ModalBottomSheet` is an experimental M3 API: the generated function composes it
+        // behind the marker, which under warnings-as-errors is the difference between
+        // compiling and refusing.
+        assertEquals(
+            KotlinSymbol("androidx.compose.material3", "ExperimentalMaterial3Api"),
+            call.requiresOptIn,
+        )
+        assertEquals("onDismissRequest", call.events.single().param)
+        assertEquals(LambdaTarget.Trailing, call.slots.single().target)
+    }
+
     private companion object {
         val allSpecs: List<ComponentSpec> = listOf(
             ColumnSpec.spec, RowSpec.spec, BoxSpec.spec, SpacerSpec.spec, TextSpec.spec,

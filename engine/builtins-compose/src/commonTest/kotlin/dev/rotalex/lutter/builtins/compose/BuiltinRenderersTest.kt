@@ -1,11 +1,13 @@
 package dev.rotalex.lutter.builtins.compose
 
+import dev.rotalex.lutter.builtins.BottomSheetSpec
 import dev.rotalex.lutter.builtins.BoxSpec
 import dev.rotalex.lutter.builtins.BoxWithConstraintsSpec
 import dev.rotalex.lutter.builtins.ButtonSpec
 import dev.rotalex.lutter.builtins.CardSpec
 import dev.rotalex.lutter.builtins.CheckboxSpec
 import dev.rotalex.lutter.builtins.ColumnSpec
+import dev.rotalex.lutter.builtins.DialogSpec
 import dev.rotalex.lutter.builtins.DividerSpec
 import dev.rotalex.lutter.builtins.FlowColumnSpec
 import dev.rotalex.lutter.builtins.FlowRowSpec
@@ -65,7 +67,11 @@ class BuiltinRenderersTest {
         assertNotNull(registry[SlotOutletSpec.spec.type])
         assertNotNull(registry[SurfaceSpec.spec.type])
         assertNotNull(registry[BoxWithConstraintsSpec.spec.type])
+        // A declarative window renders by the guard: a false `visible` draws nothing, the same
+        // rule the generated screen spells, so neither backend places an absent window.
+        assertNotNull(registry[DialogSpec.spec.type])
+        assertNotNull(registry[BottomSheetSpec.spec.type])
         // Pinned so a spec registered without its renderer fails here rather than at coverage.
-        assertEquals(23, registry.types().size)
+        assertEquals(25, registry.types().size)
     }
 }

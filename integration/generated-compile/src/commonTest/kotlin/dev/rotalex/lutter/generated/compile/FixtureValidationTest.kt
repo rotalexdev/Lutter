@@ -39,6 +39,7 @@ class FixtureValidationTest {
         assertEquals(
             listOf(
                 "border_text",
+                "bottom_sheet_basic",
                 "box_align",
                 "box_background",
                 "box_width_height",
@@ -49,6 +50,7 @@ class FixtureValidationTest {
                 "column_padding",
                 "column_text",
                 "component_param_slot",
+                "dialog_basic",
                 "divider_height",
                 "expression_corpus",
                 "flow_basic",

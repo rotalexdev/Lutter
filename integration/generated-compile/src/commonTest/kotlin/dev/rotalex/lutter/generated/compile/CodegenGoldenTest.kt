@@ -213,6 +213,16 @@ class CodegenGoldenTest {
         fixture("lazy_list")
     }
 
+    @Test
+    fun `dialog_basic generates the committed golden`() {
+        fixture("dialog_basic")
+    }
+
+    @Test
+    fun `bottom_sheet_basic generates the committed golden`() {
+        fixture("bottom_sheet_basic")
+    }
+
     /**
      * The harness covers what is on disk, and says the count when it does not.
      *
@@ -462,6 +472,8 @@ class CodegenGoldenTest {
             "text_state_ref",
             "surface_basic",
             "box_with_constraints_basic",
+            "dialog_basic",
+            "bottom_sheet_basic",
         )
     }
 }

@@ -614,8 +614,8 @@ class ThirdPartyComponentTest {
         const val BASE_PACKAGE: String = "com.example.app"
         const val SCREEN: String = "screens/HomeScreen.kt"
 
-        /** `registerBuiltinSpecs` registers twenty-three components; §7.5's MVP layout row, wave 2's leaves and wave 3's first containers. */
-        const val BUILTIN_COUNT: Int = 23
+        /** `registerBuiltinSpecs` registers twenty-five components; §7.5's MVP layout row, wave 2's leaves, wave 3's containers and its windows. */
+        const val BUILTIN_COUNT: Int = 25
 
         val HOME: PageId = PageId("p_home")
         val TEXT: ComponentType = ComponentType("m3.Text")

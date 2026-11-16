@@ -670,6 +670,39 @@ class KtPrinterTest {
         )
     }
 
+    @Test
+    fun `an if statement prints its condition and its body with no else`() {
+        val drawn = KtDeclaration.Function(
+            "Draw",
+            emptyList(),
+            null,
+            emptyList(),
+            listOf(
+                KtStmt.If(
+                    KtExpr.Member(KtExpr.Name("state"), "open"),
+                    listOf(KtStmt.Expr(badgeCall())),
+                ),
+            ),
+        )
+        val printed = KtPrinter().print(ktFile(drawn))
+
+        assertEquals(
+            """
+            package com.example.app
+
+            ${"import"} androidx.compose.material.Badge
+
+            public fun Draw() {
+                if (state.open) {
+                    Badge()
+                }
+            }
+
+            """.trimIndent(),
+            printed,
+        )
+    }
+
     /** `name == null` as the `core.isNull` template spells it: a comparison, not a call. */
     private fun isNullOf(name: String): KtExpr = KtExpr.PatternCall(
         pattern = "{0} == null",

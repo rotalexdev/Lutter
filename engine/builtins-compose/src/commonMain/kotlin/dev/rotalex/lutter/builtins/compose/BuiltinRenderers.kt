@@ -1,11 +1,13 @@
 package dev.rotalex.lutter.builtins.compose
 
+import dev.rotalex.lutter.builtins.BottomSheetSpec
 import dev.rotalex.lutter.builtins.BoxSpec
 import dev.rotalex.lutter.builtins.BoxWithConstraintsSpec
 import dev.rotalex.lutter.builtins.ButtonSpec
 import dev.rotalex.lutter.builtins.CardSpec
 import dev.rotalex.lutter.builtins.CheckboxSpec
 import dev.rotalex.lutter.builtins.ColumnSpec
+import dev.rotalex.lutter.builtins.DialogSpec
 import dev.rotalex.lutter.builtins.RadioButtonSpec
 import dev.rotalex.lutter.builtins.RowSpec
 import dev.rotalex.lutter.builtins.SlotOutletSpec
@@ -57,4 +59,6 @@ public fun RendererRegistryBuilder.registerBuiltinRenderers(): Unit {
     register(SlotOutletSpec.spec.type, SlotOutletRenderer)
     register(SurfaceSpec.spec.type, SurfaceRenderer)
     register(BoxWithConstraintsSpec.spec.type, BoxWithConstraintsRenderer)
+    register(DialogSpec.spec.type, DialogRenderer)
+    register(BottomSheetSpec.spec.type, BottomSheetRenderer)
 }
