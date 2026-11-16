@@ -690,9 +690,11 @@ class KtPrinterTest {
             """
             package com.example.app
 
+            import androidx.compose.material.Badge
+
             public fun Draw() {
                 if (state.open) {
-                    com.example.ui.Badge()
+                    Badge()
                 }
             }
 

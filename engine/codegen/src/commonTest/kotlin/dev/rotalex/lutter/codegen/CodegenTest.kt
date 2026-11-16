@@ -640,6 +640,15 @@ class CodegenTest {
                 guard(visible.key)
             }
         }
+        // A root composes unconditionally — a document never makes its window the screen — so
+        // the guarded call sits as a slot child, which is the position the guard applies in.
+        val container: ComponentSpec = componentSpec(ComponentType("test.Column"), 1) {
+            metadata("Column", Category.Layout)
+            slot("children", Cardinality.Many)
+            composeCall(KotlinSymbol("test", "Column")) {
+                slot("children", LambdaTarget.Trailing)
+            }
+        }
         val node = ResolvedNode(
             NodeId("n_1"),
             textType,
@@ -657,17 +666,28 @@ class CodegenTest {
             emptyMap(),
             emptySet(),
         )
+        val root = ResolvedNode(
+            NodeId("n_root"),
+            container.type,
+            emptyMap(),
+            emptyList(),
+            mapOf(SlotName("children") to listOf(node)),
+            emptySet(),
+        )
         val pages = mapOf(
             PageId("p_home") to ResolvedPage(
                 PageId("p_home"),
                 "Home",
                 "home",
-                node,
+                root,
                 listOf(ResolvedState(StateDecl(open, "open", TypeRef.Bool, Value.Bool(false)), null)),
             ),
         )
         val result = KotlinGenerator(
-            Schema.build<ComponentSpec, ModifierSpec, String, FunctionSpec, String> { component(stub) },
+            Schema.build<ComponentSpec, ModifierSpec, String, FunctionSpec, String> {
+                component(stub)
+                component(container)
+            },
             CodegenOptions("com.example.app"),
         ).generate(ResolvedDocument(pages, emptyMap(), indexOf(pages), ResolvedTheme(null)))
 
