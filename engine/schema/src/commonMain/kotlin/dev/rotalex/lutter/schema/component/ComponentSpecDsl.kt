@@ -156,6 +156,7 @@ public class ComposeCallBuilder internal constructor() {
     private val events: MutableList<EventBinding> = mutableListOf()
     private val slots: MutableList<SlotBinding> = mutableListOf()
     private var guard: PropertyKey? = null
+    private var requiresOptIn: KotlinSymbol? = null
 
     /** One parameter fed by a single property handle. */
     public fun param(
@@ -184,6 +185,11 @@ public class ComposeCallBuilder internal constructor() {
      */
     public fun guard(key: PropertyKey): Unit {
         guard = key
+    }
+
+    /** The opt-in marker the generated function composes this call behind; see [CodegenBinding.ComposeCall.requiresOptIn]. */
+    public fun requiresOptIn(symbol: KotlinSymbol): Unit {
+        requiresOptIn = symbol
     }
 
     /** One event handler parameter, keyed by id or taken from the event spec. */
@@ -217,6 +223,7 @@ public class ComposeCallBuilder internal constructor() {
             events = events.toList(),
             slots = slots.toList(),
             guard = guard,
+            requiresOptIn = requiresOptIn,
             modifierRequired = modifierRequired,
         )
 }

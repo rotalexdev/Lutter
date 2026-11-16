@@ -418,6 +418,7 @@ public class KotlinGenerator<A : Any, T : Any>(
         // Per this function, before the tree is emitted: the hoist is read once the root is built,
         // so a leftover from a previous file cannot claim this one.
         appStateHoist = null
+        fileOptIns.clear()
         val root: KtExpr = emitNode(page.root, true, emptyList()) ?: return null
         val reads: Set<ActionReceiver> = drainReads()
         recordDemand(page.id, reads)
@@ -432,7 +433,7 @@ public class KotlinGenerator<A : Any, T : Any>(
         }
         declarations += KtDeclaration.Function(
             page.name + ReservedCodegenNames.ScreenSuffix,
-            listOf(composable),
+            listOf(composable) + fileOptIns.sortedWith(compareBy({ it.packageName }, { it.name })),
             null,
             params,
             // First: reading the accessor is composable work, and the composable must own it
@@ -455,6 +456,7 @@ public class KotlinGenerator<A : Any, T : Any>(
         if (refuseState(held, at)) return null
         // Per this function, for the same reason [emitScreen] clears before its tree is emitted.
         appStateHoist = null
+        fileOptIns.clear()
         val body: KtExpr = emitNode(root, true, emptyList()) ?: return null
         // Recorded rather than drained away: a component function now has a caller — §5.5 makes an
         // instance a call, and every instantiation site has to pass the receivers this body closed
@@ -468,7 +470,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             actionLocals(reads) + listOf(KtStmt.Expr(body))
         val function: KtDeclaration.Function = KtDeclaration.Function(
             componentId.value,
-            listOf(composable),
+            listOf(composable) + fileOptIns.sortedWith(compareBy({ it.packageName }, { it.name })),
             null,
             declared + environmentParams(reads) + modifierParam() + slotParams(document, componentId),
             statements,
@@ -620,6 +622,14 @@ public class KotlinGenerator<A : Any, T : Any>(
     // function when its statements are put together, and cleared at the top of both — so the
     // `val` is exactly one per function that needs it, and a file that needs none emits none.
     private var appStateHoist: KtStmt.LocalProperty? = null
+
+    // The opt-in markers the file being emitted composes behind, collected as calls are built
+    // and spelled on the function the tree lands in — the screen or component function, the
+    // same function that already carries `@Composable` — and cleared at the top of both, the
+    // same one-file lifetime the hoist has. A `@RequiresOptIn` callee refuses under
+    // warnings-as-errors without it, and applying the marker itself is the opt-in, so the bare
+    // annotation is all the generated function needs.
+    private val fileOptIns: MutableSet<KotlinSymbol> = mutableSetOf()
 
     private fun actionEmitter(): ActionEmitter? = actions
 
@@ -930,6 +940,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             refuse(DiagnosticCodes.CodegenNoBinding, node, "No compose call for '${node.type}'")
             return null
         }
+        binding.requiresOptIn?.let { fileOptIns += it }
         val args: MutableList<KtArg> = mutableListOf()
         val kept: List<KeptParam> = keptParams(binding, node)
         for (keptParam in kept) {

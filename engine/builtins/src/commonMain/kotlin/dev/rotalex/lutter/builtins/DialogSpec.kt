@@ -40,7 +40,7 @@ public object DialogSpec {
         property(visible)
         event(onDismiss)
         slot(content)
-        composeCall(KotlinSymbol("androidx.compose.material3", "Dialog"), modifierParam = null) {
+        composeCall(KotlinSymbol("androidx.compose.ui.window", "Dialog"), modifierParam = null) {
             event(onDismiss, param = "onDismissRequest")
             slot("content", LambdaTarget.Trailing)
             guard(visible.key)

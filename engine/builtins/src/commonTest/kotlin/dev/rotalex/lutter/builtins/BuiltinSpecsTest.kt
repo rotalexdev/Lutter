@@ -258,10 +258,12 @@ class BuiltinSpecsTest {
         assertEquals(emptySet(), DialogSpec.content.provides)
 
         val call = assertIs<CodegenBinding.ComposeCall>(DialogSpec.spec.codegen)
-        assertEquals(KotlinSymbol("androidx.compose.material3", "Dialog"), call.function)
+        // `Dialog` is a `ui.window` API: material3 does not re-export it.
+        assertEquals(KotlinSymbol("androidx.compose.ui.window", "Dialog"), call.function)
         // A window has no modifier: the guard and the dismissal are all the call carries.
         assertEquals(emptyList(), call.params)
         assertEquals(PropertyKey("visible"), call.guard)
+        assertEquals(null, call.requiresOptIn)
         assertEquals("onDismissRequest", call.events.single().param)
         assertEquals(LambdaTarget.Trailing, call.slots.single().target)
     }
@@ -280,6 +282,13 @@ class BuiltinSpecsTest {
         assertEquals(KotlinSymbol("androidx.compose.material3", "ModalBottomSheet"), call.function)
         assertEquals(emptyList(), call.params)
         assertEquals(PropertyKey("visible"), call.guard)
+        // `ModalBottomSheet` is an experimental M3 API: the generated function composes it
+        // behind the marker, which under warnings-as-errors is the difference between
+        // compiling and refusing.
+        assertEquals(
+            KotlinSymbol("androidx.compose.material3", "ExperimentalMaterial3Api"),
+            call.requiresOptIn,
+        )
         assertEquals("onDismissRequest", call.events.single().param)
         assertEquals(LambdaTarget.Trailing, call.slots.single().target)
     }

@@ -41,6 +41,13 @@ public sealed interface CodegenBinding {
          */
         public val guard: PropertyKey? = null,
         /**
+         * The opt-in marker the generated function must carry: a callee marked
+         * `@RequiresOptIn` refuses under warnings-as-errors, and the function that composes it
+         * is where the opt-in is spelled. The marker itself is the annotation — applying a
+         * `@RequiresOptIn` annotation is the opt-in — so a bare symbol is all the file needs.
+         */
+        public val requiresOptIn: KotlinSymbol? = null,
+        /**
          * The callee's modifier parameter takes no default (Compose's `Spacer`), so an empty
          * chain still spells one.
          */

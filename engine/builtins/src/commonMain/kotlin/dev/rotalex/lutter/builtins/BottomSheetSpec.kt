@@ -49,6 +49,7 @@ public object BottomSheetSpec {
             event(onDismiss, param = "onDismissRequest")
             slot("content", LambdaTarget.Trailing)
             guard(visible.key)
+            requiresOptIn(KotlinSymbol("androidx.compose.material3", "ExperimentalMaterial3Api"))
         }
     }
 }
