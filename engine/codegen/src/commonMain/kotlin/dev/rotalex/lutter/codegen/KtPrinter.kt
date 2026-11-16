@@ -123,6 +123,14 @@ public class KtPrinter(
         aliases: Map<String, String>,
         abstractMember: Boolean = false,
     ): String = buildString {
+        // The opt-in first, the way Kotlin convention writes it: the `::class` form keeps the
+        // requirement local to this function, which a bare marker annotation would not.
+        if (function.optIns.isNotEmpty()) {
+            val markers: String = function.optIns
+                .sortedWith(compareBy({ it.packageName }, { it.name }))
+                .joinToString(", ") { (aliases[it.fqn()] ?: it.name) + "::class" }
+            append(indentOf(indent) + "@OptIn(" + markers + ")\n")
+        }
         append(renderAnnotations(function.annotations, indent, aliases))
         append(indentOf(indent) + "public ")
         if (function.suspending) append("suspend ")
@@ -677,6 +685,7 @@ public class KtPrinter(
         when (declaration) {
             is KtDeclaration.Function -> {
                 declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                declaration.optIns.forEach { recordSymbol(it, filePkg, seen) }
                 for (param in declaration.params) {
                     collectExprSymbols(param.type, filePkg, seen)
                     param.default?.let { collectExprSymbols(it, filePkg, seen) }

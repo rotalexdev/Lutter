@@ -266,6 +266,13 @@ public sealed interface KtDeclaration {
         public val params: List<KtParam>,
         public val body: List<KtStmt>,
         public val suspending: Boolean = false,
+        /**
+         * The opt-in markers the body composes behind, spelled `@OptIn(marker::class)` rather
+         * than as the marker itself: an annotation this file applies propagates the
+         * requirement to every caller of this function, while `@OptIn` keeps the opt-in local
+         * to the body and leaves the callers' requirements untouched.
+         */
+        public val optIns: List<KotlinSymbol> = emptyList(),
     ) : KtDeclaration
 
     /**
