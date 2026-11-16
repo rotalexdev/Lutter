@@ -236,6 +236,7 @@ public sealed interface KtStmt {
 
         /** One `value ->` arm. The subject is compared by equality, so the value is an operand. */
         public data class Branch(public val value: KtExpr, public val body: List<KtStmt>)
+    }
 
     /**
      * `if (cond) { … }`, the statement shape: a call that renders only while a condition holds.
@@ -245,7 +246,6 @@ public sealed interface KtStmt {
      * statement position, which is exactly where a slot child sits.
      */
     public data class If(public val cond: KtExpr, public val then: List<KtStmt>) : KtStmt
-}
 }
 
 /**
