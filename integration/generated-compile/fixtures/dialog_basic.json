@@ -14,10 +14,7 @@
       },
       "n_dialog": {
         "id": "n_dialog",
-        "props": {
-          "visible": {"type": "expr", "expr": {"type": "ref", "target": {"type": "state", "id": "s_editOpen"}}},
-          "text": {"type": "const", "value": {"type": "str", "v": "Confirm?"}}
-        },
+        "props": {"visible": {"type": "expr", "expr": {"type": "ref", "target": {"type": "state", "id": "s_editOpen"}}}},
         "slots": {"content": ["n_b"]},
         "type": "m3.Dialog"
       },
