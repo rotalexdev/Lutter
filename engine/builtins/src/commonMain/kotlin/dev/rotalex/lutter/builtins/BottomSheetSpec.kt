@@ -48,7 +48,7 @@ public object BottomSheetSpec {
         composeCall(KotlinSymbol("androidx.compose.material3", "ModalBottomSheet")) {
             event(onDismiss, param = "onDismissRequest")
             slot("content", LambdaTarget.Trailing)
-            guard(visible)
+            guard(visible.key)
         }
     }
 }
