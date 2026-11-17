@@ -9,8 +9,8 @@ import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.SlotName
+import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TokenKind
-import dev.rotalex.lutter.model.type.TypeId
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.Schema
@@ -18,6 +18,7 @@ import dev.rotalex.lutter.schema.component.Cardinality
 import dev.rotalex.lutter.schema.component.Category
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.KotlinSymbol
+import dev.rotalex.lutter.schema.component.component
 import dev.rotalex.lutter.schema.component.componentSpec
 import dev.rotalex.lutter.schema.component.prop
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
