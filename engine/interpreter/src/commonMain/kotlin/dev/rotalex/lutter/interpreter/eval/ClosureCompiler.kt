@@ -35,55 +35,55 @@ internal class ClosureCompiler(private val evaluator: Evaluator) {
     internal fun compile(expr: Expr): (EvalScope) -> Value = when (expr) {
         is Expr.Const -> {
             val value = expr.value
-            { _ -> value }
+            { _: EvalScope -> value }
         }
 
         is Expr.Ref -> {
             val target = expr.target
-            { scope -> scope.read(target) }
+            { scope: EvalScope -> scope.read(target) }
         }
 
         is Expr.Member -> {
             val receiver = compile(expr.receiver)
             val name = expr.name
             val safe = expr.safe
-            { scope -> evaluator.fieldRead(receiver(scope), name, safe) }
+            { scope: EvalScope -> evaluator.fieldRead(receiver(scope), name, safe) }
         }
 
         is Expr.Call -> {
             val function = expr.function
             val argClosures = expr.args.map { compile(it) }
-            { scope -> evaluator.call(function, argClosures.map { it(scope) }) }
+            { scope: EvalScope -> evaluator.call(function, argClosures.map { it(scope) }) }
         }
 
         is Expr.Unary -> {
             val row = UnaryOperators.table.getValue(expr.op)
             val operand = compile(expr.operand)
-            { scope -> row.apply(operand(scope)) }
+            { scope: EvalScope -> row.apply(operand(scope)) }
         }
 
         is Expr.Binary -> {
             val row = BinaryOperators.table.getValue(expr.op)
             val left = compile(expr.left)
             val right = compile(expr.right)
-            { scope -> row.apply(left(scope)) { right(scope) } }
+            { scope: EvalScope -> row.apply(left(scope)) { right(scope) } }
         }
 
         is Expr.If -> {
             val cond = compile(expr.cond)
             val thenBranch = compile(expr.then)
             val otherwiseBranch = compile(expr.otherwise)
-            { scope -> evaluator.branch(cond(scope), { thenBranch(scope) }, { otherwiseBranch(scope) }) }
+            { scope: EvalScope -> evaluator.branch(cond(scope), { thenBranch(scope) }, { otherwiseBranch(scope) }) }
         }
 
         is Expr.ListLiteral -> {
             val itemClosures = expr.items.map { compile(it) }
-            { scope -> Value.ListOf(itemClosures.map { it(scope) }) }
+            { scope: EvalScope -> Value.ListOf(itemClosures.map { it(scope) }) }
         }
 
         is Expr.Template -> {
             val partClosures = expr.parts.map { compile(it) }
-            { scope -> Value.Str(partClosures.joinToString("") { it(scope).toDisplayString() }) }
+            { scope: EvalScope -> Value.Str(partClosures.joinToString("") { it(scope).toDisplayString() }) }
         }
     }
 }
