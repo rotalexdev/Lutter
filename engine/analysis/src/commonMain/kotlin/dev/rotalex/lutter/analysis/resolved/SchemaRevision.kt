@@ -1,6 +1,7 @@
 package dev.rotalex.lutter.analysis.resolved
 
-import kotlin.concurrent.AtomicLong
+import kotlin.concurrent.atomics.AtomicLong
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 /**
  * Which schema context a [ResolvedDocument] was lowered against, as one opaque identity.
@@ -33,7 +34,8 @@ public value class SchemaRevision(public val id: Long) {
 }
 
 /** Mints [SchemaRevision] ids, one per distinct schema context this process has lowered. */
+@OptIn(ExperimentalAtomicApi::class)
 internal object SchemaRevisionMinter {
     private val next = AtomicLong(1)
-    public fun mint(): SchemaRevision = SchemaRevision(next.addAndGet(1L))
+    public fun mint(): SchemaRevision = SchemaRevision(next.addAndFetch(1L))
 }
