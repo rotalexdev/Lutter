@@ -53,6 +53,7 @@ class DirtyNodesTest {
                 root = NodeId("n_root"),
             ),
         ),
+        components = emptyMap(),
         nodes = NodeTable.EMPTY
             .with(column("n_root", "n_button", "n_other"))
             .with(button)
@@ -77,6 +78,7 @@ class DirtyNodesTest {
                 root = NodeId("n_root"),
             ),
         ),
+        components = emptyMap(),
         nodes = NodeTable.EMPTY
             .with(column("n_root", "n_other"))
             .with(column("n_other")),
