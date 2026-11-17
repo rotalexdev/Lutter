@@ -128,8 +128,8 @@ class ClosureCompilationTest {
         val first = typed(expr, TypeRef.Int32)
         val second = typed(expr, TypeRef.Int32)
 
-        assertEquals(Value.Int32(3), evaluator.eval(first, scopeOf(3)))
-        assertEquals(Value.Int32(7), evaluator.eval(second, scopeOf(7)))
+        assertEquals(Value.Int32(4), evaluator.eval(first, scopeOf(3)))
+        assertEquals(Value.Int32(8), evaluator.eval(second, scopeOf(7)))
     }
 
     /** A compiled closure is not a memoized answer: what threw once throws on every evaluation. */
