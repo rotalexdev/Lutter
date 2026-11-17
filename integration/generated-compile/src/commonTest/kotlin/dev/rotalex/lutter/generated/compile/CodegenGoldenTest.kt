@@ -474,6 +474,7 @@ class CodegenGoldenTest {
             "box_with_constraints_basic",
             "dialog_basic",
             "bottom_sheet_basic",
+            "scaffold_basic",
         )
     }
 }
