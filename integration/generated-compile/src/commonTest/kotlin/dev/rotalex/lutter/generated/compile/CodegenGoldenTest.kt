@@ -480,6 +480,9 @@ class CodegenGoldenTest {
             "dialog_basic",
             "bottom_sheet_basic",
             "scaffold_basic",
+            "navigation_bar_basic",
+            "navigation_drawer_basic",
+            "navigation_rail_basic",
         )
     }
 }
