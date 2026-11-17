@@ -20,14 +20,19 @@ import dev.rotalex.lutter.schema.component.componentSpec
  * lambda is the content — the same last-slot rule a document component's own emission follows.
  * They disagree on scope, and each spells its own: the items read through a `ColumnScope`, so
  * [content] provides [LayoutScopes.Column] and a gated modifier on an item resolves against the
- * rail's axis, while Compose's `header` lambda is a receiverless `() -> Unit`, so [header]
- * provides nothing — there is no scope handle to open and none to read inside, the same shape
- * `Scaffold`'s three slots carry. `NavigationRail` is a stable M3 API, so there is no opt-in
- * to spell.
+ * rail's axis, and Compose's `header` lambda is a `ColumnScope` lambda too —
+ * `header: @Composable (ColumnScope.() -> Unit)?` — so [header] provides the column as well:
+ * its receiver goes unused by a bare lambda, but a brand inside it is still drawn on the
+ * rail's axis, which is the truth the slot records. `NavigationRail` is a stable M3 API, so
+ * there is no opt-in to spell.
  */
 public object NavigationRailSpec {
-    /** The block above the items — a brand, a logo; no receiver, no scope. */
-    public val header: SlotSpec = SlotSpec(SlotName("header"), Cardinality.Many)
+    /** The block above the items — a brand, a logo; the column scope is what its aligns read through. */
+    public val header: SlotSpec = SlotSpec(
+        SlotName("header"),
+        Cardinality.Many,
+        provides = setOf(LayoutScopes.Column),
+    )
 
     /** The rail's items, drawn top to bottom; the column scope is what their aligns read through. */
     public val content: SlotSpec = SlotSpec(

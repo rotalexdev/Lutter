@@ -365,7 +365,7 @@ internal class DefaultRenderScope(
     override val environment: RuntimeEnvironment,
     override val theme: ThemeHandle,
     private val runtime: UiRuntime,
-    private val handle: ScopeHandle?,
+    override val handle: ScopeHandle?,
     private val expressions: ExpressionSource,
     private val coroutines: CoroutineScope,
     private val actionEnv: (Map<String, Value>) -> ActionEnv,

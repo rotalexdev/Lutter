@@ -26,10 +26,11 @@ import dev.rotalex.lutter.schema.component.prop
  * argument order and both are receiverless: Compose's `icon` and `label` lambdas are
  * `() -> Unit`, so neither provides a scope and neither opens a handle — the icon is exactly
  * one, because an item without an icon is not a nav entry, and the label is optional, the one
- * thing a document may leave off. The item fills the scope its container provides — a bar's row
- * or a rail's column — but carries none of its own, which is why a container slot and not this
- * leaf is where the scope is declared. `NavigationBarItem` is a stable M3 API, so there is no
- * opt-in to spell.
+ * thing a document may leave off. The item composes inside the row scope its bar provides —
+ * `NavigationBarItem` is a `RowScope` extension, so a rail or drawer entry is not this leaf:
+ * those compose `NavigationRailItem`/`NavigationDrawerItem`, which v1 does not bind, and an
+ * item rendered outside a bar reports and draws nothing. `NavigationBarItem` is a stable M3
+ * API, so there is no opt-in to spell.
  */
 public object NavigationItemSpec {
     /** Whether this item is the one selected. Required: an item without a state renders nothing meaningful. */

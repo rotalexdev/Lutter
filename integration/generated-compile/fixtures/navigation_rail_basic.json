@@ -14,17 +14,6 @@
       },
       "n_home": {
         "id": "n_home",
-        "props": {"selected": {"type": "const", "value": {"type": "bool", "v": true}}},
-        "slots": {"icon": ["n_home_icon"], "label": ["n_home_label"]},
-        "type": "m3.NavigationItem"
-      },
-      "n_home_icon": {
-        "id": "n_home_icon",
-        "props": {"text": {"type": "const", "value": {"type": "str", "v": "H"}}},
-        "type": "m3.Text"
-      },
-      "n_home_label": {
-        "id": "n_home_label",
         "props": {"text": {"type": "const", "value": {"type": "str", "v": "Home"}}},
         "type": "m3.Text"
       },

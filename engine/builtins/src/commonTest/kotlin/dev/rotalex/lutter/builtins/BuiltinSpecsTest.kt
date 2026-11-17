@@ -349,14 +349,15 @@ class BuiltinSpecsTest {
     }
 
     @Test
-    fun `navigation rail is a bare header and a column of items the column scope aligns`() {
+    fun `navigation rail is a columned header and a column of items the column scope aligns`() {
         assertEquals(ComponentType("m3.NavigationRail"), NavigationRailSpec.spec.type)
         assertEquals(Category.Layout, NavigationRailSpec.spec.metadata.category)
         assertEquals(emptyList(), NavigationRailSpec.spec.properties.map { it.key })
-        // The two slots disagree on scope: the items read through a `ColumnScope` and the header
-        // lambda is a receiverless `() -> Unit`, so it provides nothing.
+        // Both slots read through a `ColumnScope`: the items' aligns resolve against the rail's
+        // axis, and the header lambda is `@Composable (ColumnScope.() -> Unit)?` too — its
+        // receiver goes unused by a bare lambda, but a brand inside it is on the same axis.
         assertEquals(Cardinality.Many, NavigationRailSpec.header.cardinality)
-        assertEquals(emptySet(), NavigationRailSpec.header.provides)
+        assertEquals(setOf(LayoutScopes.Column), NavigationRailSpec.header.provides)
         assertEquals(Cardinality.Many, NavigationRailSpec.content.cardinality)
         assertEquals(setOf(LayoutScopes.Column), NavigationRailSpec.content.provides)
 
