@@ -11,6 +11,7 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.doc.UiDocument
+import dev.rotalex.lutter.model.index.DirtyNodes
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
@@ -29,7 +30,31 @@ import dev.rotalex.lutter.schema.overlay.SchemaOverlay
 public class Analyzer<A : Any, F : Any, T : Any>(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, A, F, T>,
 ) {
-    public fun analyze(document: UiDocument): AnalysisResult {
+    /**
+     * The gate over one document, with §6.2:537's partial-update seam beside the full run.
+     *
+     * [dirty] `null` — the default — is the full analysis this class has always run: every pass
+     * sees the whole document and every node is lowered from scratch. With [dirty] non-null the
+     * reporting passes — 1, 3, 4, 5 and 6 — still run over the whole document, because a
+     * diagnostic is a claim about the document as a whole and no pass here can make a partial
+     * one. What [dirty] narrows is pass 7 alone: [previous]'s resolved node for every id outside
+     * the dirty set is carried across at reference identity — §29.1:2048's skip-ability
+     * contract, the observable property that lets a runtime skip an untouched subtree — and the
+     * nodes inside are lowered again against the current document, their inherited scope
+     * recomputed from it.
+     *
+     * [previous] is the run the reuse draws from: the `AnalysisResult.resolved` of the document
+     * as it was before the edits. `null` — which is also what a previous run that reported an
+     * error carries, having resolved nothing — means there is nothing to reuse, and the call is
+     * then a full analysis. That is the fallback rule rather than a shortcut, and it is what
+     * keeps the full-versus-incremental equality property true for every document this class
+     * cannot incrementally reuse.
+     */
+    public fun analyze(
+        document: UiDocument,
+        dirty: DirtyNodes? = null,
+        previous: ResolvedDocument? = null,
+    ): AnalysisResult {
         val found = mutableListOf<Diagnostic>()
         // §8.4's view, built per call and before pass 3: a `doc.*` instance must be validated
         // against the spec its own declaration synthesizes, not refused as an unknown type. It is
@@ -55,6 +80,10 @@ public class Analyzer<A : Any, F : Any, T : Any>(
         found += ActionPass(view).run(document)
         val sorted = DiagnosticSorter.sort(found)
         if (sorted.any { it.severity == Severity.Error }) return AnalysisResult(sorted, null)
-        return AnalysisResult(sorted, ResolutionPass(view, checked).run(document))
+        // Pass 7 takes both or neither: a dirty set without a previous run to reuse from is a
+        // full analysis — there is nothing to carry — and so is `dirty` null, whatever
+        // [previous] holds. The default parameters keep the null path the exact call today is.
+        val carried = previous.takeIf { dirty != null }
+        return AnalysisResult(sorted, ResolutionPass(view, checked).run(document, dirty, carried))
     }
 }

@@ -7,6 +7,7 @@ package dev.rotalex.lutter.interpreter.eval
 import dev.rotalex.lutter.interpreter.EvalScope
 import dev.rotalex.lutter.model.expr.Expr
 import dev.rotalex.lutter.model.expr.TypedExpr
+import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.value.Value
 
 /**
@@ -38,12 +39,21 @@ public class Evaluator(
     /**
      * The entry point §15.3 spells: `Evaluator.eval(typedExpr, EvalScope)`.
      *
-     * [typed] is walked rather than re-derived. §10.4's type is the checker's promise and no
+     * [typed] is compiled rather than re-derived, and the compiled closure is what evaluates.
+     * §29.1 precompiles a `TypedExpr` into closures, memoized on this evaluator: the first eval
+     * of an expression builds one closure per node of its tree, and every later eval — the next
+     * frame, the next state change — runs that closure instead of walking the tree again. The
+     * compilation reuses exactly the helpers this class holds ([fieldRead], [branch], [call],
+     * the operator rows), so there is one evaluation path and not two; a `TypedExpr` reaches a
+     * resolved property and never carries a scope, which is why its closure takes the
+     * [EvalScope] at call time rather than closing over one.
+     *
+     * What is not re-derived is §10.4's type either way: it is the checker's promise and no
      * consumer re-derives it, which is why the operator rows below dispatch on the operands'
-     * runtime values: a `TypedExpr` carries the root type and the set of names, not a type per
+     * runtime values. A `TypedExpr` carries the root type and the set of names, not a type per
      * node, so the row is where an operand's type is finally known.
      */
-    public fun eval(typed: TypedExpr, scope: EvalScope): Value = evaluate(typed.expr, scope)
+    public fun eval(typed: TypedExpr, scope: EvalScope): Value = compiledClosure(typed)(scope)
 
     /**
      * The entry a step's argument takes: the raw [Expr] an action argument carries, and a scope.
@@ -54,57 +64,93 @@ public class Evaluator(
      */
     public fun evalUnchecked(expr: Expr, scope: EvalScope): Value = evaluate(expr, scope)
 
-    /** The nine §10.1 variants, one case each. The table behind two of them does the rest. */
+    /**
+     * The compiled closures, keyed by the `TypedExpr` they were compiled from.
+     *
+     * The key is the [TypedExpr] itself, compared as the data class it is. Structural equality
+     * is the honest key: two `TypedExpr`s that are equal carry trees that evaluate alike, so
+     * sharing one closure between them is a cache hit that cannot change an answer. Keying on
+     * identity would need an identity-keyed map, which common code has no portable spelling of,
+     * and the structural cost — hashing the tree on every lookup — is a walk that reads no
+     * scope, dispatches no operator and allocates no [Value], so it stays cheaper than the
+     * evaluation a miss would have paid for.
+     *
+     * The map lives on the evaluator and nowhere shared because a render runtime is one
+     * `Evaluator` (`UiRuntime.evaluator` holds its own), so the map's lifetime is the runtime's
+     * and its size is bounded by the distinct resolved expressions that runtime has rendered.
+     * Evaluation happens on the runtime's single render path, which is all a plain map needs.
+     */
+    private val compiledClosures: MutableMap<TypedExpr, (EvalScope) -> Value> = mutableMapOf()
+
+    /** The compiler over this evaluator's helpers, so a closure cannot grow a second semantics. */
+    private val compiler: ClosureCompiler = ClosureCompiler(this)
+
+    /** The closure for [typed], compiled on first use and reused for every later one (§29.1). */
+    private fun compiledClosure(typed: TypedExpr): (EvalScope) -> Value =
+        compiledClosures.getOrPut(typed) { compiler.compile(typed.expr) }
+
+    /**
+     * The walk the untyped entries take, one case per variant.
+     *
+     * This is [evalUnchecked]'s path: an action argument arrives as a raw `Expr` with no
+     * `TypedExpr` to compile. The checked entry runs closures compiled out of the same helpers
+     * this walk calls, so the two shapes are one vocabulary and not two evaluators.
+     */
     private fun evaluate(expr: Expr, scope: EvalScope): Value = when (expr) {
         is Expr.Const -> expr.value
         is Expr.Ref -> scope.read(expr.target)
-        is Expr.Member -> member(expr, scope)
-        is Expr.Call -> call(expr, scope)
+        is Expr.Member -> fieldRead(evaluate(expr.receiver, scope), expr.name, expr.safe)
+        is Expr.Call -> call(expr.function, expr.args.map { evaluate(it, scope) })
         is Expr.Unary -> UnaryOperators.table.getValue(expr.op).apply(evaluate(expr.operand, scope))
         is Expr.Binary -> BinaryOperators.table.getValue(expr.op).apply(evaluate(expr.left, scope)) {
             evaluate(expr.right, scope)
         }
-        is Expr.If -> branch(expr, scope)
+        is Expr.If -> branch(
+            evaluate(expr.cond, scope),
+            { evaluate(expr.then, scope) },
+            { evaluate(expr.otherwise, scope) },
+        )
         is Expr.ListLiteral -> Value.ListOf(expr.items.map { evaluate(it, scope) })
         is Expr.Template -> Value.Str(expr.parts.joinToString("") { evaluate(it, scope).toDisplayString() })
     }
 
     /**
-     * §10.5's field read, over a [Value.Obj].
+     * §10.5's field read, over an already-evaluated receiver.
      *
      * The totality rule's two data cases are here: a receiver that is not an object, and a
      * field the object does not carry. An absent field is real rather than hypothetical —
      * pass 5 checks the name against the declared data model while the value comes from the
      * document, so a literal may legitimately omit one.
+     *
+     * The receiver arrives evaluated rather than as an [Expr.Member] so both paths read this:
+     * the walk evaluates its receiver and hands it here, and a compiled closure hands it the
+     * value its own receiver closure produced. One definition, one totality rule.
      */
-    private fun member(expr: Expr.Member, scope: EvalScope): Value {
-        val receiver = evaluate(expr.receiver, scope)
+    internal fun fieldRead(receiver: Value, name: String, safe: Boolean): Value {
         if (receiver is Value.Null) {
-            if (expr.safe) return Value.Null
+            if (safe) return Value.Null
             throw IllegalStateException(
-                "'${expr.name}' reads through a null receiver and safe is false; " +
+                "'$name' reads through a null receiver and safe is false; " +
                     "§10.4 requires safe access on a nullable receiver",
             )
         }
         val record = receiver as? Value.Obj ?: return Value.Null
         // Compared by the key's text because `Expr.Member.name` is a bare String: a
         // `PropertyKey` could only be built by re-validating what the document already wrote.
-        return record.fields.entries.firstOrNull { it.key.value == expr.name }?.value ?: Value.Null
+        return record.fields.entries.firstOrNull { it.key.value == name }?.value ?: Value.Null
     }
 
-    /** §10.5's call: the implementation for this id, over the arguments in written order. */
-    private fun call(expr: Expr.Call, scope: EvalScope): Value {
-        val impl = functions[expr.function] ?: throw IllegalStateException(
-            "No FunctionImpl for '${expr.function}'; §10.3 pairs every FunctionSpec with one",
+    /** §10.5's call: the implementation for [function], over the arguments in written order. */
+    internal fun call(function: FunctionId, args: List<Value>): Value {
+        val impl = functions[function] ?: throw IllegalStateException(
+            "No FunctionImpl for '$function'; §10.3 pairs every FunctionSpec with one",
         )
         // Arity is the implementation's own business, because this signature carries no
         // signature: `FunctionImpl` is a `List<Value>` and nothing about the id is here.
-        return impl.invoke(expr.args.map { evaluate(it, scope) })
+        return impl.invoke(args)
     }
 
     /** §10.5's lazy `if`. Only the branch the condition takes is evaluated. */
-    private fun branch(expr: Expr.If, scope: EvalScope): Value {
-        val taken = boolOperand(evaluate(expr.cond, scope), "if")
-        return evaluate(if (taken) expr.then else expr.otherwise, scope)
-    }
+    internal fun branch(cond: Value, then: () -> Value, otherwise: () -> Value): Value =
+        if (boolOperand(cond, "if")) then() else otherwise()
 }

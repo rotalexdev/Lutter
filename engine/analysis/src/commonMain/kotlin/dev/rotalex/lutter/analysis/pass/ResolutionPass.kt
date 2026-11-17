@@ -20,6 +20,7 @@ import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.SlotName
+import dev.rotalex.lutter.model.index.DirtyNodes
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.ComponentSpec
@@ -34,12 +35,26 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
  * bug rather than a document fault. [checked] is pass 5's product, attached here rather than
  * re-derived: a computed property's type is settled before this pass and neither backend
  * re-derives it, and the same goes for a derived body's.
+ *
+ * With [dirty] and [previous] both present the pass is §6.2:537's reuse half as well: a node
+ * outside the dirty set is not lowered at all — [previous]'s result is carried through at
+ * reference identity, the untouched subtree below it included, which is the property
+ * §29.1:2048's cache exists to buy. Two guards keep the carry honest, each covering an input
+ * the dirty set cannot see: the recomputed scope set, because a placement change alters the
+ * slot path of every node *below* the moved one ([ScopeAnalysis] computes scopes by walking
+ * up), and pass 5's just-computed typings, because an expression's scope also carries its
+ * owner's state and the item bindings of an iterating slot above it. A carried node failing
+ * either guard is lowered again, and the output stays equal to a full run.
  */
 internal class ResolutionPass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
     private val checked: ExpressionPass.Result,
 ) {
-    public fun run(document: UiDocument): ResolvedDocument {
+    public fun run(
+        document: UiDocument,
+        dirty: DirtyNodes? = null,
+        previous: ResolvedDocument? = null,
+    ): ResolvedDocument {
         val theme = selectTheme(document)
         val scopes = ScopeAnalysis.computeScopes(document) { schema.components[it] }
         val index = LinkedHashMap<NodeId, ResolvedNode>()
@@ -72,6 +87,25 @@ internal class ResolutionPass(
 
         fun build(id: NodeId): ResolvedNode {
             index[id]?.let { return it }
+            // §6.2:537's reuse half: a node the dirty set does not name is not lowered at all —
+            // `previous`'s result is carried through at reference identity, and with it the whole
+            // untouched subtree below. The two guards are the inputs the dirty set cannot see:
+            // the recomputed scope set (a placement change alters the slot path of every node
+            // below the moved one), and pass 5's typings (an expression's scope also carries the
+            // owner's state and the item bindings above it). A carried node failing either guard
+            // is lowered again, so the output stays equal to a full run.
+            val carried = previous
+                ?.takeIf { dirty == null || id !in dirty }
+                ?.nodes
+                ?.get(id)
+            if (
+                carried != null &&
+                carried.scopes == scopes[id].orEmpty() &&
+                typingsUnchanged(id, carried)
+            ) {
+                index[id] = carried
+                return carried
+            }
             val node = checkNotNull(document.nodes[id]) { "Resolution reached node '$id' outside the table" }
             val spec = checkNotNull(schema.components[node.type]) { "Resolution reached unregistered type '${node.type}'" }
             val props = LinkedHashMap<PropertyKey, ResolvedProp>()
@@ -147,6 +181,28 @@ internal class ResolutionPass(
      */
     private fun statesOf(declarations: List<StateDecl>): List<ResolvedState> =
         declarations.map { ResolvedState(it, checked.derived[it.id]) }
+
+    /**
+     * Whether [carried]'s computed properties still hold what pass 5 just computed at their
+     * addresses.
+     *
+     * [checked] is this run's typing of the whole document, and the address is the only key the
+     * comparison can be made at: `ResolvedProp` carries no modifier position of its own, so the
+     * walk recovers it from the carried modifier's index. A computed value that turned invalid
+     * reads as a missing entry, which is a mismatch like any other — the carried node is lowered
+     * again rather than trusted with a stale type.
+     */
+    private fun typingsUnchanged(id: NodeId, carried: ResolvedNode): Boolean {
+        for ((key, prop) in carried.props) {
+            if (prop.typed != checked.typed[ExprAddress(id, key)]) return false
+        }
+        for ((position, modifier) in carried.modifiers.withIndex()) {
+            for ((key, prop) in modifier.args) {
+                if (prop.typed != checked.typed[ExprAddress(id, key, position)]) return false
+            }
+        }
+        return true
+    }
 }
 
 private fun tokenOf(actual: PropertyValue, theme: ThemeDecl?): ResolvedToken? {
