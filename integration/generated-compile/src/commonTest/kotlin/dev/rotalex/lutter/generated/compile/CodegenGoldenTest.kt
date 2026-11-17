@@ -223,6 +223,11 @@ class CodegenGoldenTest {
         fixture("bottom_sheet_basic")
     }
 
+    @Test
+    fun `scaffold_basic generates the committed golden`() {
+        fixture("scaffold_basic")
+    }
+
     /**
      * The harness covers what is on disk, and says the count when it does not.
      *
