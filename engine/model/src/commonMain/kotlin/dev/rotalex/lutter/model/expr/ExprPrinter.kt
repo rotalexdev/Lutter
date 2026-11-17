@@ -1,5 +1,6 @@
 package dev.rotalex.lutter.model.expr
 
+import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.model.value.canonicalText
 
 /**
@@ -123,12 +124,12 @@ public object ExprPrinter {
             is Value.Int32 -> out.append(value.v.toString())
             is Value.Int64 -> out.append(value.v.toString()).append('L')
             is Value.Float32 -> {
-                out.append(spellFloat(value.v.toDouble(), value.v))
+                out.append(spellFloat(value.v.toDouble(), value.v.toDouble()))
                 out.append('f')
             }
             is Value.Float64 -> out.append(spellFloat(value.v, value.v))
             is Value.Str -> writeString(value.v, out)
-            else -> error(
+            else -> throw IllegalArgumentException(
                 "The printer cannot spell a ${value::class.simpleName} literal: " +
                     "the text view covers the primitive literals, and the AST is the stored form",
             )
@@ -196,7 +197,15 @@ public object ExprPrinter {
     }
 
     private fun writeMember(expr: Expr.Member, out: StringBuilder) {
-        writeOperand(expr.receiver, out)
+        // A numeric literal receiver carries parens: `5.name` would hand its dot to the
+        // number scan, and the parens are what keep the member readable at all.
+        if (expr.receiver is Expr.Const && expr.receiver.value.isNumeric) {
+            out.append('(')
+            write(expr.receiver, out)
+            out.append(')')
+        } else {
+            writeOperand(expr.receiver, out)
+        }
         out.append(if (expr.safe) "?." else ".")
         require(expr.name.isIdentifier()) {
             "The printer cannot spell member '${expr.name}': a member name must be an identifier"
