@@ -18,6 +18,7 @@ import dev.rotalex.lutter.builtins.LazyRowSpec
 import dev.rotalex.lutter.builtins.ProgressIndicatorSpec
 import dev.rotalex.lutter.builtins.RadioButtonSpec
 import dev.rotalex.lutter.builtins.RowSpec
+import dev.rotalex.lutter.builtins.ScaffoldSpec
 import dev.rotalex.lutter.builtins.SliderSpec
 import dev.rotalex.lutter.builtins.SlotOutletSpec
 import dev.rotalex.lutter.builtins.SpacerSpec
@@ -71,7 +72,8 @@ class BuiltinRenderersTest {
         // rule the generated screen spells, so neither backend places an absent window.
         assertNotNull(registry[DialogSpec.spec.type])
         assertNotNull(registry[BottomSheetSpec.spec.type])
+        assertNotNull(registry[ScaffoldSpec.spec.type])
         // Pinned so a spec registered without its renderer fails here rather than at coverage.
-        assertEquals(25, registry.types().size)
+        assertEquals(26, registry.types().size)
     }
 }

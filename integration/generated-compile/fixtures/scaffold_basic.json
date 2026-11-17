@@ -1,0 +1,40 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "ScaffoldBasic"},
+    "nodes": {
+      "n_body": {
+        "id": "n_body",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Body"}}},
+        "type": "m3.Text"
+      },
+      "n_fab": {
+        "id": "n_fab",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Add"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "slots": {"children": ["n_scaffold"]},
+        "type": "core.Column"
+      },
+      "n_scaffold": {
+        "id": "n_scaffold",
+        "slots": {"topBar": ["n_top"], "content": ["n_body"], "fab": ["n_fab"]},
+        "type": "m3.Scaffold"
+      },
+      "n_top": {
+        "id": "n_top",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Top"}}},
+        "type": "m3.Text"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

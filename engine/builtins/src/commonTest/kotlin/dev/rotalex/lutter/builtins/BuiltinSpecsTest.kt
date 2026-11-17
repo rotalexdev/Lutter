@@ -5,6 +5,7 @@ import dev.rotalex.lutter.builtins.enums.VerticalArrangementSpec
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.schema.Schema
@@ -291,6 +292,40 @@ class BuiltinSpecsTest {
         )
         assertEquals("onDismissRequest", call.events.single().param)
         assertEquals(LambdaTarget.Trailing, call.slots.single().target)
+    }
+
+    @Test
+    fun `scaffold frames the screen with three slots and no property`() {
+        assertEquals(ComponentType("m3.Scaffold"), ScaffoldSpec.spec.type)
+        // The document places, the theme dresses: colour and elevation are Material's, so the
+        // spec declares nothing a document could double-name.
+        assertEquals(emptyList(), ScaffoldSpec.spec.properties.map { it.key })
+        // All three slots are receiverless: `topBar` and `fab` are `() -> Unit` lambdas and the
+        // content lambda's `PaddingValues` is a parameter, not a receiver, so v1 opens no scope.
+        assertEquals(Cardinality.Many, ScaffoldSpec.topBar.cardinality)
+        assertEquals(emptySet(), ScaffoldSpec.topBar.provides)
+        assertEquals(Cardinality.Many, ScaffoldSpec.fab.cardinality)
+        assertEquals(emptySet(), ScaffoldSpec.fab.provides)
+        assertEquals(Cardinality.Many, ScaffoldSpec.content.cardinality)
+        assertEquals(emptySet(), ScaffoldSpec.content.provides)
+
+        val call = assertIs<CodegenBinding.ComposeCall>(ScaffoldSpec.spec.codegen)
+        assertEquals(KotlinSymbol("androidx.compose.material3", "Scaffold"), call.function)
+        assertEquals(emptyList(), call.params)
+        // The frame is always drawn: no guard, no event, and `Scaffold` is a stable M3 API.
+        assertEquals(null, call.guard)
+        assertEquals(null, call.requiresOptIn)
+        // `content` is last so the generated call's trailing lambda is the body; the bar and
+        // the button spell their named arguments, and Compose's parameter for the FAB is the
+        // longer `floatingActionButton` even though the document's slot stays `fab`.
+        assertEquals(
+            listOf(
+                SlotName("topBar") to LambdaTarget.NamedParam("topBar"),
+                SlotName("fab") to LambdaTarget.NamedParam("floatingActionButton"),
+                SlotName("content") to LambdaTarget.Trailing,
+            ),
+            call.slots.map { it.slot to it.target },
+        )
     }
 
     private companion object {

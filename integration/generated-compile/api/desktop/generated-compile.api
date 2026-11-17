@@ -591,6 +591,7 @@ public final class dev/rotalex/lutter/generated/compile/ComposableSingletons$Gen
 	public final fun getLambda$-145799924$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda$-1466466326$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda$-1550274475$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-1599653562$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda$-1840094842$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda$-1939985269$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda$-1973282078$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
@@ -1294,6 +1295,55 @@ public abstract interface class dev/rotalex/lutter/generated/row_weight/Snackbar
 }
 
 public final class dev/rotalex/lutter/generated/row_weight/screens/HomeScreenKt {
+	public static final fun HomeScreen (Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/scaffold_basic/AppHost {
+}
+
+public final class dev/rotalex/lutter/generated/scaffold_basic/AppKt {
+	public static final fun AppRoot (Ldev/rotalex/lutter/generated/scaffold_basic/AppNavigator;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class dev/rotalex/lutter/generated/scaffold_basic/AppNavigator {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun <init> (Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun back ()Z
+	public final fun getCurrent ()Ldev/rotalex/lutter/generated/scaffold_basic/Route;
+	public final fun navigate (Ldev/rotalex/lutter/generated/scaffold_basic/Route;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/scaffold_basic/DialogHost {
+	public abstract fun show (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun showSheet (Ljava/lang/String;Ljava/lang/String;)V
+}
+
+public abstract interface class dev/rotalex/lutter/generated/scaffold_basic/Route {
+}
+
+public final class dev/rotalex/lutter/generated/scaffold_basic/Route$Home : dev/rotalex/lutter/generated/scaffold_basic/Route {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/generated/scaffold_basic/Route$Home;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/rotalex/lutter/generated/scaffold_basic/SnackbarHost {
+	public abstract fun show (Ljava/lang/String;)V
+}
+
+public final class dev/rotalex/lutter/generated/scaffold_basic/screens/ComposableSingletons$HomeScreenKt {
+	public static final field INSTANCE Ldev/rotalex/lutter/generated/scaffold_basic/screens/ComposableSingletons$HomeScreenKt;
+	public fun <init> ()V
+	public final fun getLambda$-362826227$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-63160107$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$811768266$dev_rotalex_lutter_generated_compile ()Lkotlin/jvm/functions/Function2;
+}
+
+public final class dev/rotalex/lutter/generated/scaffold_basic/screens/HomeScreenKt {
 	public static final fun HomeScreen (Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 }
 

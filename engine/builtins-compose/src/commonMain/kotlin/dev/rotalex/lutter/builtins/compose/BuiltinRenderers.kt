@@ -10,6 +10,7 @@ import dev.rotalex.lutter.builtins.ColumnSpec
 import dev.rotalex.lutter.builtins.DialogSpec
 import dev.rotalex.lutter.builtins.RadioButtonSpec
 import dev.rotalex.lutter.builtins.RowSpec
+import dev.rotalex.lutter.builtins.ScaffoldSpec
 import dev.rotalex.lutter.builtins.SlotOutletSpec
 import dev.rotalex.lutter.builtins.SurfaceSpec
 import dev.rotalex.lutter.builtins.DividerSpec
@@ -61,4 +62,5 @@ public fun RendererRegistryBuilder.registerBuiltinRenderers(): Unit {
     register(BoxWithConstraintsSpec.spec.type, BoxWithConstraintsRenderer)
     register(DialogSpec.spec.type, DialogRenderer)
     register(BottomSheetSpec.spec.type, BottomSheetRenderer)
+    register(ScaffoldSpec.spec.type, ScaffoldRenderer)
 }

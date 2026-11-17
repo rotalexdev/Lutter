@@ -249,6 +249,14 @@ public final class dev/rotalex/lutter/builtins/RowSpec {
 	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
 }
 
+public final class dev/rotalex/lutter/builtins/ScaffoldSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/ScaffoldSpec;
+	public final fun getContent ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getFab ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+	public final fun getTopBar ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+}
+
 public final class dev/rotalex/lutter/builtins/ShapeSpec {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/ShapeSpec;
 	public final fun getEntries ()Ljava/util/List;
