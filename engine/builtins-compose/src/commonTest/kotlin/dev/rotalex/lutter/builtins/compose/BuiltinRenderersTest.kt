@@ -15,6 +15,10 @@ import dev.rotalex.lutter.builtins.IconSpec
 import dev.rotalex.lutter.builtins.ImageSpec
 import dev.rotalex.lutter.builtins.LazyColumnSpec
 import dev.rotalex.lutter.builtins.LazyRowSpec
+import dev.rotalex.lutter.builtins.NavigationBarSpec
+import dev.rotalex.lutter.builtins.NavigationDrawerSpec
+import dev.rotalex.lutter.builtins.NavigationItemSpec
+import dev.rotalex.lutter.builtins.NavigationRailSpec
 import dev.rotalex.lutter.builtins.ProgressIndicatorSpec
 import dev.rotalex.lutter.builtins.RadioButtonSpec
 import dev.rotalex.lutter.builtins.RowSpec
@@ -73,7 +77,11 @@ class BuiltinRenderersTest {
         assertNotNull(registry[DialogSpec.spec.type])
         assertNotNull(registry[BottomSheetSpec.spec.type])
         assertNotNull(registry[ScaffoldSpec.spec.type])
+        assertNotNull(registry[NavigationBarSpec.spec.type])
+        assertNotNull(registry[NavigationRailSpec.spec.type])
+        assertNotNull(registry[NavigationDrawerSpec.spec.type])
+        assertNotNull(registry[NavigationItemSpec.spec.type])
         // Pinned so a spec registered without its renderer fails here rather than at coverage.
-        assertEquals(26, registry.types().size)
+        assertEquals(30, registry.types().size)
     }
 }

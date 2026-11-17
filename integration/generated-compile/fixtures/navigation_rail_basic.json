@@ -1,0 +1,35 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "NavigationRailBasic"},
+    "nodes": {
+      "n_brand": {
+        "id": "n_brand",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Brand"}}},
+        "type": "m3.Text"
+      },
+      "n_home": {
+        "id": "n_home",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Home"}}},
+        "type": "m3.Text"
+      },
+      "n_rail": {
+        "id": "n_rail",
+        "slots": {"header": ["n_brand"], "content": ["n_home"]},
+        "type": "m3.NavigationRail"
+      },
+      "n_root": {
+        "id": "n_root",
+        "slots": {"children": ["n_rail"]},
+        "type": "core.Column"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

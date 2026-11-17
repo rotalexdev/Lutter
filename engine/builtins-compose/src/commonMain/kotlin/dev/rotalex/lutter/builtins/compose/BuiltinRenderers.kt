@@ -20,6 +20,10 @@ import dev.rotalex.lutter.builtins.IconSpec
 import dev.rotalex.lutter.builtins.ImageSpec
 import dev.rotalex.lutter.builtins.LazyColumnSpec
 import dev.rotalex.lutter.builtins.LazyRowSpec
+import dev.rotalex.lutter.builtins.NavigationBarSpec
+import dev.rotalex.lutter.builtins.NavigationDrawerSpec
+import dev.rotalex.lutter.builtins.NavigationItemSpec
+import dev.rotalex.lutter.builtins.NavigationRailSpec
 import dev.rotalex.lutter.builtins.ProgressIndicatorSpec
 import dev.rotalex.lutter.builtins.SliderSpec
 import dev.rotalex.lutter.builtins.SpacerSpec
@@ -63,4 +67,8 @@ public fun RendererRegistryBuilder.registerBuiltinRenderers(): Unit {
     register(DialogSpec.spec.type, DialogRenderer)
     register(BottomSheetSpec.spec.type, BottomSheetRenderer)
     register(ScaffoldSpec.spec.type, ScaffoldRenderer)
+    register(NavigationBarSpec.spec.type, NavigationBarRenderer)
+    register(NavigationRailSpec.spec.type, NavigationRailRenderer)
+    register(NavigationDrawerSpec.spec.type, NavigationDrawerRenderer)
+    register(NavigationItemSpec.spec.type, NavigationItemRenderer)
 }

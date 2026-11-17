@@ -116,6 +116,7 @@ public abstract interface class dev/rotalex/lutter/runtime/RenderScope {
 	public abstract fun RenderInstance (Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;Landroidx/compose/runtime/Composer;I)V
 	public abstract fun RenderSlot-F9ChFYk (Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;Ljava/lang/String;Landroidx/compose/runtime/Composer;I)V
 	public abstract fun getEnvironment ()Ldev/rotalex/lutter/runtime/RuntimeEnvironment;
+	public abstract fun getHandle ()Ldev/rotalex/lutter/runtime/ScopeHandle;
 	public abstract fun getInstance ()Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;
 	public abstract fun getTheme ()Ldev/rotalex/lutter/runtime/ThemeHandle;
 	public abstract fun modifierFor (Ldev/rotalex/lutter/analysis/resolved/ResolvedNode;)Landroidx/compose/ui/Modifier;

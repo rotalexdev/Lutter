@@ -228,6 +228,21 @@ class CodegenGoldenTest {
         fixture("scaffold_basic")
     }
 
+    @Test
+    fun `navigation_bar_basic generates the committed golden`() {
+        fixture("navigation_bar_basic")
+    }
+
+    @Test
+    fun `navigation_drawer_basic generates the committed golden`() {
+        fixture("navigation_drawer_basic")
+    }
+
+    @Test
+    fun `navigation_rail_basic generates the committed golden`() {
+        fixture("navigation_rail_basic")
+    }
+
     /**
      * The harness covers what is on disk, and says the count when it does not.
      *
@@ -480,6 +495,9 @@ class CodegenGoldenTest {
             "dialog_basic",
             "bottom_sheet_basic",
             "scaffold_basic",
+            "navigation_bar_basic",
+            "navigation_drawer_basic",
+            "navigation_rail_basic",
         )
     }
 }

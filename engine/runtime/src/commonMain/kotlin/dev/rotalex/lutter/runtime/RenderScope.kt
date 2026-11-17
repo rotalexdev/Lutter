@@ -73,6 +73,18 @@ public interface RenderScope {
     /** Token reads for the current theme. */
     public val theme: ThemeHandle
 
+    /**
+     * The layout scope the nearest slot opened, or null outside one.
+     *
+     * The handle exists for the same reason [ScopeHandle] carries its receiver: a nested
+     * function body has no access to the `RowScope` the caller's lambda introduced, and a
+     * modifier applier is not the only nested body that needs the receiver — a renderer whose
+     * callee is a scope extension (`NavigationBarItem` is a `RowScope` member) reads the
+     * receiver here and calls `with` against it, the same path the align projections take.
+     * Renderers that need no receiver ignore it.
+     */
+    public val handle: ScopeHandle?
+
     /** Typed reads over [node]'s effective properties. */
     public fun props(node: ResolvedNode): PropertyReader
 
