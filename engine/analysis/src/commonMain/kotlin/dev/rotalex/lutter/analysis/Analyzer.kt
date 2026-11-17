@@ -8,10 +8,15 @@ import dev.rotalex.lutter.analysis.pass.ResolutionPass
 import dev.rotalex.lutter.analysis.pass.SchemaPass
 import dev.rotalex.lutter.analysis.pass.StructuralPass
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
+import dev.rotalex.lutter.analysis.resolved.SchemaRevision
+import dev.rotalex.lutter.analysis.resolved.SchemaRevisionMinter
 import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.Severity
+import dev.rotalex.lutter.model.doc.ComponentDecl
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.index.DirtyNodes
+import dev.rotalex.lutter.model.ids.ComponentDeclId
+import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
@@ -30,6 +35,30 @@ import dev.rotalex.lutter.schema.overlay.SchemaOverlay
 public class Analyzer<A : Any, F : Any, T : Any>(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, A, F, T>,
 ) {
+
+    /**
+     * §29.1:2048's revision of the base view, minted once: the base schema never changes
+     * within one analyzer instance, so one id covers every run without document components.
+     */
+    private val baseRevision: SchemaRevision = SchemaRevisionMinter.mint()
+
+    /**
+     * The overlay the last component surface built, beside the revision it got.
+     *
+     * The overlay reads exactly two things off the document — the declarations and their
+     * recorded versions — so an equal surface builds an equal overlay by construction, and
+     * reusing the instance for it is what lets §29.1:2048's revision name a schema context
+     * rather than a call. One entry: the pipeline re-analyzes one document forward, and the
+     * previous entry is unreachable once the surface moved.
+     */
+    private var overlayCache: OverlayCache<A, F, T>? = null
+
+    private class OverlayCache<A : Any, F : Any, T : Any>(
+        val components: Map<ComponentDeclId, ComponentDecl>,
+        val componentVersions: Map<ComponentType, Int>,
+        val view: SchemaOverlay<ModifierSpec, A, F, T>,
+        val revision: SchemaRevision,
+    )
     /**
      * The gate over one document, with §6.2:537's partial-update seam beside the full run.
      *
@@ -48,7 +77,12 @@ public class Analyzer<A : Any, F : Any, T : Any>(
      * error carries, having resolved nothing — means there is nothing to reuse, and the call is
      * then a full analysis. That is the fallback rule rather than a shortcut, and it is what
      * keeps the full-versus-incremental equality property true for every document this class
-     * cannot incrementally reuse.
+     * cannot incrementally reuse. The carry is additionally keyed on the schema revision,
+     * §29.1:2048's third cache component: [previous]'s document must have been lowered
+     * against this run's schema context, and a revision that differs — a declaration edit, a
+     * version note, a different analyzer — or an unknown one refuses the carry wholesale,
+     * recomputing every node against the current view rather than trusting what another
+     * context produced.
      */
     public fun analyze(
         document: UiDocument,
@@ -56,12 +90,37 @@ public class Analyzer<A : Any, F : Any, T : Any>(
         previous: ResolvedDocument? = null,
     ): AnalysisResult {
         val found = mutableListOf<Diagnostic>()
-        // §8.4's view, built per call and before pass 3: a `doc.*` instance must be validated
-        // against the spec its own declaration synthesizes, not refused as an unknown type. It is
-        // never cached on this analyzer, so one document's components cannot reach another's
-        // analysis, and a document that declares none pays nothing for the merged registry.
-        val view: SchemaView<ComponentSpec, ModifierSpec, A, F, T> =
-            if (document.components.isEmpty()) schema else SchemaOverlay(schema, document)
+        // §8.4's view, resolved before pass 3: a `doc.*` instance must be validated against the
+        // spec its own declaration synthesizes, not refused as an unknown type. The view arrives
+        // with §29.1:2048's schema revision: a document that declares none resolves against the
+        // base view, whose revision is minted once per analyzer; one that declares components
+        // resolves against the overlay its surface synthesizes, cached beside the revision and
+        // rebuilt only when the surface the overlay reads — the declarations and their recorded
+        // versions — differs from the last one this analyzer saw. Two documents with equal
+        // surfaces share one view and one revision, which is sound because an equal surface
+        // builds an equal overlay by construction; a surface that changed gets a fresh pair, and
+        // every carry from the old one is refused in pass 7 wholesale rather than guarded per
+        // node, because what changed is exactly the input no per-node guard can see.
+        val view: SchemaView<ComponentSpec, ModifierSpec, A, F, T>
+        val revision: SchemaRevision
+        val cache = overlayCache
+        if (document.components.isEmpty()) {
+            view = schema
+            revision = baseRevision
+        } else if (
+            cache != null &&
+            cache.components == document.components &&
+            cache.componentVersions == document.meta.componentVersions
+        ) {
+            view = cache.view
+            revision = cache.revision
+        } else {
+            val overlay = SchemaOverlay(schema, document)
+            view = overlay
+            revision = SchemaRevisionMinter.mint()
+            overlayCache =
+                OverlayCache(document.components, document.meta.componentVersions, overlay, revision)
+        }
         val passes = listOf(StructuralPass(), SchemaPass(view), ReferencePass(view))
         for (pass in passes) {
             found += pass.run(document)
@@ -84,6 +143,6 @@ public class Analyzer<A : Any, F : Any, T : Any>(
         // full analysis — there is nothing to carry — and so is `dirty` null, whatever
         // [previous] holds. The default parameters keep the null path the exact call today is.
         val carried = previous.takeIf { dirty != null }
-        return AnalysisResult(sorted, ResolutionPass(view, checked).run(document, dirty, carried))
+        return AnalysisResult(sorted, ResolutionPass(view, checked, revision).run(document, dirty, carried))
     }
 }

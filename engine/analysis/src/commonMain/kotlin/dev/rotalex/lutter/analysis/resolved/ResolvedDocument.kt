@@ -53,4 +53,12 @@ public data class ResolvedDocument(
     public val hostFunctions: List<HostFunctionDecl> = emptyList(),
     public val componentSpecs: Map<ComponentDeclId, ComponentSpec> = emptyMap(),
     public val resources: Map<ResourceId, ResourceDecl> = emptyMap(),
+
+    /**
+     * The schema context this lowering ran against, §29.1:2048's third cache component.
+     * [SchemaRevision.NONE] — the default, for hand-built documents — means the context is
+     * unknown, and the carry rule answers that the same way it answers any revision it does
+     * not recognize: recompute rather than trust.
+     */
+    public val schemaRevision: SchemaRevision = SchemaRevision.NONE,
 )
