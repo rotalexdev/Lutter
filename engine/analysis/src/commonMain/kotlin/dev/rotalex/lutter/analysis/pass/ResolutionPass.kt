@@ -9,6 +9,7 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.analysis.resolved.ResolvedState
 import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
 import dev.rotalex.lutter.analysis.resolved.ResolvedToken
+import dev.rotalex.lutter.analysis.resolved.SchemaRevision
 import dev.rotalex.lutter.analysis.resolved.resolveToken
 import dev.rotalex.lutter.analysis.resolved.selectTheme
 import dev.rotalex.lutter.analysis.scope.ScopeAnalysis
@@ -39,16 +40,23 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
  * With [dirty] and [previous] both present the pass is §6.2:537's reuse half as well: a node
  * outside the dirty set is not lowered at all — [previous]'s result is carried through at
  * reference identity, the untouched subtree below it included, which is the property
- * §29.1:2048's cache exists to buy. Two guards keep the carry honest, each covering an input
- * the dirty set cannot see: the recomputed scope set, because a placement change alters the
- * slot path of every node *below* the moved one ([ScopeAnalysis] computes scopes by walking
- * up), and pass 5's just-computed typings, because an expression's scope also carries its
- * owner's state and the item bindings of an iterating slot above it. A carried node failing
- * either guard is lowered again, and the output stays equal to a full run.
+ * §29.1:2048's cache exists to buy. A carried subtree is also registered in the new index, so
+ * [ResolvedDocument.nodes] keeps answering for every node the document holds. The carry is
+ * additionally keyed on §29.1:2048's third component, [previous]'s schema revision: a
+ * declaration edit or a version note changes the spec every instance resolves against
+ * without touching a node, and a carry from a different revision — or from an unknown one —
+ * is refused wholesale, because what changed is exactly the input no per-node guard can see.
+ * Two per-node guards keep what survives honest, each covering an input the dirty set cannot
+ * see: the recomputed scope set, because a placement change alters the slot path of every
+ * node *below* the moved one ([ScopeAnalysis] computes scopes by walking up), and pass 5's
+ * just-computed typings, because an expression's scope also carries its owner's state and
+ * the item bindings of an iterating slot above it. A carried node failing either guard is
+ * lowered again, and the output stays equal to a full run.
  */
 internal class ResolutionPass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
     private val checked: ExpressionPass.Result,
+    private val revision: SchemaRevision,
 ) {
     public fun run(
         document: UiDocument,
@@ -58,6 +66,23 @@ internal class ResolutionPass(
         val theme = selectTheme(document)
         val scopes = ScopeAnalysis.computeScopes(document) { schema.components[it] }
         val index = LinkedHashMap<NodeId, ResolvedNode>()
+
+        // A carried node is carried with the subtree below it, and the document's index must
+        // still answer for every node: [ResolvedDocument.nodes] is the contract callers
+        // address nodes by, and a subtree that skips [build] would otherwise leave its
+        // members out of it. Registration is bookkeeping only — the members ride at reference
+        // identity, and their own guards held when the run that produced them lowered them:
+        // an honest dirty set that leaves a carried root untouched leaves every node below it
+        // untouched too, because any edit inside the subtree names the node it edits and the
+        // chain above it.
+        fun register(node: ResolvedNode) {
+            for (children in node.slots.values) {
+                for (child in children) {
+                    index[child.id] = child
+                    register(child)
+                }
+            }
+        }
 
         fun propOf(
             node: NodeId,
@@ -89,13 +114,17 @@ internal class ResolutionPass(
             index[id]?.let { return it }
             // §6.2:537's reuse half: a node the dirty set does not name is not lowered at all —
             // `previous`'s result is carried through at reference identity, and with it the whole
-            // untouched subtree below. The two guards are the inputs the dirty set cannot see:
-            // the recomputed scope set (a placement change alters the slot path of every node
+            // untouched subtree below. The revision check above the per-node guards is §29.1:2048's
+            // third cache component: a run may only reuse from its own schema context, because a
+            // declaration edit or a version note changes what every instance resolves against
+            // without touching a node. The two guards below are the inputs the dirty set cannot
+            // see: the recomputed scope set (a placement change alters the slot path of every node
             // below the moved one), and pass 5's typings (an expression's scope also carries the
-            // owner's state and the item bindings above it). A carried node failing either guard
-            // is lowered again, so the output stays equal to a full run.
+            // owner's state and the item bindings above it). A carried node failing any of the
+            // three is lowered again, so the output stays equal to a full run.
             val carried = previous
                 ?.takeIf { dirty == null || id !in dirty }
+                ?.takeIf { it.schemaRevision == revision }
                 ?.nodes
                 ?.get(id)
             if (
@@ -104,6 +133,7 @@ internal class ResolutionPass(
                 typingsUnchanged(id, carried)
             ) {
                 index[id] = carried
+                register(carried)
                 return carried
             }
             val node = checkNotNull(document.nodes[id]) { "Resolution reached node '$id' outside the table" }
@@ -171,6 +201,7 @@ internal class ResolutionPass(
             document.hostFunctions,
             componentSpecs,
             document.resources,
+            revision,
         )
     }
 
