@@ -39,7 +39,9 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
  * With [dirty] and [previous] both present the pass is §6.2:537's reuse half as well: a node
  * outside the dirty set is not lowered at all — [previous]'s result is carried through at
  * reference identity, the untouched subtree below it included, which is the property
- * §29.1:2048's cache exists to buy. Two guards keep the carry honest, each covering an input
+ * §29.1:2048's cache exists to buy. A carried subtree is also registered in the new index, so
+ * [ResolvedDocument.nodes] keeps answering for every node the document holds. Two guards keep
+ * the carry honest, each covering an input
  * the dirty set cannot see: the recomputed scope set, because a placement change alters the
  * slot path of every node *below* the moved one ([ScopeAnalysis] computes scopes by walking
  * up), and pass 5's just-computed typings, because an expression's scope also carries its
@@ -58,6 +60,23 @@ internal class ResolutionPass(
         val theme = selectTheme(document)
         val scopes = ScopeAnalysis.computeScopes(document) { schema.components[it] }
         val index = LinkedHashMap<NodeId, ResolvedNode>()
+
+        // A carried node is carried with the subtree below it, and the document's index must
+        // still answer for every node: [ResolvedDocument.nodes] is the contract callers
+        // address nodes by, and a subtree that skips [build] would otherwise leave its
+        // members out of it. Registration is bookkeeping only — the members ride at reference
+        // identity, and their own guards held when the run that produced them lowered them:
+        // an honest dirty set that leaves a carried root untouched leaves every node below it
+        // untouched too, because any edit inside the subtree names the node it edits and the
+        // chain above it.
+        fun register(node: ResolvedNode) {
+            for (children in node.slots.values) {
+                for (child in children) {
+                    index[child.id] = child
+                    register(child)
+                }
+            }
+        }
 
         fun propOf(
             node: NodeId,
@@ -104,6 +123,7 @@ internal class ResolutionPass(
                 typingsUnchanged(id, carried)
             ) {
                 index[id] = carried
+                register(carried)
                 return carried
             }
             val node = checkNotNull(document.nodes[id]) { "Resolution reached node '$id' outside the table" }
