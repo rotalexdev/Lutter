@@ -2433,6 +2433,18 @@ public final class dev/rotalex/lutter/model/ids/TypeId$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class dev/rotalex/lutter/model/index/DirtyNodes {
+	public static final field Companion Ldev/rotalex/lutter/model/index/DirtyNodes$Companion;
+	public final fun contains-D9n_bC4 (Ljava/lang/String;)Z
+	public final fun isEverything ()Z
+}
+
+public final class dev/rotalex/lutter/model/index/DirtyNodes$Companion {
+	public final fun getALL ()Ldev/rotalex/lutter/model/index/DirtyNodes;
+	public final fun of (Ljava/util/Set;Ldev/rotalex/lutter/model/index/DocumentIndex;Z)Ldev/rotalex/lutter/model/index/DirtyNodes;
+	public static synthetic fun of$default (Ldev/rotalex/lutter/model/index/DirtyNodes$Companion;Ljava/util/Set;Ldev/rotalex/lutter/model/index/DocumentIndex;ZILjava/lang/Object;)Ldev/rotalex/lutter/model/index/DirtyNodes;
+}
+
 public final class dev/rotalex/lutter/model/index/DocumentIndex {
 	public fun <init> (Ldev/rotalex/lutter/model/doc/UiDocument;)V
 	public final fun ancestorsOf (Ljava/util/Collection;)Ljava/util/Set;
