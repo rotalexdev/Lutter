@@ -201,6 +201,7 @@ internal class ResolutionPass(
             document.hostFunctions,
             componentSpecs,
             document.resources,
+            revision,
         )
     }
 
