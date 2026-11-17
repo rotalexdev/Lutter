@@ -12,8 +12,9 @@ import dev.rotalex.lutter.runtime.RenderScope
  *
  * No slot renders inside a scope: `Scaffold`'s lambdas carry no receiver, and the content
  * lambda's `PaddingValues` is a parameter v1 ignores — the document places children, not
- * insets, which is the same shape the generated call spells with named `topBar` and `fab`
- * arguments and a trailing body. Colour and elevation stay Material's defaults through
+ * insets, which is the same shape the generated call spells with named `topBar` and
+ * `floatingActionButton` arguments (Compose's parameter; the document's slot stays `fab`)
+ * and a trailing body. Colour and elevation stay Material's defaults through
  * `MaterialTheme`, because the spec declares no property that could override them, and `Scaffold`
  * is a stable M3 API so there is no opt-in to spell.
  */
@@ -22,7 +23,7 @@ internal object ScaffoldRenderer : ComponentRenderer {
     override fun Render(node: ResolvedNode, scope: RenderScope): Unit {
         Scaffold(
             topBar = { scope.RenderSlot(node, ScaffoldSpec.topBar.name) },
-            fab = { scope.RenderSlot(node, ScaffoldSpec.fab.name) },
+            floatingActionButton = { scope.RenderSlot(node, ScaffoldSpec.fab.name) },
             modifier = scope.modifierFor(node),
         ) {
             scope.RenderSlot(node, ScaffoldSpec.content.name)

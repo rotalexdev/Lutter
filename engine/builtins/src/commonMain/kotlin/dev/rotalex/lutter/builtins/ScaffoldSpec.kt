@@ -42,7 +42,10 @@ public object ScaffoldSpec {
         slot(content)
         composeCall(KotlinSymbol("androidx.compose.material3", "Scaffold")) {
             slot("topBar", LambdaTarget.NamedParam("topBar"))
-            slot("fab", LambdaTarget.NamedParam("fab"))
+            // The document slot is `fab`; Compose's parameter is the longer
+            // `floatingActionButton`, so the lambda target spells the call's label and the
+            // document keeps the shorter name.
+            slot("fab", LambdaTarget.NamedParam("floatingActionButton"))
             slot("content", LambdaTarget.Trailing)
         }
     }

@@ -316,11 +316,12 @@ class BuiltinSpecsTest {
         assertEquals(null, call.guard)
         assertEquals(null, call.requiresOptIn)
         // `content` is last so the generated call's trailing lambda is the body; the bar and
-        // the button spell their named arguments.
+        // the button spell their named arguments, and Compose's parameter for the FAB is the
+        // longer `floatingActionButton` even though the document's slot stays `fab`.
         assertEquals(
             listOf(
                 SlotName("topBar") to LambdaTarget.NamedParam("topBar"),
-                SlotName("fab") to LambdaTarget.NamedParam("fab"),
+                SlotName("fab") to LambdaTarget.NamedParam("floatingActionButton"),
                 SlotName("content") to LambdaTarget.Trailing,
             ),
             call.slots.map { it.slot to it.target },
