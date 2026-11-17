@@ -17,22 +17,18 @@ import dev.rotalex.lutter.schema.component.componentSpec
  * The document places, the theme dresses: the drawer's colour and scrim stay with
  * `MaterialTheme`, as [NavigationBarSpec]'s no-property rule reads. The two slots are declared
  * in argument order with the body last, so the generated call's trailing lambda is the content —
- * the same last-slot rule a document component's own emission follows. Each spells its own
- * scope: Compose's `drawerContent` lambda is a `ColumnScope`, so [drawerContent] provides
- * [LayoutScopes.Column] and a gated modifier on a drawer entry resolves against its axis,
- * while the body lambda is a receiverless `() -> Unit`, so [content] provides nothing — the
- * same split [NavigationRailSpec] draws between its items and its header. V1 does not drive the
+ * the same last-slot rule a document component's own emission follows. Neither slot provides a
+ * scope: the resolved material3's `drawerContent` lambda carries no receiver — a bare lambda
+ * compiles against it and a claimed `ColumnScope` receiver does not, which is the difference
+ * between compiling and refusing — so [drawerContent] provides nothing, the same shape
+ * `Scaffold`'s slots carry, and the body lambda is receiverless too. V1 does not drive the
  * drawer's state: Material's default `rememberDrawerState(DrawerValue.Closed)` stands, so a
  * document renders its drawer closed and its body is what shows — opening it is a v2 property,
  * the one thing the slot shape hides.
  */
 public object NavigationDrawerSpec {
-    /** The drawer's entries, drawn top to bottom; the column scope is what their aligns read through. */
-    public val drawerContent: SlotSpec = SlotSpec(
-        SlotName("drawerContent"),
-        Cardinality.Many,
-        provides = setOf(LayoutScopes.Column),
-    )
+    /** The drawer's entries, drawn top to bottom; no receiver, and v1 opens no scope for them. */
+    public val drawerContent: SlotSpec = SlotSpec(SlotName("drawerContent"), Cardinality.Many)
 
     /** The body behind the drawer; no receiver, and v1 reads no drawer state. */
     public val content: SlotSpec = SlotSpec(SlotName("content"), Cardinality.Many)

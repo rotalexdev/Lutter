@@ -376,15 +376,15 @@ class BuiltinSpecsTest {
     }
 
     @Test
-    fun `navigation drawer is a drawer column the column scope aligns and a bare body`() {
+    fun `navigation drawer is a bare drawer column and a bare body`() {
         assertEquals(ComponentType("m3.NavigationDrawer"), NavigationDrawerSpec.spec.type)
         assertEquals(Category.Layout, NavigationDrawerSpec.spec.metadata.category)
         assertEquals(emptyList(), NavigationDrawerSpec.spec.properties.map { it.key })
-        // The two slots disagree on scope: the drawer's entries read through a `ColumnScope` and
-        // the body lambda is a receiverless `() -> Unit`, so it provides nothing. V1 does not
+        // Neither slot provides a scope: the resolved material3's `drawerContent` lambda carries
+        // no receiver and the body lambda is receiverless too. V1 does not
         // drive the drawer's state, so no property could name one.
         assertEquals(Cardinality.Many, NavigationDrawerSpec.drawerContent.cardinality)
-        assertEquals(setOf(LayoutScopes.Column), NavigationDrawerSpec.drawerContent.provides)
+        assertEquals(emptySet(), NavigationDrawerSpec.drawerContent.provides)
         assertEquals(Cardinality.Many, NavigationDrawerSpec.content.cardinality)
         assertEquals(emptySet(), NavigationDrawerSpec.content.provides)
 
