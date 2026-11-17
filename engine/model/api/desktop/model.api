@@ -1637,6 +1637,16 @@ public final class dev/rotalex/lutter/model/expr/Expr$Unary$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class dev/rotalex/lutter/model/expr/ExprParser {
+	public static final field INSTANCE Ldev/rotalex/lutter/model/expr/ExprParser;
+	public final fun parse (Ljava/lang/String;)Ldev/rotalex/lutter/model/expr/Expr;
+}
+
+public final class dev/rotalex/lutter/model/expr/ExprPrinter {
+	public static final field INSTANCE Ldev/rotalex/lutter/model/expr/ExprPrinter;
+	public final fun print (Ldev/rotalex/lutter/model/expr/Expr;)Ljava/lang/String;
+}
+
 public abstract interface class dev/rotalex/lutter/model/expr/ExprType {
 }
 
