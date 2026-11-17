@@ -559,7 +559,7 @@ public class DocumentGenerator(
         val slots = linkedMapOf<SlotName, List<NodeId>>()
         for (declared in spec.slots) {
             val children = mutableListOf<NodeId>()
-            fillSlot(declared, scope, MAX_DEPTH, children, instances)
+            fillSlot(declared, scope, MAX_DEPTH, children, COLUMN, instances)
             slots[declared.name] = children
         }
         return emit(COLUMN, scope, emptySet(), slots, buildProps(spec, scope, slots.keys), atRoot = true)
@@ -571,7 +571,7 @@ public class DocumentGenerator(
         val slots = linkedMapOf<SlotName, List<NodeId>>()
         for (declared in spec.slots) {
             val children = mutableListOf<NodeId>()
-            fillSlot(declared, scope, MAX_DEPTH, children)
+            fillSlot(declared, scope, MAX_DEPTH, children, COLUMN)
             children += outlet(scope, slotNames)
             slots[declared.name] = children
         }
@@ -642,7 +642,7 @@ public class DocumentGenerator(
             val children = mutableListOf<NodeId>()
             if (random.nextInt(100) < FILLED_INSTANCE_PERCENT) {
                 repeat(random.nextInt(3)) {
-                    val child = pickChild(ChildFilter.Any, MAX_DEPTH - 2)
+                    val child = pickChild(ChildFilter.Any, MAX_DEPTH - 2, type)
                     children += buildNode(child.type, scope, MAX_DEPTH - 3, emptySet())
                 }
             }
@@ -664,7 +664,7 @@ public class DocumentGenerator(
         val slots = linkedMapOf<SlotName, List<NodeId>>()
         for (declared in spec.slots) {
             val children = mutableListOf<NodeId>()
-            fillSlot(declared, scope, depth, children)
+            fillSlot(declared, scope, depth, children, type)
             slots[declared.name] = children
         }
         return emit(type, scope, available, slots, buildProps(spec, scope, slots.keys))
@@ -683,10 +683,11 @@ public class DocumentGenerator(
         scope: Scope,
         depth: Int,
         children: MutableList<NodeId>,
+        host: ComponentType,
         extra: List<NodeId> = emptyList(),
     ) {
         repeat(childCount(declared.cardinality)) {
-            val child = pickChild(declared.accepts, depth)
+            val child = pickChild(declared.accepts, depth, host)
             children += buildNode(child.type, scope, depth - 1, declared.provides)
         }
         children += extra
@@ -701,7 +702,7 @@ public class DocumentGenerator(
      * the admissible set has no leaf at all the deeper pool is used anyway, because a tree the
      * depth rule flattened is more useful to a property test than no tree.
      */
-    private fun pickChild(filter: ChildFilter, depth: Int): ComponentSpec {
+    private fun pickChild(filter: ChildFilter, depth: Int, host: ComponentType): ComponentSpec {
         val admissible = components.filter { admits(filter, it.type) }
         if (admissible.isEmpty()) error("No registered component satisfies the filter '$filter'")
 
@@ -711,12 +712,27 @@ public class DocumentGenerator(
          * free-form `gen-…`, which is no `SlotName`. Rewriting it into one emits `slot0()` —
          * a call to a parameter the generated signature does not declare.
          */
-        val drawable = admissible.filter { it.type != SLOT_OUTLET }
+        val drawable = admissible.filter { it.type != SLOT_OUTLET && hostAllows(it.type, host) }
         if (drawable.isEmpty()) error("Only '$SLOT_OUTLET' satisfies '$filter', and an outlet cannot be drawn here")
         val leaves = drawable.filter { it.slots.isEmpty() }
         val pool = if (depth <= 0 && leaves.isNotEmpty()) leaves else drawable
         return pool[random.nextInt(pool.size)]
     }
+
+    /**
+     * Whether the pool may draw [child] under the component whose slot is being filled.
+     *
+     * Most children draw anywhere, but one pair is host-bound: `m3.NavigationItem` composes
+     * through Compose's `RowScope.NavigationBarItem` extension, so the generated call needs the
+     * row scope `m3.NavigationBar` opens, and an item drawn anywhere else compiles into nothing
+     * (PR #144's CI settled the shape). The map names the host each bound child requires and
+     * stays empty against schemas that register neither component — `generatorSchema()` among
+     * them, so its draws are untouched — and this is the generator's constraint rather than a
+     * schema one: the fuzz is the caller that has to produce screens the codegen can compile,
+     * and v1 binds no rail or drawer item the same rule would apply to.
+     */
+    private fun hostAllows(child: ComponentType, host: ComponentType): Boolean =
+        HOST_BOUND[child]?.let { it == host } ?: true
 
     private fun admits(filter: ChildFilter, child: ComponentType): Boolean = when (filter) {
         is ChildFilter.Any -> true
@@ -1524,6 +1540,16 @@ public class DocumentGenerator(
 
         val COLUMN: ComponentType = ComponentType("core.Column")
         val SLOT_OUTLET: ComponentType = ComponentType("core.SlotOutlet")
+
+        /**
+         * The children the pool draws only under a named host, keyed by the child and valued by
+         * the host its binding requires. V1 holds one pair: the navigation item composes through
+         * Compose's `RowScope.NavigationBarItem` extension, so only the bar's row makes its
+         * generated call legal (see [hostAllows]).
+         */
+        val HOST_BOUND: Map<ComponentType, ComponentType> = mapOf(
+            ComponentType("m3.NavigationItem") to ComponentType("m3.NavigationBar"),
+        )
 
         /** §11.4's six MVP actions, by id. */
         val NAVIGATE: ActionId = ActionId("nav.navigate")
