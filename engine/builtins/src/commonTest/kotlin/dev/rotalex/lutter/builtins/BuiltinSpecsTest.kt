@@ -327,6 +327,8 @@ class BuiltinSpecsTest {
             call.slots.map { it.slot to it.target },
         )
     }
+
+    private companion object {
         val allSpecs: List<ComponentSpec> = listOf(
             ColumnSpec.spec, RowSpec.spec, BoxSpec.spec, SpacerSpec.spec, TextSpec.spec,
             ButtonSpec.spec, TextFieldSpec.spec, CardSpec.spec,
