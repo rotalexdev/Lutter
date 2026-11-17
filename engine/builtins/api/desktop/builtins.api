@@ -220,6 +220,35 @@ public final class dev/rotalex/lutter/builtins/MaterialIconSet {
 	public final fun getSet ()Ldev/rotalex/lutter/schema/types/IconSet;
 }
 
+public final class dev/rotalex/lutter/builtins/NavigationBarSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/NavigationBarSpec;
+	public final fun getContent ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/NavigationDrawerSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/NavigationDrawerSpec;
+	public final fun getContent ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getDrawerContent ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/NavigationItemSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/NavigationItemSpec;
+	public final fun getIcon ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getLabel ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getOnClick ()Ldev/rotalex/lutter/schema/component/EventSpec;
+	public final fun getSelected ()Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
+public final class dev/rotalex/lutter/builtins/NavigationRailSpec {
+	public static final field INSTANCE Ldev/rotalex/lutter/builtins/NavigationRailSpec;
+	public final fun getContent ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getHeader ()Ldev/rotalex/lutter/schema/component/SlotSpec;
+	public final fun getSpec ()Ldev/rotalex/lutter/schema/component/ComponentSpec;
+}
+
 public final class dev/rotalex/lutter/builtins/PaddingModifier {
 	public static final field INSTANCE Ldev/rotalex/lutter/builtins/PaddingModifier;
 	public final fun getAll ()Ldev/rotalex/lutter/schema/component/PropertySpec;
