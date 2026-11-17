@@ -1,0 +1,57 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "NavigationBarBasic"},
+    "nodes": {
+      "n_bar": {
+        "id": "n_bar",
+        "slots": {"content": ["n_home", "n_settings"]},
+        "type": "m3.NavigationBar"
+      },
+      "n_home": {
+        "id": "n_home",
+        "props": {"selected": {"type": "const", "value": {"type": "bool", "v": true}}},
+        "slots": {"icon": ["n_home_icon"], "label": ["n_home_label"]},
+        "type": "m3.NavigationItem"
+      },
+      "n_home_icon": {
+        "id": "n_home_icon",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "H"}}},
+        "type": "m3.Text"
+      },
+      "n_home_label": {
+        "id": "n_home_label",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Home"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "slots": {"children": ["n_bar"]},
+        "type": "core.Column"
+      },
+      "n_settings": {
+        "id": "n_settings",
+        "props": {"selected": {"type": "const", "value": {"type": "bool", "v": false}}},
+        "slots": {"icon": ["n_settings_icon"], "label": ["n_settings_label"]},
+        "type": "m3.NavigationItem"
+      },
+      "n_settings_icon": {
+        "id": "n_settings_icon",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "S"}}},
+        "type": "m3.Text"
+      },
+      "n_settings_label": {
+        "id": "n_settings_label",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Settings"}}},
+        "type": "m3.Text"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}
