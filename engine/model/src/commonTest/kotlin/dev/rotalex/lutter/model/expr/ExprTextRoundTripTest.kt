@@ -322,10 +322,6 @@ class ExprTextRoundTripTest {
             )
         }
     }
-                },
-            )
-        }.also { check(shape in 0..4) }
-    }
 
     private fun pickString(random: Random): String = when (random.nextInt(4)) {
         0 -> "ok"
