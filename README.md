@@ -247,7 +247,7 @@ has decided not to do, and what it has decided to do and has not built yet.
 | | |
 |---|---|
 | **Not an IDE** | No code editor, debugger, terminal, LSP or project explorer. |
-| **No visual editor** | None in this plan, only the editing API a future one will consume (§25). It is Phase 18, in a separate repository. |
+| **No visual editor** | None in this plan, only the editing API a future one will consume (§25). It is Phase 17, in this repository (D28). |
 | **No arbitrary code execution** | No embedded Kotlin, no general-purpose scripting. Expressions are a small, typed language with a closed operator set (§10), and custom logic goes through declared host functions. |
 | **No round trip** | The engine never parses generated Kotlin back into a document. Generated code is a one-way artifact (ADR-011), so hand edits to a generated file are lost on the next regeneration. |
 | **No plugin marketplace** | No dynamic plugin loading in the MVP. Plugins are static contributions composed in code, and third parties recompile the host (ADR-010). |

@@ -32,7 +32,7 @@ import java.io.File
  * name without inventing a domain too. The one-line report names the package it chose, so the
  * placeholder is read rather than discovered in a manifest six files later. `--out` defaults
  * to `scaffolded`, the sibling of `generate`'s `generated`, and `--platforms` to the two
- * runners this engine can build — Ios and Web are gated on §32 Phase 17's platform-scope ADR.
+ * runners this engine can build — Ios and Web sit outside §2 C1's Android-and-Desktop scope.
  */
 internal object ScaffoldCommand {
 
@@ -131,7 +131,7 @@ internal object ScaffoldCommand {
      *
      * Names are matched case-insensitively so `--platforms Android` is not a refusal, and the
      * two gated platforms get their own sentence: refusing `ios` as "unknown" would hide that
-     * it is a decision deferred to §32 Phase 17 rather than a typo.
+     * it is a decision outside the scheduled platform scope (§2 C1) rather than a typo.
      */
     private fun platforms(value: String?): Set<PlatformTag> {
         val requested: List<String> = (value ?: DEFAULT_PLATFORMS)
@@ -147,8 +147,8 @@ internal object ScaffoldCommand {
                 "desktop" -> PlatformTag.Desktop
                 "ios", "web" -> throw CliFailure(
                     ExitCode.Unusable,
-                    "forge ${spec.name}: '$name' is not scaffolded yet — §32 Phase 17 gates it on a " +
-                        "platform-scope ADR; scaffolded: android, desktop",
+                    "forge ${spec.name}: '$name' is not scaffolded yet — §2 C1 narrows the platform scope to " +
+                        "Android and Desktop; scaffolded: android, desktop",
                 )
                 else -> throw CliFailure(
                     ExitCode.Unusable,
