@@ -183,7 +183,9 @@ internal class BenchmarkWorkload(composed: ComposedDocument) {
      * enum-backed literal — fails the preparation loudly instead of timing a refusal.
      */
     val incrementalEdit: Command = run {
-        val target: Triple<NodeId, PropertyKey, Value>? = document.nodes.ids().firstNotNullOfOrNull { id ->
+        // The elvis does the nullability: the selection hands back a target or preparation
+        // fails, so the declared type is the non-null shape and the uses below need no guard.
+        val target: Triple<NodeId, PropertyKey, Value> = document.nodes.ids().firstNotNullOfOrNull { id ->
             val node = document.nodes[id] ?: return@firstNotNullOfOrNull null
             node.props.entries.firstNotNullOfOrNull { (key, propValue) ->
                 val const = propValue as? PropertyValue.Const ?: return@firstNotNullOfOrNull null
