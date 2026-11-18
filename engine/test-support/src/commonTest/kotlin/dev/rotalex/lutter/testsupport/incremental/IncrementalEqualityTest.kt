@@ -43,8 +43,11 @@ import kotlin.test.assertTrue
  * `ResolvedDocument` is a data class, so equality is structural over every field the phase
  * touches — pages, the node index, the theme, the resolved props, the carried handler
  * sequences — and [dev.rotalex.lutter.analysis.AnalysisResult.diagnostics] is compared
- * separately, because the reporting passes run in full on both sides and a witness that
- * resolved the same tree while reporting differently is still a defect.
+ * separately. For the property-edit shape the incremental run is also handed the previous
+ * run's diagnostics, so its reporting passes validate only the dirty closure and carry the
+ * rest: comparing the two diagnostic lists is what proves the carried half is byte-identical
+ * to what a full walk would have said. The removal and move shapes keep the reporting walk
+ * full, because the caller contract for a carried finding is a property or modifier edit only.
  *
  * The analyzer is one instance for the whole loop, and that is the honest setup rather than a
  * shortcut: the carry seam is per-instance by contract (the schema revision and the overlay
@@ -90,7 +93,8 @@ internal class IncrementalEqualityTest {
 
         for (seed in 1..DOCUMENTS) {
             val document = DocumentGenerator(view, seed.toLong()).generate().document
-            val previous: ResolvedDocument = analyzer.analyze(document).resolved ?: run {
+            val previousAnalysis = analyzer.analyze(document)
+            val previous: ResolvedDocument = previousAnalysis.resolved ?: run {
                 // A generated document analysis cannot lower at all has no “previous
                 // resolution” to carry, so there is nothing for this suite to compare. Counted
                 // and floored rather than skipped quietly.
@@ -109,7 +113,11 @@ internal class IncrementalEqualityTest {
 
             val patched = PatchApplier.apply(accepted.second, document)
             val dirty = dirtySetFor(accepted.second, patched)
-            val incremental = analyzer.analyze(patched, dirty, previous)
+            // The reporting carry is sound only for the property-edit shape: a removal or a move
+            // can change the graph a finding talks about, which is exactly what the caller
+            // contract excludes. The other two shapes keep the full reporting walk.
+            val previousFindings = if (shape == PROPERTY_EDIT) previousAnalysis.diagnostics else null
+            val incremental = analyzer.analyze(patched, dirty, previous, previousFindings)
             val full = analyzer.analyze(patched)
 
             assertEquals(
@@ -141,6 +149,9 @@ internal class IncrementalEqualityTest {
 
 /** The three fold inputs this suite draws, one per line in the class KDoc. */
 private val SHAPES: List<String> = listOf("a property edit", "a subtree removal", "a move within one slot")
+
+/** The one shape whose carry contract the analyzer's `previousFindings` parameter accepts. */
+private const val PROPERTY_EDIT: Int = 0
 
 private const val DOCUMENTS: Int = 1_000
 private const val MIN_TOTAL: Int = 600

@@ -33,10 +33,16 @@ import dev.rotalex.lutter.schema.types.EnumTypeSpec
  * Pass 3: every node against its spec — props, rules, slots, modifiers and their scopes.
  *
  * Computed values only fail when the property refuses bindings; typing them is pass 5.
+ *
+ * [visit] narrows the node walk to the dirty closure. One thing deliberately escapes it: the
+ * §14.2 shadowing report is a claim about what the whole document writes, so [explicit] is still
+ * built from every node when the walk is narrowed — a cheap read of each node's property names,
+ * with no per-node validation. The full path keeps collecting it inside the validating walk.
  */
 internal class SchemaPass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
     private val precomputedScopes: Map<NodeId, Set<ScopeId>>? = null,
+    private val visit: ((NodeId) -> Boolean)? = null,
 ) : AnalysisPass {
     override val name: String = "schema"
     override val blocking: Boolean = false
@@ -45,9 +51,20 @@ internal class SchemaPass(
         val diags = mutableListOf<Diagnostic>()
         val scopes = precomputedScopes ?: ScopeAnalysis.computeScopes(document, { schema.components[it] })
         // §14.2's shadowing report needs to know what the document writes explicitly, so the
-        // node walk collects one key set per component type while it validates.
+        // node walk collects one key set per component type while it validates. When the walk is
+        // narrowed to the dirty closure, the key set is collected up front from every node
+        // instead: a node whose type the schema does not register can only add keys for a type
+        // the shadowing report never consults, so reading `props.keys` without a spec lookup is
+        // not a loss of answer.
         val explicit: LinkedHashMap<ComponentType, MutableSet<PropertyKey>> = LinkedHashMap()
+        if (visit != null) {
+            for (id in document.nodes.ids()) {
+                val node = document.nodes[id] ?: continue
+                explicit.getOrPut(node.type) { LinkedHashSet() }.addAll(node.props.keys)
+            }
+        }
         for (id in document.nodes.ids()) {
+            if (visit != null && !visit(id)) continue
             val node = document.nodes[id] ?: continue
             val spec = schema.components[node.type]
             if (spec == null) {
@@ -58,7 +75,9 @@ internal class SchemaPass(
                 )
                 continue
             }
-            explicit.getOrPut(node.type) { LinkedHashSet() }.addAll(node.props.keys)
+            if (visit == null) {
+                explicit.getOrPut(node.type) { LinkedHashSet() }.addAll(node.props.keys)
+            }
             checkProps(document, node, spec, diags)
             checkRules(node, spec, diags)
             checkIcons(node, spec, diags)

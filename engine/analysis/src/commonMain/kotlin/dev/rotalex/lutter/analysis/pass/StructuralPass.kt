@@ -12,8 +12,17 @@ import dev.rotalex.lutter.model.ids.SlotName
  * Pass 1: the table invariants — roots exist, slots name live nodes, one parent, no cycles.
  *
  * Blocking: with a broken skeleton the schema and reference walks would report noise.
+ *
+ * [visit] is the incremental seam. Every check below is a claim about the graph, not about one
+ * node, so all of them still run over the whole document: skipping the walk for an untouched
+ * parent would lose the claims that make [checkParents] and [checkOrphans] correct. What the
+ * predicate filters is the per-node emission inside [collectClaims] — a missing-node finding the
+ * caller carries from the previous run instead — while the global checks keep their answer and
+ * the caller's deduplication collapses a finding it carried and this run rediscovered.
  */
-internal class StructuralPass : AnalysisPass {
+internal class StructuralPass(
+    private val visit: ((NodeId) -> Boolean)? = null,
+) : AnalysisPass {
     override val name: String = "structural"
     override val blocking: Boolean = true
 
@@ -65,12 +74,18 @@ internal class StructuralPass : AnalysisPass {
             for ((slot, children) in parent.slots) {
                 for ((index, child) in children.withIndex()) {
                     if (child !in document.nodes) {
-                        diags += Diagnostic(
-                            Severity.Error, DiagnosticCodes.StructMissingNode,
-                            DiagnosticLocation(nodeId = parentId, path = listOf(slot.value, index.toString())),
-                            "Node '$parentId' slot '${slot.value}' names node '$child' that is not in the table",
-                            mapOf("parent" to parentId.value, "slot" to slot.value, "node" to child.value),
-                        )
+                        // The one per-node finding this pass owns: the parent is visited only
+                        // when it is inside the dirty closure, and the caller carries the rest.
+                        // Claim collection below still walks every parent, because the graph
+                        // checks above and below are only correct with the whole edge set.
+                        if (visit == null || visit(parentId)) {
+                            diags += Diagnostic(
+                                Severity.Error, DiagnosticCodes.StructMissingNode,
+                                DiagnosticLocation(nodeId = parentId, path = listOf(slot.value, index.toString())),
+                                "Node '$parentId' slot '${slot.value}' names node '$child' that is not in the table",
+                                mapOf("parent" to parentId.value, "slot" to slot.value, "node" to child.value),
+                            )
+                        }
                         continue
                     }
                     claims.getOrPut(child) { mutableListOf() } += Claim(parentId, slot, index)

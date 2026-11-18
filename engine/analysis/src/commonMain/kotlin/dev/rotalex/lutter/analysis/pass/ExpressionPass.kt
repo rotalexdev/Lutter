@@ -35,6 +35,7 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
 internal class ExpressionPass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
     private val precomputedIndex: DocumentIndex? = null,
+    private val visit: ((NodeId) -> Boolean)? = null,
 ) {
 
     /**
@@ -62,12 +63,15 @@ internal class ExpressionPass(
         val index = precomputedIndex ?: DocumentIndex(document)
         val checker = TypeChecker(schema, document.dataModels)
         for (id in document.nodes.ids()) {
+            if (visit != null && !visit(id)) continue
             val node = document.nodes[id] ?: continue
             val base = scopeOf(document, index, id) ?: continue
             val items = itemBindingsOf(document, index, id)
             val scope = if (items.isEmpty()) base else base.copy(items = items)
             checkNode(node, checker, scope, found, typed)
         }
+        // The state declarations are not node-attributed, so the filter never reaches them: a
+        // derived body is checked on every run, whatever the closure holds.
         checkState(document, checker, found, derived)
         return Result(found, typed, derived)
     }

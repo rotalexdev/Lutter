@@ -18,6 +18,7 @@ import dev.rotalex.lutter.model.expr.Expr
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.expr.RefTarget
 import dev.rotalex.lutter.model.ids.EventKey
+import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.StateId
 import dev.rotalex.lutter.model.index.DocumentIndex
@@ -53,6 +54,7 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
 internal class ActionPass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
     private val precomputedIndex: DocumentIndex? = null,
+    private val visit: ((NodeId) -> Boolean)? = null,
 ) : AnalysisPass {
     override val name: String = "action"
     override val blocking: Boolean = false
@@ -62,6 +64,7 @@ internal class ActionPass(
         val index = precomputedIndex ?: DocumentIndex(document)
         val checker = TypeChecker(schema, document.dataModels)
         for (id in document.nodes.ids()) {
+            if (visit != null && !visit(id)) continue
             val node = document.nodes[id] ?: continue
             val owned = ownerDeclsOf(document, index, id) ?: continue
             val base = scopeOf(document, owned)

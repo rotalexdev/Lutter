@@ -23,9 +23,12 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
  * Pass 4: references name live targets — pages, components, resources, models and tokens.
  *
  * Needs no expression knowledge: only constant values can carry a reference in this phase.
+ * [visit] narrows the node walk to the dirty closure; the caller carries the findings for the
+ * nodes this run does not re-check.
  */
 internal class ReferencePass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
+    private val visit: ((NodeId) -> Boolean)? = null,
 ) : AnalysisPass {
     override val name: String = "reference"
     override val blocking: Boolean = false
@@ -33,6 +36,7 @@ internal class ReferencePass(
     override fun run(document: UiDocument): List<Diagnostic> {
         val diags = mutableListOf<Diagnostic>()
         for (id in document.nodes.ids()) {
+            if (visit != null && !visit(id)) continue
             val node = document.nodes[id] ?: continue
             val spec = schema.components[node.type]
             for ((key, actual) in node.props) {
