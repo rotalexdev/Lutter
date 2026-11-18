@@ -270,11 +270,12 @@ internal fun scenarioBodies(workload: BenchmarkWorkload): List<ScenarioBody> {
     // refuse every carry and time a full run wearing this row's label. The edit is planned
     // and applied here rather than in the timed body, because the row times the re-analysis,
     // not the command, and a dry run of the timed call refuses a result with no resolution
-    // instead of letting the harness clock one.
+    // instead of letting the harness clock one. The whole previous result is kept, not just its
+    // resolution: the reporting passes carry the diagnostics for the nodes outside the dirty set,
+    // which is the half of the row the previous run also produced.
     val incrementalAnalyzer = Analyzer<ActionSpec, FunctionSpec, TypeSpec>(view)
-    val previous: ResolvedDocument = checkNotNull(
-        incrementalAnalyzer.analyze(workload.document).resolved,
-    ) {
+    val previousAnalysis: AnalysisResult = incrementalAnalyzer.analyze(workload.document)
+    val previous: ResolvedDocument = checkNotNull(previousAnalysis.resolved) {
         "the composed document resolves nothing, so §29's incremental row has nothing to " +
             "carry: " +
             workload.analysis.diagnostics.joinToString("; ") { it.code.value }
@@ -288,10 +289,11 @@ internal fun scenarioBodies(workload: BenchmarkWorkload): List<ScenarioBody> {
     }
     val patched = PatchApplier.apply(planned, workload.document)
     val dirty = dirtySetFor(planned, patched)
-    checkNotNull(incrementalAnalyzer.analyze(patched, dirty, previous).resolved) {
+    checkNotNull(incrementalAnalyzer.analyze(patched, dirty, previous, previousAnalysis.diagnostics).resolved) {
         "the incremental row's own edit produced a document analysis resolves nothing, so the " +
             "row would time a refusal: " +
-            incrementalAnalyzer.analyze(patched, dirty, previous).diagnostics
+            incrementalAnalyzer.analyze(patched, dirty, previous, previousAnalysis.diagnostics)
+                .diagnostics
                 .joinToString("; ") { it.code.value + " " + it.message }
     }
 
@@ -314,7 +316,7 @@ internal fun scenarioBodies(workload: BenchmarkWorkload): List<ScenarioBody> {
             }
         },
         ScenarioBody(Scenario.Incremental) {
-            hole.value = incrementalAnalyzer.analyze(patched, dirty, previous)
+            hole.value = incrementalAnalyzer.analyze(patched, dirty, previous, previousAnalysis.diagnostics)
         },
     )
 }
