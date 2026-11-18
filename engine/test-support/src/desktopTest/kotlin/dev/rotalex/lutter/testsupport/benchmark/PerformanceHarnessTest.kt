@@ -6,7 +6,7 @@ import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.fail
 
-// PLAN §29's five rows, measured, on the JVM.
+// PLAN §29's six rows, measured, on the JVM.
 //
 // ### Why this file is `desktopTest` and the scenarios are `commonTest`
 //
@@ -15,7 +15,7 @@ import kotlin.test.fail
 // and was declined: the clock is four lines and it belongs on the JVM side, while the *work*
 // being clocked is engine code that is identical on every target and has a definition all of
 // them share (`BenchmarkScenarios.kt`). The split is what lets `LargeDocumentTest` execute all
-// five bodies on the Android host test as well as on Desktop — not the timing, but the work
+// six bodies on the Android host test as well as on Desktop — not the timing, but the work
 // the timing is a claim about, which is the part that is the same on both.
 //
 // §29's own header scopes the table to "JVM Desktop on a typical developer laptop", so a
@@ -121,17 +121,17 @@ private class Measurement(
  * The suite, and the one test in it.
  *
  * A single test rather than one per row because the rows share a ten-thousand-node document
- * and building it is the expensive part; five tests would build it five times to report five
+ * and building it is the expensive part; six tests would build it six times to report six
  * lines that belong together anyway.
  */
 class PerformanceHarnessTest {
 
     @Test
-    fun `the five performance rows, measured on a ten thousand node document`() {
+    fun `the six performance rows, measured on a ten thousand node document`() {
         val mode = readMode()
         if (mode == Mode.Off) {
             println(
-                "[forge.benchmark] $MODE_PROPERTY is not set, so §29's five rows were not measured. " +
+                "[forge.benchmark] $MODE_PROPERTY is not set, so §29's six rows were not measured. " +
                     "Set -D$MODE_PROPERTY=measure, =record or =assert to run them.",
             )
             return
