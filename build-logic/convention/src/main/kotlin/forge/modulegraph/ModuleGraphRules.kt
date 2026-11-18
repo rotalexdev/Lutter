@@ -46,6 +46,7 @@ object ModuleGraphRules {
         ":engine:analysis",
         ":engine:editing",
         ":engine:codegen",
+        ":engine:scaffold",
         ":engine:runtime",
         ":engine:builtins",
         ":engine:builtins-compose",
@@ -134,6 +135,7 @@ object ModuleGraphRules {
         ":engine:analysis" to setOf(":engine:model", ":engine:schema"),
         ":engine:editing" to setOf(":engine:model", ":engine:schema"),
         ":engine:codegen" to setOf(":engine:model", ":engine:schema", ":engine:analysis"),
+        ":engine:scaffold" to setOf(":engine:model", ":engine:schema", ":engine:codegen"),
         ":engine:runtime" to setOf(
             ":engine:model",
             ":engine:schema",
@@ -172,6 +174,7 @@ object ModuleGraphRules {
             ":engine:serialization",
             ":engine:analysis",
             ":engine:codegen",
+            ":engine:scaffold",
             ":engine:builtins",
             ":engine:editing",
         ),
