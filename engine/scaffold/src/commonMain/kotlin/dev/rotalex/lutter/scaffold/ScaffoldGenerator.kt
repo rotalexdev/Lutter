@@ -79,7 +79,11 @@ public object ScaffoldGenerator {
         files += GeneratedFile("settings.gradle.kts", settings(spec, android, desktop))
         files += GeneratedFile("build.gradle.kts", rootBuild(android, desktop))
         files += GeneratedFile("gradle.properties", GRADLE_PROPERTIES)
-        files += GeneratedFile("libs.versions.toml", catalog(android, desktop))
+        // `gradle/libs.versions.toml` and not `libs.versions.toml`: that is the path Gradle
+        // reads a catalog from. A catalog in the project root is a file nothing loads, so
+        // every `libs.` accessor in the build scripts is an unresolved reference — which is
+        // how the first CI build of a scaffolded project failed.
+        files += GeneratedFile("gradle/libs.versions.toml", catalog(android, desktop))
         files += GeneratedFile("$SHARED_MODULE/build.gradle.kts", sharedBuild(spec, android, desktop))
 
         if (android) {

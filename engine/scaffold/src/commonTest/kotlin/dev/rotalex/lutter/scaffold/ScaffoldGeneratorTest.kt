@@ -48,7 +48,7 @@ class ScaffoldGeneratorTest {
             "settings.gradle.kts",
             "build.gradle.kts",
             "gradle.properties",
-            "libs.versions.toml",
+            "gradle/libs.versions.toml",
             "shared/build.gradle.kts",
             "androidApp/build.gradle.kts",
             "androidApp/src/main/AndroidManifest.xml",
@@ -66,7 +66,7 @@ class ScaffoldGeneratorTest {
         assertFalse(paths.any { it.startsWith("androidApp/") }, "got $paths")
         assertTrue("desktopApp/build.gradle.kts" in paths, "got $paths")
         assertFalse(
-            content("libs.versions.toml", spec.copy(targetPlatforms = setOf(PlatformTag.Desktop)))
+            content("gradle/libs.versions.toml", spec.copy(targetPlatforms = setOf(PlatformTag.Desktop)))
                 .contains("com.android.application"),
             "a desktop-only project must not pin a plugin it never applies",
         )
@@ -84,7 +84,7 @@ class ScaffoldGeneratorTest {
     /** The catalog is emitted, and it pins the versions this build resolved — not its own. */
     @Test
     fun `the catalog carries the versions the build was tested with`() {
-        val catalog = content("libs.versions.toml")
+        val catalog = content("gradle/libs.versions.toml")
 
         assertTrue(catalog.contains("kotlin = \"${ScaffoldVersions.KOTLIN}\""), catalog)
         assertTrue(catalog.contains("agp = \"${ScaffoldVersions.AGP}\""), catalog)

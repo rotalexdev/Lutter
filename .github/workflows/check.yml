@@ -395,7 +395,7 @@ jobs:
         env:
           OUT: ${{ runner.temp }}/scaffolded
         run: |
-          for relative in settings.gradle.kts build.gradle.kts gradle.properties libs.versions.toml \
+          for relative in settings.gradle.kts build.gradle.kts gradle.properties gradle/libs.versions.toml \
                           shared/build.gradle.kts androidApp/build.gradle.kts \
                           androidApp/src/main/AndroidManifest.xml desktopApp/build.gradle.kts; do
             if [ ! -f "$OUT/$relative" ]; then
