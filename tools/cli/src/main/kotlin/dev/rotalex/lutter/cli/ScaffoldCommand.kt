@@ -67,9 +67,11 @@ internal object ScaffoldCommand {
             else -> codegen(document, basePackage, err) ?: return ExitCode.Rejected
         }
 
-        val spec = ProjectSpec(appName = appName, basePackage = basePackage, targetPlatforms = platforms)
+        // Named `project` and not `spec`: `spec` is the command, and a local of that name would
+        // silently answer `${spec.name}` with the project's fields instead of the command's.
+        val projectSpec = ProjectSpec(appName = appName, basePackage = basePackage, targetPlatforms = platforms)
         val project = try {
-            ScaffoldGenerator.generate(spec, codegen)
+            ScaffoldGenerator.generate(projectSpec, codegen)
         } catch (refusal: IllegalArgumentException) {
             // `ScaffoldGenerator` validates what Gradle and Kotlin will accept, and it refuses
             // in the language of the value rather than of the flag. The flag is what a caller
