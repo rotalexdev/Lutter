@@ -53,12 +53,20 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
  * just-computed typings, because an expression's scope also carries its owner's state and
  * the item bindings of an iterating slot above it. A carried node failing either guard is
  * lowered again, and the output stays equal to a full run.
+ *
+ * [trustPlacement] is the caller's guarantee that the graph did not move: property and
+ * modifier edits only, never an insertion, removal, reordering or record write. With it the
+ * scope half of the guard is skipped — a node whose slot path nobody touched cannot have a new
+ * scope set — which is what lets [scopesOf] answer one node at a time instead of computing
+ * every scope up front. The typing half still runs: [checked] is what proves a carried
+ * expression is still this run's answer.
  */
 internal class ResolutionPass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
     private val checked: ExpressionPass.Result,
     private val revision: SchemaRevision,
-    private val precomputedScopes: Map<NodeId, Set<ScopeId>>? = null,
+    private val scopesOf: ((NodeId) -> Set<ScopeId>)? = null,
+    private val trustPlacement: Boolean = false,
 ) {
     public fun run(
         document: UiDocument,
@@ -66,7 +74,12 @@ internal class ResolutionPass(
         previous: ResolvedDocument? = null,
     ): ResolvedDocument {
         val theme = selectTheme(document)
-        val scopes = precomputedScopes ?: ScopeAnalysis.computeScopes(document, { schema.components[it] })
+        // The same seam `SchemaPass` uses: a lookup the incremental path can answer one node at
+        // a time, or the full map built once and read through.
+        val scopes: (NodeId) -> Set<ScopeId> = scopesOf ?: run {
+            val full = ScopeAnalysis.computeScopes(document, { schema.components[it] })
+            { id: NodeId -> full[id] ?: emptySet() }
+        }
         val index = LinkedHashMap<NodeId, ResolvedNode>()
 
         // A carried node is carried with the subtree below it, and the document's index must
@@ -131,7 +144,7 @@ internal class ResolutionPass(
                 ?.get(id)
             if (
                 carried != null &&
-                carried.scopes == scopes[id].orEmpty() &&
+                (trustPlacement || carried.scopes == scopes(id)) &&
                 typingsUnchanged(id, carried)
             ) {
                 index[id] = carried
@@ -168,7 +181,7 @@ internal class ResolutionPass(
             for (slot in spec.slots) {
                 slots[slot.name] = (node.slots[slot.name] ?: emptyList()).map(::build)
             }
-            return ResolvedNode(node.id, node.type, props, modifiers, slots, scopes[id] ?: emptySet(), node.events)
+            return ResolvedNode(node.id, node.type, props, modifiers, slots, scopes(id), node.events)
                 .also { index[id] = it }
         }
 

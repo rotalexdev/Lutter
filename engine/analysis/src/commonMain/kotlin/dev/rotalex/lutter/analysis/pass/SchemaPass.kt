@@ -41,7 +41,7 @@ import dev.rotalex.lutter.schema.types.EnumTypeSpec
  */
 internal class SchemaPass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
-    private val precomputedScopes: Map<NodeId, Set<ScopeId>>? = null,
+    private val scopesOf: ((NodeId) -> Set<ScopeId>)? = null,
     private val visit: ((NodeId) -> Boolean)? = null,
 ) : AnalysisPass {
     override val name: String = "schema"
@@ -49,7 +49,12 @@ internal class SchemaPass(
 
     override fun run(document: UiDocument): List<Diagnostic> {
         val diags = mutableListOf<Diagnostic>()
-        val scopes = precomputedScopes ?: ScopeAnalysis.computeScopes(document, { schema.components[it] })
+        // A caller inside the incremental path hands over its own lookup (one node at a time);
+        // with none, the full map is built once and every ask answers from it, as before.
+        val scopes: (NodeId) -> Set<ScopeId> = scopesOf ?: run {
+            val full = ScopeAnalysis.computeScopes(document, { schema.components[it] })
+            { id: NodeId -> full[id] ?: emptySet() }
+        }
         // §14.2's shadowing report needs to know what the document writes explicitly, so the
         // node walk collects one key set per component type while it validates. When the walk is
         // narrowed to the dirty closure, the key set is collected up front from every node
@@ -82,7 +87,7 @@ internal class SchemaPass(
             checkRules(node, spec, diags)
             checkIcons(node, spec, diags)
             checkSlots(document, node, spec, diags)
-            checkModifiers(document, node, scopes[id] ?: emptySet(), diags)
+            checkModifiers(document, node, scopes(id), diags)
         }
         checkThemeDefaults(document, explicit, diags)
         return diags

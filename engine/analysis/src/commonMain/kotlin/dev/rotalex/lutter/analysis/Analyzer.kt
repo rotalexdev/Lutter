@@ -2,6 +2,7 @@ package dev.rotalex.lutter.analysis
 
 import dev.rotalex.lutter.analysis.diagnostic.DiagnosticSorter
 import dev.rotalex.lutter.analysis.pass.ActionPass
+import dev.rotalex.lutter.analysis.pass.AnalysisPass
 import dev.rotalex.lutter.analysis.pass.ExprAddress
 import dev.rotalex.lutter.analysis.pass.ExpressionPass
 import dev.rotalex.lutter.analysis.pass.ReferencePass
@@ -24,6 +25,7 @@ import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.component.ScopeId
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import dev.rotalex.lutter.schema.overlay.SchemaOverlay
 
@@ -96,9 +98,12 @@ public class Analyzer<A : Any, F : Any, T : Any>(
      * only valid for a patch that changed properties or modifiers of nodes inside the closure —
      * never one that inserted, removed, reordered or rewrote a record. Any of those can move a
      * finding for a node the dirty set does not name, and the analyzer cannot see the patch to
-     * check. Findings with no node (document- or declaration-level) are never carried: they are
-     * recomputed every run. A carried finding whose node the new document no longer holds is
-     * dropped rather than surfaced stale.
+     * check. Two consequences follow from the same guarantee: the structural pass does not run in
+     * this mode — the graph it checks is the one the caller promised not to move — so its
+     * findings, node-attributed or not, are carried verbatim; and the placement guard in pass 7
+     * is skipped, because a scope set can only change when a slot path does. Every other finding
+     * with no node (declaration- and document-level) is recomputed on every run. A carried finding
+     * whose node the new document no longer holds is dropped rather than surfaced stale.
      */
     public fun analyze(
         document: UiDocument,
@@ -108,23 +113,32 @@ public class Analyzer<A : Any, F : Any, T : Any>(
     ): AnalysisResult {
         val dirtySet = dirty
         val findings = previousFindings
+        // The carry seam's precondition, named once: a closure plus the previous run's reporting
+        // half. Everything below that trusts the caller reads this one flag.
+        val carrying = dirtySet != null && findings != null
         // §6.2:537's closure, expressed as the passes' node predicate. `null` is the full path,
-        // and the default parameter keeps that path the exact call this class made before.
+        // and the default parameters keep that path the exact call this class made before.
         val visit: ((NodeId) -> Boolean)? = if (dirtySet != null && findings != null) {
-            val inside: DirtyNodes = dirtySet
-            ({ id: NodeId -> id in inside })
+            val closure: DirtyNodes = dirtySet
+            ({ id: NodeId -> id in closure })
         } else {
             null
         }
-        // The previous run's findings for the nodes this run does not re-validate. Two filters:
-        // a finding must be attributed to a node (declaration-level findings are recomputed
-        // above), the node must be outside the closure, and it must still exist — a carried
-        // finding for a node the table no longer holds would be a claim about nothing.
+        // The previous run's findings for what this run does not re-check. Two rules: a finding
+        // with no node is recomputed, because a declaration-level claim can move without any
+        // node changing — the one exception is the structural family below — and a node finding
+        // survives only when its node is outside the closure and the table still holds it.
+        //
+        // `struct.*` is the exception because the structural pass does not run at all in this
+        // mode: a property or modifier edit cannot add, remove, reorder or re-parent a node, so
+        // every graph claim the previous run made — including the ones with no node, like a
+        // missing root — is still true of this document.
         val carriedFindings: List<Diagnostic> = if (dirtySet != null && findings != null) {
-            val inside: DirtyNodes = dirtySet
+            val closure: DirtyNodes = dirtySet
             findings.filter { finding ->
+                if (finding.code.value.startsWith(STRUCTURAL_CODE_PREFIX)) return@filter true
                 val nodeId = finding.location.nodeId ?: return@filter false
-                nodeId !in inside && document.nodes[nodeId] != null
+                nodeId !in closure && document.nodes[nodeId] != null
             }
         } else {
             emptyList()
@@ -165,12 +179,22 @@ public class Analyzer<A : Any, F : Any, T : Any>(
         // index is immutable and the scope map is a pure function of it, so sharing changes no
         // answer and removes two of the three index builds a full analysis used to pay.
         val index = DocumentIndex(document)
-        val scopes = ScopeAnalysis.computeScopes(document, { view.components[it] }, index)
-        val passes = listOf(
-            StructuralPass(visit),
-            SchemaPass(view, scopes, visit),
-            ReferencePass(view, visit),
-        )
+        // In the carry path the scope map is a lookup instead of a table: the passes only ask
+        // about the closure (and about whatever the lowerer has to recompute), so the ten
+        // thousand ancestor walks a full map pays for are work no caller reads. The full path
+        // keeps the map it always built, so its answer cannot change.
+        val scopes: (NodeId) -> Set<ScopeId> = if (carrying) {
+            ScopeAnalysis.lazyScopes(document, { view.components[it] }, index)
+        } else {
+            val full = ScopeAnalysis.computeScopes(document, { view.components[it] }, index)
+            ({ id: NodeId -> full[id] ?: emptySet() })
+        }
+        val passes = mutableListOf<AnalysisPass>()
+        // The structural pass is the one walk whose answer a property or modifier edit cannot
+        // change, so the carry path does not pay for it; its findings come across above.
+        if (!carrying) passes += StructuralPass()
+        passes += SchemaPass(view, scopes, visit)
+        passes += ReferencePass(view, visit)
         for (pass in passes) {
             found += pass.run(document)
             if (pass.blocking && found.any { it.severity == Severity.Error }) break
@@ -184,26 +208,25 @@ public class Analyzer<A : Any, F : Any, T : Any>(
             // Pass 5's typing is also pass 7's input. Filtering its node walk to the closure
             // would leave no typing for a node pass 7 carries across, and `ResolutionPass`
             // compares a carried node's typings against this map before trusting it. So when a
-            // previous resolution from this run's schema context is present, the entries for the
-            // nodes this run does not re-check are taken from it: the node did not change, and
-            // neither did its expressions' scope (every ancestor of a clean node is clean too),
-            // so the previous typing is this run's typing. A previous resolution from another
-            // context is no evidence at all — pass 7 refuses that carry wholesale — and then
-            // pass 5 stays full so the lowering has every typing. Without a previous resolution
-            // there is nothing to merge from, and pass 5 stays full for the same reason.
+            // previous resolution from this run's schema context is present, its entries answer
+            // for the nodes this run does not re-check: the node did not change, and neither did
+            // its expressions' scope (every ancestor of a clean node is clean too), so the
+            // previous typing is this run's typing. `CarriedTypings` reads one address at a time
+            // from that tree rather than materialising a map over the whole document. A previous
+            // resolution from another context is no evidence at all — pass 7 refuses that carry
+            // wholesale — and then pass 5 stays full so the lowering has every typing. Without a
+            // previous resolution there is nothing to read from, and pass 5 stays full for the
+            // same reason.
             val reusable: ResolvedDocument? = previous?.takeIf { it.schemaRevision == revision }
             val expressionVisit: ((NodeId) -> Boolean)? =
                 if (visit != null && reusable != null) visit else null
             val raw = ExpressionPass(view, index, expressionVisit).check(document)
-            if (expressionVisit != null && reusable != null && dirtySet != null) {
-                val prior = carriedTypings(reusable, dirtySet)
-                if (prior.isEmpty()) {
-                    raw
-                } else {
-                    val typed = LinkedHashMap<ExprAddress, TypedExpr>(raw.typed)
-                    typed.putAll(prior)
-                    ExpressionPass.Result(raw.diagnostics, typed, raw.derived)
-                }
+            if (expressionVisit != null && reusable != null) {
+                ExpressionPass.Result(
+                    raw.diagnostics,
+                    CarriedTypings(raw.typed, reusable),
+                    raw.derived,
+                )
             } else {
                 raw
             }
@@ -224,36 +247,41 @@ public class Analyzer<A : Any, F : Any, T : Any>(
         // full analysis — there is nothing to carry — and so is `dirty` null, whatever
         // [previous] holds. The default parameters keep the null path the exact call today is.
         val carried = previous.takeIf { dirtySet != null }
-        return AnalysisResult(sorted, ResolutionPass(view, checked, revision, scopes).run(document, dirtySet, carried))
-    }
-
-    /**
-     * The typings of every node outside [dirty], read back from [previous].
-     *
-     * `ExpressionPass` keys its product by [ExprAddress], and a `ResolvedProp` is the same
-     * address one level down: the node, its property and — for a modifier argument — the
-     * position in the modifier list. Reconstructing the map from the carried tree is what lets
-     * pass 5 skip those nodes without leaving pass 7 a typing gap: the node is unchanged, so its
-     * expression and the scope it was checked in are unchanged too.
-     */
-    private fun carriedTypings(
-        previous: ResolvedDocument,
-        dirty: DirtyNodes,
-    ): Map<ExprAddress, TypedExpr> {
-        val typed = LinkedHashMap<ExprAddress, TypedExpr>()
-        for ((id, node) in previous.nodes) {
-            if (id in dirty) continue
-            for ((key, prop) in node.props) {
-                val expression = prop.typed ?: continue
-                typed[ExprAddress(id, key)] = expression
-            }
-            for ((position, modifier) in node.modifiers.withIndex()) {
-                for ((key, prop) in modifier.args) {
-                    val expression = prop.typed ?: continue
-                    typed[ExprAddress(id, key, position)] = expression
-                }
-            }
-        }
-        return typed
+        return AnalysisResult(
+            sorted,
+            ResolutionPass(view, checked, revision, scopes, trustPlacement = carrying)
+                .run(document, dirtySet, carried),
+        )
     }
 }
+
+/**
+ * Pass 5's product with the previous resolution behind it.
+ *
+ * [fresh] holds what this run typed, which is the closure. Everything outside it is a node the
+ * document did not change, so its typing is the one [previous] already holds — read one address
+ * at a time rather than materialised as a map over the whole document, which is a walk this seam
+ * exists to avoid. The caller gates this on the same schema revision as the resolution carry, so
+ * an entry read here is from this run's schema context.
+ */
+private class CarriedTypings(
+    private val fresh: Map<ExprAddress, TypedExpr>,
+    private val previous: ResolvedDocument,
+) : Map<ExprAddress, TypedExpr> by fresh {
+
+    override fun get(key: ExprAddress): TypedExpr? {
+        fresh[key]?.let { return it }
+        val node = previous.nodes[key.node] ?: return null
+        val index = key.modifierIndex
+        return if (index == null) {
+            node.props[key.property]?.typed
+        } else {
+            node.modifiers.getOrNull(index)?.args?.get(key.property)?.typed
+        }
+    }
+
+    override fun containsKey(key: ExprAddress): Boolean = get(key) != null
+}
+
+/** The diagnostic-code prefix the structural pass owns — `pass/StructuralPass.kt`'s family. */
+private const val STRUCTURAL_CODE_PREFIX: String = "struct."
