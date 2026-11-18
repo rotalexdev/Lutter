@@ -44,6 +44,7 @@ internal fun planMoveNode(
     document: UiDocument,
     components: Registry<ComponentType, ComponentSpec>,
     ids: IdGenerator,
+    indexOf: (UiDocument) -> DocumentIndex,
 ): CommandResult {
     val reasons = Rejections()
 
@@ -53,7 +54,7 @@ internal fun planMoveNode(
         return reasons.result(emptyList())
     }
 
-    val under = DocumentIndex(document)
+    val under = indexOf(document)
     val from = under.parentOf(command.id)
     if (from == null) {
         reasons.add(
