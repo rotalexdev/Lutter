@@ -225,7 +225,8 @@ public final class dev/rotalex/lutter/editing/command/Command$WrapNode : dev/rot
 
 public final class dev/rotalex/lutter/editing/command/CommandPlanner {
 	public static final field INSTANCE Ldev/rotalex/lutter/editing/command/CommandPlanner;
-	public final fun plan (Ldev/rotalex/lutter/editing/command/Command;Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/model/ids/IdGenerator;)Ldev/rotalex/lutter/editing/command/CommandResult;
+	public final fun plan (Ldev/rotalex/lutter/editing/command/Command;Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/model/ids/IdGenerator;Lkotlin/jvm/functions/Function1;)Ldev/rotalex/lutter/editing/command/CommandResult;
+	public static synthetic fun plan$default (Ldev/rotalex/lutter/editing/command/CommandPlanner;Ldev/rotalex/lutter/editing/command/Command;Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/model/ids/IdGenerator;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/CommandResult;
 }
 
 public abstract interface class dev/rotalex/lutter/editing/command/CommandResult {

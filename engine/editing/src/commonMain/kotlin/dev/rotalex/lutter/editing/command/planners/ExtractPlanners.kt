@@ -58,6 +58,7 @@ internal fun planExtractComponent(
     document: UiDocument,
     components: Registry<ComponentType, ComponentSpec>,
     ids: IdGenerator,
+    indexOf: (UiDocument) -> DocumentIndex,
 ): CommandResult {
     val reasons = Rejections()
 
@@ -88,7 +89,7 @@ internal fun planExtractComponent(
         return reasons.result(emptyList())
     }
 
-    val from = DocumentIndex(document).parentOf(command.root)
+    val from = indexOf(document).parentOf(command.root)
     if (from == null) {
         reasons.add(
             EditCodes.NoParent,
@@ -101,7 +102,7 @@ internal fun planExtractComponent(
     // Inside a component body the outer declaration's param reads would dangle differently
     // than an item would, and the extraction surface for now is page-owned subtrees. The
     // code's KDoc carries the argument; this check is the one thing that makes it true.
-    when (DocumentIndex(document).ownerOf(command.root)) {
+    when (indexOf(document).ownerOf(command.root)) {
         is NodeOwner.Component -> {
             reasons.add(
                 EditCodes.InComponentBody,
