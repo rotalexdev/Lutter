@@ -52,13 +52,14 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
  */
 internal class ActionPass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
+    private val precomputedIndex: DocumentIndex? = null,
 ) : AnalysisPass {
     override val name: String = "action"
     override val blocking: Boolean = false
 
     override fun run(document: UiDocument): List<Diagnostic> {
         val found = mutableListOf<Diagnostic>()
-        val index = DocumentIndex(document)
+        val index = precomputedIndex ?: DocumentIndex(document)
         val checker = TypeChecker(schema, document.dataModels)
         for (id in document.nodes.ids()) {
             val node = document.nodes[id] ?: continue

@@ -36,13 +36,14 @@ import dev.rotalex.lutter.schema.types.EnumTypeSpec
  */
 internal class SchemaPass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
+    private val precomputedScopes: Map<NodeId, Set<ScopeId>>? = null,
 ) : AnalysisPass {
     override val name: String = "schema"
     override val blocking: Boolean = false
 
     override fun run(document: UiDocument): List<Diagnostic> {
         val diags = mutableListOf<Diagnostic>()
-        val scopes = ScopeAnalysis.computeScopes(document) { schema.components[it] }
+        val scopes = precomputedScopes ?: ScopeAnalysis.computeScopes(document) { schema.components[it] }
         // §14.2's shadowing report needs to know what the document writes explicitly, so the
         // node walk collects one key set per component type while it validates.
         val explicit: LinkedHashMap<ComponentType, MutableSet<PropertyKey>> = LinkedHashMap()
