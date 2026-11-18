@@ -98,6 +98,15 @@ application {
     mainClass.set("com.example.sample.desktopapp.MainKt")
 }
 
+// Both compilers, one number. Kotlin takes its target from the catalog, so Java has
+// to as well: left alone, `compileJava` follows the JDK that runs Gradle (21 in CI)
+// and the build fails on "inconsistent JVM-target compatibility" before any code is
+// compiled. The same failure this repository already hit in `:tools:cli`.
+java {
+    sourceCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
+    targetCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())
+}
+
 kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvmTarget.get()))
