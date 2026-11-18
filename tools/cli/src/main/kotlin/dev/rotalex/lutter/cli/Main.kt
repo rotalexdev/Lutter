@@ -14,6 +14,7 @@ import kotlin.system.exitProcess
 internal val COMMANDS: List<CommandSpec> = listOf(
     GenerateCommand.spec,
     CheckCommand.spec,
+    ScaffoldCommand.spec,
 )
 
 /**

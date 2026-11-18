@@ -58,6 +58,10 @@ dependencies {
     implementation(project(":engine:analysis"))
     implementation(project(":engine:codegen"))
     implementation(project(":engine:builtins"))
+    // `forge scaffold` is §32 Phase 14's CLI clause, and the scaffold is an engine module
+    // with its own row in `ALLOWED`. The CLI composing the two halves of generation is the
+    // whole reason that row lists `:engine:scaffold`.
+    implementation(project(":engine:scaffold"))
 
     // PLAN §36.3 is a claim about exit codes as much as about diagnostics, and a claim a test
     // cannot make is a claim nothing checks: `main` calls `exitProcess`, which would take the
