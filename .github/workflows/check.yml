@@ -327,3 +327,92 @@ jobs:
           path: '**/build/test-results/**/*.xml'
           if-no-files-found: ignore
           retention-days: 14
+
+  # §32 Phase 14's acceptance test, and the only place S5 and S6 are actually proven:
+  # "a generated project's Gradle build compiles in CI as a fixture" and "`cli scaffold`
+  # produces a project that builds on the first try on both runners".
+  #
+  # A separate job, not another step in `check`, for three reasons that are all about being
+  # able to read the failure:
+  #
+  #  * the build it runs is a *different* build. A generated project resolves its own plugins
+  #    and its own dependencies; a step inside `check` would report a generated project's
+  #    resolution failure as this repository's, which is a day spent in the wrong repository;
+  #  * `check` ends with the ABI recovery machinery, and a scaffold failure there would arm
+  #    it — regenerating dumps and pushing a baseline for a repository whose check never got
+  #    to the ABI step at all;
+  #  * it must run on both runners. Windows is where a scaffold that wrote `/` instead of a
+  #    separator, or that assumed a POSIX path, dies; a job with a matrix says so by name.
+  #
+  # The project is written to `$RUNNER_TEMP` rather than into the checkout: a generated
+  # project inside this one is a second Gradle build in the same tree, which Gradle would
+  # either include or refuse to include depending on what `settings.gradle.kts` says, and
+  # neither outcome is what is being tested.
+  scaffold:
+    name: Scaffold a project and build it (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      # Both platforms are the claim. `fail-fast: false` so a red Windows run does not hide
+      # whether Linux was green, which is the difference between "the scaffold is wrong" and
+      # "the scaffold is POSIX-only".
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # The generated project carries no wrapper on purpose (§32 Phase 14's assumptions): a
+      # distribution download per run is not "builds on the first try", it is "builds after a
+      # download". That is exactly what the project's own `gradle.properties` also says.
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.5.0'
+
+      # `run` rather than an installed distribution: `installDist` names its launcher script
+      # after the Gradle project, so the Windows invocation would be `.bat` and the POSIX one
+      # would not. One command both platforms understand is worth more than the seconds.
+      - name: Scaffold a project outside the checkout
+        shell: bash
+        env:
+          OUT: ${{ runner.temp }}/scaffolded
+        run: |
+          gradle -q :tools:cli:run --args="scaffold 'Sample App' --package com.example.sample --out '$OUT'"
+
+      # Before Gradle gets a turn: a missing file is a scaffold defect, and finding it here
+      # costs a second instead of a three-minute build that fails on a resolution error three
+      # layers away from the file that was never written.
+      - name: Check the tree the scaffold promised
+        shell: bash
+        env:
+          OUT: ${{ runner.temp }}/scaffolded
+        run: |
+          for relative in settings.gradle.kts build.gradle.kts gradle.properties libs.versions.toml \
+                          shared/build.gradle.kts androidApp/build.gradle.kts \
+                          androidApp/src/main/AndroidManifest.xml desktopApp/build.gradle.kts; do
+            if [ ! -f "$OUT/$relative" ]; then
+              echo "::error::the scaffold did not write '$relative'"
+              ls -R "$OUT" || true
+              exit 1
+            fi
+          done
+
+      # `-p` and not `cd`: the working directory stays this checkout, so a Gradle failure is
+      # reported against the generated project's own files rather than against this one's.
+      #
+      # `assembleDebug` rather than `build`: `build` runs `lint`, which needs a review of its
+      # own and proves nothing about whether the Kotlin compiled. The desktop side gets
+      # `build`, which packages the app and runs whatever tests the project has (none).
+      - name: Build the generated project
+        shell: bash
+        env:
+          OUT: ${{ runner.temp }}/scaffolded
+        run: gradle -p "$OUT" :androidApp:assembleDebug :desktopApp:build --stacktrace
