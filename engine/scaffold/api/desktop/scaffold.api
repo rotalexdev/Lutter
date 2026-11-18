@@ -14,3 +14,12 @@ public final class dev/rotalex/lutter/scaffold/ProjectSpec {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/scaffold/ScaffoldGenerator {
+	public static final field ANDROID_APP_MODULE Ljava/lang/String;
+	public static final field DESKTOP_APP_MODULE Ljava/lang/String;
+	public static final field INSTANCE Ldev/rotalex/lutter/scaffold/ScaffoldGenerator;
+	public static final field SHARED_MODULE Ljava/lang/String;
+	public final fun generate (Ldev/rotalex/lutter/scaffold/ProjectSpec;Ldev/rotalex/lutter/codegen/GeneratedFiles;)Ldev/rotalex/lutter/codegen/GeneratedFiles;
+	public static synthetic fun generate$default (Ldev/rotalex/lutter/scaffold/ScaffoldGenerator;Ldev/rotalex/lutter/scaffold/ProjectSpec;Ldev/rotalex/lutter/codegen/GeneratedFiles;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/GeneratedFiles;
+}
+
