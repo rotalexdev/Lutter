@@ -62,7 +62,7 @@ class ScaffoldCliTest {
         val paths = relativePaths(output())
         listOf(
             "settings.gradle.kts",
-            "libs.versions.toml",
+            "gradle/libs.versions.toml",
             "shared/build.gradle.kts",
             "androidApp/build.gradle.kts",
             "desktopApp/build.gradle.kts",
