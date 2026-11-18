@@ -147,7 +147,8 @@ internal object ScaffoldCommand {
                 "desktop" -> PlatformTag.Desktop
                 "ios", "web" -> throw CliFailure(
                     ExitCode.Unusable,
-                    "forge ${spec.name}: '$name' is not scaffolded yet — §32 Phase 17 gates it on a platform-scope ADR",
+                    "forge ${spec.name}: '$name' is not scaffolded yet — §32 Phase 17 gates it on a " +
+                        "platform-scope ADR; scaffolded: android, desktop",
                 )
                 else -> throw CliFailure(
                     ExitCode.Unusable,
