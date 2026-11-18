@@ -1,4 +1,6 @@
 import org.gradle.api.DefaultTask
+import org.gradle.api.artifacts.VersionCatalog
+import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Provider
@@ -6,6 +8,7 @@ import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.TaskAction
+import org.gradle.kotlin.dsl.getByType
 
 plugins {
     id("forge.kmp.library")
@@ -28,14 +31,30 @@ dependencies {
 // Read at configuration time, passed to the task as plain strings. A task that read the catalog
 // itself would have to resolve it during execution, which the configuration cache refuses —
 // and rightly: the values are build configuration, not task input discovered mid-flight.
+// Read through the extension and not through the `rootLibs` accessor: in a module script the
+// accessor exists for the `plugins {}` block only, and `rootLibs.plugins.kotlin.multiplatform`
+// there resolves against the block's own DSL rather than against the catalog. CI proved it —
+// "None of the following candidates is applicable because of a receiver type mismatch" on the
+// very first row. `forge/Catalogs.kt` reads the same extension for the same reason.
+val sharedCatalog: VersionCatalog =
+    extensions.getByType<VersionCatalogsExtension>().named("rootLibs")
+
+/** The plugin marker version [alias] is declared at, from the catalog and nowhere else. */
+fun pinnedPlugin(alias: String): String =
+    sharedCatalog.findPlugin(alias).get().get().version.requiredVersion
+
+/** The version bound to key [alias], e.g. `androidCompileSdk`. */
+fun pinnedVersion(alias: String): String =
+    sharedCatalog.findVersion(alias).get().requiredVersion
+
 val scaffoldVersions: Map<String, String> = mapOf(
-    "KOTLIN" to rootLibs.plugins.kotlin.multiplatform.get().version.requiredVersion,
-    "AGP" to rootLibs.plugins.android.kotlin.multiplatform.library.get().version.requiredVersion,
-    "COMPOSE" to rootLibs.plugins.compose.get().version.requiredVersion,
-    "COMPOSE_COMPILER" to rootLibs.plugins.compose.compiler.get().version.requiredVersion,
-    "JVM_TARGET" to rootLibs.findVersion("jvmTarget").get().requiredVersion,
-    "ANDROID_COMPILE_SDK" to rootLibs.findVersion("androidCompileSdk").get().requiredVersion,
-    "ANDROID_MIN_SDK" to rootLibs.findVersion("androidMinSdk").get().requiredVersion,
+    "KOTLIN" to pinnedPlugin("kotlin.multiplatform"),
+    "AGP" to pinnedPlugin("android.kotlin.multiplatform.library"),
+    "COMPOSE" to pinnedPlugin("compose"),
+    "COMPOSE_COMPILER" to pinnedPlugin("compose.compiler"),
+    "JVM_TARGET" to pinnedVersion("jvmTarget"),
+    "ANDROID_COMPILE_SDK" to pinnedVersion("androidCompileSdk"),
+    "ANDROID_MIN_SDK" to pinnedVersion("androidMinSdk"),
 )
 
 /**
