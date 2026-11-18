@@ -7,8 +7,8 @@ public final class dev/rotalex/lutter/analysis/AnalysisResult {
 
 public final class dev/rotalex/lutter/analysis/Analyzer {
 	public fun <init> (Ldev/rotalex/lutter/schema/SchemaView;)V
-	public final fun analyze (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/model/index/DirtyNodes;Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;)Ldev/rotalex/lutter/analysis/AnalysisResult;
-	public static synthetic fun analyze$default (Ldev/rotalex/lutter/analysis/Analyzer;Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/model/index/DirtyNodes;Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;ILjava/lang/Object;)Ldev/rotalex/lutter/analysis/AnalysisResult;
+	public final fun analyze (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/model/index/DirtyNodes;Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ljava/util/List;)Ldev/rotalex/lutter/analysis/AnalysisResult;
+	public static synthetic fun analyze$default (Ldev/rotalex/lutter/analysis/Analyzer;Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/model/index/DirtyNodes;Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/analysis/AnalysisResult;
 }
 
 public final class dev/rotalex/lutter/analysis/diagnostic/DiagnosticCodes {
