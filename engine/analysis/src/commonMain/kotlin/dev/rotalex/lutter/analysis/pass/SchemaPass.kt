@@ -43,7 +43,7 @@ internal class SchemaPass(
 
     override fun run(document: UiDocument): List<Diagnostic> {
         val diags = mutableListOf<Diagnostic>()
-        val scopes = precomputedScopes ?: ScopeAnalysis.computeScopes(document) { schema.components[it] }
+        val scopes = precomputedScopes ?: ScopeAnalysis.computeScopes(document, { schema.components[it] })
         // §14.2's shadowing report needs to know what the document writes explicitly, so the
         // node walk collects one key set per component type while it validates.
         val explicit: LinkedHashMap<ComponentType, MutableSet<PropertyKey>> = LinkedHashMap()

@@ -66,7 +66,7 @@ internal class ResolutionPass(
         previous: ResolvedDocument? = null,
     ): ResolvedDocument {
         val theme = selectTheme(document)
-        val scopes = precomputedScopes ?: ScopeAnalysis.computeScopes(document) { schema.components[it] }
+        val scopes = precomputedScopes ?: ScopeAnalysis.computeScopes(document, { schema.components[it] })
         val index = LinkedHashMap<NodeId, ResolvedNode>()
 
         // A carried node is carried with the subtree below it, and the document's index must
