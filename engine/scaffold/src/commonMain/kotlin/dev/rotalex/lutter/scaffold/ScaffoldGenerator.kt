@@ -79,7 +79,11 @@ public object ScaffoldGenerator {
         files += GeneratedFile("settings.gradle.kts", settings(spec, android, desktop))
         files += GeneratedFile("build.gradle.kts", rootBuild(android, desktop))
         files += GeneratedFile("gradle.properties", GRADLE_PROPERTIES)
-        files += GeneratedFile("libs.versions.toml", catalog(android, desktop))
+        // `gradle/libs.versions.toml` and not `libs.versions.toml`: that is the path Gradle
+        // reads a catalog from. A catalog in the project root is a file nothing loads, so
+        // every `libs.` accessor in the build scripts is an unresolved reference — which is
+        // how the first CI build of a scaffolded project failed.
+        files += GeneratedFile("gradle/libs.versions.toml", catalog(android, desktop))
         files += GeneratedFile("$SHARED_MODULE/build.gradle.kts", sharedBuild(spec, android, desktop))
 
         if (android) {
@@ -353,6 +357,15 @@ class MainActivity : Activity() {
         appendLine()
         appendLine("application {")
         appendLine("    mainClass.set(\"${spec.basePackage}.desktopapp.MainKt\")")
+        appendLine("}")
+        appendLine()
+        appendLine("// Both compilers, one number. Kotlin takes its target from the catalog, so Java has")
+        appendLine("// to as well: left alone, `compileJava` follows the JDK that runs Gradle (21 in CI)")
+        appendLine("// and the build fails on \"inconsistent JVM-target compatibility\" before any code is")
+        appendLine("// compiled. The same failure this repository already hit in `:tools:cli`.")
+        appendLine("java {")
+        appendLine("    sourceCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())")
+        appendLine("    targetCompatibility = JavaVersion.toVersion(libs.versions.jvmTarget.get())")
         appendLine("}")
         appendLine()
         appendLine("kotlin {")
