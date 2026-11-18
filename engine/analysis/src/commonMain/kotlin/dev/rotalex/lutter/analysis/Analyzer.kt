@@ -13,8 +13,10 @@ import dev.rotalex.lutter.analysis.resolved.SchemaRevisionMinter
 import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.doc.ComponentDecl
+import dev.rotalex.lutter.analysis.scope.ScopeAnalysis
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.index.DirtyNodes
+import dev.rotalex.lutter.model.index.DocumentIndex
 import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.schema.SchemaView
@@ -121,7 +123,12 @@ public class Analyzer<A : Any, F : Any, T : Any>(
             overlayCache =
                 OverlayCache(document.components, document.meta.componentVersions, overlay, revision)
         }
-        val passes = listOf(StructuralPass(), SchemaPass(view), ReferencePass(view))
+        // One walk of the document serves every pass that needs an index or a scope set: the
+        // index is immutable and the scope map is a pure function of it, so sharing changes no
+        // answer and removes two of the three index builds a full analysis used to pay.
+        val index = DocumentIndex(document)
+        val scopes = ScopeAnalysis.computeScopes(document, { view.components[it] }, index)
+        val passes = listOf(StructuralPass(), SchemaPass(view, scopes), ReferencePass(view))
         for (pass in passes) {
             found += pass.run(document)
             if (pass.blocking && found.any { it.severity == Severity.Error }) break
@@ -129,20 +136,20 @@ public class Analyzer<A : Any, F : Any, T : Any>(
         // Pass 5 sits outside the list because `AnalysisPass.run` returns findings alone and
         // pass 7 attaches what it produces; §17.1 also has it skipped once a pass has errored.
         val checked = if (found.none { it.severity == Severity.Error }) {
-            ExpressionPass(view).check(document)
+            ExpressionPass(view, index).check(document)
         } else {
             ExpressionPass.Result.NONE
         }
         found += checked.diagnostics
         // Pass 6 is unconditional: a document can be wrong in two independent ways, and the
         // author needs both reported rather than only whichever one an earlier pass found.
-        found += ActionPass(view).run(document)
+        found += ActionPass(view, index).run(document)
         val sorted = DiagnosticSorter.sort(found)
         if (sorted.any { it.severity == Severity.Error }) return AnalysisResult(sorted, null)
         // Pass 7 takes both or neither: a dirty set without a previous run to reuse from is a
         // full analysis — there is nothing to carry — and so is `dirty` null, whatever
         // [previous] holds. The default parameters keep the null path the exact call today is.
         val carried = previous.takeIf { dirty != null }
-        return AnalysisResult(sorted, ResolutionPass(view, checked, revision).run(document, dirty, carried))
+        return AnalysisResult(sorted, ResolutionPass(view, checked, revision, scopes).run(document, dirty, carried))
     }
 }

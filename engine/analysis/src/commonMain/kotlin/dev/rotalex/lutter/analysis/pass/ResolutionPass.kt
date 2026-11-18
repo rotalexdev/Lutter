@@ -20,6 +20,7 @@ import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.schema.component.ScopeId
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.index.DirtyNodes
 import dev.rotalex.lutter.model.value.Value
@@ -57,6 +58,7 @@ internal class ResolutionPass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
     private val checked: ExpressionPass.Result,
     private val revision: SchemaRevision,
+    private val precomputedScopes: Map<NodeId, Set<ScopeId>>? = null,
 ) {
     public fun run(
         document: UiDocument,
@@ -64,7 +66,7 @@ internal class ResolutionPass(
         previous: ResolvedDocument? = null,
     ): ResolvedDocument {
         val theme = selectTheme(document)
-        val scopes = ScopeAnalysis.computeScopes(document) { schema.components[it] }
+        val scopes = precomputedScopes ?: ScopeAnalysis.computeScopes(document, { schema.components[it] })
         val index = LinkedHashMap<NodeId, ResolvedNode>()
 
         // A carried node is carried with the subtree below it, and the document's index must

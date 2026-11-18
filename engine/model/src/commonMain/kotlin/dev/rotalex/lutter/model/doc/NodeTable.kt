@@ -90,10 +90,15 @@ public class NodeTable internal constructor(private val map: PersistentMap<NodeI
     /**
      * Every id, ascending. Not the backing map's iteration order — see the class KDoc.
      *
-     * Lazy: the sequence is produced from the keys when it is consumed, and sorting is the
-     * only work done per call.
+     * The order is sorted **once per table**, and the class KDoc's own advice is why: a table
+     * used for traversal should keep a sorted key sequence beside the map, and the sequence
+     * cannot be a member because it is derived. A table is immutable, so the lazily built list
+     * is the same list every caller reads, and the six passes that walk a document share the
+     * one sort instead of paying `O(n log n)` each.
      */
-    public fun ids(): Sequence<NodeId> = map.keys.asSequence().sortedBy { it.value }
+    public fun ids(): Sequence<NodeId> = sortedIds.asSequence()
+
+    private val sortedIds: List<NodeId> by lazy { map.keys.sortedBy { it.value } }
 
     /**
      * This table with [node] added, or with the node of the same id replaced.

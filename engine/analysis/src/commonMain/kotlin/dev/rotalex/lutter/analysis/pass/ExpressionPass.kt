@@ -34,6 +34,7 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
  */
 internal class ExpressionPass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
+    private val precomputedIndex: DocumentIndex? = null,
 ) {
 
     /**
@@ -58,7 +59,7 @@ internal class ExpressionPass(
         val found = mutableListOf<Diagnostic>()
         val typed = LinkedHashMap<ExprAddress, TypedExpr>()
         val derived = LinkedHashMap<StateId, TypedExpr>()
-        val index = DocumentIndex(document)
+        val index = precomputedIndex ?: DocumentIndex(document)
         val checker = TypeChecker(schema, document.dataModels)
         for (id in document.nodes.ids()) {
             val node = document.nodes[id] ?: continue

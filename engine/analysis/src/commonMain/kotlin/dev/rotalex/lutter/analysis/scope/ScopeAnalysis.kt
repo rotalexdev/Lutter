@@ -13,11 +13,18 @@ import dev.rotalex.lutter.model.index.DocumentIndex
  * Unknown ancestors contribute nothing — their slots are already a diagnostic elsewhere.
  */
 internal object ScopeAnalysis {
+    /**
+     * @param sharedIndex an index of the same document, when the caller already built one and
+     *   several passes are about to ask the same questions of it. The index is immutable, so
+     *   sharing it changes no answer and saves one full walk of the document per caller that
+     *   would otherwise build its own.
+     */
     public fun computeScopes(
         document: UiDocument,
         specOf: (ComponentType) -> ComponentSpec?,
+        sharedIndex: DocumentIndex? = null,
     ): Map<NodeId, Set<ScopeId>> {
-        val index = DocumentIndex(document)
+        val index = sharedIndex ?: DocumentIndex(document)
         val out = LinkedHashMap<NodeId, Set<ScopeId>>()
         for (id in document.nodes.ids()) {
             val scopes = linkedSetOf<ScopeId>()
