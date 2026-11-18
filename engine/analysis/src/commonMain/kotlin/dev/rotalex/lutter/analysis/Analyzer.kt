@@ -187,7 +187,8 @@ public class Analyzer<A : Any, F : Any, T : Any>(
             ScopeAnalysis.lazyScopes(document, { view.components[it] }, index)
         } else {
             val full = ScopeAnalysis.computeScopes(document, { view.components[it] }, index)
-            ({ id: NodeId -> full[id] ?: emptySet() })
+            val lookup: (NodeId) -> Set<ScopeId> = { id -> full[id] ?: emptySet() }
+            lookup
         }
         val passes = mutableListOf<AnalysisPass>()
         // The structural pass is the one walk whose answer a property or modifier edit cannot

@@ -53,7 +53,8 @@ internal class SchemaPass(
         // with none, the full map is built once and every ask answers from it, as before.
         val scopes: (NodeId) -> Set<ScopeId> = scopesOf ?: run {
             val full = ScopeAnalysis.computeScopes(document, { schema.components[it] })
-            { id: NodeId -> full[id] ?: emptySet() }
+            val lookup: (NodeId) -> Set<ScopeId> = { id -> full[id] ?: emptySet() }
+            lookup
         }
         // §14.2's shadowing report needs to know what the document writes explicitly, so the
         // node walk collects one key set per component type while it validates. When the walk is

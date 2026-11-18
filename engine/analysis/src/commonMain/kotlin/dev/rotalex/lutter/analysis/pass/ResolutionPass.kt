@@ -78,7 +78,8 @@ internal class ResolutionPass(
         // a time, or the full map built once and read through.
         val scopes: (NodeId) -> Set<ScopeId> = scopesOf ?: run {
             val full = ScopeAnalysis.computeScopes(document, { schema.components[it] })
-            { id: NodeId -> full[id] ?: emptySet() }
+            val lookup: (NodeId) -> Set<ScopeId> = { id -> full[id] ?: emptySet() }
+            lookup
         }
         val index = LinkedHashMap<NodeId, ResolvedNode>()
 
