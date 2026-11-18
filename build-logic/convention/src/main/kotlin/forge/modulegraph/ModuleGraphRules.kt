@@ -244,6 +244,13 @@ object ModuleGraphRules {
         // own build-time classpath cannot carry this module's compiled output, because the
         // batch's sources are wired into that module's `commonMain`.
         ":integration:generated-compile" to setOf(":engine:test-support"),
+
+        // §32 Phase 14's "a golden of the scaffolded shape" is a committed file compared with
+        // the same reader every other golden in this repo uses, so the harness is reachable
+        // from here for the same reason it is reachable from the two lines above: a golden
+        // helper is a fixture tool, and a second implementation of "compare with a file" would
+        // report its diffs in a second dialect.
+        ":engine:scaffold" to setOf(":engine:test-support"),
     )
 
     // ---------------------------------------------------------------------------------------
