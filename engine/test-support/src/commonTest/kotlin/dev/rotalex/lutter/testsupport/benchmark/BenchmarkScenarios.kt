@@ -171,28 +171,38 @@ internal class BenchmarkWorkload(composed: ComposedDocument) {
      * schema declares — the legal edit §29's row is a claim about.
      *
      * The node and the key are **taken from the document rather than named**, for the same
-     * reason [edit]'s node is: the command is legal whatever the generator drew. The first
-     * property in `ids()` order that stores a plain string constant is the one edited, and a
-     * new string constant is type-correct for it by the generator's own rule — `constantFor`
-     * writes a constant only when it fits the declared type, so a stored `Value.Str` is a
-     * `TypeRef.Str` property and nothing weaker. [CommandPlanner.plan] still consults the
-     * spec for a declared key, so a document where that reasoning fails fails the preparation
-     * instead of timing a refusal.
+     * reason [edit]'s node is: the command is legal whatever the generator drew. The selection
+     * walks `ids()` order for the first constant it can vary within its own type, in
+     * constraint-cheapest order — a [Value.Bool] flips (a Bool has no range and no vocabulary,
+     * so flipping it violates nothing), a [Value.Str] becomes another literal, and a
+     * [Value.Int32] steps by one. That order is the lesson of the first green run: the
+     * document's string constants do not all travel under a `TypeRef.Str` prop — an icon pair
+     * or a range-bound count can hold a constant a naive replacement refuses — so the row
+     * bets its preparation on the seed's draw as little as it can. [CommandPlanner.plan] still
+     * consults the spec for a declared key, and a plan that refuses — an icon name, an
+     * enum-backed literal — fails the preparation loudly instead of timing a refusal.
      */
     val incrementalEdit: Command = run {
-        val target: Pair<NodeId, PropertyKey> = document.nodes.ids().firstNotNullOfOrNull { id ->
+        val target: Triple<NodeId, PropertyKey, Value>? = document.nodes.ids().firstNotNullOfOrNull { id ->
             val node = document.nodes[id] ?: return@firstNotNullOfOrNull null
-            node.props.entries
-                .firstOrNull { (it.value as? PropertyValue.Const)?.value is Value.Str }
-                ?.let { id to it.key }
+            node.props.entries.firstNotNullOfOrNull { (key, propValue) ->
+                val const = propValue as? PropertyValue.Const ?: return@firstNotNullOfOrNull null
+                val varied = when (val value = const.value) {
+                    is Value.Bool -> Value.Bool(!value.v)
+                    is Value.Str -> Value.Str("incremental")
+                    is Value.Int32 -> Value.Int32(value.v + 1)
+                    else -> null
+                } ?: return@firstNotNullOfOrNull null
+                Triple(id, key, varied)
+            }
         } ?: error(
-            "the composed document stores no string constant on any node, so §29's incremental " +
-                "row has no legal single-property edit to measure",
+            "the composed document stores no Bool, Str or Int32 constant on any node, so §29's " +
+                "incremental row has no legal single-property edit to measure",
         )
         Command.SetProperty(
             node = target.first,
             key = target.second,
-            value = PropertyValue.Const(Value.Str("incremental")),
+            value = PropertyValue.Const(target.third),
         )
     }
 }
