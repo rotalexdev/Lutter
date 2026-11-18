@@ -18,6 +18,9 @@ dependencies {
     commonMainApi(project(":engine:model"))
     commonMainApi(project(":engine:schema"))
     commonMainApi(project(":engine:codegen"))
+
+    // The golden helper and the classpath reader are the harness, and the harness is fixtures.
+    commonTestImplementation(project(":engine:test-support"))
 }
 
 // --- the versions a generated project pins, read from the catalog this build resolves against

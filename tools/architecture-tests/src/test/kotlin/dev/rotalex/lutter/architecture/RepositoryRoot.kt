@@ -22,18 +22,52 @@ internal class KotlinFile(
     /**
      * Every imported name, in declaration order and without duplicates.
      *
+     * Read from the file header only — the region before the first declaration, which is the
+     * only place Kotlin accepts an import. Reading the whole text would count an import that
+     * a module *emits* as one it *compiles*: a scaffolder writing `import android.app.Activity`
+     * into a generated file carries those characters in a string literal, imports nothing from
+     * the Android SDK, and is not the rule's target. The header is what the compiler sees.
+     *
      * Parsed from the text rather than from a compiler front end. These rules are text
      * scanners on purpose — see `SourceRules` — and an import list is the one piece of
-     * structure they do need, which a regular expression reads exactly.
+     * structure they do need, which the header reads exactly.
      */
-    val imports: List<String> = IMPORT
-        .findAll(text)
-        .map { it.groupValues[1] }
-        .distinct()
-        .toList()
+    val imports: List<String> = headerImports()
+
+    private fun headerImports(): List<String> {
+        val imports = mutableListOf<String>()
+        var inBlockComment = false
+        var annotationDepth = 0
+
+        for (raw in text.lineSequence()) {
+            val line = raw.trim()
+            if (inBlockComment) {
+                if (line.contains("*/")) inBlockComment = false
+                continue
+            }
+            if (annotationDepth > 0) {
+                annotationDepth = (annotationDepth + line.count { it == '(' } - line.count { it == ')' })
+                    .coerceAtLeast(0)
+                continue
+            }
+            when {
+                line.isEmpty() || line.startsWith("//") -> Unit
+                line.startsWith("/*") -> inBlockComment = !line.contains("*/")
+                line.startsWith("package ") -> Unit
+                line.startsWith("@") -> annotationDepth =
+                    (line.count { it == '(' } - line.count { it == ')' }).coerceAtLeast(0)
+                else -> {
+                    val imported = IMPORT.matchEntire(line)?.groupValues?.get(1)
+                        ?: return imports.distinct()
+                    imports += imported
+                }
+            }
+        }
+        return imports.distinct()
+    }
 
     private companion object {
-        val IMPORT = Regex("""(?m)^\s*import\s+([\w.]+(?:\.\*)?)""")
+        val IMPORT = Regex("""import\s+([\w.]+(?:\.\*)?)\s*""")
     }
 }
 
