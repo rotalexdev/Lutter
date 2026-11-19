@@ -334,6 +334,14 @@ public sealed interface KtDeclaration {
         public val annotations: List<KotlinSymbol>,
         public val data: Boolean,
         public val supertypes: List<KtExpr>,
+        /**
+         * What the object declares in its body, empty for a marker.
+         *
+         * A marker object needs no braces, which is what every object this module emitted until a
+         * navigation strategy wanted named constants: a route a `NavHost` takes is a `String`, and
+         * a `const val` per page is the one shape that keeps the call sites reading like names.
+         */
+        public val members: List<KtDeclaration> = emptyList(),
     ) : KtDeclaration
 }
 

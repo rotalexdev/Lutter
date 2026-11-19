@@ -103,11 +103,13 @@ public final class dev/rotalex/lutter/codegen/ExprEmitter {
 
 public final class dev/rotalex/lutter/codegen/FileContext {
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)V
+	public final fun appRootReceivers ()Ljava/util/List;
 	public final fun getAppState ()Lkotlin/jvm/functions/Function1;
 	public final fun getHeader ()Ljava/lang/String;
 	public final fun getPkg ()Ljava/lang/String;
 	public final fun getReceiverType ()Lkotlin/jvm/functions/Function1;
 	public final fun getReceivers ()Ljava/util/Map;
+	public final fun receiversOf (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;)Ljava/util/List;
 }
 
 public final class dev/rotalex/lutter/codegen/FormattingOptions {
@@ -305,16 +307,19 @@ public final class dev/rotalex/lutter/codegen/KtDeclaration$Interface : dev/rota
 }
 
 public final class dev/rotalex/lutter/codegen/KtDeclaration$Object : dev/rotalex/lutter/codegen/KtDeclaration {
-	public fun <init> (Ljava/lang/String;Ljava/util/List;ZLjava/util/List;)V
+	public fun <init> (Ljava/lang/String;Ljava/util/List;ZLjava/util/List;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;ZLjava/util/List;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/util/List;
 	public final fun component3 ()Z
 	public final fun component4 ()Ljava/util/List;
-	public final fun copy (Ljava/lang/String;Ljava/util/List;ZLjava/util/List;)Ldev/rotalex/lutter/codegen/KtDeclaration$Object;
-	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtDeclaration$Object;Ljava/lang/String;Ljava/util/List;ZLjava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtDeclaration$Object;
+	public final fun component5 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;ZLjava/util/List;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtDeclaration$Object;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtDeclaration$Object;Ljava/lang/String;Ljava/util/List;ZLjava/util/List;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtDeclaration$Object;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAnnotations ()Ljava/util/List;
 	public final fun getData ()Z
+	public final fun getMembers ()Ljava/util/List;
 	public final fun getName ()Ljava/lang/String;
 	public final fun getSupertypes ()Ljava/util/List;
 	public fun hashCode ()I
@@ -745,6 +750,22 @@ public final class dev/rotalex/lutter/codegen/KtTemplatePart$Text : dev/rotalex/
 	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtTemplatePart$Text;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtTemplatePart$Text;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getText ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/NavigationCompose : dev/rotalex/lutter/codegen/NavigationStrategy {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/NavigationCompose;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/NavigationCompose;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/NavigationCompose;
+	public fun emitAppRoot (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ldev/rotalex/lutter/codegen/FileContext;)Ldev/rotalex/lutter/codegen/KtFile;
+	public fun emitNavigateCall (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtStmt;
+	public fun emitRoutes (Ljava/util/List;Ldev/rotalex/lutter/codegen/FileContext;)Ljava/util/List;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBasePackage ()Ljava/lang/String;
+	public fun getNavigatorType ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
+	public fun getReservedTopLevelNames ()Ljava/util/Set;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
