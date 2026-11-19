@@ -343,8 +343,10 @@ class StateEmitterTest {
         // The app row's lifetime is the process, which a ViewModelStore does not outlive; only a
         // page has a lifecycle owner worth asking for, so the local keeps its remembered holder.
         assertTrue(app.contains("public class AppState {"), app)
-        assertTrue(app.contains("remember {"), app)
         assertTrue(!app.contains("ViewModel"), app)
+        // The holder is remembered where `AppRoot` provides it, which is `App.kt`, not this file.
+        val root: String = content(files, "App.kt")
+        assertTrue(root.contains("remember {"), root)
     }
 
     @Test
