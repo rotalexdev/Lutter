@@ -296,13 +296,13 @@ class StateEmitterTest {
         val result = generate(pageDocument(listOf(held(saveable))))
 
         assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
-        val screen: String = content(result.files, "screens/HomeScreen.kt")
+        val screen: String = content(result, "screens/HomeScreen.kt")
         // §12.1's persistent row: the value lives in the store, and the store wins over `initial`
         // only when it has something to say.
         assertTrue(screen.contains("store?.read(\"p_home/s_count\")?.toIntOrNull() ?: 0"), screen)
         assertTrue(screen.contains("\"p_home/s_count\","), screen)
         assertTrue(screen.contains("value.toString(),"), screen)
-        val store: String = content(result.files, "state/PersistentStore.kt")
+        val store: String = content(result, "state/PersistentStore.kt")
         assertTrue(store.contains("public interface PersistentStore"), store)
         assertTrue(store.contains("public fun read(key: String): String?"), store)
     }
@@ -313,10 +313,10 @@ class StateEmitterTest {
         val result = generate(pageDocument(emptyList(), appState = listOf(held(saveable))))
 
         assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
-        val state: String = content(result.files, "state/AppState.kt")
+        val state: String = content(result, "state/AppState.kt")
         assertTrue(state.contains("store?.read(\"app/s_theme\") ?: \"light\""), state)
         assertTrue(state.contains("\"app/s_theme\","), state)
-        val root: String = content(result.files, "App.kt")
+        val root: String = content(result, "App.kt")
         assertTrue(root.contains("store: PersistentStore? = null"), root)
         assertTrue(root.contains("store = store,"), root)
     }
@@ -456,9 +456,9 @@ class StateEmitterTest {
         return content(files, "screens/HomeScreen.kt")
     }
 
-    private fun content(files: GeneratedFiles, path: String): String =
-        files.files.firstOrNull { it.path == path }?.content
-            ?: error("no '$path' in ${files.files.map { it.path }}")
+    private fun content(generated: CodegenResult, path: String): String =
+        generated.files.files.firstOrNull { it.path == path }?.content
+            ?: error("no '$path' in ${generated.files.files.map { it.path }}")
 
     private fun generate(document: ResolvedDocument): CodegenResult =
         KotlinGenerator(schema(), CodegenOptions("com.example.app")).generate(document)
