@@ -322,16 +322,44 @@ class StateEmitterTest {
     }
 
     @Test
-    fun `a viewmodel page holder extends ViewModel and the screen asks for one`() {
+    fun `a viewmodel page row keeps the state a state and adds a viewmodel over it`() {
         val screen: String = screenOf(pageDocument(heldPageState()), ViewModelState)
 
-        // §12.1's page row with a lifecycle: the holder survives a configuration change because
-        // the platform owns it, so the file carries no `remember…State` factory of its own.
-        assertTrue(screen.contains("public class HomeScreenState : ViewModel() {"), screen)
-        assertTrue(screen.contains("state: HomeScreenState = viewModel<HomeScreenState>()"), screen)
+        // §12.1's page row, unchanged: the declarations are members of the state class, and the
+        // class is still called a state. What the strategy adds is the layer that owns it.
+        assertTrue(screen.contains("public class HomeScreenState {"), screen)
+        assertTrue(screen.contains("public var count: Int by mutableStateOf(0)"), screen)
+        assertTrue(!screen.contains("HomeScreenState : ViewModel"), screen)
+        // The ViewModel is a ViewModel, down to its name, and it holds the state rather than
+        // becoming it: a configuration change keeps the instance, and the state goes with it.
+        assertTrue(screen.contains("public class HomeViewModel : ViewModel() {"), screen)
+        assertTrue(screen.contains("public val state: HomeScreenState = HomeScreenState()"), screen)
+        // The screen talks to the ViewModel, which is the layer that survives; the composition
+        // no longer remembers the state and the file no longer carries a factory for it.
+        assertTrue(screen.contains("viewModel: HomeViewModel = viewModel()"), screen)
         assertTrue(!screen.contains("rememberHomeScreenState"), screen)
         assertTrue(screen.contains("import androidx.lifecycle.ViewModel"), screen)
         assertTrue(screen.contains("import androidx.lifecycle.viewmodel.compose.viewModel"), screen)
+    }
+
+    @Test
+    fun `a page declaration is read through the viewmodel that owns it`() {
+        val document: ResolvedDocument = pageDocument(heldPageState(), appState = listOf(heldTheme()))
+        val options: CodegenOptions = CodegenOptions("com.example.app", state = ViewModelState)
+        val emitter: StateEmitter = StateEmitter(document, options, schema().functions)
+
+        // `viewModel.state.count`, not `state.count`: one extra hop that says which layer the
+        // value belongs to, and the same hop `ActionEmitter` writes for an assignment.
+        assertEquals(
+            KtExpr.Member(KtExpr.Member(KtExpr.Name("viewModel"), "state"), "count"),
+            emitter.readInScreen(count),
+        )
+        // The app row is the composition local under this strategy too, so its read is unchanged.
+        val localAppState: KotlinSymbol = KotlinSymbol("com.example.app.state", "LocalAppState")
+        assertEquals(
+            KtExpr.Member(KtExpr.Member(KtExpr.Ref(KtSymbolRef(localAppState)), "current"), "theme"),
+            emitter.readInScreen(theme),
+        )
     }
 
     @Test
