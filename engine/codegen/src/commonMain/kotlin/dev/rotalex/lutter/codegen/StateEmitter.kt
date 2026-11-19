@@ -121,31 +121,29 @@ public class StateEmitter(
         )
 
     /**
-     * §12.1's page row: `@Stable class HomeScreenState` and `rememberHomeScreenState()`, which
-     * a screen file carries beside the screen itself.
+     * §12.1's page row: `@Stable class HomeScreenState` and whatever the strategy puts around it
+     * — `rememberHomeScreenState()` under the default, `class HomeViewModel : ViewModel()` under
+     * the one that hands the row to the platform.
      *
-     * Null when the page declares nothing: a state class with no members and a remember
-     * function nothing calls are two declarations that prove nothing and change every golden.
+     * Null when the page declares nothing: a state class with no members and a layer with
+     * nothing in it are declarations that prove nothing and change every golden.
      */
     public fun pageState(page: ResolvedPage): List<KtDeclaration>? {
         if (page.state.isEmpty()) return null
         val name: String = classNameOf(page)
         val holder: KtDeclaration.Class =
             stateClass(name, StateScope.Page, page.state, page.id.value, stable) ?: return null
-        // The factory is the strategy's: a holder the platform owns needs none, and emitting one
-        // anyway is a function nothing calls in a file a reviewer has to read past.
-        return listOf(holder) + strategy.pageFactory(name)
+        // What the row adds is the strategy's: a factory a plain class needs, a ViewModel a
+        // platform-owned one gets instead, or nothing at all when neither is called for.
+        return listOf(holder) + strategy.pageExtras(page.name, holderSymbol(name), screensPackage())
     }
 
-    /** The `state` parameter §12.1 gives [page]'s screen, defaulting to its remember function. */
-    public fun pageParameter(page: ResolvedPage): KtParam {
-        val name: String = classNameOf(page)
-        return KtParam(
-            name = "state",
-            type = KtExpr.Ref(KtSymbolRef(KotlinSymbol(options.basePackage + ".screens", name))),
-            default = strategy.pageDefault(KotlinSymbol(options.basePackage + ".screens", name)),
-        )
-    }
+    /**
+     * The parameter §12.1 gives [page]'s screen. Its name is the strategy's — `state` where the
+     * holder is a state, `viewModel` where it is a ViewModel — and so is what it defaults to.
+     */
+    public fun pageParameter(page: ResolvedPage): KtParam =
+        strategy.pageParameter(page.name, screensPackage())
 
     /**
      * §12.1's component row: `var x by remember { mutableStateOf(init) }`, as composable locals.
@@ -287,6 +285,11 @@ public class StateEmitter(
 
     private fun classNameOf(page: ResolvedPage): String = page.name + ReservedCodegenNames.PageStateSuffix
 
+    /** The package a page's file lands in, where the symbols a strategy emits for it live. */
+    private fun screensPackage(): String = options.basePackage + ".screens"
+
+    private fun holderSymbol(name: String): KotlinSymbol = KotlinSymbol(screensPackage(), name)
+
     /**
      * One state class, its members in declaration order.
      *
@@ -320,7 +323,7 @@ public class StateEmitter(
             annotations,
             members,
             constructor,
-            strategy.holderSupertype(scope),
+            null,
         )
     }
 

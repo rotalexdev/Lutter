@@ -16,7 +16,7 @@ import dev.rotalex.lutter.schema.component.KotlinSymbol
  * The app row's lifetime is already the process, which nothing outlives, so it keeps the
  * remembered holder the composition local provides. A component's local is scoped to one
  * composable and there is no `ViewModelStoreOwner` at that depth worth asking for, so it keeps
- * `remember { mutableStateOf(…) }`. Both answers are `holderSupertype` returning null: a
+ * `remember { mutableStateOf(…) }`. Both answers come from the snapshot strategy: a
  * strategy that wrapped every scope for symmetry would be a strategy that changed two rows
  * nobody asked it to change.
  *
@@ -54,18 +54,59 @@ public data object ViewModelState : StateStrategy {
      */
     override val reservedTopLevelNames: Set<String> = ComposeSnapshotState.reservedTopLevelNames
 
-    override fun holderSupertype(scope: StateScope): KotlinSymbol? =
-        if (scope == StateScope.Page) viewModel else null
+    /**
+     * `class HomeViewModel : ViewModel() { public val state: HomeScreenState = HomeScreenState() }`.
+     *
+     * A ViewModel that *holds* the state rather than one that *is* the state. The state class is
+     * §12.1's row unchanged — its members, its name, its reads — and this layer adds the only
+     * thing a strategy is asked for: something the platform keeps across a configuration change
+     * to own it. Naming both facts the same word is how a reader loses track of which one the
+     * platform is holding.
+     */
+    override fun pageExtras(
+        pageName: String,
+        state: KotlinSymbol,
+        pkg: String,
+    ): List<KtDeclaration> = listOf(
+        KtDeclaration.Class(
+            name = pageName + ViewModelSuffix,
+            annotations = emptyList(),
+            members = listOf(
+                KtDeclaration.Property(
+                    name = "state",
+                    annotations = emptyList(),
+                    type = KtExpr.Ref(KtSymbolRef(state)),
+                    mutable = false,
+                    initializer = KtExpr.Call(KtExpr.Ref(KtSymbolRef(state)), emptyList()),
+                    delegate = null,
+                    getter = null,
+                ),
+            ),
+            supertype = viewModel,
+        ),
+    )
 
-    override fun pageFactory(name: String): List<KtDeclaration> = emptyList()
+    // The parameter is the ViewModel, and the read of a page declaration goes through it to the
+    // state: `viewModel.state.count`, one hop that names which layer answers.
+    override fun pageParameter(pageName: String, pkg: String): KtParam = KtParam(
+        name = "viewModel",
+        type = KtExpr.Ref(KtSymbolRef(KotlinSymbol(pkg, pageName + ViewModelSuffix))),
+        // No type argument: the parameter's own type is the expected type, and `viewModel()`
+        // reads the same either way while spelling less.
+        default = KtExpr.Call(KtExpr.Ref(KtSymbolRef(viewModelOf)), emptyList()),
+    )
 
-    override fun pageDefault(holder: KotlinSymbol): KtExpr = KtExpr.Call(
-        KtExpr.TypeApplication(KtExpr.Ref(KtSymbolRef(viewModelOf)), listOf(KtExpr.Ref(KtSymbolRef(holder)))),
-        emptyList(),
+    override fun pageReservedNames(pageName: String): Set<String> = setOf(
+        pageName + ReservedCodegenNames.PageStateSuffix,
+        pageName + ViewModelSuffix,
     )
 
     override fun receiver(scope: StateScope, appState: KotlinSymbol): KtExpr? =
-        ComposeSnapshotState.receiver(scope, appState)
+        if (scope == StateScope.Page) {
+            KtExpr.Member(KtExpr.Name(ParameterName), "state")
+        } else {
+            ComposeSnapshotState.receiver(scope, appState)
+        }
 
     override fun holder(scope: StateScope, initial: KtExpr): KtExpr =
         ComposeSnapshotState.holder(scope, initial)
@@ -82,4 +123,10 @@ public data object ViewModelState : StateStrategy {
     ): List<KtDeclaration.Property> = throw CodegenBug(
         "ViewModelState emits no store-backed property; `supports` refuses the declaration first",
     )
+
+    /** `class HomeViewModel`: the layer's own name, so the file never calls it a state. */
+    internal const val ViewModelSuffix: String = "ViewModel"
+
+    /** The screen's parameter, the same word [receiver] hops through. */
+    internal const val ParameterName: String = "viewModel"
 }
