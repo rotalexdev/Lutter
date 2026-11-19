@@ -253,6 +253,7 @@ public class KotlinGenerator<A : Any, T : Any>(
         header = headerText(),
         receivers = screenReceivers.mapValues { (_, held) -> held.sortedBy(ActionReceiver::member) },
         appState = { content -> stateEmitter()?.appProvider(content) ?: listOf(content) },
+        receiverType = ::receiverType,
     )
 
     /**
@@ -464,7 +465,7 @@ public class KotlinGenerator<A : Any, T : Any>(
         // over. The set is written before the caller is emitted, which is what `generate`'s file
         // order exists for.
         val reads: Set<ActionReceiver> = drainReads()
-        componentReceivers[componentId] = reads.filter { it.type != null }.sortedBy { it.member }
+        componentReceivers[componentId] = reads.filter { receiverType(it) != null }.sortedBy { it.member }
         val declared: List<KtParam> = componentParams(componentId, document) ?: return null
         val statements: List<KtStmt> = hoistAppState() +
             emitter.componentLocals(held).orEmpty() +
@@ -636,6 +637,22 @@ public class KotlinGenerator<A : Any, T : Any>(
     private fun actionEmitter(): ActionEmitter? = actions
 
     /**
+     * The declared type of [receiver]'s parameter, or null when the composition owns it.
+     *
+     * The one place the mapping lives: a screen's signature, a component's signature, and the
+     * navigation strategy's `AppRoot` all ask this, so none of them can name a receiver's class
+     * the others do not. The navigator's is the strategy's answer; the rest are declarations this
+     * generator emits into [CodegenOptions.basePackage]; §11.5's scope is a composition local.
+     */
+    private fun receiverType(receiver: ActionReceiver): KotlinSymbol? = when (receiver) {
+        ActionReceiver.Navigator -> options.navigation.navigatorType
+        ActionReceiver.Scope -> null
+        ActionReceiver.Snackbars -> KotlinSymbol(options.basePackage, ReservedCodegenNames.SnackbarHostName)
+        ActionReceiver.Dialogs -> KotlinSymbol(options.basePackage, ReservedCodegenNames.DialogHostName)
+        ActionReceiver.Host -> KotlinSymbol(options.basePackage, ReservedCodegenNames.AppHostName)
+    }
+
+    /**
      * One parameter per environment receiver the file's handlers used, sorted by name.
      *
      * Demand-driven because these parameters have no default: a document with no event would
@@ -643,12 +660,11 @@ public class KotlinGenerator<A : Any, T : Any>(
      * screen its own `AppRoot` cannot call. Sorted so two runs over one document agree.
      */
     private fun environmentParams(reads: Set<ActionReceiver>): List<KtParam> =
-        reads.filter { it.type != null }
-            .sortedBy { it.member }
-            .map { receiver ->
-                val type: KtExpr =
-                    KtExpr.Ref(KtSymbolRef(KotlinSymbol(options.basePackage, checkNotNull(receiver.type))))
-                KtParam(receiver.member, type, null)
+        reads.sortedBy { it.member }
+            .mapNotNull { receiver ->
+                receiverType(receiver)?.let { type ->
+                    KtParam(receiver.member, KtExpr.Ref(KtSymbolRef(type)), null)
+                }
             }
 
     /**

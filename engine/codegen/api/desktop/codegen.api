@@ -12,7 +12,6 @@ public final class dev/rotalex/lutter/codegen/ActionReceiver : java/lang/Enum {
 	public static final field Snackbars Ldev/rotalex/lutter/codegen/ActionReceiver;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public final fun getMember ()Ljava/lang/String;
-	public final fun getType ()Ljava/lang/String;
 	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/ActionReceiver;
 	public static fun values ()[Ldev/rotalex/lutter/codegen/ActionReceiver;
 }
@@ -103,10 +102,11 @@ public final class dev/rotalex/lutter/codegen/ExprEmitter {
 }
 
 public final class dev/rotalex/lutter/codegen/FileContext {
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function1;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)V
 	public final fun getAppState ()Lkotlin/jvm/functions/Function1;
 	public final fun getHeader ()Ljava/lang/String;
 	public final fun getPkg ()Ljava/lang/String;
+	public final fun getReceiverType ()Lkotlin/jvm/functions/Function1;
 	public final fun getReceivers ()Ljava/util/Map;
 }
 
@@ -753,6 +753,7 @@ public abstract interface class dev/rotalex/lutter/codegen/NavigationStrategy {
 	public abstract fun emitAppRoot (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ldev/rotalex/lutter/codegen/FileContext;)Ldev/rotalex/lutter/codegen/KtFile;
 	public abstract fun emitNavigateCall (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtStmt;
 	public abstract fun emitRoutes (Ljava/util/List;Ldev/rotalex/lutter/codegen/FileContext;)Ljava/util/List;
+	public abstract fun getNavigatorType ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
 	public abstract fun getReservedTopLevelNames ()Ljava/util/Set;
 }
 
@@ -823,6 +824,7 @@ public final class dev/rotalex/lutter/codegen/SimpleBackStack : dev/rotalex/lutt
 	public fun emitRoutes (Ljava/util/List;Ldev/rotalex/lutter/codegen/FileContext;)Ljava/util/List;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getBasePackage ()Ljava/lang/String;
+	public fun getNavigatorType ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
 	public fun getReservedTopLevelNames ()Ljava/util/Set;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
