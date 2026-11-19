@@ -396,7 +396,7 @@ public class StateEmitter(
      * than silently held in memory — a saved declaration that does not save is worse than one
      * the document was told could not be emitted.
      */
-    private fun codecOf(type: TypeRef): StoreCodec? = when (type) {
+    private fun codecOf(spelled: TypeRef): StoreCodec? = when (spelled) {
         TypeRef.Bool -> numericOrBoolCodec("Boolean", "toBooleanStrictOrNull")
         TypeRef.Int32 -> numericOrBoolCodec("Int", "toIntOrNull")
         TypeRef.Int64 -> numericOrBoolCodec("Long", "toLongOrNull")
