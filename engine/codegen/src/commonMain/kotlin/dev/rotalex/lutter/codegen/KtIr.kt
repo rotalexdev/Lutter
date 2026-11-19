@@ -330,6 +330,14 @@ public sealed interface KtDeclaration {
         public val annotations: List<KotlinSymbol>,
         public val sealed: Boolean,
         public val members: List<KtDeclaration>,
+        /**
+         * The interfaces this one extends, written after its name.
+         *
+         * A list rather than one supertype, unlike [Class]'s: an interface is what a caller
+         * reads a capability off, and Navigation 3's route hierarchy is a `sealed interface`
+         * that has to be a `NavKey` as well as the document's route set.
+         */
+        public val supertypes: List<KtExpr> = emptyList(),
     ) : KtDeclaration
 
     /**

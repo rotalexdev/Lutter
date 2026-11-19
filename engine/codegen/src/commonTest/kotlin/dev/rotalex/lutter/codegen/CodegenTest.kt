@@ -320,7 +320,9 @@ class CodegenTest {
         assertTrue(app.contains("import androidx.navigation3.ui.NavDisplay"), app)
         assertTrue(app.contains("import androidx.navigation3.runtime.NavEntry"), app)
         assertTrue(app.contains("backStack = navigator.backStack,"), app)
-        assertTrue(app.contains("onBack = { navigator.back() },"), app)
+        // A lambda renders expanded, so the factory's shape is two lines with the call inside.
+        assertTrue(app.contains("onBack = {"), app)
+        assertTrue(app.contains("navigator.back()"), app)
         assertTrue(app.contains("NavEntry("), app)
         assertTrue(app.contains("Route.Home ->"), app)
         assertTrue(app.contains("Route.Profile ->"), app)
