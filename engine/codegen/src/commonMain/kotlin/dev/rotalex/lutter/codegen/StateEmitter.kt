@@ -411,7 +411,11 @@ public class StateEmitter(
     private fun numericOrBoolCodec(kotlinName: String, decodeName: String): StoreCodec = StoreCodec(
         KtExpr.Name(kotlinName),
         encode = { value -> KtExpr.Call(KtExpr.Member(value, "toString"), emptyList()) },
-        decode = { text -> KtExpr.Member(text, decodeName, safe = true) },
+        // A bare `?.toIntOrNull` is a property read, not the function the type declares, so the
+        // member access is the callee of an empty call and not the whole expression.
+        decode = { text ->
+            KtExpr.Call(KtExpr.Member(text, decodeName, safe = true), emptyList())
+        },
     )
 
     /** The initial value as a literal, or null when the value kind has no Kotlin spelling. */
