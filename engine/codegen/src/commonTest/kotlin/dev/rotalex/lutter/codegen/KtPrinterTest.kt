@@ -18,6 +18,35 @@ import kotlin.test.assertTrue
 class KtPrinterTest {
 
     @Test
+    fun `an object prints the members it declares`() {
+        val printed = KtPrinter().print(
+            ktFile(
+                KtDeclaration.Object(
+                    "Route",
+                    emptyList(),
+                    data = false,
+                    supertypes = emptyList(),
+                    members = listOf(
+                        property("Home", KtExpr.Name("String"), initializer = KtExpr.Literal("\"home\"")),
+                        property("Profile", KtExpr.Name("String"), initializer = KtExpr.Literal("\"profile\"")),
+                    ),
+                ),
+            ),
+        )
+
+        val expected = """
+            package com.example.app
+
+            public object Route {
+                public val Home: String = "home"
+
+                public val Profile: String = "profile"
+            }
+        """.trimIndent() + "\n"
+        assertEquals(expected, printed)
+    }
+
+    @Test
     fun `a class prints its members with a blank line between them`() {
         val printed = KtPrinter().print(
             ktFile(

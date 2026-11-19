@@ -224,6 +224,9 @@ public class KtPrinter(
         if (declaration.supertypes.isNotEmpty()) {
             append(" : " + declaration.supertypes.joinToString(", ") { renderExpr(it, indent, aliases) })
         }
+        // A marker keeps the bare header: `data object Home` needs no braces, and the routes a
+        // strategy declares without a body are the majority of them.
+        if (declaration.members.isNotEmpty()) appendMembers(declaration.members, indent, aliases, this)
     }
 
     private fun appendMembers(
@@ -713,6 +716,7 @@ public class KtPrinter(
             is KtDeclaration.Object -> {
                 declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
                 for (supertype in declaration.supertypes) collectExprSymbols(supertype, filePkg, seen)
+                for (member in declaration.members) collectDeclarationSymbols(member, filePkg, seen)
             }
         }
     }
