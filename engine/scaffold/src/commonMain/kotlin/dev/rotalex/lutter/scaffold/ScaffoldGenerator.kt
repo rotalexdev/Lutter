@@ -36,8 +36,9 @@ import dev.rotalex.lutter.schema.component.PlatformTag
  * the first upgrade, and a generated app that pins a version this engine never built against is
  * a bug report waiting for the person who tries it.
  *
- * Ios and Web targets are not emitted. §32 Phase 17 gates them on a platform-scope ADR, so a
- * spec that lists them gets the two runners this build can actually produce rather than a
+ * Ios and Web targets are not emitted. §2's C1 narrowed the platform scope to Android and
+ * Desktop/JVM, and §21.1 records that adding another target stays a build edit no phase plans,
+ * so a spec that lists them gets the two runners this build can actually produce rather than a
  * module nothing here can compile.
  */
 public object ScaffoldGenerator {
