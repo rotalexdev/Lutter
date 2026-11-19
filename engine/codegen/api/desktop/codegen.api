@@ -871,6 +871,7 @@ public final class dev/rotalex/lutter/codegen/StateEmitter {
 	public static final field StoredPrefix Ljava/lang/String;
 	public fun <init> (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ldev/rotalex/lutter/codegen/CodegenOptions;Ldev/rotalex/lutter/schema/registry/Registry;)V
 	public final fun appProvider (Ldev/rotalex/lutter/codegen/KtStmt;Ldev/rotalex/lutter/codegen/KtExpr;)Ljava/util/List;
+	public static synthetic fun appProvider$default (Ldev/rotalex/lutter/codegen/StateEmitter;Ldev/rotalex/lutter/codegen/KtStmt;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ljava/util/List;
 	public final fun appState ()Ljava/util/List;
 	public final fun componentLocals (Ljava/util/List;)Ljava/util/List;
 	public final fun pageParameter (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;)Ldev/rotalex/lutter/codegen/KtParam;
