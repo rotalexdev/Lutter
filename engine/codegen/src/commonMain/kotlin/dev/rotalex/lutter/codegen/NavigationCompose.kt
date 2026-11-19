@@ -87,9 +87,7 @@ public data class NavigationCompose(public val basePackage: String) : Navigation
                 ),
             )
         }
-        val parameters: List<KtParam> = ctx.appRootReceivers().mapNotNull { receiver ->
-            ctx.receiverType(receiver)?.let { type -> KtParam(receiver.member, KtExpr.Ref(KtSymbolRef(type)), null) }
-        } + listOf(modifierParameter())
+        val parameters: List<KtParam> = ctx.appRootParameters()
         return KtFile(
             ctx.pkg,
             ctx.header,

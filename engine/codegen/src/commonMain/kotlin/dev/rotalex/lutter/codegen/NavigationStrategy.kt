@@ -91,6 +91,15 @@ public class FileContext(
      * another one's types, and keeps `ActionReceiver` from naming any of them.
      */
     public val receiverType: (ActionReceiver) -> KotlinSymbol?,
+
+    /**
+     * `AppRoot`'s `store` parameter, or null when nothing in the document asks to be saved.
+     *
+     * A parameter of the root rather than a later setter because the store is what a screen's
+     * state class reads at construction, and the construction happens inside the composition the
+     * root opens. Null keeps a document without a `Saveable` declaration byte-identical.
+     */
+    public val storeParameter: KtParam? = null,
 ) {
 
     /**
@@ -112,6 +121,18 @@ public class FileContext(
     /** The receivers [page]'s own screen declares, which are the only ones its caller may hand down. */
     public fun receiversOf(page: ResolvedPage): List<ActionReceiver> =
         receivers[page.id].orEmpty().filter { receiverType(it) != null }.sortedBy { it.member }
+
+    /**
+     * Everything `AppRoot` declares: the receivers it reads, the store it may be handed, and the
+     * modifier it always takes last.
+     *
+     * One list because a second navigation strategy that ordered the same parameters differently
+     * would still compile — and would still be a root whose callers cannot rely on one shape.
+     */
+    public fun appRootParameters(): List<KtParam> =
+        appRootReceivers().mapNotNull { receiver ->
+            receiverType(receiver)?.let { type -> KtParam(receiver.member, KtExpr.Ref(KtSymbolRef(type)), null) }
+        } + listOfNotNull(storeParameter) + listOf(modifierParameter())
 }
 
 /**
@@ -173,11 +194,7 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
                 ),
             )
         }
-        val parameters: List<KtParam> = ctx.appRootReceivers().mapNotNull { receiver ->
-            ctx.receiverType(receiver)?.let { type ->
-                KtParam(receiver.member, KtExpr.Ref(KtSymbolRef(type)), null)
-            }
-        } + listOf(modifierParameter())
+        val parameters: List<KtParam> = ctx.appRootParameters()
         return KtFile(
             ctx.pkg,
             ctx.header,

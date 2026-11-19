@@ -291,14 +291,67 @@ class StateEmitterTest {
     }
 
     @Test
-    fun `a persistence no strategy emits is refused rather than silently downgraded`() {
+    fun `a saveable page declaration reads and writes through the persistent store`() {
         val saveable = StateDecl(count, "count", TypeRef.Int32, Value.Int32(0), null, Persistence.Saveable)
+        val result = generate(pageDocument(listOf(held(saveable))))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen: String = content(result, "screens/HomeScreen.kt")
+        // §12.1's persistent row: the value lives in the store, and the store wins over `initial`
+        // only when it has something to say.
+        assertTrue(screen.contains("store?.read(\"p_home/s_count\")?.toIntOrNull() ?: 0"), screen)
+        assertTrue(screen.contains("\"p_home/s_count\","), screen)
+        assertTrue(screen.contains("value.toString(),"), screen)
+        val store: String = content(result, "state/PersistentStore.kt")
+        assertTrue(store.contains("public interface PersistentStore"), store)
+        assertTrue(store.contains("public fun read(key: String): String?"), store)
+    }
+
+    @Test
+    fun `a saveable app declaration is written through the store AppRoot is handed`() {
+        val saveable = StateDecl(theme, "theme", TypeRef.Str, Value.Str("light"), null, Persistence.Saveable)
+        val result = generate(pageDocument(emptyList(), appState = listOf(held(saveable))))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val state: String = content(result, "state/AppState.kt")
+        assertTrue(state.contains("store?.read(\"app/s_theme\") ?: \"light\""), state)
+        assertTrue(state.contains("\"app/s_theme\","), state)
+        val root: String = content(result, "App.kt")
+        assertTrue(root.contains("store: PersistentStore? = null"), root)
+        assertTrue(root.contains("store = store,"), root)
+    }
+
+    @Test
+    fun `a saveable declaration whose type has no store codec is refused by name`() {
+        // A codec is text on both sides of the store, so a type this engine cannot spell as one
+        // is a finding, not a silently unpersisted property.
+        val saveable = StateDecl(
+            count,
+            "count",
+            TypeRef.ListOf(TypeRef.Str),
+            Value.ListOf(emptyList()),
+            null,
+            Persistence.Saveable,
+        )
         val result = generate(pageDocument(listOf(held(saveable))))
 
         assertTrue(result.files.files.isEmpty())
         assertEquals(listOf("codegen.strategy_unsupported"), result.diagnostics.map { it.code.value })
         assertEquals(
-            "State 'count' asks to be Saveable, which no strategy emits yet",
+            "State 'count' asks to be Saveable, and 'list' has no store codec",
+            result.diagnostics.single().message,
+        )
+    }
+
+    @Test
+    fun `a saveable component declaration is refused because a component local is remembered`() {
+        val saveable = StateDecl(count, "count", TypeRef.Int32, Value.Int32(0), null, Persistence.Saveable)
+        val result = generate(pageDocument(emptyList(), componentHeld = listOf(held(saveable))))
+
+        assertTrue(result.files.files.isEmpty())
+        assertEquals(listOf("codegen.strategy_unsupported"), result.diagnostics.map { it.code.value })
+        assertEquals(
+            "State 'count' asks to be Saveable, and §12.1's component row is remembered, not stored",
             result.diagnostics.single().message,
         )
     }
@@ -403,9 +456,9 @@ class StateEmitterTest {
         return content(files, "screens/HomeScreen.kt")
     }
 
-    private fun content(files: CodegenResult, path: String): String =
-        files.files.files.firstOrNull { it.path == path }?.content
-            ?: error("no '$path' in ${files.files.files.map { it.path }}")
+    private fun content(generated: CodegenResult, path: String): String =
+        generated.files.files.firstOrNull { it.path == path }?.content
+            ?: error("no '$path' in ${generated.files.files.map { it.path }}")
 
     private fun generate(document: ResolvedDocument): CodegenResult =
         KotlinGenerator(schema(), CodegenOptions("com.example.app")).generate(document)

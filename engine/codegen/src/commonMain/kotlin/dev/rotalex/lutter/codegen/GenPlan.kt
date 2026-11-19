@@ -67,6 +67,7 @@ public enum class PlannedFileKind {
     Navigation,
     AppHost,
     AppState,
+    Store,
     Screen,
     Component,
 }
@@ -106,6 +107,17 @@ public fun planDocument(document: ResolvedDocument, basePackage: String): GenPla
             "state/" + StateEmitter.AppStateName + ".kt",
             basePackage + ".state",
             PlannedFileKind.AppState,
+            null,
+            null,
+        )
+    }
+    // §12.1's persistent row is the only document fact that asks for a store, so a document
+    // without one plans no file and emits no local.
+    if (StateEmitter.savesAnything(document)) {
+        files += PlannedFile(
+            "state/" + StateEmitter.PersistentStoreName + ".kt",
+            basePackage + ".state",
+            PlannedFileKind.Store,
             null,
             null,
         )

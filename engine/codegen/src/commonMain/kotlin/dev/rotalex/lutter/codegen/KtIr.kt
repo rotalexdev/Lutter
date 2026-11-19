@@ -282,7 +282,8 @@ public sealed interface KtDeclaration {
      * is an invariant breach the printer refuses rather than one it silently drops. [visibility]
      * is the modifier written in front of the keyword, null for the explicit `public` every
      * generated declaration carries but one: a constructor property the navigator keeps to
-     * itself.
+     * itself. [setter] is the body `set(value) { … }` a stored property answers with, null for
+     * the delegate and getter shapes, which have no setter written out.
      */
     public data class Property(
         public val name: String,
@@ -293,6 +294,7 @@ public sealed interface KtDeclaration {
         public val delegate: KtExpr?,
         public val getter: KtExpr?,
         public val visibility: String? = null,
+        public val setter: List<KtStmt>? = null,
     ) : KtDeclaration
 
     /**

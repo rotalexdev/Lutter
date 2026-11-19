@@ -178,8 +178,13 @@ public class KtPrinter(
         val getter: String = property.getter?.let {
             "\n" + indentOf(indent + 1) + "get() = " + renderExpr(it, indent + 1, aliases)
         } ?: ""
+        val setter: String = property.setter?.let { body ->
+            val head: String = "\n" + indentOf(indent + 1) + "set(value) {\n"
+            head + body.joinToString("") { renderStmt(it, indent + 2, aliases) + "\n" } +
+                indentOf(indent + 1) + "}"
+        } ?: ""
         return renderAnnotations(property.annotations, indent, aliases) +
-            indentOf(indent) + keyword + property.name + declared + assigned + getter
+            indentOf(indent) + keyword + property.name + declared + assigned + getter + setter
     }
 
     /** Braces on the head line when empty, one blank line between members otherwise. */
@@ -701,6 +706,7 @@ public class KtPrinter(
                 collectOptional(declaration.initializer, filePkg, seen)
                 collectOptional(declaration.delegate, filePkg, seen)
                 collectOptional(declaration.getter, filePkg, seen)
+                declaration.setter?.forEach { collectStmtSymbols(it, filePkg, seen) }
             }
             is KtDeclaration.Class -> {
                 declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }

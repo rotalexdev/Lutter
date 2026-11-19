@@ -219,6 +219,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             PlannedFileKind.Navigation -> emitNavigation(planned, document)
             PlannedFileKind.AppHost -> emitAppHost(planned, document)
             PlannedFileKind.AppState -> emitAppState(planned, document)
+            PlannedFileKind.Store -> emitStore(planned)
             PlannedFileKind.Screen -> {
                 val pageId = checkNotNull(planned.pageId) { "Plan marked '${planned.path}' with no page" }
                 val page: ResolvedPage = checkNotNull(document.pages[pageId]) {
@@ -248,13 +249,35 @@ public class KotlinGenerator<A : Any, T : Any>(
      * offered to all of them because §12.1's provider belongs to whichever file declares it, and a
      * document with no app state makes the wrapper the identity.
      */
-    private fun fileContext(): FileContext = FileContext(
-        pkg = options.basePackage,
-        header = headerText(),
-        receivers = screenReceivers.mapValues { (_, held) -> held.sortedBy(ActionReceiver::member) },
-        appState = { content -> stateEmitter()?.appProvider(content) ?: listOf(content) },
-        receiverType = ::receiverType,
+    private fun fileContext(): FileContext {
+        val store: KtExpr? = if (stateEmitter()?.savesAnything() == true) KtExpr.Name("store") else null
+        return FileContext(
+            pkg = options.basePackage,
+            header = headerText(),
+            receivers = screenReceivers.mapValues { (_, held) -> held.sortedBy(ActionReceiver::member) },
+            appState = { content -> stateEmitter()?.appProvider(content, store) ?: listOf(content) },
+            receiverType = ::receiverType,
+            storeParameter = store?.let { storeParameter() },
+        )
+    }
+
+    /**
+     * `store: PersistentStore? = null`: what `AppRoot` is handed when the document saves
+     * anything, and the one place a host application wires its own file or database in.
+     */
+    private fun storeParameter(): KtParam = KtParam(
+        "store",
+        KtExpr.Nullable(
+            KtExpr.Ref(KtSymbolRef(KotlinSymbol(options.basePackage + ".state", StateEmitter.PersistentStoreName))),
+        ),
+        KtExpr.Literal("null"),
     )
+
+    /** §16.5's `state/PersistentStore.kt`: the hook and the local the state classes read. */
+    private fun emitStore(planned: PlannedFile): KtFile? {
+        val emitter: StateEmitter = stateEmitter() ?: return null
+        return KtFile(planned.packageName, headerText(), emitter.persistentStore())
+    }
 
     /**
      * §16.5's `Navigation.kt`, the strategy's own declarations.
