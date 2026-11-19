@@ -86,9 +86,9 @@ public final class dev/rotalex/lutter/codegen/ComposeSnapshotState : dev/rotalex
 	public fun getReservedTopLevelNames ()Ljava/util/Set;
 	public fun hashCode ()I
 	public fun holder (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr;
-	public fun holderSupertype (Ldev/rotalex/lutter/codegen/StateScope;)Ldev/rotalex/lutter/schema/component/KotlinSymbol;
-	public fun pageDefault (Ldev/rotalex/lutter/schema/component/KotlinSymbol;)Ldev/rotalex/lutter/codegen/KtExpr;
-	public fun pageFactory (Ljava/lang/String;)Ljava/util/List;
+	public fun pageExtras (Ljava/lang/String;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;)Ljava/util/List;
+	public fun pageParameter (Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtParam;
+	public fun pageReservedNames (Ljava/lang/String;)Ljava/util/Set;
 	public fun receiver (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)Ldev/rotalex/lutter/codegen/KtExpr;
 	public fun saveable (Ldev/rotalex/lutter/codegen/StateScope;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/StoreCodec;Ldev/rotalex/lutter/codegen/KtExpr;)Ljava/util/List;
 	public fun supports (Ldev/rotalex/lutter/model/doc/Persistence;)Z
@@ -826,10 +826,9 @@ public final class dev/rotalex/lutter/codegen/ReservedCodegenNames {
 	public static final field DialogHostName Ljava/lang/String;
 	public static final field INSTANCE Ldev/rotalex/lutter/codegen/ReservedCodegenNames;
 	public static final field PageStateSuffix Ljava/lang/String;
-	public static final field RememberPrefix Ljava/lang/String;
 	public static final field ScreenSuffix Ljava/lang/String;
 	public static final field SnackbarHostName Ljava/lang/String;
-	public final fun derivedFor (Ljava/lang/String;)Ljava/util/Set;
+	public final fun derivedFor (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/util/Set;
 	public final fun findings (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ldev/rotalex/lutter/codegen/CodegenOptions;)Ljava/util/List;
 	public final fun literals (Ldev/rotalex/lutter/codegen/CodegenOptions;)Ljava/util/Set;
 }
@@ -907,9 +906,9 @@ public final class dev/rotalex/lutter/codegen/StateScope : java/lang/Enum {
 public abstract interface class dev/rotalex/lutter/codegen/StateStrategy {
 	public abstract fun getReservedTopLevelNames ()Ljava/util/Set;
 	public abstract fun holder (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr;
-	public abstract fun holderSupertype (Ldev/rotalex/lutter/codegen/StateScope;)Ldev/rotalex/lutter/schema/component/KotlinSymbol;
-	public abstract fun pageDefault (Ldev/rotalex/lutter/schema/component/KotlinSymbol;)Ldev/rotalex/lutter/codegen/KtExpr;
-	public abstract fun pageFactory (Ljava/lang/String;)Ljava/util/List;
+	public abstract fun pageExtras (Ljava/lang/String;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;)Ljava/util/List;
+	public abstract fun pageParameter (Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtParam;
+	public abstract fun pageReservedNames (Ljava/lang/String;)Ljava/util/Set;
 	public abstract fun receiver (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)Ldev/rotalex/lutter/codegen/KtExpr;
 	public abstract fun saveable (Ldev/rotalex/lutter/codegen/StateScope;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/StoreCodec;Ldev/rotalex/lutter/codegen/KtExpr;)Ljava/util/List;
 	public abstract fun supports (Ldev/rotalex/lutter/model/doc/Persistence;)Z
@@ -961,9 +960,9 @@ public final class dev/rotalex/lutter/codegen/ViewModelState : dev/rotalex/lutte
 	public fun getReservedTopLevelNames ()Ljava/util/Set;
 	public fun hashCode ()I
 	public fun holder (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr;
-	public fun holderSupertype (Ldev/rotalex/lutter/codegen/StateScope;)Ldev/rotalex/lutter/schema/component/KotlinSymbol;
-	public fun pageDefault (Ldev/rotalex/lutter/schema/component/KotlinSymbol;)Ldev/rotalex/lutter/codegen/KtExpr;
-	public fun pageFactory (Ljava/lang/String;)Ljava/util/List;
+	public fun pageExtras (Ljava/lang/String;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;)Ljava/util/List;
+	public fun pageParameter (Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtParam;
+	public fun pageReservedNames (Ljava/lang/String;)Ljava/util/Set;
 	public fun receiver (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)Ldev/rotalex/lutter/codegen/KtExpr;
 	public fun saveable (Ldev/rotalex/lutter/codegen/StateScope;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/StoreCodec;Ldev/rotalex/lutter/codegen/KtExpr;)Ljava/util/List;
 	public fun supports (Ldev/rotalex/lutter/model/doc/Persistence;)Z
