@@ -24,6 +24,16 @@ public interface NavigationStrategy {
      */
     public val reservedTopLevelNames: Set<String>
 
+    /**
+     * The class a screen receives as its navigator, declared by [emitRoutes] under this name.
+     *
+     * A property because the parameter's *type* is what a screen's signature and its caller have
+     * to agree on, and a second strategy names it differently — and, for one that wraps a host
+     * library's controller, does not declare it in the document's package at all. A constant here
+     * would type every screen with the first strategy's class.
+     */
+    public val navigatorType: KotlinSymbol
+
     /** The sealed `Route` and the navigator over it, as the declarations of `Navigation.kt`. */
     public fun emitRoutes(pages: List<ResolvedPage>, ctx: FileContext): List<KtDeclaration>
 
@@ -71,6 +81,16 @@ public class FileContext(
      * §12.1, and identity is the whole of it for a document that declares no app state.
      */
     public val appState: (KtStmt) -> List<KtStmt>,
+
+    /**
+     * The declared type of [receiver]'s parameter, or null when the composition owns it.
+     *
+     * A function on the context because the answer is a property of the run, not of the receiver:
+     * the navigator's class is the navigation strategy's, while the others name declarations the
+     * generator emits into the base package. Handing it here keeps a strategy from having to know
+     * another one's types, and keeps `ActionReceiver` from naming any of them.
+     */
+    public val receiverType: (ActionReceiver) -> KotlinSymbol?,
 )
 
 /**
@@ -86,6 +106,8 @@ public class FileContext(
 public data class SimpleBackStack(public val basePackage: String) : NavigationStrategy {
 
     override val reservedTopLevelNames: Set<String> = setOf(RouteName, NavigatorName, RootName)
+
+    override val navigatorType: KotlinSymbol = KotlinSymbol(basePackage, NavigatorName)
 
     /**
      * `sealed interface Route` then `class AppNavigator`.
@@ -130,12 +152,10 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
                 ),
             )
         }
-        val parameters: List<KtParam> = signature(ctx).map { receiver ->
-            KtParam(
-                receiver.member,
-                KtExpr.Ref(KtSymbolRef(KotlinSymbol(ctx.pkg, checkNotNull(receiver.type)))),
-                null,
-            )
+        val parameters: List<KtParam> = signature(ctx).mapNotNull { receiver ->
+            ctx.receiverType(receiver)?.let { type ->
+                KtParam(receiver.member, KtExpr.Ref(KtSymbolRef(type)), null)
+            }
         } + listOf(modifierParam())
         return KtFile(
             ctx.pkg,
@@ -190,12 +210,12 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
     private fun signature(ctx: FileContext): List<ActionReceiver> =
         (listOf(ActionReceiver.Navigator) + ctx.receivers.values.flatten())
             .distinct()
-            .filter { it.type != null }
+            .filter { ctx.receiverType(it) != null }
             .sortedBy { it.member }
 
     /** The receivers [page]'s own screen declares, which are the only ones its call may hand down. */
     private fun declaredBy(page: ResolvedPage, ctx: FileContext): List<ActionReceiver> =
-        ctx.receivers[page.id].orEmpty().filter { it.type != null }.sortedBy { it.member }
+        ctx.receivers[page.id].orEmpty().filter { ctx.receiverType(it) != null }.sortedBy { it.member }
 
     /**
      * One `data object` per page, named by the page's own name so a handler can spell it.

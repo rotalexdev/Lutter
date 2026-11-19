@@ -683,17 +683,18 @@ internal enum class ActionKind {
 /**
  * The receivers a handler's statements name, and what a screen gets them from.
  *
- * [type] is the generated declaration each receiver needs in the base package, and null for the
- * one that comes from the composition rather than from a parameter — so the vocabulary is one
- * list and no caller has to remember which of the four is the odd one out. Public because a
- * navigation strategy is handed what each screen demanded of its caller.
+ * One list, so no caller has to remember which of the five comes from the composition rather
+ * than from a parameter — but no types: the navigator's class is the navigation strategy's, and
+ * the other three are declarations the generator emits into the base package, so the answer is a
+ * property of the run and travels on `FileContext` instead. Public because a navigation strategy
+ * is handed what each screen demanded of its caller.
  */
-public enum class ActionReceiver(public val member: String, public val type: String?) {
-    Navigator("navigator", SimpleBackStack.NavigatorName),
-    Snackbars("snackbars", ReservedCodegenNames.SnackbarHostName),
-    Dialogs("dialogs", ReservedCodegenNames.DialogHostName),
-    Host("host", ReservedCodegenNames.AppHostName),
-    Scope("scope", null),
+public enum class ActionReceiver(public val member: String) {
+    Navigator("navigator"),
+    Snackbars("snackbars"),
+    Dialogs("dialogs"),
+    Host("host"),
+    Scope("scope"),
 }
 
 /** One step's statement, and whether reaching that statement suspends. */
