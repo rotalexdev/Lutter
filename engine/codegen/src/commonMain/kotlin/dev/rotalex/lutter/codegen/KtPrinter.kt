@@ -217,6 +217,9 @@ public class KtPrinter(
         append(indentOf(indent) + "public ")
         if (declaration.sealed) append("sealed ")
         append("interface " + declaration.name)
+        if (declaration.supertypes.isNotEmpty()) {
+            append(" : " + declaration.supertypes.joinToString(", ") { renderExpr(it, indent, aliases) })
+        }
         appendMembers(declaration.members, indent, aliases, this, abstractMembers = true)
     }
 
@@ -722,6 +725,7 @@ public class KtPrinter(
             }
             is KtDeclaration.Interface -> {
                 declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                for (supertype in declaration.supertypes) collectExprSymbols(supertype, filePkg, seen)
                 declaration.members.forEach { collectDeclarationSymbols(it, filePkg, seen) }
             }
             is KtDeclaration.Object -> {

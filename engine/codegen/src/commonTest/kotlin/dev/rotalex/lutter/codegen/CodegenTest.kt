@@ -256,6 +256,83 @@ class CodegenTest {
     }
 
     @Test
+    fun `Navigation3 types a screen with the generated stack and navigates by route`() {
+        val result = eventResult(
+            iconButtonNode(navigateStep()),
+            navigation = Navigation3("com.example.app"),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = homeScreenOf(result)
+        // Screens learn nothing new: the stack is still a generated class with `navigate`, and
+        // only the root sees which library renders it.
+        assertTrue(screen.contains("navigator: AppNavigator"), screen)
+        assertTrue(screen.contains("navigator.navigate(Route.Profile)"), screen)
+        assertTrue(!screen.contains("androidx.navigation3"), screen)
+    }
+
+    @Test
+    fun `Navigation3 declares a sealed route hierarchy of keys`() {
+        val result = eventResult(
+            iconButtonNode(navigateStep()),
+            navigation = Navigation3("com.example.app"),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val navigation = contentOf(result, "Navigation.kt")
+        // `NavKey` is what the library keys an entry by, and `sealed` is what makes the root's
+        // dispatch exhaustive: a page added to the document cannot fall through an `else`.
+        assertTrue(navigation.contains("import androidx.navigation3.runtime.NavKey"), navigation)
+        assertTrue(navigation.contains("public sealed interface Route : NavKey {"), navigation)
+        assertTrue(navigation.contains("public data object Home : Route"), navigation)
+        assertTrue(navigation.contains("public data object Profile : Route"), navigation)
+    }
+
+    @Test
+    fun `Navigation3 navigator owns a snapshot list the display observes`() {
+        val result = eventResult(
+            iconButtonNode(navigateStep()),
+            navigation = Navigation3("com.example.app"),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val navigation = contentOf(result, "Navigation.kt")
+        // Nav3's whole premise is that the app owns the back stack, so the list is the
+        // navigator's and it is public: `NavDisplay` has to observe that same instance.
+        assertTrue(navigation.contains("import androidx.compose.runtime.snapshots.SnapshotStateList"), navigation)
+        assertTrue(
+            navigation.contains("public val backStack: SnapshotStateList<Route> = mutableStateListOf(Route.Home)"),
+            navigation,
+        )
+        assertTrue(navigation.contains("public fun navigate(route: Route)"), navigation)
+        assertTrue(navigation.contains("public fun back(): Boolean"), navigation)
+    }
+
+    @Test
+    fun `Navigation3 builds a NavDisplay with one entry per page`() {
+        val result = eventResult(
+            iconButtonNode(navigateStep()),
+            navigation = Navigation3("com.example.app"),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val app = contentOf(result, "App.kt")
+        assertTrue(app.contains("import androidx.navigation3.ui.NavDisplay"), app)
+        assertTrue(app.contains("import androidx.navigation3.runtime.NavEntry"), app)
+        assertTrue(app.contains("backStack = navigator.backStack,"), app)
+        // A lambda renders expanded, so the factory's shape is two lines with the call inside.
+        assertTrue(app.contains("onBack = {"), app)
+        assertTrue(app.contains("navigator.back()"), app)
+        assertTrue(app.contains("NavEntry("), app)
+        assertTrue(app.contains("Route.Home ->"), app)
+        assertTrue(app.contains("Route.Profile ->"), app)
+        assertTrue(app.contains("HomeScreen("), app)
+        // No `else`: the subject is the sealed hierarchy, so a gap is a compile error here
+        // rather than a screen that renders nothing at runtime.
+        assertTrue(!app.contains("else ->"), app)
+    }
+
+    @Test
     fun `a handler lambda declares the parameters its binding names`() {
         val content = eventScreen(iconButtonNode(navigateStep()), iconButtonStub(listOf("pressed")))
 
