@@ -248,8 +248,11 @@ class CodegenTest {
         val app = contentOf(result, "App.kt")
         assertTrue(app.contains("import androidx.navigation.compose.NavHost"), app)
         assertTrue(app.contains("startDestination = Route.Home"), app)
-        assertTrue(app.contains("composable(Route.Home)"), app)
-        assertTrue(app.contains("composable(Route.Profile)"), app)
+        assertTrue(app.contains("composable("), app)
+        assertTrue(app.contains("Route.Home,"), app)
+        assertTrue(app.contains("Route.Profile,"), app)
+        assertTrue(app.contains("HomeScreen("), app)
+        assertTrue(app.contains("navigator = navigator,"), app)
     }
 
     @Test
