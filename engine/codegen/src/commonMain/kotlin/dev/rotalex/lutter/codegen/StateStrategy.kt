@@ -85,6 +85,32 @@ public interface StateStrategy {
     public fun supports(persistence: Persistence): Boolean
 
     /**
+     * The supertype [scope]'s holder class extends, or null when it is a plain class.
+     *
+     * A page's holder is the only one with a lifecycle of its own to hand a platform type: the
+     * app holder already lives as long as the process and a component local lives as long as the
+     * composition, so a strategy answers null for both rather than wrapping them for symmetry.
+     */
+    public fun holderSupertype(scope: StateScope): KotlinSymbol?
+
+    /**
+     * The declarations §12.1's page row carries beside the holder's class.
+     *
+     * A plain class needs the `@Composable remember…State()` factory a screen defaults to;
+     * a platform-owned one needs nothing, because the platform builds it. Empty is a statement,
+     * not an omission: the generated file then carries no function nothing calls.
+     */
+    public fun pageFactory(name: String): List<KtDeclaration>
+
+    /**
+     * What a screen's `state` parameter defaults to, for [holder] as the generated type.
+     *
+     * The pair with [pageFactory]: whatever that emits is what this names, so the two cannot
+     * drift into a default that calls a function the file stopped declaring.
+     */
+    public fun pageDefault(holder: KotlinSymbol): KtExpr
+
+    /**
      * The two members a `Saveable` declaration of [scope] is emitted as: the private backing
      * state, seeded from [store] under [key], and the property that reads it and writes both.
      *
@@ -120,6 +146,7 @@ public data object ComposeSnapshotState : StateStrategy {
     private val mutableStateOf: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "mutableStateOf")
     private val mutableState: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "MutableState")
     private val remember: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "remember")
+    private val composable: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "Composable")
 
     // `by` resolves through these, extensions on `MutableState` outside Kotlin's default
     // imports, so a file that delegates without naming them delegates to nothing. Both, because
@@ -128,6 +155,13 @@ public data object ComposeSnapshotState : StateStrategy {
         KotlinSymbol("androidx.compose.runtime", "getValue"),
         KotlinSymbol("androidx.compose.runtime", "setValue"),
     )
+
+    override fun holderSupertype(scope: StateScope): KotlinSymbol? = null
+
+    override fun pageFactory(name: String): List<KtDeclaration> = listOf(rememberFunction(name))
+
+    override fun pageDefault(holder: KotlinSymbol): KtExpr =
+        KtExpr.Call(KtExpr.Name(ReservedCodegenNames.RememberPrefix + holder.name), emptyList())
 
     override fun receiver(scope: StateScope, appState: KotlinSymbol): KtExpr? = when (scope) {
         // A component's declaration is a local of the composable that declares it.
@@ -213,4 +247,34 @@ public data object ComposeSnapshotState : StateStrategy {
         )
         return listOf(held, property)
     }
+
+    /**
+     * `@Composable fun remember<Name>(): <Name>`, which constructs the holder once per screen.
+     *
+     * A local plus `return` rather than an expression body because the IR has a block body only,
+     * and `return` resolves to the nearest function lexically — no symbol, so no import.
+     */
+    private fun rememberFunction(name: String): KtDeclaration.Function = KtDeclaration.Function(
+        name = ReservedCodegenNames.RememberPrefix + name,
+        annotations = listOf(composable),
+        type = KtExpr.Name(name),
+        params = emptyList(),
+        body = listOf(
+            KtStmt.LocalProperty(
+                name = "state",
+                type = KtExpr.Name(name),
+                mutable = false,
+                initializer = KtExpr.Call(
+                    KtExpr.Ref(KtSymbolRef(remember)),
+                    emptyList(),
+                    KtExpr.Lambda(
+                        emptyList(),
+                        listOf(KtStmt.Expr(KtExpr.Call(KtExpr.Name(name), emptyList()))),
+                    ),
+                ),
+                delegate = null,
+            ),
+            KtStmt.Expr(KtExpr.Call(KtExpr.Name("return"), listOf(KtArg(null, KtExpr.Name("state"))))),
+        ),
+    )
 }

@@ -132,7 +132,9 @@ public class StateEmitter(
         val name: String = classNameOf(page)
         val holder: KtDeclaration.Class =
             stateClass(name, StateScope.Page, page.state, page.id.value, stable) ?: return null
-        return listOf(holder, rememberFunction(name))
+        // The factory is the strategy's: a holder the platform owns needs none, and emitting one
+        // anyway is a function nothing calls in a file a reviewer has to read past.
+        return listOf(holder) + strategy.pageFactory(name)
     }
 
     /** The `state` parameter §12.1 gives [page]'s screen, defaulting to its remember function. */
@@ -141,10 +143,7 @@ public class StateEmitter(
         return KtParam(
             name = "state",
             type = KtExpr.Ref(KtSymbolRef(KotlinSymbol(options.basePackage + ".screens", name))),
-            default = KtExpr.Call(
-                KtExpr.Name(ReservedCodegenNames.RememberPrefix + name),
-                emptyList(),
-            ),
+            default = strategy.pageDefault(KotlinSymbol(options.basePackage + ".screens", name)),
         )
     }
 
@@ -193,7 +192,7 @@ public class StateEmitter(
                 DiagnosticCodes.CodegenStrategyUnsupported,
                 at,
                 "State '" + declaration.decl.name + "' asks to be " + declaration.decl.persistence +
-                    ", which no strategy emits yet",
+                    ", which the selected state strategy does not emit",
             )
         }
         // §12.1's persistent row is a property whose setter writes, so the two shapes it cannot
@@ -316,7 +315,13 @@ public class StateEmitter(
         // The store arrives as a constructor property rather than as a parameter on every member,
         // and defaults to the composition local so a screen's `remember…State()` keeps its shape.
         val constructor: List<KtDeclaration.Property> = if (saves) listOf(storeProperty()) else emptyList()
-        return KtDeclaration.Class(name, annotations, members, constructor)
+        return KtDeclaration.Class(
+            name,
+            annotations,
+            members,
+            constructor,
+            strategy.holderSupertype(scope),
+        )
     }
 
     /**
@@ -439,36 +444,6 @@ public class StateEmitter(
             is TypeSpelling.Unspelled -> null
         }
     }
-
-    /**
-     * `@Composable fun remember<Name>(): <Name>`, which constructs the holder once per screen.
-     *
-     * A local plus `return` rather than an expression body because the IR has a block body only,
-     * and `return` resolves to the nearest function lexically — no symbol, so no import.
-     */
-    private fun rememberFunction(name: String): KtDeclaration.Function = KtDeclaration.Function(
-        name = ReservedCodegenNames.RememberPrefix + name,
-        annotations = listOf(composable),
-        type = KtExpr.Name(name),
-        params = emptyList(),
-        body = listOf(
-            KtStmt.LocalProperty(
-                name = "state",
-                type = KtExpr.Name(name),
-                mutable = false,
-                initializer = KtExpr.Call(
-                    KtExpr.Ref(KtSymbolRef(remember)),
-                    emptyList(),
-                    KtExpr.Lambda(
-                        emptyList(),
-                        listOf(KtStmt.Expr(KtExpr.Call(KtExpr.Name(name), emptyList()))),
-                    ),
-                ),
-                delegate = null,
-            ),
-            KtStmt.Expr(KtExpr.Call(KtExpr.Name("return"), listOf(KtArg(null, KtExpr.Name("state"))))),
-        ),
-    )
 
     /**
      * `val LocalAppState: ProvidableCompositionLocal<AppState> = staticCompositionLocalOf { AppState() }`.

@@ -309,6 +309,13 @@ public sealed interface KtDeclaration {
         public val annotations: List<KotlinSymbol>,
         public val members: List<KtDeclaration>,
         public val constructorProperties: List<Property> = emptyList(),
+        /**
+         * The one supertype the class extends, constructed with no arguments, or null for a
+         * plain class. A single symbol rather than a list because it is the whole reason the
+         * field exists: a state holder that a platform type owns declares which type owns it,
+         * and nothing this module emits implements more than one.
+         */
+        public val supertype: KotlinSymbol? = null,
     ) : KtDeclaration
 
     /**
