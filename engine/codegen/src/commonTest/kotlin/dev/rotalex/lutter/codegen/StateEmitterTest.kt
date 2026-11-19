@@ -456,9 +456,9 @@ class StateEmitterTest {
         return content(files, "screens/HomeScreen.kt")
     }
 
-    private fun content(files: CodegenResult, path: String): String =
-        files.files.files.firstOrNull { it.path == path }?.content
-            ?: error("no '$path' in ${files.files.files.map { it.path }}")
+    private fun content(files: GeneratedFiles, path: String): String =
+        files.files.firstOrNull { it.path == path }?.content
+            ?: error("no '$path' in ${files.files.map { it.path }}")
 
     private fun generate(document: ResolvedDocument): CodegenResult =
         KotlinGenerator(schema(), CodegenOptions("com.example.app")).generate(document)
