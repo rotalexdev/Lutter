@@ -322,6 +322,45 @@ class StateEmitterTest {
     }
 
     @Test
+    fun `a viewmodel page holder extends ViewModel and the screen asks for one`() {
+        val screen: String = screenOf(pageDocument(heldPageState()), ViewModelState)
+
+        // §12.1's page row with a lifecycle: the holder survives a configuration change because
+        // the platform owns it, so the file carries no `remember…State` factory of its own.
+        assertTrue(screen.contains("public class HomeScreenState : ViewModel() {"), screen)
+        assertTrue(screen.contains("state: HomeScreenState = viewModel<HomeScreenState>()"), screen)
+        assertTrue(!screen.contains("rememberHomeScreenState"), screen)
+        assertTrue(screen.contains("import androidx.lifecycle.ViewModel"), screen)
+        assertTrue(screen.contains("import androidx.lifecycle.viewmodel.compose.viewModel"), screen)
+    }
+
+    @Test
+    fun `the app row keeps the snapshot emission under the viewmodel strategy`() {
+        val document: ResolvedDocument = pageDocument(heldPageState(), appState = listOf(heldTheme()))
+        val files: CodegenResult = generate(document, ViewModelState)
+        val app: String = content(files, "state/AppState.kt")
+
+        // The app row's lifetime is the process, which a ViewModelStore does not outlive; only a
+        // page has a lifecycle owner worth asking for, so the local keeps its remembered holder.
+        assertTrue(app.contains("public class AppState {"), app)
+        assertTrue(!app.contains("ViewModel"), app)
+        // The holder is remembered where `AppRoot` provides it, which is `App.kt`, not this file.
+        val root: String = content(files, "App.kt")
+        assertTrue(root.contains("remember {"), root)
+    }
+
+    @Test
+    fun `a saveable declaration is refused where the strategy emits no store row`() {
+        val saveable = StateDecl(count, "count", TypeRef.Int32, Value.Int32(0), null, Persistence.Saveable)
+        val result = generate(pageDocument(listOf(held(saveable))), ViewModelState)
+
+        // A ViewModel is constructed by the platform, outside the composition that provides
+        // `LocalPersistentStore`, so the store has no way in and the declaration is refused
+        // rather than emitted as a property that silently forgets.
+        assertEquals(listOf("codegen.strategy_unsupported"), result.diagnostics.map { it.code.value })
+    }
+
+    @Test
     fun `a saveable declaration whose type has no store codec is refused by name`() {
         // A codec is text on both sides of the store, so a type this engine cannot spell as one
         // is a finding, not a silently unpersisted property.
@@ -450,8 +489,8 @@ class StateEmitterTest {
         )
     }
 
-    private fun screenOf(document: ResolvedDocument): String {
-        val files = generate(document)
+    private fun screenOf(document: ResolvedDocument, state: StateStrategy = ComposeSnapshotState): String {
+        val files = generate(document, state)
         assertTrue(files.diagnostics.isEmpty(), "got ${files.diagnostics}")
         return content(files, "screens/HomeScreen.kt")
     }
@@ -460,8 +499,11 @@ class StateEmitterTest {
         generated.files.files.firstOrNull { it.path == path }?.content
             ?: error("no '$path' in ${generated.files.files.map { it.path }}")
 
-    private fun generate(document: ResolvedDocument): CodegenResult =
-        KotlinGenerator(schema(), CodegenOptions("com.example.app")).generate(document)
+    private fun generate(
+        document: ResolvedDocument,
+        state: StateStrategy = ComposeSnapshotState,
+    ): CodegenResult =
+        KotlinGenerator(schema(), CodegenOptions("com.example.app", state = state)).generate(document)
 
     private fun column(id: String, vararg texts: String): ResolvedNode = ResolvedNode(
         NodeId(id),

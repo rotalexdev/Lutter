@@ -196,6 +196,10 @@ public class KtPrinter(
         append(renderAnnotations(clazz.annotations, indent, aliases))
         append(indentOf(indent) + "public class " + clazz.name)
         append(renderConstructor(clazz, indent, aliases))
+        // The supertype follows the constructor, which is Kotlin's own order:
+        // `class X(private val y: Int) : Base()`. Its own parentheses are empty because the
+        // platform types a holder extends all have a no-argument constructor.
+        clazz.supertype?.let { append(" : " + refOf(KtSymbolRef(it), aliases) + "()") }
         appendMembers(clazz.members, indent, aliases, this)
     }
 
@@ -710,6 +714,7 @@ public class KtPrinter(
             }
             is KtDeclaration.Class -> {
                 declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                declaration.supertype?.let { recordSymbol(it, filePkg, seen) }
                 declaration.constructorProperties.forEach {
                     collectDeclarationSymbols(it, filePkg, seen)
                 }
