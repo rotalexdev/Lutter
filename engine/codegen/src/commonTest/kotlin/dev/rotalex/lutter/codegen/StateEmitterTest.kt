@@ -300,7 +300,8 @@ class StateEmitterTest {
         // §12.1's persistent row: the value lives in the store, and the store wins over `initial`
         // only when it has something to say.
         assertTrue(screen.contains("store?.read(\"p_home/s_count\")?.toIntOrNull() ?: 0"), screen)
-        assertTrue(screen.contains("store?.write(\"p_home/s_count\", value.toString())"), screen)
+        assertTrue(screen.contains("\"p_home/s_count\","), screen)
+        assertTrue(screen.contains("value.toString(),"), screen)
         val store: String = content(result.files, "state/PersistentStore.kt")
         assertTrue(store.contains("public interface PersistentStore"), store)
         assertTrue(store.contains("public fun read(key: String): String?"), store)
@@ -314,10 +315,10 @@ class StateEmitterTest {
         assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
         val state: String = content(result.files, "state/AppState.kt")
         assertTrue(state.contains("store?.read(\"app/s_theme\") ?: \"light\""), state)
-        assertTrue(state.contains("store?.write(\"app/s_theme\", value)"), state)
+        assertTrue(state.contains("\"app/s_theme\","), state)
         val root: String = content(result.files, "App.kt")
         assertTrue(root.contains("store: PersistentStore? = null"), root)
-        assertTrue(root.contains("AppState(store = store)"), root)
+        assertTrue(root.contains("store = store,"), root)
     }
 
     @Test

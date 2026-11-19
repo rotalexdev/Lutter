@@ -2,6 +2,7 @@ package dev.rotalex.lutter.codegen
 
 import dev.rotalex.lutter.model.doc.Persistence
 import dev.rotalex.lutter.schema.component.KotlinSymbol
+import dev.rotalex.lutter.schema.function.FunctionPrecedence
 
 /**
  * Which §12.1 list a declaration was written in, and so what a read of it reaches through.
@@ -21,6 +22,24 @@ public enum class StateScope {
     /** §12.1's app list: the composition local `AppRoot` provides. */
     App,
 }
+
+/**
+ * One scalar type as text on both sides of a `PersistentStore`.
+ *
+ * The store holds text because an engine-owned store must outlive a Kotlin version without
+ * knowing the document's types, so each row says which Kotlin type it is and how the generated
+ * property moves it in and out. [decode] answers null for text that is not a value of the type,
+ * and the caller keeps its `initial` in that case: a store holding garbage must not make a
+ * declaration unreadable.
+ */
+public data class StoreCodec(
+    /** The scalar's Kotlin type, which the backing state is a `MutableState` of. */
+    public val type: KtExpr,
+    /** `value -> text`, the write side. */
+    public val encode: (KtExpr) -> KtExpr,
+    /** `text -> value?`, the read side. */
+    public val decode: (KtExpr) -> KtExpr,
+)
 
 /**
  * PLAN §12.2: the only place that knows *how* state is emitted.
@@ -64,6 +83,24 @@ public interface StateStrategy {
      * that asked to be saved is a file that compiles and drops data on restart.
      */
     public fun supports(persistence: Persistence): Boolean
+
+    /**
+     * The two members a `Saveable` declaration of [scope] is emitted as: the private backing
+     * state, seeded from [store] under [key], and the property that reads it and writes both.
+     *
+     * Two members rather than a delegate because the write side is the whole row: a delegate
+     * hands the value to whoever asked and the store never hears about it, while a property with
+     * a setter is the one shape where "held and saved" is a single fact. [codec] carries the
+     * text conversion, so the strategy names no document type.
+     */
+    public fun saveable(
+        scope: StateScope,
+        name: String,
+        key: String,
+        initial: KtExpr,
+        codec: StoreCodec,
+        store: KtExpr,
+    ): List<KtDeclaration.Property>
 }
 
 /** The one strategy that exists: snapshot state, which is §12.2's default and §15.3's runtime. */
@@ -73,10 +110,15 @@ public data object ComposeSnapshotState : StateStrategy {
      * §16.5's `state/AppState.kt`. Read off [StateEmitter]'s constants rather than spelled again,
      * so a rename of the holder cannot leave this set claiming a name nothing emits.
      */
-    override val reservedTopLevelNames: Set<String> =
-        setOf(StateEmitter.AppStateName, StateEmitter.LocalAppStateName)
+    override val reservedTopLevelNames: Set<String> = setOf(
+        StateEmitter.AppStateName,
+        StateEmitter.LocalAppStateName,
+        StateEmitter.PersistentStoreName,
+        StateEmitter.LocalPersistentStoreName,
+    )
 
     private val mutableStateOf: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "mutableStateOf")
+    private val mutableState: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "MutableState")
     private val remember: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "remember")
 
     // `by` resolves through these, extensions on `MutableState` outside Kotlin's default
@@ -108,12 +150,67 @@ public data object ComposeSnapshotState : StateStrategy {
     }
 
     /**
-     * `Persistence.None` only, and the reason is `PageStateStore`.
+     * Both rows, because §12.1's persistent row is emitted here rather than refused.
      *
-     * §12.1 asks for `rememberSaveable` where the type allows, and no engine code reads a
-     * non-`None` value on either side: `PageStateHost` seeds `mutableStateOf` for every held
-     * declaration. Emitting the saveable form on this side alone would make the generated
-     * screen restore what the runtime drops, which is the one comparison §28.4 cannot make.
+     * [persistence] alone cannot say whether a declaration is emittable — a `Saveable` one also
+     * needs a store codec for its type and a scope that has a store — so those refusals are the
+     * emitter's, which is the only caller holding the declaration.
      */
-    override fun supports(persistence: Persistence): Boolean = persistence == Persistence.None
+    override fun supports(persistence: Persistence): Boolean = true
+
+    override fun saveable(
+        scope: StateScope,
+        name: String,
+        key: String,
+        initial: KtExpr,
+        codec: StoreCodec,
+        store: KtExpr,
+    ): List<KtDeclaration.Property> {
+        val backing: String = StateEmitter.StoredPrefix + name
+        val text: KtExpr = KtExpr.Call(
+            KtExpr.Member(store, "read", safe = true),
+            listOf(KtArg(null, KtExpr.Literal("\"" + key + "\""))),
+        )
+        // The store wins only where it has a value of the declared type; `initial` is what the
+        // document says the value is before anything happened, so it is the fallback and not
+        // the seed a stale entry could overwrite.
+        val seeded: KtExpr = KtExpr.PatternCall(
+            "{0} ?: {1}",
+            listOf(codec.decode(text), initial),
+            precedence = FunctionPrecedence.Elvis,
+        )
+        val held: KtDeclaration.Property = KtDeclaration.Property(
+            name = backing,
+            annotations = emptyList(),
+            type = KtExpr.TypeApplication(KtExpr.Ref(KtSymbolRef(mutableState)), listOf(codec.type)),
+            mutable = false,
+            initializer = KtExpr.Call(KtExpr.Ref(KtSymbolRef(mutableStateOf)), listOf(KtArg(null, seeded))),
+            delegate = null,
+            getter = null,
+            visibility = "private",
+        )
+        val written: KtStmt = KtStmt.Expr(
+            KtExpr.Call(
+                KtExpr.Member(store, "write", safe = true),
+                listOf(
+                    KtArg(null, KtExpr.Literal("\"" + key + "\"")),
+                    KtArg(null, codec.encode(KtExpr.Name("value"))),
+                ),
+            ),
+        )
+        val property: KtDeclaration.Property = KtDeclaration.Property(
+            name = name,
+            annotations = emptyList(),
+            type = codec.type,
+            mutable = true,
+            initializer = null,
+            delegate = null,
+            getter = KtExpr.Member(KtExpr.Name(backing), "value"),
+            setter = listOf(
+                KtStmt.Assign(KtExpr.Member(KtExpr.Name(backing), "value"), KtExpr.Name("value")),
+                written,
+            ),
+        )
+        return listOf(held, property)
+    }
 }

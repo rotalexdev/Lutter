@@ -50,6 +50,8 @@ class ReservedCodegenNamesTest {
                 "AppRoot",
                 "AppState",
                 "LocalAppState",
+                "PersistentStore",
+                "LocalPersistentStore",
             ),
             ReservedCodegenNames.literals(options),
         )
@@ -66,7 +68,7 @@ class ReservedCodegenNamesTest {
     @Test
     fun `the state strategy reserves every name it emits`() {
         assertEquals(
-            setOf("AppState", "LocalAppState"),
+            setOf("AppState", "LocalAppState", "PersistentStore", "LocalPersistentStore"),
             ComposeSnapshotState.reservedTopLevelNames,
         )
     }
