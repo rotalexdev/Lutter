@@ -14,7 +14,14 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedPage
  *
  * Internal because [UiScreen] is its only caller, and a host reaches a page's state through the
  * store the screen already holds rather than by building one of its own.
+ *
+ * [persistent] is the host's §12.1 hook and the page's id is the scope: a `Saveable` declaration
+ * comes back from what the host kept, and every write goes through it. Null — the default a
+ * preview and a test pass — leaves the page exactly as composition-scoped as it was.
  */
 @Composable
-internal fun rememberPageStateStore(page: ResolvedPage): SnapshotStateStore =
-    remember(page.id) { SnapshotStateStore.seeded(page.state) }
+internal fun rememberPageStateStore(
+    page: ResolvedPage,
+    persistent: PersistentStore? = null,
+): SnapshotStateStore =
+    remember(page.id) { SnapshotStateStore.seeded(page.state, store = persistent, scope = page.id.value) }
