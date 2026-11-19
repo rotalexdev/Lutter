@@ -194,6 +194,22 @@ class CodegenTest {
     }
 
     @Test
+    fun `a screen's navigator parameter is typed by the strategy that emits it`() {
+        // The receiver's declared type is the navigation strategy's answer, never a constant:
+        // a second strategy names its navigator differently, and a screen typed with this one's
+        // name is a screen that strategy's `AppRoot` cannot call.
+        val result = eventResult(
+            iconButtonNode(navigateStep()),
+            navigation = RenamedNavigator("com.example.app"),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = homeScreenOf(result)
+        assertTrue(screen.contains("navigator: RenamedNavigator"), screen)
+        assertTrue(!screen.contains("navigator: AppNavigator"), screen)
+    }
+
+    @Test
     fun `a handler lambda declares the parameters its binding names`() {
         val content = eventScreen(iconButtonNode(navigateStep()), iconButtonStub(listOf("pressed")))
 
@@ -1096,9 +1112,21 @@ class CodegenTest {
         root: ResolvedNode,
         clicked: ComponentSpec = iconButtonStub(),
         hostFunctions: List<HostFunctionDecl> = emptyList(),
+        navigation: NavigationStrategy = SimpleBackStack("com.example.app"),
     ): CodegenResult =
-        KotlinGenerator(eventSchema(clicked), CodegenOptions("com.example.app"))
+        KotlinGenerator(eventSchema(clicked), CodegenOptions("com.example.app", navigation = navigation))
             .generate(eventDocument(root, hostFunctions))
+
+    /**
+     * A strategy that declares its navigator under another name, and nothing else.
+     *
+     * Every emission is the default's, because the question this answers is not what a second
+     * navigation strategy *does* — it is which strategy a screen's parameter type comes from.
+     * A strategy that reused the default's class name could not tell those apart.
+     */
+    private class RenamedNavigator(basePackage: String) : NavigationStrategy by SimpleBackStack(basePackage) {
+        override val navigatorType: KotlinSymbol = KotlinSymbol("com.example.app", "RenamedNavigator")
+    }
 
     private fun eventSchema(
         clicked: ComponentSpec = iconButtonStub(),
