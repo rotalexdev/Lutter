@@ -16,7 +16,10 @@ public enum class StateScope {
     /** §12.1's component-local list: a `var` the composable declares, so a read is bare. */
     Component,
 
-    /** §12.1's page list: the screen's own `state` parameter. */
+    /**
+     * §12.1's page list: the screen's own parameter — `state` where the composition owns the
+     * holder, `viewModel` where a `ViewModelStore` does.
+     */
     Page,
 
     /** §12.1's app list: the composition local `AppRoot` provides. */
@@ -44,9 +47,16 @@ public data class StoreCodec(
 /**
  * PLAN §12.2: the only place that knows *how* state is emitted.
  *
- * Three questions and no others — what a read reaches through, what a held property delegates
- * to, and whether a persistence has an emission yet. A later strategy (ViewModel, Molecule,
- * Circuit) answers them differently and touches nothing else, which is the whole claim.
+ * Two groups of questions and no others. The rows: what a read reaches through, what a held
+ * property delegates to, whether a persistence has an emission yet, and which names the
+ * strategy's own emission takes. The page row whole: what the strategy puts beside the page's
+ * state class, what the screen's parameter is called and defaults to, and every name that row
+ * therefore occupies. A later strategy (ViewModel, Molecule, Circuit) answers them differently
+ * and touches nothing else, which is the whole claim.
+ *
+ * The page row is asked as a row on purpose. What a page emits is one decision — whether the
+ * composition or a platform type owns the state — and splitting its name from its class from
+ * its parameter is how the three drift into a file that calls one thing by another's name.
  */
 public interface StateStrategy {
 
@@ -85,30 +95,34 @@ public interface StateStrategy {
     public fun supports(persistence: Persistence): Boolean
 
     /**
-     * The supertype [scope]'s holder class extends, or null when it is a plain class.
+     * The declarations §12.1's page row carries beside the state class.
      *
-     * A page's holder is the only one with a lifecycle of its own to hand a platform type: the
-     * app holder already lives as long as the process and a component local lives as long as the
-     * composition, so a strategy answers null for both rather than wrapping them for symmetry.
+     * [state] is the class the page's declarations are members of — a state under every
+     * strategy, and named one — so the extra is whatever that strategy puts *around* it: the
+     * `@Composable remember…State()` factory a plain class needs, or the layer that owns the
+     * state and outlives the composition. [pkg] is the package the file lands in, because a
+     * strategy that emits a type of its own cannot read it from a file it is not writing.
+     *
+     * One call rather than one per declaration: a row is a row, and two strategies that spell
+     * half of it each would be two places to look when the file stops compiling.
      */
-    public fun holderSupertype(scope: StateScope): KotlinSymbol?
+    public fun pageExtras(pageName: String, state: KotlinSymbol, pkg: String): List<KtDeclaration>
 
     /**
-     * The declarations §12.1's page row carries beside the holder's class.
+     * The parameter a page's screen takes for its row: its name, its type and its default.
      *
-     * A plain class needs the `@Composable remember…State()` factory a screen defaults to;
-     * a platform-owned one needs nothing, because the platform builds it. Empty is a statement,
-     * not an omission: the generated file then carries no function nothing calls.
+     * The name is the strategy's, not a constant, because it is the same word the read of a page
+     * declaration reaches through ([receiver]): a screen whose parameter and reads disagree is a
+     * file that does not compile, and a screen whose parameter calls a holder something the
+     * holder is not is a file that compiles and lies.
      */
-    public fun pageFactory(name: String): List<KtDeclaration>
+    public fun pageParameter(pageName: String, pkg: String): KtParam
 
     /**
-     * What a screen's `state` parameter defaults to, for [holder] as the generated type.
-     *
-     * The pair with [pageFactory]: whatever that emits is what this names, so the two cannot
-     * drift into a default that calls a function the file stopped declaring.
+     * Every top-level name a page called [pageName] has generated for it, the state class
+     * included, so `ReservedCodegenNames` refuses a document that takes one of them.
      */
-    public fun pageDefault(holder: KotlinSymbol): KtExpr
+    public fun pageReservedNames(pageName: String): Set<String>
 
     /**
      * The two members a `Saveable` declaration of [scope] is emitted as: the private backing
@@ -148,6 +162,14 @@ public data object ComposeSnapshotState : StateStrategy {
     private val remember: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "remember")
     private val composable: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "Composable")
 
+    /**
+     * `rememberHomeScreenState`: the state class's constructor, spelled in front of its name.
+     *
+     * Here rather than beside [ReservedCodegenNames.PageStateSuffix] because it is this
+     * strategy's emission: a strategy whose row is not a remembered state does not declare one.
+     */
+    internal const val RememberPrefix: String = "remember"
+
     // `by` resolves through these, extensions on `MutableState` outside Kotlin's default
     // imports, so a file that delegates without naming them delegates to nothing. Both, because
     // every delegate this strategy emits is a `var` and only the property knows which it is.
@@ -156,12 +178,25 @@ public data object ComposeSnapshotState : StateStrategy {
         KotlinSymbol("androidx.compose.runtime", "setValue"),
     )
 
-    override fun holderSupertype(scope: StateScope): KotlinSymbol? = null
+    override fun pageExtras(
+        pageName: String,
+        state: KotlinSymbol,
+        pkg: String,
+    ): List<KtDeclaration> = listOf(rememberFunction(state.name))
 
-    override fun pageFactory(name: String): List<KtDeclaration> = listOf(rememberFunction(name))
+    override fun pageParameter(pageName: String, pkg: String): KtParam {
+        val holder: String = pageName + ReservedCodegenNames.PageStateSuffix
+        return KtParam(
+            name = "state",
+            type = KtExpr.Ref(KtSymbolRef(KotlinSymbol(pkg, holder))),
+            default = KtExpr.Call(KtExpr.Name(RememberPrefix + holder), emptyList()),
+        )
+    }
 
-    override fun pageDefault(holder: KotlinSymbol): KtExpr =
-        KtExpr.Call(KtExpr.Name(ReservedCodegenNames.RememberPrefix + holder.name), emptyList())
+    override fun pageReservedNames(pageName: String): Set<String> = setOf(
+        pageName + ReservedCodegenNames.PageStateSuffix,
+        RememberPrefix + pageName + ReservedCodegenNames.PageStateSuffix,
+    )
 
     override fun receiver(scope: StateScope, appState: KotlinSymbol): KtExpr? = when (scope) {
         // A component's declaration is a local of the composable that declares it.
@@ -255,7 +290,7 @@ public data object ComposeSnapshotState : StateStrategy {
      * and `return` resolves to the nearest function lexically — no symbol, so no import.
      */
     private fun rememberFunction(name: String): KtDeclaration.Function = KtDeclaration.Function(
-        name = ReservedCodegenNames.RememberPrefix + name,
+        name = RememberPrefix + name,
         annotations = listOf(composable),
         type = KtExpr.Name(name),
         params = emptyList(),
