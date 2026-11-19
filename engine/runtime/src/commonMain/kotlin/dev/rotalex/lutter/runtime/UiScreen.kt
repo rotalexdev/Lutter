@@ -88,7 +88,7 @@ public fun UiScreen(
         environment.diagnostics(RuntimeDiagnostic("Unknown page '$page'", null))
         return
     }
-    val pageState = rememberPageStateStore(resolved)
+    val pageState = rememberPageStateStore(resolved, environment.persistent)
     // App state first and the page's last: the owner-last order pass 5 resolves a `Ref` in.
     val screen = ScreenEvalScope(
         document.appState + resolved.state,

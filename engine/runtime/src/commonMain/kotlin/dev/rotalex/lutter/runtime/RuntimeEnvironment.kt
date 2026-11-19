@@ -88,4 +88,12 @@ public class RuntimeEnvironment(
     public val appState: StateStore = SnapshotStateStore.Empty,
     public val diagnostics: (RuntimeDiagnostic) -> Unit = {},
     public val hooks: RenderHooks = RenderHooks.None,
+    /**
+     * §12.1's persistent-state hook, or null when this host keeps nothing across restarts.
+     *
+     * Null is the default because it is what a preview, a test and an editor want: a host that
+     * does persist writes its own [PersistentStore] and every page's `Saveable` declarations
+     * start from what it holds.
+     */
+    public val persistent: PersistentStore? = null,
 )
