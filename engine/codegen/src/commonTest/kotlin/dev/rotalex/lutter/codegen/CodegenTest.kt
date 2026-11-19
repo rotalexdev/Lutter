@@ -210,6 +210,49 @@ class CodegenTest {
     }
 
     @Test
+    fun `Navigation Compose types a screen with its controller and navigates by route`() {
+        val result = eventResult(
+            iconButtonNode(navigateStep()),
+            navigation = NavigationCompose("com.example.app"),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = homeScreenOf(result)
+        assertTrue(screen.contains("import androidx.navigation.NavHostController"), screen)
+        assertTrue(screen.contains("navigator: NavHostController"), screen)
+        assertTrue(screen.contains("navigator.navigate(Route.Profile)"), screen)
+    }
+
+    @Test
+    fun `Navigation Compose declares one route constant per page`() {
+        val result = eventResult(
+            iconButtonNode(navigateStep()),
+            navigation = NavigationCompose("com.example.app"),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val navigation = contentOf(result, "Navigation.kt")
+        assertTrue(navigation.contains("object Route {"), navigation)
+        assertTrue(navigation.contains("Home: String = \"home\""), navigation)
+        assertTrue(navigation.contains("Profile: String = \"profile\""), navigation)
+    }
+
+    @Test
+    fun `Navigation Compose builds a NavHost with one destination per page`() {
+        val result = eventResult(
+            iconButtonNode(navigateStep()),
+            navigation = NavigationCompose("com.example.app"),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val app = contentOf(result, "App.kt")
+        assertTrue(app.contains("import androidx.navigation.compose.NavHost"), app)
+        assertTrue(app.contains("startDestination = Route.Home"), app)
+        assertTrue(app.contains("composable(Route.Home)"), app)
+        assertTrue(app.contains("composable(Route.Profile)"), app)
+    }
+
+    @Test
     fun `a handler lambda declares the parameters its binding names`() {
         val content = eventScreen(iconButtonNode(navigateStep()), iconButtonStub(listOf("pressed")))
 
