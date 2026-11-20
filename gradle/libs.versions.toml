@@ -80,3 +80,7 @@ robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectr
 # "coordinates that catalog does not have yet" — is where it goes meanwhile. The *coordinate*
 # is the thing that must not drift, and it is spelled the shared catalog's way.
 kotlinx-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version = "0.5.2" }
+
+[plugins]
+# Metro's compiler plugin: the graph `--injection metro` emits is an interface this implements.
+metro = { id = "dev.zacsweers.metro", version.ref = "metro" }
