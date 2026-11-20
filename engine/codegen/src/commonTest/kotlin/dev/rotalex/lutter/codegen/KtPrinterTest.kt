@@ -37,6 +37,31 @@ class KtPrinterTest {
         assertContains(printed, "import com.example.screens.HomeViewModel")
     }
 
+    /** An annotation's argument prints inside its parentheses, and its imports are recorded. */
+    @Test
+    fun `an annotation prints the argument it was given`() {
+        val holder: KotlinSymbol = KotlinSymbol("com.example.screens", "HomeViewModel")
+        val printed: String = KtPrinter().print(
+            ktFile(
+                KtDeclaration.Function(
+                    "provideHome",
+                    listOf(
+                        KtAnnotation(
+                            KotlinSymbol("com.example.di", "ViewModelKey"),
+                            listOf(KtExpr.Snippet("HomeViewModel::class", listOf(holder))),
+                        ),
+                    ),
+                    null,
+                    emptyList(),
+                    emptyList(),
+                ),
+            ),
+        )
+
+        assertContains(printed, "@ViewModelKey(HomeViewModel::class)")
+        assertContains(printed, "import com.example.screens.HomeViewModel")
+    }
+
     /** A projected argument keeps its variance and still imports what it projects. */
     @Test
     fun `a type projection prints its variance and imports its argument`() {
@@ -389,7 +414,7 @@ class KtPrinterTest {
     fun `an annotation prints above the declaration it belongs to`() {
         val annotated = KtDeclaration.Property(
             "count",
-            listOf(KotlinSymbol("kotlin.jvm", "JvmField")),
+            listOf(KotlinSymbol("kotlin.jvm", "JvmField").toAnnotation()),
             KtExpr.Name("Int"),
             true,
             KtExpr.Literal("0"),

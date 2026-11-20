@@ -107,7 +107,7 @@ public data class Navigation3(public val basePackage: String) : NavigationStrate
             listOf(
                 KtDeclaration.Function(
                     name = SimpleBackStack.RootName,
-                    annotations = listOf(composable),
+                    annotations = listOf(composable.toAnnotation()),
                     type = null,
                     params = ctx.appRootParameters(),
                     body = body,
