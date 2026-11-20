@@ -62,6 +62,11 @@ dependencies {
     commonMainApi(libs.navigation.compose)
     commonMainApi(libs.navigation3.ui)
     commonMainApi(libs.lifecycle.viewmodel.compose)
+    // §15.5's container: a `koin` row's generated screen calls `koinViewModel()`, its `AppRoot`
+    // starts a `KoinApplication`, and `di/Injection.kt` declares a `module`. Same reasoning as the
+    // three above — the variants' compilation is the proof that the emission resolves.
+    commonMainApi(libs.koin.core)
+    commonMainApi(libs.koin.compose.viewmodel)
     // Desktop-only UI test runner; commonTest stays pure so Android host tests keep running.
     desktopTestImplementation(compose.desktop.uiTestJUnit4)
     // Plan §36.1 bullet 7's Android half: `RuntimeSemanticsTest` composes under Robolectric on
