@@ -75,6 +75,9 @@ public enum class PlannedFileKind {
     Store,
     Screen,
     Component,
+
+    /** `di/Injection.kt`: what a container needs declared before a screen's lookup finds it. */
+    Injection,
 }
 
 /** One file the generator will emit: its path, package and source page or component. */
@@ -100,7 +103,11 @@ public data class GenPlan(
  * what a handler's call needs to exist: a `nav.navigate` names `Route`, a `ui.showSnackbar` names
  * `SnackbarHost`, and an empty interface is the cheapest of the three that compiles.
  */
-public fun planDocument(document: ResolvedDocument, basePackage: String): GenPlan {
+public fun planDocument(
+    document: ResolvedDocument,
+    basePackage: String,
+    injection: InjectionStrategy = NoInjection,
+): GenPlan {
     val files: MutableList<PlannedFile> = mutableListOf()
     files += PlannedFile("App.kt", basePackage, PlannedFileKind.App, null, null)
     files += PlannedFile("Navigation.kt", basePackage, PlannedFileKind.Navigation, null, null)
@@ -115,6 +122,11 @@ public fun planDocument(document: ResolvedDocument, basePackage: String): GenPla
             null,
             null,
         )
+    }
+    // A container's bindings are a file of their own, and only a container has any: the plan asks
+    // the strategy rather than guessing, so a run that selected nothing plans nothing new.
+    if (injection.emitsModule && document.pages.isNotEmpty()) {
+        files += PlannedFile("di/Injection.kt", basePackage + ".di", PlannedFileKind.Injection, null, null)
     }
     // §12.1's persistent row is the only document fact that asks for a store, so a document
     // without one plans no file and emits no local.

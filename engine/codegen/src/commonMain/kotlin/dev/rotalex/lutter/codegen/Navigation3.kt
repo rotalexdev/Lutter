@@ -81,7 +81,7 @@ public data class Navigation3(public val basePackage: String) : NavigationStrate
         val body: List<KtStmt> = if (pages.isEmpty()) {
             emptyList()
         } else {
-            ctx.appState(
+            ctx.rootBody(
                 KtStmt.Expr(
                     KtExpr.Call(
                         KtExpr.Ref(KtSymbolRef(navDisplay)),

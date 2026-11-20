@@ -143,6 +143,18 @@ public class KotlinGenerator<A : Any, T : Any>(
         // Before the plan and before any emitter: §16.7 asks for a located finding rather than a
         // red compile harness, and the reserved set is the one thing a document cannot know.
         diagnostics += ReservedCodegenNames.findings(document, options)
+        // A container that cannot build this state strategy's holder is a refusal about the pair of
+        // options, not about anything the document declares: there is no node to point at, and the
+        // fix is a different selection rather than an edit.
+        val refused: String? = options.injection.refusal(options.state)
+        if (refused != null) {
+            diagnostics += Diagnostic(
+                Severity.Error,
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                DiagnosticLocation(),
+                refused,
+            )
+        }
         state = StateEmitter(document, options, schema.functions)
         val reader: ExprEmitter = ExprEmitter(schema.functions, StateRead { id -> state?.readInScreen(id) })
         expressions = reader
@@ -159,7 +171,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             options,
             diagnostics,
         )
-        val plan: GenPlan = planDocument(document, options.basePackage)
+        val plan: GenPlan = planDocument(document, options.basePackage, options.injection)
         refuseCollisions(plan)
         val files: MutableList<GeneratedFile> = mutableListOf()
         if (diagnostics.none { it.severity == Severity.Error }) {
@@ -220,6 +232,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             PlannedFileKind.AppHost -> emitAppHost(planned, document)
             PlannedFileKind.AppState -> emitAppState(planned, document)
             PlannedFileKind.Store -> emitStore(planned)
+            PlannedFileKind.Injection -> emitInjection(planned, document)
             PlannedFileKind.Screen -> {
                 val pageId = checkNotNull(planned.pageId) { "Plan marked '${planned.path}' with no page" }
                 val page: ResolvedPage = checkNotNull(document.pages[pageId]) {
@@ -256,6 +269,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             header = headerText(),
             receivers = screenReceivers.mapValues { (_, held) -> held.sortedBy(ActionReceiver::member) },
             appState = { content -> stateEmitter()?.appProvider(content, store) ?: listOf(content) },
+            injected = options.injection::appRoot,
             receiverType = ::receiverType,
             storeParameter = store?.let { storeParameter() },
         )
@@ -272,6 +286,32 @@ public class KotlinGenerator<A : Any, T : Any>(
         ),
         KtExpr.Literal("null"),
     )
+
+    /**
+     * `di/Injection.kt`: the container's bindings, one per page holder this document generated.
+     *
+     * The holders are read off the state strategy's own parameter rather than named here, so a
+     * container never spells a class the state strategy owns: what it declares is exactly what a
+     * screen asks for.
+     */
+    private fun emitInjection(planned: PlannedFile, document: ResolvedDocument): KtFile? {
+        val emitter: StateEmitter = stateEmitter() ?: return null
+        val holders: List<KotlinSymbol> = document.pages.entries
+            .sortedBy { it.key.value }
+            .mapNotNull { (_, page) -> holderSymbol(emitter.pageParameter(page).type) }
+        val declarations: List<KtDeclaration> = options.injection.module(holders)
+        if (declarations.isEmpty()) return null
+        return KtFile(planned.packageName, headerText(), declarations)
+    }
+
+    /**
+     * The symbol a holder's type names, or null when the strategy spelled it as something other
+     * than a generated class — a strategy whose parameter is not a class has no holder to declare.
+     */
+    private fun holderSymbol(type: KtExpr): KotlinSymbol? {
+        val ref: KtSymbolRef = (type as? KtExpr.Ref)?.symbol ?: return null
+        return ref.symbol
+    }
 
     /** §16.5's `state/PersistentStore.kt`: the hook and the local the state classes read. */
     private fun emitStore(planned: PlannedFile): KtFile? {
