@@ -109,6 +109,20 @@ public sealed interface KtExpr {
     public data class TypeApplication(public val base: KtExpr, public val args: List<KtExpr>) : KtExpr
 
     /** `inner?`, postfix. Two nodes rather than one `nullable` flag — [TypeApplication] says why. */
+    /**
+     * `() -> HomeViewModel`: a function spelled as a type, which is what a container's map is
+     * keyed by rather than something it calls.
+     *
+     * A type and not a lambda: Metro's ViewModel map holds `() -> ViewModel` builders, so the
+     * declaration that fills it names that type in its return position. [params] exists even
+     * though nothing emitted so far takes one — a builder that needed an argument would be a
+     * different declaration, and an empty list says that instead of a comment claiming it.
+     */
+    public data class FunctionType(
+        public val params: List<KtExpr>,
+        public val returns: KtExpr,
+    ) : KtExpr
+
     public data class Nullable(public val inner: KtExpr) : KtExpr
 }
 
