@@ -155,6 +155,7 @@ public final class dev/rotalex/lutter/codegen/GenPlan {
 }
 
 public final class dev/rotalex/lutter/codegen/GenPlanKt {
+	public static final fun injectionPackage (Ljava/lang/String;)Ljava/lang/String;
 	public static final fun planDocument (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ljava/lang/String;Ldev/rotalex/lutter/codegen/InjectionStrategy;)Ldev/rotalex/lutter/codegen/GenPlan;
 	public static synthetic fun planDocument$default (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ljava/lang/String;Ldev/rotalex/lutter/codegen/InjectionStrategy;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/GenPlan;
 }
@@ -228,7 +229,7 @@ public final class dev/rotalex/lutter/codegen/ImportPolicy$Companion {
 }
 
 public abstract interface class dev/rotalex/lutter/codegen/InjectionStrategy {
-	public fun appRoot (Ljava/util/List;)Ljava/util/List;
+	public fun appRoot (Ljava/util/List;Ljava/lang/String;)Ljava/util/List;
 	public fun getEmitsModule ()Z
 	public fun getLibraries ()Ljava/util/Set;
 	public abstract fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtParam;
@@ -237,7 +238,7 @@ public abstract interface class dev/rotalex/lutter/codegen/InjectionStrategy {
 }
 
 public final class dev/rotalex/lutter/codegen/InjectionStrategy$DefaultImpls {
-	public static fun appRoot (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ljava/util/List;)Ljava/util/List;
+	public static fun appRoot (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ljava/util/List;Ljava/lang/String;)Ljava/util/List;
 	public static fun getEmitsModule (Ldev/rotalex/lutter/codegen/InjectionStrategy;)Z
 	public static fun getLibraries (Ldev/rotalex/lutter/codegen/InjectionStrategy;)Ljava/util/Set;
 	public static fun module (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ljava/util/List;)Ljava/util/List;
@@ -246,7 +247,7 @@ public final class dev/rotalex/lutter/codegen/InjectionStrategy$DefaultImpls {
 
 public final class dev/rotalex/lutter/codegen/Koin : dev/rotalex/lutter/codegen/InjectionStrategy {
 	public static final field INSTANCE Ldev/rotalex/lutter/codegen/Koin;
-	public fun appRoot (Ljava/util/List;)Ljava/util/List;
+	public fun appRoot (Ljava/util/List;Ljava/lang/String;)Ljava/util/List;
 	public fun equals (Ljava/lang/Object;)Z
 	public fun getEmitsModule ()Z
 	public fun getLibraries ()Ljava/util/Set;
@@ -864,7 +865,7 @@ public final class dev/rotalex/lutter/codegen/NavigationStrategy$DefaultImpls {
 
 public final class dev/rotalex/lutter/codegen/NoInjection : dev/rotalex/lutter/codegen/InjectionStrategy {
 	public static final field INSTANCE Ldev/rotalex/lutter/codegen/NoInjection;
-	public fun appRoot (Ljava/util/List;)Ljava/util/List;
+	public fun appRoot (Ljava/util/List;Ljava/lang/String;)Ljava/util/List;
 	public fun equals (Ljava/lang/Object;)Z
 	public fun getEmitsModule ()Z
 	public fun getLibraries ()Ljava/util/Set;
@@ -966,6 +967,7 @@ public final class dev/rotalex/lutter/codegen/StateEmitter {
 	public static synthetic fun appProvider$default (Ldev/rotalex/lutter/codegen/StateEmitter;Ldev/rotalex/lutter/codegen/KtStmt;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ljava/util/List;
 	public final fun appState ()Ljava/util/List;
 	public final fun componentLocals (Ljava/util/List;)Ljava/util/List;
+	public final fun hasHolder (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;)Z
 	public final fun pageParameter (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;)Ldev/rotalex/lutter/codegen/KtParam;
 	public final fun pageState (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;)Ljava/util/List;
 	public final fun persistentStore ()Ljava/util/List;
