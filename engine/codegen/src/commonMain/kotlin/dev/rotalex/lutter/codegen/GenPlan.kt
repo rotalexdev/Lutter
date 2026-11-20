@@ -30,6 +30,11 @@ public data class CodegenOptions(
     // it from, and a navigator that cannot say where `Route` lives cannot name it in a screen.
     public val navigation: NavigationStrategy = SimpleBackStack(basePackage),
     public val state: StateStrategy = ComposeSnapshotState,
+    /**
+     * Who builds a page's state holder. Defaults to [NoInjection], which is whatever [state] says
+     * — so a run that selects nothing emits the bytes it emitted before this option existed.
+     */
+    public val injection: InjectionStrategy = NoInjection,
     public val resources: ResourceStrategy = ResourceStrategy.None,
     public val header: HeaderPolicy = HeaderPolicy.Minimal,
     public val formatting: FormattingOptions = FormattingOptions(),
