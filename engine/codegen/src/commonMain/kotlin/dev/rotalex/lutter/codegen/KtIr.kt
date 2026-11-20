@@ -277,6 +277,15 @@ public sealed interface KtStmt {
     public data class Assign(public val target: KtExpr, public val value: KtExpr) : KtStmt
 
     /**
+     * `return value`.
+     *
+     * A container's contribution is a function with a body and a type (`fun provideX(): X`), not an
+     * expression-bodied `val`, so the value it binds has to be returned explicitly — the IR had no
+     * statement for that until §15.5's Metro graph needed one.
+     */
+    public data class Return(public val value: KtExpr?) : KtStmt
+
+    /**
      * `when (subject) { value -> … }`, the statement shape.
      *
      * A statement rather than an expression because an arm this generator writes holds screen

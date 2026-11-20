@@ -300,6 +300,8 @@ public class KtPrinter(
                 " = " + renderExpr(stmt.value, indent, aliases)
             is KtStmt.When -> indentOf(indent) + renderWhen(stmt, indent, aliases)
             is KtStmt.If -> indentOf(indent) + renderIf(stmt, indent, aliases)
+            is KtStmt.Return -> indentOf(indent) +
+                (stmt.value?.let { "return " + renderExpr(it, indent, aliases) } ?: "return")
         }
 
     // `when (subject) {` on the head, one arm per line, every arm braced: an arm holds a screen
@@ -695,6 +697,7 @@ public class KtPrinter(
             collectExprSymbols(stmt.target, filePkg, seen)
             collectExprSymbols(stmt.value, filePkg, seen)
         }
+        is KtStmt.Return -> stmt.value?.let { collectExprSymbols(it, filePkg, seen) }
         // The subject and every arm value are expressions, and the arm bodies are statements
         // rather than expressions: an arm holds screen calls.
         is KtStmt.When -> {

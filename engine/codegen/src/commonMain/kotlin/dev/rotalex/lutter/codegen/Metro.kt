@@ -63,7 +63,7 @@ public data object Metro : InjectionStrategy {
 
     /** `androidx.compose.runtime.CompositionLocalProvider`: how the root hands the factory down. */
     /** `dev.zacsweers.metro.provides`: the infix that installs a value into a composition local. */
-    private val providesInfix: KotlinSymbol = KotlinSymbol("dev.zacsweers.metro", "provides")
+    private val providesInfix: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "provides")
 
     /** `dev.zacsweers.metrox.viewmodel.LocalMetroViewModelFactory`: the local `metroViewModel()` reads. */
     private val localMetroViewModelFactory: KotlinSymbol =
@@ -119,7 +119,7 @@ public data object Metro : InjectionStrategy {
                 type = KtExpr.Ref(KtSymbolRef(holder)),
                 params = emptyList(),
                 body = listOf(
-                    KtStmt.Expr(KtExpr.Call(KtExpr.Ref(KtSymbolRef(holder)), emptyList())),
+                    KtStmt.Return(KtExpr.Call(KtExpr.Ref(KtSymbolRef(holder)), emptyList())),
                 ),
             )
         }
