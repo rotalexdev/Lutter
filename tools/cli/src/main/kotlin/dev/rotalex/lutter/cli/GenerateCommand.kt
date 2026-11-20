@@ -8,11 +8,15 @@ import dev.rotalex.lutter.model.doc.UiDocument
 import java.io.File
 
 /**
- * `forge generate <document.json> [--out <dir>] [--package <pkg>]`.
+ * `forge generate <document.json> [--out <dir>] [--package <pkg>] [--navigation <name>] [--state <name>]`.
  *
  * PLAN §36.3's second half: decode, validate, generate. Each stage refuses before the next one
  * runs, which is the whole of what "each stage refuses" means — a document with an error never
  * reaches the generator, so a broken document cannot produce code that looks plausible.
+ *
+ * `--navigation` and `--state` choose §15's strategies. They belong to the command and not to
+ * the document because they are how an app is built, not what it says: one document generates
+ * under any pair, which is the seam's whole claim.
  *
  * ### The flags, and why they default the way they do
  *
@@ -25,13 +29,16 @@ internal object GenerateCommand {
     /** What the usage prints and what `forge generate` dispatches to. */
     val spec: CommandSpec = CommandSpec(
         name = "generate",
-        signature = "generate <document.json> [--out <dir>] [--package <pkg>]",
+        signature = "generate <document.json> [--out <dir>] [--package <pkg>] " +
+            "[--navigation <simple|navigation-compose|navigation3>] [--state <snapshot|viewmodel>]",
         summary = "decode, validate and emit Kotlin/Compose",
         positionals = listOf("document.json"),
         flags = mapOf(
             "--out" to Arity.Value,
             "--package" to Arity.Value,
             "--resources-package" to Arity.Value,
+            "--navigation" to Arity.Value,
+            "--state" to Arity.Value,
             "--help" to Arity.None,
             "-h" to Arity.None,
         ),
@@ -58,8 +65,14 @@ internal object GenerateCommand {
                 "forge ${spec.name}: analysis reported no errors and resolved nothing",
             )
 
+        val basePackage: String = line.option("--package") ?: document.app.packageName
         val options = CodegenOptions(
-            line.option("--package") ?: document.app.packageName,
+            basePackage,
+            // Read before anything is written: an unknown name is a refusal, not a fallback to
+            // the default, because a caller who typed `--navigation navigaton3` means a strategy
+            // and silently getting `simple` is a project whose wiring nobody asked for.
+            navigation = Strategies.navigation(line.option("--navigation"), basePackage, spec.name),
+            state = Strategies.state(line.option("--state"), spec.name),
             // §20:1598: the scaffold owns the Res package; the command is told rather than
             // guessing. Absent, a resource emission is refused with a finding instead.
             resources = line.option("--resources-package")?.let(::ComposeResourceStrategy) ?: ResourceStrategy.None,

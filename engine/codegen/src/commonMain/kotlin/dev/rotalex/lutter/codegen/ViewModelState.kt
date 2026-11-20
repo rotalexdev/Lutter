@@ -52,6 +52,12 @@ public data object ViewModelState : StateStrategy {
      * reserved name that depends on which declarations a document happens to hold would refuse
      * two documents differently for the same name.
      */
+    /**
+     * `lifecycle-viewmodel-compose`: `viewModel()` reads it, and the `ViewModel` a page's holder
+     * extends is the same artifact's.
+     */
+    override val libraries: Set<GeneratedLibrary> = setOf(GeneratedLibrary.LifecycleViewModelCompose)
+
     override val reservedTopLevelNames: Set<String> = ComposeSnapshotState.reservedTopLevelNames
 
     /**

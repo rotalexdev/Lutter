@@ -2,6 +2,9 @@ package dev.rotalex.lutter.scaffold
 
 import dev.rotalex.lutter.codegen.GeneratedFile
 import dev.rotalex.lutter.codegen.GeneratedFiles
+import dev.rotalex.lutter.codegen.Navigation3
+import dev.rotalex.lutter.codegen.NavigationCompose
+import dev.rotalex.lutter.codegen.ViewModelState
 import dev.rotalex.lutter.schema.component.PlatformTag
 import dev.rotalex.lutter.testsupport.Golden
 import dev.rotalex.lutter.testsupport.classpathGoldenSource
@@ -90,6 +93,96 @@ class ScaffoldGeneratorTest {
         assertTrue(catalog.contains("agp = \"${ScaffoldVersions.AGP}\""), catalog)
         assertTrue(catalog.contains("compose = \"${ScaffoldVersions.COMPOSE}\""), catalog)
         assertTrue(catalog.contains("androidCompileSdk = \"${ScaffoldVersions.ANDROID_COMPILE_SDK}\""), catalog)
+    }
+
+    /**
+     * §15's default pair needs no library, so the catalog has no `[libraries]` table at all.
+     *
+     * Not cosmetic: an empty table would rewrite every scaffold golden for a feature that
+     * states nothing about the default project, and "the default app depends on nothing" is
+     * exactly what the absent table says.
+     */
+    @Test
+    fun `the default strategies add no dependency`() {
+        val catalog = content("gradle/libs.versions.toml")
+        val shared = content("shared/build.gradle.kts")
+
+        assertFalse(catalog.contains("[libraries]"), catalog)
+        assertFalse(catalog.contains("navigation3"), catalog)
+        assertFalse(shared.contains("libs.navigation"), shared)
+        assertFalse(shared.contains("libs.lifecycle"), shared)
+    }
+
+    /**
+     * A generated `Navigation3` app calls `NavDisplay`, so the project has to resolve
+     * `navigation3-ui` — the pairing this feature exists to make automatic.
+     *
+     * The version asserted is the one `ScaffoldVersions` carries, which the build generated from
+     * the catalogs it resolved against: a test that spelled `1.2.0` would pass on a machine
+     * whose catalog said something else.
+     */
+    @Test
+    fun `a navigation3 project depends on navigation3-ui`() {
+        val navigation3 = spec.copy(navigation = Navigation3("com.example.sample"))
+        val catalog = content("gradle/libs.versions.toml", navigation3)
+        val shared = content("shared/build.gradle.kts", navigation3)
+
+        assertTrue(catalog.contains("[libraries]"), catalog)
+        assertTrue(
+            catalog.contains("navigation3 = \"${ScaffoldVersions.NAVIGATION3}\""),
+            catalog,
+        )
+        assertTrue(
+            catalog.contains(
+                "navigation3-ui = { module = \"org.jetbrains.androidx.navigation3:navigation3-ui\", " +
+                    "version.ref = \"navigation3\" }",
+            ),
+            catalog,
+        )
+        assertTrue(shared.contains("implementation(libs.navigation3.ui)"), shared)
+        assertFalse(shared.contains("libs.lifecycle"), shared)
+    }
+
+    /** The `viewModel()` a `ViewModelState` app calls comes from `lifecycle-viewmodel-compose`. */
+    @Test
+    fun `a viewmodel project depends on lifecycle-viewmodel-compose`() {
+        val viewModel = spec.copy(state = ViewModelState)
+        val catalog = content("gradle/libs.versions.toml", viewModel)
+        val shared = content("shared/build.gradle.kts", viewModel)
+
+        assertTrue(
+            catalog.contains(
+                "lifecycle-viewmodel-compose = " +
+                    "{ module = \"org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose\", " +
+                    "version.ref = \"lifecycleViewmodelCompose\" }",
+            ),
+            catalog,
+        )
+        assertTrue(shared.contains("implementation(libs.lifecycle.viewmodel.compose)"), shared)
+        assertFalse(shared.contains("libs.navigation3"), shared)
+    }
+
+    /**
+     * Both strategies at once, and each library exactly once: the set is a union, and a
+     * dependency emitted twice is a catalog Gradle refuses to build.
+     */
+    @Test
+    fun `the two strategies contribute their libraries without duplication`() {
+        val both = spec.copy(
+            navigation = NavigationCompose("com.example.sample"),
+            state = ViewModelState,
+        )
+        val catalog = content("gradle/libs.versions.toml", both)
+        val shared = content("shared/build.gradle.kts", both)
+
+        assertTrue(catalog.contains("navigation-compose = "), catalog)
+        assertTrue(catalog.contains("lifecycle-viewmodel-compose = "), catalog)
+        assertEquals(
+            1,
+            shared.windowed("implementation(libs.navigation.compose)".length)
+                .count { it == "implementation(libs.navigation.compose)" },
+            shared,
+        )
     }
 
     /** §32: "regeneration is byte-stable" — same input, same bytes, no timestamps, no ordering luck. */

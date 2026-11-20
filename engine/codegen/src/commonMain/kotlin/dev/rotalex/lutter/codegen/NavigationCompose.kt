@@ -35,6 +35,9 @@ public data class NavigationCompose(public val basePackage: String) : Navigation
     override val reservedTopLevelNames: Set<String> =
         setOf(SimpleBackStack.RouteName, SimpleBackStack.RootName)
 
+    /** `navigation-compose`'s `NavHostController`, which every generated screen calls. */
+    override val libraries: Set<GeneratedLibrary> = setOf(GeneratedLibrary.NavigationCompose)
+
     /** What a screen receives: the controller, not a generated stack. */
     override val navigatorType: KotlinSymbol = NavigateController
 

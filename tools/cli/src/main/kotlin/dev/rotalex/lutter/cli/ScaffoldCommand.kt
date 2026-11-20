@@ -3,7 +3,9 @@ package dev.rotalex.lutter.cli
 import dev.rotalex.lutter.codegen.CodegenOptions
 import dev.rotalex.lutter.codegen.GeneratedFiles
 import dev.rotalex.lutter.codegen.KotlinGenerator
+import dev.rotalex.lutter.codegen.NavigationStrategy
 import dev.rotalex.lutter.codegen.ResourceStrategy
+import dev.rotalex.lutter.codegen.StateStrategy
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.scaffold.ProjectSpec
 import dev.rotalex.lutter.scaffold.ScaffoldGenerator
@@ -11,7 +13,8 @@ import dev.rotalex.lutter.schema.component.PlatformTag
 import java.io.File
 
 /**
- * `forge scaffold <app-name> [--package <pkg>] [--out <dir>] [--platforms <list>] [--document <file.json>]`.
+ * `forge scaffold <app-name> [--package <pkg>] [--out <dir>] [--platforms <list>] [--document <file.json>]
+ * [--navigation <name>] [--state <name>]`.
  *
  * §32 P14's fourth clause — "`ProjectSpec` + generator from `GeneratedFiles`; … CLI command
  * (`scaffold`)" — lands here. The two halves of generation meet in this command and nowhere
@@ -28,6 +31,12 @@ import java.io.File
  *
  * ### The defaults are decisions, so they are visible
  *
+ * `--navigation` and `--state` choose the strategies, and they reach both halves: the codegen
+ * pass that runs for `--document` and the `ProjectSpec` the Gradle project is built from. That
+ * pairing is why the flags live here as well as on `generate` — a project whose `shared` module
+ * was generated under `navigation3` and whose catalog never heard of `navigation3-ui` is the
+ * failure the scaffold exists to prevent, and it is invisible until the first build.
+ *
  * `--package` invents `com.example.<slug>`, because a package cannot be derived from an app
  * name without inventing a domain too. The one-line report names the package it chose, so the
  * placeholder is read rather than discovered in a manifest six files later. `--out` defaults
@@ -40,7 +49,8 @@ internal object ScaffoldCommand {
     val spec: CommandSpec = CommandSpec(
         name = "scaffold",
         signature = "scaffold <app-name> [--package <pkg>] [--out <dir>] [--platforms android,desktop] " +
-            "[--document <file.json>]",
+            "[--document <file.json>] [--navigation <simple|navigation-compose|navigation3>] " +
+            "[--state <snapshot|viewmodel>]",
         summary = "write a Gradle project for a generated app",
         positionals = listOf("app-name"),
         flags = mapOf(
@@ -48,6 +58,8 @@ internal object ScaffoldCommand {
             "--out" to Arity.Value,
             "--platforms" to Arity.Value,
             "--document" to Arity.Value,
+            "--navigation" to Arity.Value,
+            "--state" to Arity.Value,
             "--help" to Arity.None,
             "-h" to Arity.None,
         ),
@@ -59,17 +71,27 @@ internal object ScaffoldCommand {
         val basePackage: String = line.option("--package") ?: defaultPackage(appName)
         val platforms: Set<PlatformTag> = platforms(line.option("--platforms"))
         val outDir: File = File(line.option("--out") ?: DEFAULT_OUT)
+        // Resolved once and handed to both halves below: the codegen pass and the spec. A second
+        // parse would be a second chance for the two to disagree about what was asked for.
+        val navigation = Strategies.navigation(line.option("--navigation"), basePackage, spec.name)
+        val state = Strategies.state(line.option("--state"), spec.name)
 
         // A document is optional; a rejected one is fatal before any file exists.
         val document: File? = line.option("--document")?.let(::File)
         val codegen: GeneratedFiles = when (document) {
             null -> GeneratedFiles(emptyList())
-            else -> codegen(document, basePackage, err) ?: return ExitCode.Rejected
+            else -> codegen(document, basePackage, navigation, state, err) ?: return ExitCode.Rejected
         }
 
         // Named `project` and not `spec`: `spec` is the command, and a local of that name would
         // silently answer `${spec.name}` with the project's fields instead of the command's.
-        val projectSpec = ProjectSpec(appName = appName, basePackage = basePackage, targetPlatforms = platforms)
+        val projectSpec = ProjectSpec(
+            appName = appName,
+            basePackage = basePackage,
+            targetPlatforms = platforms,
+            navigation = navigation,
+            state = state,
+        )
         val project = try {
             ScaffoldGenerator.generate(projectSpec, codegen)
         } catch (refusal: IllegalArgumentException) {
@@ -94,7 +116,13 @@ internal object ScaffoldCommand {
      * are placed under `shared/src/commonMain/kotlin/` by the scaffold, so a codegen pass that
      * trusted the document would put a `package` line that disagrees with the tree it lands in.
      */
-    private fun codegen(document: File, basePackage: String, err: Appendable): GeneratedFiles? {
+    private fun codegen(
+        document: File,
+        basePackage: String,
+        navigation: NavigationStrategy,
+        state: StateStrategy,
+        err: Appendable,
+    ): GeneratedFiles? {
         val decoded: UiDocument = Engine.readDocument(document, spec.name)
         val schema = Engine.builtinSchema()
         val analysis = Engine.analyze(schema, decoded)
@@ -107,7 +135,12 @@ internal object ScaffoldCommand {
                 "forge ${spec.name}: analysis reported no errors and resolved nothing",
             )
 
-        val options = CodegenOptions(basePackage, resources = ResourceStrategy.None)
+        val options = CodegenOptions(
+            basePackage,
+            navigation = navigation,
+            state = state,
+            resources = ResourceStrategy.None,
+        )
         val result = KotlinGenerator(schema, options).generate(resolved, analysis.diagnostics)
         for (diagnostic in result.diagnostics) {
             if (diagnostic !in analysis.diagnostics) err.appendLine(Engine.describe(diagnostic))

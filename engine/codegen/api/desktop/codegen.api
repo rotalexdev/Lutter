@@ -83,6 +83,7 @@ public final class dev/rotalex/lutter/codegen/ComposeResourceStrategy : dev/rota
 public final class dev/rotalex/lutter/codegen/ComposeSnapshotState : dev/rotalex/lutter/codegen/StateStrategy {
 	public static final field INSTANCE Ldev/rotalex/lutter/codegen/ComposeSnapshotState;
 	public fun equals (Ljava/lang/Object;)Z
+	public fun getLibraries ()Ljava/util/Set;
 	public fun getReservedTopLevelNames ()Ljava/util/Set;
 	public fun hashCode ()I
 	public fun holder (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr;
@@ -179,6 +180,15 @@ public final class dev/rotalex/lutter/codegen/GeneratedLayout : java/lang/Enum {
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/GeneratedLayout;
 	public static fun values ()[Ldev/rotalex/lutter/codegen/GeneratedLayout;
+}
+
+public final class dev/rotalex/lutter/codegen/GeneratedLibrary : java/lang/Enum {
+	public static final field LifecycleViewModelCompose Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static final field Navigation3 Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static final field NavigationCompose Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static fun values ()[Ldev/rotalex/lutter/codegen/GeneratedLibrary;
 }
 
 public final class dev/rotalex/lutter/codegen/HeaderPolicy : java/lang/Enum {
@@ -778,6 +788,7 @@ public final class dev/rotalex/lutter/codegen/Navigation3 : dev/rotalex/lutter/c
 	public fun emitRoutes (Ljava/util/List;Ldev/rotalex/lutter/codegen/FileContext;)Ljava/util/List;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getBasePackage ()Ljava/lang/String;
+	public fun getLibraries ()Ljava/util/Set;
 	public fun getNavigatorType ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
 	public fun getReservedTopLevelNames ()Ljava/util/Set;
 	public fun hashCode ()I
@@ -794,6 +805,7 @@ public final class dev/rotalex/lutter/codegen/NavigationCompose : dev/rotalex/lu
 	public fun emitRoutes (Ljava/util/List;Ldev/rotalex/lutter/codegen/FileContext;)Ljava/util/List;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getBasePackage ()Ljava/lang/String;
+	public fun getLibraries ()Ljava/util/Set;
 	public fun getNavigatorType ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
 	public fun getReservedTopLevelNames ()Ljava/util/Set;
 	public fun hashCode ()I
@@ -804,8 +816,13 @@ public abstract interface class dev/rotalex/lutter/codegen/NavigationStrategy {
 	public abstract fun emitAppRoot (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ldev/rotalex/lutter/codegen/FileContext;)Ldev/rotalex/lutter/codegen/KtFile;
 	public abstract fun emitNavigateCall (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtStmt;
 	public abstract fun emitRoutes (Ljava/util/List;Ldev/rotalex/lutter/codegen/FileContext;)Ljava/util/List;
+	public fun getLibraries ()Ljava/util/Set;
 	public abstract fun getNavigatorType ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
 	public abstract fun getReservedTopLevelNames ()Ljava/util/Set;
+}
+
+public final class dev/rotalex/lutter/codegen/NavigationStrategy$DefaultImpls {
+	public static fun getLibraries (Ldev/rotalex/lutter/codegen/NavigationStrategy;)Ljava/util/Set;
 }
 
 public final class dev/rotalex/lutter/codegen/PlannedFile {
@@ -875,6 +892,7 @@ public final class dev/rotalex/lutter/codegen/SimpleBackStack : dev/rotalex/lutt
 	public fun emitRoutes (Ljava/util/List;Ldev/rotalex/lutter/codegen/FileContext;)Ljava/util/List;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getBasePackage ()Ljava/lang/String;
+	public fun getLibraries ()Ljava/util/Set;
 	public fun getNavigatorType ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
 	public fun getReservedTopLevelNames ()Ljava/util/Set;
 	public fun hashCode ()I
@@ -923,6 +941,7 @@ public final class dev/rotalex/lutter/codegen/StateScope : java/lang/Enum {
 }
 
 public abstract interface class dev/rotalex/lutter/codegen/StateStrategy {
+	public fun getLibraries ()Ljava/util/Set;
 	public abstract fun getReservedTopLevelNames ()Ljava/util/Set;
 	public abstract fun holder (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr;
 	public abstract fun pageExtras (Ljava/lang/String;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;)Ljava/util/List;
@@ -931,6 +950,10 @@ public abstract interface class dev/rotalex/lutter/codegen/StateStrategy {
 	public abstract fun receiver (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)Ldev/rotalex/lutter/codegen/KtExpr;
 	public abstract fun saveable (Ldev/rotalex/lutter/codegen/StateScope;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/StoreCodec;Ldev/rotalex/lutter/codegen/KtExpr;)Ljava/util/List;
 	public abstract fun supports (Ldev/rotalex/lutter/model/doc/Persistence;)Z
+}
+
+public final class dev/rotalex/lutter/codegen/StateStrategy$DefaultImpls {
+	public static fun getLibraries (Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/util/Set;
 }
 
 public final class dev/rotalex/lutter/codegen/StoreCodec {
@@ -976,6 +999,7 @@ public final class dev/rotalex/lutter/codegen/TypeSpelling$Unspelled : dev/rotal
 public final class dev/rotalex/lutter/codegen/ViewModelState : dev/rotalex/lutter/codegen/StateStrategy {
 	public static final field INSTANCE Ldev/rotalex/lutter/codegen/ViewModelState;
 	public fun equals (Ljava/lang/Object;)Z
+	public fun getLibraries ()Ljava/util/Set;
 	public fun getReservedTopLevelNames ()Ljava/util/Set;
 	public fun hashCode ()I
 	public fun holder (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr;

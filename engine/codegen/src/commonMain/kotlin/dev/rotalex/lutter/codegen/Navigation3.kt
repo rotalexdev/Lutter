@@ -41,6 +41,9 @@ public data class Navigation3(public val basePackage: String) : NavigationStrate
     override val reservedTopLevelNames: Set<String> =
         setOf(SimpleBackStack.RouteName, SimpleBackStack.NavigatorName, SimpleBackStack.RootName)
 
+    /** `navigation3-ui`, which carries `NavDisplay`, `NavEntry` and `NavKey`. */
+    override val libraries: Set<GeneratedLibrary> = setOf(GeneratedLibrary.Navigation3)
+
     /** What a screen receives: the generated stack, which is also what the display observes. */
     override val navigatorType: KotlinSymbol = KotlinSymbol(basePackage, SimpleBackStack.NavigatorName)
 

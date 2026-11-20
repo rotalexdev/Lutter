@@ -2,6 +2,7 @@ package dev.rotalex.lutter.scaffold
 
 import dev.rotalex.lutter.codegen.GeneratedFile
 import dev.rotalex.lutter.codegen.GeneratedFiles
+import dev.rotalex.lutter.codegen.GeneratedLibrary
 import dev.rotalex.lutter.schema.component.PlatformTag
 
 /**
@@ -75,6 +76,13 @@ public object ScaffoldGenerator {
         val android: Boolean = PlatformTag.Android in spec.targetPlatforms
         val desktop: Boolean = PlatformTag.Desktop in spec.targetPlatforms
         val packageDirectory: String = spec.basePackage.replace('.', '/')
+        // The strategies' own answer, not a list this file keeps: a strategy that needs a library
+        // declares it, and the generated project's catalog and `shared` module follow from that
+        // one fact. Sorted so two runs over one spec emit identical files.
+        val dependencies: List<GeneratedDependency> =
+            (spec.navigation.libraries + spec.state.libraries)
+                .map(::dependency)
+                .sortedBy { it.alias }
 
         val files = mutableListOf<GeneratedFile>()
         files += GeneratedFile("settings.gradle.kts", settings(spec, android, desktop))
@@ -84,8 +92,11 @@ public object ScaffoldGenerator {
         // reads a catalog from. A catalog in the project root is a file nothing loads, so
         // every `libs.` accessor in the build scripts is an unresolved reference — which is
         // how the first CI build of a scaffolded project failed.
-        files += GeneratedFile("gradle/libs.versions.toml", catalog(android, desktop))
-        files += GeneratedFile("$SHARED_MODULE/build.gradle.kts", sharedBuild(spec, android, desktop))
+        files += GeneratedFile("gradle/libs.versions.toml", catalog(android, desktop, dependencies))
+        files += GeneratedFile(
+            "$SHARED_MODULE/build.gradle.kts",
+            sharedBuild(spec, android, desktop, dependencies),
+        )
 
         if (android) {
             files += GeneratedFile("$ANDROID_APP_MODULE/build.gradle.kts", androidAppBuild(spec))
@@ -109,6 +120,62 @@ public object ScaffoldGenerator {
         }
 
         return GeneratedFiles(files)
+    }
+
+    /**
+     * One catalog entry and one `shared` dependency, as [ScaffoldGenerator] emits both.
+     *
+     * @property alias the catalog's alias, which is also the library's name in the module it
+     *   names — `navigation3-ui` for `navigation3-ui`.
+     * @property versionKey the `[versions]` key [alias] refers to.
+     * @property version the number that key carries, from [ScaffoldVersions].
+     * @property coordinates the module as `group:artifact`, with no version: the version is the
+     *   `version.ref` above, so the number exists once in the emitted project too.
+     * @property accessor the generated `libs` accessor a build script reads.
+     */
+    private data class GeneratedDependency(
+        val alias: String,
+        val versionKey: String,
+        val version: String,
+        val coordinates: String,
+        val accessor: String,
+    )
+
+    /**
+     * [library]'s catalog entry.
+     *
+     * A `when` over the enum rather than a map, so a library added to `GeneratedLibrary` and left
+     * unanswered here is a compile error — the failure this module exists to prevent is a
+     * generated project that resolves nothing.
+     *
+     * Each version is read from [ScaffoldVersions], which the build generates from the catalogs
+     * it resolves against; none is written here.
+     */
+    private fun dependency(library: GeneratedLibrary): GeneratedDependency = when (library) {
+        GeneratedLibrary.NavigationCompose -> GeneratedDependency(
+            alias = "navigation-compose",
+            versionKey = "navigationCompose",
+            version = ScaffoldVersions.NAVIGATION_COMPOSE,
+            coordinates = "org.jetbrains.androidx.navigation:navigation-compose",
+            accessor = "libs.navigation.compose",
+        )
+
+        GeneratedLibrary.Navigation3 -> GeneratedDependency(
+            alias = "navigation3-ui",
+            versionKey = "navigation3",
+            version = ScaffoldVersions.NAVIGATION3,
+            // `navigation3-runtime` — where `NavKey` and `NavEntry` live — comes with it.
+            coordinates = "org.jetbrains.androidx.navigation3:navigation3-ui",
+            accessor = "libs.navigation3.ui",
+        )
+
+        GeneratedLibrary.LifecycleViewModelCompose -> GeneratedDependency(
+            alias = "lifecycle-viewmodel-compose",
+            versionKey = "lifecycleViewmodelCompose",
+            version = ScaffoldVersions.LIFECYCLE_VIEWMODEL_COMPOSE,
+            coordinates = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose",
+            accessor = "libs.lifecycle.viewmodel.compose",
+        )
     }
 
     private const val GRADLE_PROPERTIES: String = """org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=1g
@@ -188,7 +255,11 @@ android.useAndroidX=true
         appendLine("}")
     }
 
-    private fun catalog(android: Boolean, desktop: Boolean): String = buildString {
+    private fun catalog(
+        android: Boolean,
+        desktop: Boolean,
+        dependencies: List<GeneratedDependency>,
+    ): String = buildString {
         appendLine("# Generated by Lutter from the catalog this engine builds and tests against.")
         appendLine("# A version here that the engine never resolved is a project nobody has compiled.")
         appendLine()
@@ -201,6 +272,20 @@ android.useAndroidX=true
         if (android) {
             appendLine("androidCompileSdk = \"${ScaffoldVersions.ANDROID_COMPILE_SDK}\"")
             appendLine("androidMinSdk = \"${ScaffoldVersions.ANDROID_MIN_SDK}\"")
+        }
+        for (entry in dependencies) appendLine("${entry.versionKey} = \"${entry.version}\"")
+        // The whole table is absent when the strategies need nothing, which is what keeps the
+        // default generated project's catalog byte-identical to the one before §15's seams: a
+        // feature that adds a table nothing fills would rewrite every golden for no statement.
+        if (dependencies.isNotEmpty()) {
+            appendLine()
+            appendLine("[libraries]")
+            for (entry in dependencies) {
+                appendLine(
+                    "${entry.alias} = { module = \"${entry.coordinates}\", " +
+                        "version.ref = \"${entry.versionKey}\" }",
+                )
+            }
         }
         appendLine()
         appendLine("[plugins]")
@@ -218,7 +303,12 @@ android.useAndroidX=true
         appendLine("composeCompiler = { id = \"org.jetbrains.kotlin.plugin.compose\", version.ref = \"composeCompiler\" }")
     }
 
-    private fun sharedBuild(spec: ProjectSpec, android: Boolean, desktop: Boolean): String = buildString {
+    private fun sharedBuild(
+        spec: ProjectSpec,
+        android: Boolean,
+        desktop: Boolean,
+        dependencies: List<GeneratedDependency>,
+    ): String = buildString {
         appendLine("// Generated by Lutter. The platform-neutral half of the app: it holds the generated UI")
         appendLine("// and the runtime that renders it, and the two app modules are only entry points.")
         appendLine()
@@ -257,6 +347,10 @@ android.useAndroidX=true
         appendLine("            implementation(compose.runtime)")
         appendLine("            implementation(compose.foundation)")
         appendLine("            implementation(compose.material3)")
+        // The generated UI's own dependencies: what the navigation and state strategies it was
+        // generated under call. Absent for the default pair, which is why the default project's
+        // build file is unchanged by this feature.
+        for (entry in dependencies) appendLine("            implementation(${entry.accessor})")
         appendLine("        }")
         if (desktop) {
             appendLine()

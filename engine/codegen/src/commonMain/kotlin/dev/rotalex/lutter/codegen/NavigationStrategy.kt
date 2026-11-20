@@ -34,6 +34,18 @@ public interface NavigationStrategy {
      */
     public val navigatorType: KotlinSymbol
 
+    /**
+     * The libraries the generated project needs to compile this strategy's emission.
+     *
+     * Empty by default, which is the honest answer for a strategy that emits self-contained
+     * Kotlin: [SimpleBackStack] is one. A strategy that calls a host library names it here, and
+     * `:engine:scaffold` turns each key into a catalog entry and a `shared` dependency — so the
+     * documented default of "a generated app with no dependencies" is a fact this interface
+     * states rather than a scaffold that forgot a row.
+     */
+    public val libraries: Set<GeneratedLibrary>
+        get() = emptySet()
+
     /** The sealed `Route` and the navigator over it, as the declarations of `Navigation.kt`. */
     public fun emitRoutes(pages: List<ResolvedPage>, ctx: FileContext): List<KtDeclaration>
 
