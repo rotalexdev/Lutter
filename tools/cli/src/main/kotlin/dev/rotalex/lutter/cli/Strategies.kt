@@ -47,6 +47,7 @@ internal object Strategies {
     private val INJECTIONS: Map<String, InjectionStrategy> = mapOf(
         "none" to NoInjection,
         "koin" to Koin,
+        "metro" to Metro,
     )
 
     /**
