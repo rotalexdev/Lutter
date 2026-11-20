@@ -8,13 +8,14 @@ import dev.rotalex.lutter.model.doc.UiDocument
 import java.io.File
 
 /**
- * `forge generate <document.json> [--out <dir>] [--package <pkg>] [--navigation <name>] [--state <name>]`.
+ * `forge generate <document.json> [--out <dir>] [--package <pkg>] [--navigation <name>]
+ * [--state <name>] [--injection <name>]`.
  *
  * PLAN §36.3's second half: decode, validate, generate. Each stage refuses before the next one
  * runs, which is the whole of what "each stage refuses" means — a document with an error never
  * reaches the generator, so a broken document cannot produce code that looks plausible.
  *
- * `--navigation` and `--state` choose §15's strategies. They belong to the command and not to
+ * `--navigation`, `--state` and `--injection` choose §15's strategies. They belong to the command and not to
  * the document because they are how an app is built, not what it says: one document generates
  * under any pair, which is the seam's whole claim.
  *
@@ -30,7 +31,8 @@ internal object GenerateCommand {
     val spec: CommandSpec = CommandSpec(
         name = "generate",
         signature = "generate <document.json> [--out <dir>] [--package <pkg>] " +
-            "[--navigation <simple|navigation-compose|navigation3>] [--state <snapshot|viewmodel>]",
+            "[--navigation <simple|navigation-compose|navigation3>] " +
+            "[--state <snapshot|viewmodel>] [--injection <none|koin>]",
         summary = "decode, validate and emit Kotlin/Compose",
         positionals = listOf("document.json"),
         flags = mapOf(
@@ -39,6 +41,7 @@ internal object GenerateCommand {
             "--resources-package" to Arity.Value,
             "--navigation" to Arity.Value,
             "--state" to Arity.Value,
+            "--injection" to Arity.Value,
             "--help" to Arity.None,
             "-h" to Arity.None,
         ),
@@ -73,6 +76,7 @@ internal object GenerateCommand {
             // and silently getting `simple` is a project whose wiring nobody asked for.
             navigation = Strategies.navigation(line.option("--navigation"), basePackage, spec.name),
             state = Strategies.state(line.option("--state"), spec.name),
+            injection = Strategies.injection(line.option("--injection"), spec.name),
             // §20:1598: the scaffold owns the Res package; the command is told rather than
             // guessing. Absent, a resource emission is refused with a finding instead.
             resources = line.option("--resources-package")?.let(::ComposeResourceStrategy) ?: ResourceStrategy.None,

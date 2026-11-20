@@ -80,7 +80,7 @@ public object ScaffoldGenerator {
         // declares it, and the generated project's catalog and `shared` module follow from that
         // one fact. Sorted so two runs over one spec emit identical files.
         val dependencies: List<GeneratedDependency> =
-            (spec.navigation.libraries + spec.state.libraries)
+            (spec.navigation.libraries + spec.state.libraries + spec.injection.libraries)
                 .map(::dependency)
                 .sortedBy { it.alias }
 
@@ -175,6 +175,24 @@ public object ScaffoldGenerator {
             version = ScaffoldVersions.LIFECYCLE_VIEWMODEL_COMPOSE,
             coordinates = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose",
             accessor = "libs.lifecycle.viewmodel.compose",
+        )
+
+        GeneratedLibrary.KoinCore -> GeneratedDependency(
+            alias = "koin-core",
+            versionKey = "koin",
+            version = ScaffoldVersions.KOIN,
+            coordinates = "io.insert-koin:koin-core",
+            accessor = "libs.koin.core",
+        )
+
+        GeneratedLibrary.KoinComposeViewModel -> GeneratedDependency(
+            alias = "koin-compose-viewmodel",
+            versionKey = "koin",
+            version = ScaffoldVersions.KOIN,
+            // `KoinApplication` and `koinViewModel()`. It brings `koin-compose` too, whose
+            // `koinConfiguration` the generated root calls.
+            coordinates = "io.insert-koin:koin-compose-viewmodel",
+            accessor = "libs.koin.compose.viewmodel",
         )
     }
 

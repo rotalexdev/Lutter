@@ -25,6 +25,15 @@ import dev.rotalex.lutter.schema.component.KotlinSymbol
  * strategy already knows how its own holder is obtained. That keeps the default pair's emission
  * byte-identical to the runs before this interface existed — which is the only proof a seam
  * introduction can offer.
+ *
+ * ### The four other questions, and why each defaults to nothing
+ *
+ * A container is more than a lookup: it needs somewhere to declare its bindings ([module]), a
+ * place to start ([appRoot]), and it can refuse a holder it cannot build ([refusal]). Every one of
+ * them defaults to the no-op, because [NoInjection] needs none of them and a container that needs
+ * only some of them should not have to spell the rest out. [emitsModule] exists separately from
+ * [module] because the *plan* decides the file list before anything is emitted, and the plan
+ * must not build a strategy's IR to find out whether there is a file.
  */
 public interface InjectionStrategy {
 
@@ -48,6 +57,47 @@ public interface InjectionStrategy {
      */
     public val libraries: Set<GeneratedLibrary>
         get() = emptySet()
+
+    /**
+     * Why [state]'s holder cannot be this container's to build, or null when it can.
+     *
+     * A container builds what it can construct; one whose accessor is scoped to a holder the
+     * platform owns has nothing to say to a holder the composition remembers. Null is the default
+     * because a container with no such requirement — and [NoInjection], which *is* the state
+     * strategy — refuses nothing.
+     */
+    public fun refusal(state: StateStrategy): String? = null
+
+    /**
+     * Whether this container puts bindings in a file of its own, which the plan places at
+     * `di/Injection.kt`.
+     *
+     * Asked before emission, so it is a plain property rather than a nullable [module]: a plan that
+     * had to build a strategy's declarations to decide the file list would emit them twice.
+     */
+    public val emitsModule: Boolean
+        get() = false
+
+    /**
+     * `di/Injection.kt`'s declarations: the bindings a container needs before [holderParameter]'s
+     * lookup finds anything.
+     *
+     * [pages] are the holders this document generated, as symbols, so a strategy never has to name
+     * them: it declares what the state strategy declared, in its own vocabulary.
+     */
+    public fun module(pages: List<KotlinSymbol>): List<KtDeclaration> = emptyList()
+
+    /**
+     * [body] with whatever this container needs around the app's content.
+     *
+     * Around and not inside: a lookup runs in a composable *below* the container, so a container
+     * that started inside the first screen would be missing from every later one. Identity is the
+     * default and the honest answer for a run that selected no container.
+     *
+     * [modulePackage] is where [module]'s declarations were emitted, because starting a container
+     * is naming what it was given, and that name lives in another file of the run.
+     */
+    public fun appRoot(body: List<KtStmt>, modulePackage: String): List<KtStmt> = body
 }
 
 /**

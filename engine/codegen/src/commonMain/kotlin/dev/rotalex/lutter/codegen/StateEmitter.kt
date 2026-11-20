@@ -128,6 +128,13 @@ public class StateEmitter(
      * Null when the page declares nothing: a state class with no members and a layer with
      * nothing in it are declarations that prove nothing and change every golden.
      */
+    /**
+     * Whether [page] has a §12.1 holder at all: the guard [pageState] applies, named once because
+     * whoever registers holders must agree with the screen that declares them. A stateless page
+     * declares no holder, so a module that registered one would name a class nothing generated.
+     */
+    public fun hasHolder(page: ResolvedPage): Boolean = page.state.isNotEmpty()
+
     public fun pageState(page: ResolvedPage): List<KtDeclaration>? {
         if (page.state.isEmpty()) return null
         val name: String = classNameOf(page)

@@ -76,7 +76,7 @@ public data class NavigationCompose(public val basePackage: String) : Navigation
         val body: List<KtStmt> = if (pages.isEmpty()) {
             emptyList()
         } else {
-            ctx.appState(
+            ctx.rootBody(
                 KtStmt.Expr(
                     KtExpr.Call(
                         KtExpr.Ref(KtSymbolRef(NavHost)),

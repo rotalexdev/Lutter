@@ -35,4 +35,21 @@ public enum class GeneratedLibrary {
      * `ViewModel` its factory builds, which is the whole of [ViewModelState]'s runtime.
      */
     LifecycleViewModelCompose,
+
+    /**
+     * `io.insert-koin:koin-core`: [Koin]'s `module` and `koinConfiguration`, and the `viewModel`
+     * declaration that comes with them. Its generated holder takes no constructor arguments in v1,
+     * so nothing here reads the container's resolution — the artifact is what the *declaration*
+     * needs, and a declaration compiled against nothing is a file with no imports to satisfy.
+     */
+    KoinCore,
+
+    /**
+     * `io.insert-koin:koin-compose-viewmodel`: `KoinApplication` and `koinViewModel()`, the two
+     * composables [Koin] puts in the generated app.
+     *
+     * It carries `lifecycle-viewmodel-compose` of its own, at a version the catalog overrides with
+     * [LifecycleViewModelCompose]'s — the generated catalog pins one, so the project resolves one.
+     */
+    KoinComposeViewModel,
 }

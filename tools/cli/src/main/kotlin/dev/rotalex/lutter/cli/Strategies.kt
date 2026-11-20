@@ -1,6 +1,9 @@
 package dev.rotalex.lutter.cli
 
 import dev.rotalex.lutter.codegen.ComposeSnapshotState
+import dev.rotalex.lutter.codegen.InjectionStrategy
+import dev.rotalex.lutter.codegen.Koin
+import dev.rotalex.lutter.codegen.NoInjection
 import dev.rotalex.lutter.codegen.Navigation3
 import dev.rotalex.lutter.codegen.NavigationCompose
 import dev.rotalex.lutter.codegen.NavigationStrategy
@@ -9,7 +12,7 @@ import dev.rotalex.lutter.codegen.StateStrategy
 import dev.rotalex.lutter.codegen.ViewModelState
 
 /**
- * `--navigation` and `--state` as the strategies §15's seams are selected through.
+ * `--navigation`, `--state` and `--injection` as the strategies §15's seams are selected through.
  *
  * One object for both commands, because `generate` and `scaffold --document` are two spellings
  * of one pipeline: a flag name that meant `Navigation3` in one and something else in the other
@@ -40,6 +43,12 @@ internal object Strategies {
         "viewmodel" to ViewModelState,
     )
 
+    /** The strategy names `--injection` accepts, in the order the refusal lists them. */
+    private val INJECTIONS: Map<String, InjectionStrategy> = mapOf(
+        "none" to NoInjection,
+        "koin" to Koin,
+    )
+
     /**
      * `--navigation`'s value, or [SimpleBackStack] when the flag is absent.
      *
@@ -67,7 +76,24 @@ internal object Strategies {
             )
     }
 
+    /**
+     * `--injection`'s value, or [NoInjection] when the flag is absent.
+     *
+     * No container is the default for the same reason no navigation and no ViewModel are: the
+     * generated app that selects nothing resolves nothing beyond Compose.
+     */
+    fun injection(value: String?, command: String): InjectionStrategy {
+        val name: String = value ?: DEFAULT_INJECTION
+        return INJECTIONS[name.lowercase()]
+            ?: throw CliFailure(
+                ExitCode.Unusable,
+                "forge $command: unknown injection '$name'; accepted: ${INJECTIONS.keys.joinToString(", ")}",
+            )
+    }
+
     private const val DEFAULT_NAVIGATION: String = "simple"
 
     private const val DEFAULT_STATE: String = "snapshot"
+
+    private const val DEFAULT_INJECTION: String = "none"
 }

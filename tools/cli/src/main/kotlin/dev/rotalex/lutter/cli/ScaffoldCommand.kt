@@ -2,6 +2,7 @@ package dev.rotalex.lutter.cli
 
 import dev.rotalex.lutter.codegen.CodegenOptions
 import dev.rotalex.lutter.codegen.GeneratedFiles
+import dev.rotalex.lutter.codegen.InjectionStrategy
 import dev.rotalex.lutter.codegen.KotlinGenerator
 import dev.rotalex.lutter.codegen.NavigationStrategy
 import dev.rotalex.lutter.codegen.ResourceStrategy
@@ -50,7 +51,7 @@ internal object ScaffoldCommand {
         name = "scaffold",
         signature = "scaffold <app-name> [--package <pkg>] [--out <dir>] [--platforms android,desktop] " +
             "[--document <file.json>] [--navigation <simple|navigation-compose|navigation3>] " +
-            "[--state <snapshot|viewmodel>]",
+            "[--state <snapshot|viewmodel>] [--injection <none|koin>]",
         summary = "write a Gradle project for a generated app",
         positionals = listOf("app-name"),
         flags = mapOf(
@@ -60,6 +61,7 @@ internal object ScaffoldCommand {
             "--document" to Arity.Value,
             "--navigation" to Arity.Value,
             "--state" to Arity.Value,
+            "--injection" to Arity.Value,
             "--help" to Arity.None,
             "-h" to Arity.None,
         ),
@@ -75,12 +77,14 @@ internal object ScaffoldCommand {
         // parse would be a second chance for the two to disagree about what was asked for.
         val navigation = Strategies.navigation(line.option("--navigation"), basePackage, spec.name)
         val state = Strategies.state(line.option("--state"), spec.name)
+        val injection = Strategies.injection(line.option("--injection"), spec.name)
 
         // A document is optional; a rejected one is fatal before any file exists.
         val document: File? = line.option("--document")?.let(::File)
         val codegen: GeneratedFiles = when (document) {
             null -> GeneratedFiles(emptyList())
-            else -> codegen(document, basePackage, navigation, state, err) ?: return ExitCode.Rejected
+            else -> codegen(document, basePackage, navigation, state, injection, err)
+                ?: return ExitCode.Rejected
         }
 
         // Named `project` and not `spec`: `spec` is the command, and a local of that name would
@@ -91,6 +95,7 @@ internal object ScaffoldCommand {
             targetPlatforms = platforms,
             navigation = navigation,
             state = state,
+            injection = injection,
         )
         val project = try {
             ScaffoldGenerator.generate(projectSpec, codegen)
@@ -121,6 +126,7 @@ internal object ScaffoldCommand {
         basePackage: String,
         navigation: NavigationStrategy,
         state: StateStrategy,
+        injection: InjectionStrategy,
         err: Appendable,
     ): GeneratedFiles? {
         val decoded: UiDocument = Engine.readDocument(document, spec.name)
@@ -139,6 +145,7 @@ internal object ScaffoldCommand {
             basePackage,
             navigation = navigation,
             state = state,
+            injection = injection,
             resources = ResourceStrategy.None,
         )
         val result = KotlinGenerator(schema, options).generate(resolved, analysis.diagnostics)

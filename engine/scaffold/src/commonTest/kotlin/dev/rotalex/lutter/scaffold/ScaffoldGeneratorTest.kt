@@ -2,6 +2,7 @@ package dev.rotalex.lutter.scaffold
 
 import dev.rotalex.lutter.codegen.GeneratedFile
 import dev.rotalex.lutter.codegen.GeneratedFiles
+import dev.rotalex.lutter.codegen.Koin
 import dev.rotalex.lutter.codegen.Navigation3
 import dev.rotalex.lutter.codegen.NavigationCompose
 import dev.rotalex.lutter.codegen.ViewModelState
@@ -141,6 +142,37 @@ class ScaffoldGeneratorTest {
         )
         assertTrue(shared.contains("implementation(libs.navigation3.ui)"), shared)
         assertFalse(shared.contains("libs.lifecycle"), shared)
+    }
+
+    /**
+     * A `Koin` project resolves the container and the composable lookup, both at one version.
+     *
+     * Two entries because the generated source imports both: `module` and `koinConfiguration` from
+     * `koin-core`, `KoinApplication` and `koinViewModel()` from `koin-compose-viewmodel`. One key,
+     * so the project cannot end up with two containers of different vintages.
+     */
+    @Test
+    fun `a koin project depends on the container and its compose lookup`() {
+        val koin = spec.copy(state = ViewModelState, injection = Koin)
+        val catalog = content("gradle/libs.versions.toml", koin)
+        val shared = content("shared/build.gradle.kts", koin)
+
+        assertTrue(catalog.contains("koin = \"${ScaffoldVersions.KOIN}\""), catalog)
+        assertTrue(
+            catalog.contains(
+                "koin-core = { module = \"io.insert-koin:koin-core\", version.ref = \"koin\" }",
+            ),
+            catalog,
+        )
+        assertTrue(
+            catalog.contains(
+                "koin-compose-viewmodel = { module = \"io.insert-koin:koin-compose-viewmodel\", " +
+                    "version.ref = \"koin\" }",
+            ),
+            catalog,
+        )
+        assertTrue(shared.contains("implementation(libs.koin.core)"), shared)
+        assertTrue(shared.contains("implementation(libs.koin.compose.viewmodel)"), shared)
     }
 
     /** The `viewModel()` a `ViewModelState` app calls comes from `lifecycle-viewmodel-compose`. */

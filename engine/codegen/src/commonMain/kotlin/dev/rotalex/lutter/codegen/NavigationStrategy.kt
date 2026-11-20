@@ -112,7 +112,24 @@ public class FileContext(
      * root opens. Null keeps a document without a `Saveable` declaration byte-identical.
      */
     public val storeParameter: KtParam? = null,
+
+    /**
+     * Wraps the app's content in whatever the selected container needs around it.
+     *
+     * Beside [appState] and applied *outside* it: a container is started above every composable
+     * that looks anything up, so the app-state provider — which a screen may itself read — has to
+     * be inside. Identity is the default, which is every run that selected no container.
+     */
+    public val injected: (List<KtStmt>) -> List<KtStmt> = { body -> body },
 ) {
+
+    /**
+     * `AppRoot`'s body: [content] under §12.1's app-state provider and inside the container.
+     *
+     * One call rather than three at each strategy's root, so the order (provider inside, container
+     * outside) is written once. A document with no pages has no content to wrap and gets none.
+     */
+    public fun rootBody(content: KtStmt): List<KtStmt> = injected(appState(content))
 
     /**
      * The receivers `AppRoot` declares as parameters.
@@ -198,7 +215,7 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
         val body: List<KtStmt> = if (pages.isEmpty()) {
             emptyList()
         } else {
-            ctx.appState(
+            ctx.rootBody(
                 KtStmt.When(
                     subject = KtExpr.Member(KtExpr.Name(ActionReceiver.Navigator.member), "current"),
                     branches = pages.map { page -> screenArm(page, ctx) },

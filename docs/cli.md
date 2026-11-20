@@ -25,7 +25,7 @@ the scripts do not hot-reload.
 ```
 forge generate <document.json> [--out <dir>] [--package <package>]
                 [--navigation <simple|navigation-compose|navigation3>]
-                [--state <snapshot|viewmodel>]
+                [--state <snapshot|viewmodel>] [--injection <none|koin>]
 ```
 
 Generates Kotlin source from a valid document.
@@ -36,6 +36,7 @@ Generates Kotlin source from a valid document.
 | `--package` | Root package of the generated code | The document's own `app.packageName` |
 | `--navigation` | Which navigation the emitted code runs (see below) | `simple` |
 | `--state` | Which state model the emitted code uses (see below) | `snapshot` |
+| `--injection` | Who builds a screen's state holder (see below) | `none` |
 
 Success output, on stdout, is one line that tells you exactly where everything went:
 
@@ -64,8 +65,20 @@ a generated app that depends on nothing beyond Compose Multiplatform itself.
 | `snapshot` | `@Stable` state classes held with `remember` and `mutableStateOf` | nothing |
 | `viewmodel` | A `ViewModel` per page owns its state; screens read `viewModel()` | `lifecycle-viewmodel-compose` |
 
+| `--injection` | Emits | Generated app needs |
+|---|---|---|
+| `none` | The state strategy's own lookup: `rememberHomeScreenState()` or `viewModel()` | nothing |
+| `koin` | `di/Injection.kt` with one binding per page holder, `AppRoot` wrapped in `KoinApplication`, screens defaulting to `koinViewModel()` | `koin-core`, `koin-compose-viewmodel` |
+
+The two flags compose, and one pair is refused rather than emitted. `koin` resolves a
+`ViewModel`, whose lifetime a `ViewModelStore` owns; a `snapshot` holder is remembered inside
+the page's composition, and handing it to the container would move a page's state out of the
+page's lifetime — a different policy, not a different lookup. So `--state snapshot --injection
+koin` fails with a diagnostic naming the fix, and `--state viewmodel --injection koin` is the
+pair that emits.
+
 A strategy's library is a fact the strategy states, not something a caller wires: `forge
-scaffold` accepts the same two flags and emits the matching `gradle/libs.versions.toml`
+scaffold` accepts the same three flags and emits the matching `gradle/libs.versions.toml`
 entries and `shared` dependencies, so a generated project built under `navigation3` resolves
 `navigation3-ui` without anyone editing its build files. Passing a library-needing strategy to
 `forge generate` alone gives you Kotlin and no Gradle project — the dependency is then yours
