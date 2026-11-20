@@ -144,6 +144,7 @@ public data object Metro : InjectionStrategy {
         val graph: KtStmt = KtStmt.LocalProperty(
             name = "graph",
             type = graphType,
+            mutable = false,
             initializer = KtExpr.Call(
                 KtExpr.TypeApplication(KtExpr.Ref(KtSymbolRef(createGraph)), listOf(graphType)),
                 emptyList(),
