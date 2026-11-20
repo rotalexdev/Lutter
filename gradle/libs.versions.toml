@@ -25,6 +25,22 @@ junit = "5.14.0"
 # `androidx.compose.ui:ui` 1.11.2), so the runtime and the test rule see exactly one compose
 # version rather than the BOM's answer to a different release line.
 androidx-compose = "1.11.2"
+
+# The navigation and lifecycle lines a *generated* project may pin, absent from rootLibs 1.2.7
+# for the same reason as the two above: the shared catalog carries no entry yet. They live here
+# because `:engine:scaffold` reads its emitted versions from a catalog this build resolved
+# against (§32 Phase 14), and a number typed into the generator would be the second source of
+# truth that rule exists to prevent. Only a project generated with a non-default strategy ever
+# resolves one of them; the default generated app still depends on nothing.
+#
+# Versions verified against Maven Central's metadata on 2026-11-19:
+# org.jetbrains.androidx.navigation:navigation-compose 2.10.0,
+# org.jetbrains.androidx.navigation3:navigation3-ui 1.2.0 (it brings navigation3-runtime, where
+# `NavKey` and `NavEntry` live), org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose
+# 2.11.0.
+navigationCompose = "2.10.0"
+navigation3 = "1.2.0"
+lifecycleViewmodelCompose = "2.11.0"
 robolectric = "4.17"
 
 [libraries]

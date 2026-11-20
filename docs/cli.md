@@ -24,6 +24,8 @@ the scripts do not hot-reload.
 
 ```
 forge generate <document.json> [--out <dir>] [--package <package>]
+                [--navigation <simple|navigation-compose|navigation3>]
+                [--state <snapshot|viewmodel>]
 ```
 
 Generates Kotlin source from a valid document.
@@ -32,6 +34,8 @@ Generates Kotlin source from a valid document.
 |---|---|---|
 | `--out` | Output directory for generated files | `generated` (relative to the working directory) |
 | `--package` | Root package of the generated code | The document's own `app.packageName` |
+| `--navigation` | Which navigation the emitted code runs (see below) | `simple` |
+| `--state` | Which state model the emitted code uses (see below) | `snapshot` |
 
 Success output, on stdout, is one line that tells you exactly where everything went:
 
@@ -42,6 +46,33 @@ forge generate: wrote 14 files to '/tmp/out'
 If the document fails validation, nothing is generated: the diagnostics are printed to
 stderr and the process exits `1` (the rejected-exit code). `generate` never leaves a
 half-written tree behind.
+
+#### Choosing the strategies
+
+A document says *what* an app has; the two flags say *how* the code for it is built. Every
+pair works with every document — that is the point of the seam — and the default pair emits
+a generated app that depends on nothing beyond Compose Multiplatform itself.
+
+| `--navigation` | Emits | Generated app needs |
+|---|---|---|
+| `simple` | A generated `Route` hierarchy and `AppNavigator`; `AppRoot` dispatches with a `when` | nothing |
+| `navigation-compose` | `Route` keys and a `NavHost`; screens receive the `NavHostController` | `navigation-compose` |
+| `navigation3` | `NavKey` routes and a `SnapshotStateList` stack, rendered by `NavDisplay` | `navigation3-ui` |
+
+| `--state` | Emits | Generated app needs |
+|---|---|---|
+| `snapshot` | `@Stable` state classes held with `remember` and `mutableStateOf` | nothing |
+| `viewmodel` | A `ViewModel` per page owns its state; screens read `viewModel()` | `lifecycle-viewmodel-compose` |
+
+A strategy's library is a fact the strategy states, not something a caller wires: `forge
+scaffold` accepts the same two flags and emits the matching `gradle/libs.versions.toml`
+entries and `shared` dependencies, so a generated project built under `navigation3` resolves
+`navigation3-ui` without anyone editing its build files. Passing a library-needing strategy to
+`forge generate` alone gives you Kotlin and no Gradle project — the dependency is then yours
+to declare.
+
+An unknown name is refused with the accepted ones listed, and nothing is generated: a typo
+must not quietly produce the default strategy's project.
 
 ### `forge check`
 

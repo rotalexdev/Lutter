@@ -70,6 +70,16 @@ public interface StateStrategy {
     public val reservedTopLevelNames: Set<String>
 
     /**
+     * The libraries the generated project needs to compile this strategy's emission.
+     *
+     * The same contract as `NavigationStrategy.libraries`, and empty by default for the same
+     * reason: [ComposeSnapshotState] emits `mutableStateOf` and `remember` and needs nothing a
+     * Compose Multiplatform app does not already have.
+     */
+    public val libraries: Set<GeneratedLibrary>
+        get() = emptySet()
+
+    /**
      * The receiver a read of [scope]'s declaration carries, or null when the name is read bare.
      *
      * [appState] is the generated `LocalAppState` symbol, because the app scope's receiver

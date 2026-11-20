@@ -46,6 +46,20 @@ val sharedCatalog: VersionCatalog =
 fun pinnedPlugin(alias: String): String =
     sharedCatalog.findPlugin(alias).get().get().version.requiredVersion
 
+/**
+ * The catalog for the coordinates `rootLibs` does not carry yet (`gradle/libs.versions.toml`).
+ *
+ * Read through the extension for the reason above: the `libs` accessor in a module script
+ * resolves against the `plugins {}` block's DSL, and this file needs the catalog's versions as
+ * plain strings at configuration time.
+ */
+val gapCatalog: VersionCatalog =
+    extensions.getByType<VersionCatalogsExtension>().named("libs")
+
+/** The version bound to [alias] in the gap catalog, e.g. `navigation3`. */
+fun gapVersion(alias: String): String =
+    gapCatalog.findVersion(alias).get().requiredVersion
+
 /** The version bound to key [alias], e.g. `androidCompileSdk`. */
 fun pinnedVersion(alias: String): String =
     sharedCatalog.findVersion(alias).get().requiredVersion
@@ -58,6 +72,11 @@ val scaffoldVersions: Map<String, String> = mapOf(
     "JVM_TARGET" to pinnedVersion("jvmTarget"),
     "ANDROID_COMPILE_SDK" to pinnedVersion("androidCompileSdk"),
     "ANDROID_MIN_SDK" to pinnedVersion("androidMinSdk"),
+    // Only a generated project under a non-default strategy resolves these; see
+    // `GeneratedLibrary` for which strategy needs which.
+    "NAVIGATION_COMPOSE" to gapVersion("navigationCompose"),
+    "NAVIGATION3" to gapVersion("navigation3"),
+    "LIFECYCLE_VIEWMODEL_COMPOSE" to gapVersion("lifecycleViewmodelCompose"),
 )
 
 /**
