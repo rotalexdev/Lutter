@@ -108,7 +108,6 @@ public sealed interface KtExpr {
      */
     public data class TypeApplication(public val base: KtExpr, public val args: List<KtExpr>) : KtExpr
 
-    /** `inner?`, postfix. Two nodes rather than one `nullable` flag — [TypeApplication] says why. */
     /**
      * `() -> HomeViewModel`: a function spelled as a type, which is what a container's map is
      * keyed by rather than something it calls.
@@ -123,6 +122,19 @@ public sealed interface KtExpr {
         public val returns: KtExpr,
     ) : KtExpr
 
+    /**
+     * `out ViewModel`: one type argument carrying its own variance.
+     *
+     * A node rather than a prefix inside [TypeApplication] because the variance belongs to the
+     * argument, not to the application: `Map<KClass<out ViewModel>, () -> ViewModel>` is two
+     * arguments, one projected and one not, and a list of expressions could not say which.
+     */
+    public data class TypeProjection(
+        public val variance: TypeVariance,
+        public val inner: KtExpr,
+    ) : KtExpr
+
+    /** `inner?`, postfix. Two nodes rather than one `nullable` flag — [TypeApplication] says why. */
     public data class Nullable(public val inner: KtExpr) : KtExpr
 }
 
@@ -137,6 +149,20 @@ public sealed interface KtExpr {
  * An elvis beside a comparison therefore needs no parentheses, and reading the other way puts
  * `a ?: b == c` where Kotlin reads `(a ?: b) == c`.
  */
+/**
+ * Kotlin's two declaration-site variance markers, spelled where a type argument is projected.
+ *
+ * Only the two Kotlin has: a class's own declaration-site variance is a property of a type this
+ * module does not declare, so it never needs a node.
+ */
+public enum class TypeVariance {
+    /** `in T`. */
+    In,
+
+    /** `out T`. */
+    Out,
+}
+
 internal object KtBinding {
     const val Conditional: Int = 0
     const val Disjunction: Int = 1

@@ -377,6 +377,9 @@ public class KtPrinter(
             is KtExpr.TypeApplication -> renderExpr(expr.base, indent, aliases) + "<" +
                 expr.args.joinToString(", ") { renderExpr(it, indent, aliases) } + ">"
             is KtExpr.Nullable -> renderExpr(expr.inner, indent, aliases) + "?"
+            is KtExpr.TypeProjection ->
+                (if (expr.variance == TypeVariance.In) "in " else "out ") +
+                    renderExpr(expr.inner, indent, aliases)
             is KtExpr.FunctionType -> "(" +
                 expr.params.joinToString(", ") { renderExpr(it, indent, aliases) } +
                 ") -> " + renderExpr(expr.returns, indent, aliases)
@@ -650,6 +653,7 @@ public class KtPrinter(
             for (arg in expr.args) collectExprSymbols(arg, filePkg, seen)
         }
         if (expr is KtExpr.Nullable) collectExprSymbols(expr.inner, filePkg, seen)
+        if (expr is KtExpr.TypeProjection) collectExprSymbols(expr.inner, filePkg, seen)
         if (expr is KtExpr.FunctionType) {
             expr.params.forEach { collectExprSymbols(it, filePkg, seen) }
             collectExprSymbols(expr.returns, filePkg, seen)
