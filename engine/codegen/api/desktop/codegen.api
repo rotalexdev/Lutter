@@ -37,22 +37,24 @@ public final class dev/rotalex/lutter/codegen/CodegenExtensions$Companion {
 }
 
 public final class dev/rotalex/lutter/codegen/CodegenOptions {
-	public fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/codegen/GeneratedLayout;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ldev/rotalex/lutter/codegen/ResourceStrategy;Ldev/rotalex/lutter/codegen/HeaderPolicy;Ldev/rotalex/lutter/codegen/FormattingOptions;Ljava/util/Set;)V
-	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/codegen/GeneratedLayout;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ldev/rotalex/lutter/codegen/ResourceStrategy;Ldev/rotalex/lutter/codegen/HeaderPolicy;Ldev/rotalex/lutter/codegen/FormattingOptions;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/codegen/GeneratedLayout;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ldev/rotalex/lutter/codegen/InjectionStrategy;Ldev/rotalex/lutter/codegen/ResourceStrategy;Ldev/rotalex/lutter/codegen/HeaderPolicy;Ldev/rotalex/lutter/codegen/FormattingOptions;Ljava/util/Set;)V
+	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/codegen/GeneratedLayout;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ldev/rotalex/lutter/codegen/InjectionStrategy;Ldev/rotalex/lutter/codegen/ResourceStrategy;Ldev/rotalex/lutter/codegen/HeaderPolicy;Ldev/rotalex/lutter/codegen/FormattingOptions;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ldev/rotalex/lutter/codegen/GeneratedLayout;
 	public final fun component3 ()Ldev/rotalex/lutter/codegen/NavigationStrategy;
 	public final fun component4 ()Ldev/rotalex/lutter/codegen/StateStrategy;
-	public final fun component5 ()Ldev/rotalex/lutter/codegen/ResourceStrategy;
-	public final fun component6 ()Ldev/rotalex/lutter/codegen/HeaderPolicy;
-	public final fun component7 ()Ldev/rotalex/lutter/codegen/FormattingOptions;
-	public final fun component8 ()Ljava/util/Set;
-	public final fun copy (Ljava/lang/String;Ldev/rotalex/lutter/codegen/GeneratedLayout;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ldev/rotalex/lutter/codegen/ResourceStrategy;Ldev/rotalex/lutter/codegen/HeaderPolicy;Ldev/rotalex/lutter/codegen/FormattingOptions;Ljava/util/Set;)Ldev/rotalex/lutter/codegen/CodegenOptions;
-	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/CodegenOptions;Ljava/lang/String;Ldev/rotalex/lutter/codegen/GeneratedLayout;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ldev/rotalex/lutter/codegen/ResourceStrategy;Ldev/rotalex/lutter/codegen/HeaderPolicy;Ldev/rotalex/lutter/codegen/FormattingOptions;Ljava/util/Set;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/CodegenOptions;
+	public final fun component5 ()Ldev/rotalex/lutter/codegen/InjectionStrategy;
+	public final fun component6 ()Ldev/rotalex/lutter/codegen/ResourceStrategy;
+	public final fun component7 ()Ldev/rotalex/lutter/codegen/HeaderPolicy;
+	public final fun component8 ()Ldev/rotalex/lutter/codegen/FormattingOptions;
+	public final fun component9 ()Ljava/util/Set;
+	public final fun copy (Ljava/lang/String;Ldev/rotalex/lutter/codegen/GeneratedLayout;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ldev/rotalex/lutter/codegen/InjectionStrategy;Ldev/rotalex/lutter/codegen/ResourceStrategy;Ldev/rotalex/lutter/codegen/HeaderPolicy;Ldev/rotalex/lutter/codegen/FormattingOptions;Ljava/util/Set;)Ldev/rotalex/lutter/codegen/CodegenOptions;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/CodegenOptions;Ljava/lang/String;Ldev/rotalex/lutter/codegen/GeneratedLayout;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ldev/rotalex/lutter/codegen/InjectionStrategy;Ldev/rotalex/lutter/codegen/ResourceStrategy;Ldev/rotalex/lutter/codegen/HeaderPolicy;Ldev/rotalex/lutter/codegen/FormattingOptions;Ljava/util/Set;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/CodegenOptions;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getBasePackage ()Ljava/lang/String;
 	public final fun getFormatting ()Ldev/rotalex/lutter/codegen/FormattingOptions;
 	public final fun getHeader ()Ldev/rotalex/lutter/codegen/HeaderPolicy;
+	public final fun getInjection ()Ldev/rotalex/lutter/codegen/InjectionStrategy;
 	public final fun getLayout ()Ldev/rotalex/lutter/codegen/GeneratedLayout;
 	public final fun getNavigation ()Ldev/rotalex/lutter/codegen/NavigationStrategy;
 	public final fun getResources ()Ldev/rotalex/lutter/codegen/ResourceStrategy;
@@ -218,6 +220,15 @@ public final class dev/rotalex/lutter/codegen/ImportPolicy {
 
 public final class dev/rotalex/lutter/codegen/ImportPolicy$Companion {
 	public final fun getDefaultPackages ()Ljava/util/Set;
+}
+
+public abstract interface class dev/rotalex/lutter/codegen/InjectionStrategy {
+	public fun getLibraries ()Ljava/util/Set;
+	public abstract fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtParam;
+}
+
+public final class dev/rotalex/lutter/codegen/InjectionStrategy$DefaultImpls {
+	public static fun getLibraries (Ldev/rotalex/lutter/codegen/InjectionStrategy;)Ljava/util/Set;
 }
 
 public final class dev/rotalex/lutter/codegen/KotlinGenerator {
@@ -823,6 +834,15 @@ public abstract interface class dev/rotalex/lutter/codegen/NavigationStrategy {
 
 public final class dev/rotalex/lutter/codegen/NavigationStrategy$DefaultImpls {
 	public static fun getLibraries (Ldev/rotalex/lutter/codegen/NavigationStrategy;)Ljava/util/Set;
+}
+
+public final class dev/rotalex/lutter/codegen/NoInjection : dev/rotalex/lutter/codegen/InjectionStrategy {
+	public static final field INSTANCE Ldev/rotalex/lutter/codegen/NoInjection;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getLibraries ()Ljava/util/Set;
+	public fun hashCode ()I
+	public fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtParam;
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class dev/rotalex/lutter/codegen/PlannedFile {

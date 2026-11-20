@@ -139,11 +139,16 @@ public class StateEmitter(
     }
 
     /**
-     * The parameter §12.1 gives [page]'s screen. Its name is the strategy's — `state` where the
-     * holder is a state, `viewModel` where it is a ViewModel — and so is what it defaults to.
+     * The parameter §12.1 gives [page]'s screen. Its name and its type are the state strategy's —
+     * `state` where the holder is a state, `viewModel` where it is a ViewModel — and what it
+     * *defaults to* is the injection strategy's: who builds the holder.
+     *
+     * Split that way because the two can disagree: under a container, `viewModel()` is replaced by
+     * the container's lookup while the parameter stays a `ViewModel` named `viewModel`. `None`
+     * forwards to the state strategy, so the default pair is unchanged.
      */
     public fun pageParameter(page: ResolvedPage): KtParam =
-        strategy.pageParameter(page.name, screensPackage())
+        options.injection.holderParameter(page.name, strategy, screensPackage())
 
     /**
      * §12.1's component row: `var x by remember { mutableStateOf(init) }`, as composable locals.
