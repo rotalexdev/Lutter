@@ -55,7 +55,7 @@ class KoinInjectionTest {
     fun `the module declares every page holder`() {
         val printed: String = printDeclarations(Koin.module(listOf(HOME, SETTINGS)))
 
-        assertContains(printed, "val LutterModule = module {")
+        assertContains(printed, "public val LutterModule: Module = module {")
         assertContains(printed, "viewModel<HomeViewModel> {")
         assertContains(printed, "viewModel<SettingsViewModel> {")
         assertContains(printed, "import org.koin.core.module.dsl.viewModel")

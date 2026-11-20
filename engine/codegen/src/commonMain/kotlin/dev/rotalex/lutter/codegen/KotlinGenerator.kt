@@ -296,9 +296,13 @@ public class KotlinGenerator<A : Any, T : Any>(
      */
     private fun emitInjection(planned: PlannedFile, document: ResolvedDocument): KtFile? {
         val emitter: StateEmitter = stateEmitter() ?: return null
+        // Only pages the run actually declared a holder for: a stateless page names no holder,
+        // and registering one would reference a class no screen file contains.
         val holders: List<KotlinSymbol> = document.pages.entries
             .sortedBy { it.key.value }
-            .mapNotNull { (_, page) -> holderSymbol(emitter.pageParameter(page).type) }
+            .mapNotNull { (_, page) ->
+                if (emitter.hasHolder(page)) holderSymbol(emitter.pageParameter(page).type) else null
+            }
         val declarations: List<KtDeclaration> = options.injection.module(holders)
         if (declarations.isEmpty()) return null
         return KtFile(planned.packageName, headerText(), declarations)
