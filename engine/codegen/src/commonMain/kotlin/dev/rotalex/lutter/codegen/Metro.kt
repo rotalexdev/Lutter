@@ -52,6 +52,19 @@ public data object Metro : InjectionStrategy {
     private val viewModelGraph: KotlinSymbol = KotlinSymbol("dev.zacsweers.metrox.viewmodel", "ViewModelGraph")
 
     /** `dev.zacsweers.metrox.viewmodel.ViewModelKey`: what keys one contributed holder. */
+    /** `dev.zacsweers.metrox.viewmodel.MetroViewModelFactory`: what the graph's accessor returns. */
+    private val metroViewModelFactory: KotlinSymbol =
+        KotlinSymbol("dev.zacsweers.metrox.viewmodel", "MetroViewModelFactory")
+
+    /** `androidx.lifecycle.ViewModel`: the key's upper bound in the providers map. */
+    private val viewModelType: KotlinSymbol = KotlinSymbol("androidx.lifecycle", "ViewModel")
+
+    /** `kotlin.reflect.KClass`: the providers map's key. */
+    private val kClassType: KotlinSymbol = KotlinSymbol("kotlin.reflect", "KClass")
+
+    /** `kotlin.collections.Map`: the multibound providers map itself. */
+    private val mapType: KotlinSymbol = KotlinSymbol("kotlin.collections", "Map")
+
     private val viewModelKey: KotlinSymbol = KotlinSymbol("dev.zacsweers.metrox.viewmodel", "ViewModelKey")
 
     /** `dev.zacsweers.metrox.viewmodel.metroViewModel`: the lookup a screen's parameter defaults to. */
@@ -120,12 +133,59 @@ public data object Metro : InjectionStrategy {
                 ),
             )
         }
+        val providersType: KtExpr = KtExpr.TypeApplication(
+            KtExpr.Ref(KtSymbolRef(mapType)),
+            listOf(
+                KtExpr.TypeApplication(
+                    KtExpr.Ref(KtSymbolRef(kClassType)),
+                    listOf(KtExpr.TypeProjection(TypeVariance.Out, KtExpr.Ref(KtSymbolRef(viewModelType)))),
+                ),
+                KtExpr.FunctionType(emptyList(), KtExpr.Ref(KtSymbolRef(viewModelType))),
+            ),
+        )
+        // `ViewModelGraph` does not provide the factory, it declares the accessor: the factory is a
+        // subclass the graph binds, and its only state is the multibound providers map. Written as
+        // the parameter override the metrox documentation spells, so the map arrives from the
+        // multibinding above rather than from anything this file could build.
+        val factory: KtDeclaration = KtDeclaration.Class(
+            name = FactoryName,
+            annotations = emptyList(),
+            members = emptyList(),
+            constructorProperties = listOf(
+                KtDeclaration.Property(
+                    name = "viewModelProviders",
+                    annotations = emptyList(),
+                    type = providersType,
+                    mutable = false,
+                    initializer = null,
+                    delegate = null,
+                    getter = null,
+                    visibility = "override",
+                ),
+            ),
+            supertype = metroViewModelFactory,
+        )
+        val factoryBinding: KtDeclaration = KtDeclaration.Function(
+            name = "provide" + FactoryName,
+            annotations = listOf(provides.toAnnotation()),
+            type = KtExpr.Ref(KtSymbolRef(metroViewModelFactory)),
+            params = listOf(KtParam("viewModelProviders", providersType, null)),
+            body = listOf(
+                KtStmt.Return(
+                    KtExpr.Call(
+                        KtExpr.Name(FactoryName),
+                        listOf(KtArg(null, KtExpr.Name("viewModelProviders"))),
+                    ),
+                ),
+            ),
+        )
         return listOf(
+            factory,
             KtDeclaration.Interface(
                 name = GraphName,
                 annotations = listOf(dependencyGraph.toAnnotation()),
                 sealed = false,
-                members = members,
+                members = members + factoryBinding,
                 supertypes = listOf(KtExpr.Ref(KtSymbolRef(viewModelGraph))),
             ),
         )
@@ -172,6 +232,9 @@ public data object Metro : InjectionStrategy {
     }
 
     private fun providerName(holder: KotlinSymbol): String = "provide" + holder.name
+
+    /** The `MetroViewModelFactory` subclass this file declares. */
+    internal const val FactoryName: String = "LutterViewModelFactory"
 
     /** `di/Injection.kt`'s one top-level name, prefixed for the same reason [Koin]'s is. */
     internal const val GraphName: String = "LutterGraph"
