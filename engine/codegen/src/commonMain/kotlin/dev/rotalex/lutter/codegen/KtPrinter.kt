@@ -697,7 +697,9 @@ public class KtPrinter(
             collectExprSymbols(stmt.target, filePkg, seen)
             collectExprSymbols(stmt.value, filePkg, seen)
         }
-        is KtStmt.Return -> stmt.value?.let { collectExprSymbols(it, filePkg, seen) }
+        is KtStmt.Return -> {
+            stmt.value?.let { collectExprSymbols(it, filePkg, seen) }
+        }
         // The subject and every arm value are expressions, and the arm bodies are statements
         // rather than expressions: an arm holds screen calls.
         is KtStmt.When -> {

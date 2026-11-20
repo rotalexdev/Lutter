@@ -867,6 +867,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             collapseAppStateRead(statement.target),
             collapseAppStateRead(statement.value),
         )
+        is KtStmt.Return -> KtStmt.Return(statement.value?.let { collapseAppStateRead(it) })
         is KtStmt.When -> KtStmt.When(
             subject = collapseAppStateRead(statement.subject),
             branches = statement.branches.map { branch ->
