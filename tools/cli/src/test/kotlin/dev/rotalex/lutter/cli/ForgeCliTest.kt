@@ -272,7 +272,12 @@ class ForgeCliTest {
         assertTrue(app.contains("NavDisplay("), app)
     }
 
-    /** The same claim for `--state`: the page's holder becomes a `ViewModel`. */
+    /**
+     * The same claim for `--state`: the page's holder becomes a `ViewModel`.
+     *
+     * `VALID` declares one page-state property, because a page without state has no holder to
+     * put in a `ViewModel` — and a test on a stateless page would pass whatever the flag did.
+     */
     @Test
     fun `generate emits the state strategy the flag names`() {
         val document = write(VALID, "valid.json")
@@ -368,7 +373,15 @@ class ForgeCliTest {
                   }
                 },
                 "pages": {
-                  "p_home": {"id": "p_home", "name": "Home", "route": "home", "root": "n_root"}
+                  "p_home": {
+                    "id": "p_home",
+                    "name": "Home",
+                    "route": "home",
+                    "root": "n_root",
+                    "state": [
+                      {"id": "s_count", "name": "count", "type": {"type": "i32"}, "initial": {"type": "i32", "v": 0}}
+                    ]
+                  }
                 }
               }
             }
