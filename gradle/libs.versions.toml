@@ -45,6 +45,7 @@ lifecycleViewmodelCompose = "2.11.0"
 # carries `koin-compose`, `koin-core-viewmodel` and lifecycle-viewmodel-compose 2.9.6, so a
 # generated project resolves one ViewModel API at the newer lifecycleViewmodelCompose above.
 koin = "4.2.2"
+metro = "1.4.5"
 robolectric = "4.17"
 
 [libraries]
@@ -56,6 +57,12 @@ navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui",
 lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
+# Metro 1.4.5 (Maven Central, 2026-11-20): one version line for the runtime, the plugin and the
+# metrox ViewModel artifacts. 1.5+/1.6 pull lifecycle-viewmodel-compose 2.11.0, whose Compose
+# Multiplatform lands on 1.12.0-beta01 and fights this catalog's 1.11.1; 1.4.5 pins 2.10.0 and
+# resolves inside the line the engine already builds and tests against.
+metro-runtime = { module = "dev.zacsweers.metro:runtime", version.ref = "metro" }
+metrox-viewmodel-compose = { module = "dev.zacsweers.metro:metrox-viewmodel-compose", version.ref = "metro" }
 junit-jupiter = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
@@ -74,3 +81,7 @@ robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectr
 # "coordinates that catalog does not have yet" — is where it goes meanwhile. The *coordinate*
 # is the thing that must not drift, and it is spelled the shared catalog's way.
 kotlinx-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version = "0.5.2" }
+
+[plugins]
+# Metro's compiler plugin: the graph `--injection metro` emits is an interface this implements.
+metro = { id = "dev.zacsweers.metro", version.ref = "metro" }

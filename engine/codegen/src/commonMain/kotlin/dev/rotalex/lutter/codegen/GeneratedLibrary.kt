@@ -52,4 +52,19 @@ public enum class GeneratedLibrary {
      * [LifecycleViewModelCompose]'s — the generated catalog pins one, so the project resolves one.
      */
     KoinComposeViewModel,
+
+    /**
+     * `dev.zacsweers.metro:runtime`: the annotations [Metro]'s graph is written with —
+     * `@DependencyGraph`, `@Provides`, `@IntoMap` — and the `createGraph` the root calls.
+     */
+    MetroRuntime,
+
+    /**
+     * `dev.zacsweers.metro:metrox-viewmodel-compose`: `metroViewModel()`, `ViewModelGraph`,
+     * `ViewModelKey` and `LocalMetroViewModelFactory`.
+     *
+     * It pins `lifecycle-viewmodel-compose` 2.11.0, the same version this catalog carries, so the
+     * generated project resolves one ViewModel API rather than two.
+     */
+    MetroxViewModelCompose,
 }

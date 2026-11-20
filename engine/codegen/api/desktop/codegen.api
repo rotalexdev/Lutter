@@ -192,11 +192,20 @@ public final class dev/rotalex/lutter/codegen/GeneratedLibrary : java/lang/Enum 
 	public static final field KoinComposeViewModel Ldev/rotalex/lutter/codegen/GeneratedLibrary;
 	public static final field KoinCore Ldev/rotalex/lutter/codegen/GeneratedLibrary;
 	public static final field LifecycleViewModelCompose Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static final field MetroRuntime Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static final field MetroxViewModelCompose Ldev/rotalex/lutter/codegen/GeneratedLibrary;
 	public static final field Navigation3 Ldev/rotalex/lutter/codegen/GeneratedLibrary;
 	public static final field NavigationCompose Ldev/rotalex/lutter/codegen/GeneratedLibrary;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/GeneratedLibrary;
 	public static fun values ()[Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+}
+
+public final class dev/rotalex/lutter/codegen/GeneratedPlugin : java/lang/Enum {
+	public static final field Metro Ldev/rotalex/lutter/codegen/GeneratedPlugin;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/GeneratedPlugin;
+	public static fun values ()[Ldev/rotalex/lutter/codegen/GeneratedPlugin;
 }
 
 public final class dev/rotalex/lutter/codegen/HeaderPolicy : java/lang/Enum {
@@ -232,6 +241,7 @@ public abstract interface class dev/rotalex/lutter/codegen/InjectionStrategy {
 	public fun appRoot (Ljava/util/List;Ljava/lang/String;)Ljava/util/List;
 	public fun getEmitsModule ()Z
 	public fun getLibraries ()Ljava/util/Set;
+	public fun getPlugins ()Ljava/util/Set;
 	public abstract fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtParam;
 	public fun module (Ljava/util/List;)Ljava/util/List;
 	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/lang/String;
@@ -241,6 +251,7 @@ public final class dev/rotalex/lutter/codegen/InjectionStrategy$DefaultImpls {
 	public static fun appRoot (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ljava/util/List;Ljava/lang/String;)Ljava/util/List;
 	public static fun getEmitsModule (Ldev/rotalex/lutter/codegen/InjectionStrategy;)Z
 	public static fun getLibraries (Ldev/rotalex/lutter/codegen/InjectionStrategy;)Ljava/util/Set;
+	public static fun getPlugins (Ldev/rotalex/lutter/codegen/InjectionStrategy;)Ljava/util/Set;
 	public static fun module (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ljava/util/List;)Ljava/util/List;
 	public static fun refusal (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/lang/String;
 }
@@ -251,6 +262,7 @@ public final class dev/rotalex/lutter/codegen/Koin : dev/rotalex/lutter/codegen/
 	public fun equals (Ljava/lang/Object;)Z
 	public fun getEmitsModule ()Z
 	public fun getLibraries ()Ljava/util/Set;
+	public fun getPlugins ()Ljava/util/Set;
 	public fun hashCode ()I
 	public fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtParam;
 	public fun module (Ljava/util/List;)Ljava/util/List;
@@ -793,6 +805,17 @@ public final class dev/rotalex/lutter/codegen/KtStmt$LocalProperty : dev/rotalex
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/codegen/KtStmt$Return : dev/rotalex/lutter/codegen/KtStmt {
+	public fun <init> (Ldev/rotalex/lutter/codegen/KtExpr;)V
+	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun copy (Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtStmt$Return;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtStmt$Return;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtStmt$Return;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/rotalex/lutter/codegen/KtStmt$When : dev/rotalex/lutter/codegen/KtStmt {
 	public fun <init> (Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;Ljava/util/List;)V
 	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtExpr;
@@ -860,6 +883,20 @@ public final class dev/rotalex/lutter/codegen/KtTemplatePart$Text : dev/rotalex/
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/codegen/Metro : dev/rotalex/lutter/codegen/InjectionStrategy {
+	public static final field INSTANCE Ldev/rotalex/lutter/codegen/Metro;
+	public fun appRoot (Ljava/util/List;Ljava/lang/String;)Ljava/util/List;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getEmitsModule ()Z
+	public fun getLibraries ()Ljava/util/Set;
+	public fun getPlugins ()Ljava/util/Set;
+	public fun hashCode ()I
+	public fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtParam;
+	public fun module (Ljava/util/List;)Ljava/util/List;
+	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/rotalex/lutter/codegen/Navigation3 : dev/rotalex/lutter/codegen/NavigationStrategy {
 	public fun <init> (Ljava/lang/String;)V
 	public final fun component1 ()Ljava/lang/String;
@@ -913,6 +950,7 @@ public final class dev/rotalex/lutter/codegen/NoInjection : dev/rotalex/lutter/c
 	public fun equals (Ljava/lang/Object;)Z
 	public fun getEmitsModule ()Z
 	public fun getLibraries ()Ljava/util/Set;
+	public fun getPlugins ()Ljava/util/Set;
 	public fun hashCode ()I
 	public fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtParam;
 	public fun module (Ljava/util/List;)Ljava/util/List;

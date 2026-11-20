@@ -78,6 +78,7 @@ val scaffoldVersions: Map<String, String> = mapOf(
     "NAVIGATION3" to gapVersion("navigation3"),
     "LIFECYCLE_VIEWMODEL_COMPOSE" to gapVersion("lifecycleViewmodelCompose"),
     "KOIN" to gapVersion("koin"),
+        "METRO" to gapVersion("metro"),
 )
 
 /**

@@ -75,6 +75,16 @@ public interface InjectionStrategy {
      * Asked before emission, so it is a plain property rather than a nullable [module]: a plan that
      * had to build a strategy's declarations to decide the file list would emit them twice.
      */
+    /**
+     * The Gradle plugins the generated project must apply, not merely depend on.
+     *
+     * Empty for a container that is a plain library: [Koin] is on the classpath and that is the
+     * whole of it. A container whose graph is *generated* — [Metro], and Hilt when it lands — needs
+     * a compiler plugin, and a project that depends on the runtime without applying the plugin
+     * builds into an unimplemented graph.
+     */
+    public val plugins: Set<GeneratedPlugin> get() = emptySet()
+
     public val emitsModule: Boolean
         get() = false
 

@@ -13,6 +13,10 @@ import org.gradle.process.ExecOperations
 
 plugins {
     id("forge.kmp.compose")
+    // §15.5's `metro` row: the generated graph is an interface Metro's plugin implements, so the
+    // variant cannot compile without it. Every other fixture is unaffected — a module with no
+    // `@DependencyGraph` in it is a module the plugin has nothing to do in.
+    alias(libs.plugins.metro)
 }
 
 // The resources package the fixtures' generated code imports `Res` from (§20:1598): the
@@ -67,6 +71,8 @@ dependencies {
     // three above — the variants' compilation is the proof that the emission resolves.
     commonMainApi(libs.koin.core)
     commonMainApi(libs.koin.compose.viewmodel)
+    commonMainApi(libs.metro.runtime)
+    commonMainApi(libs.metrox.viewmodel.compose)
     // Desktop-only UI test runner; commonTest stays pure so Android host tests keep running.
     desktopTestImplementation(compose.desktop.uiTestJUnit4)
     // Plan §36.1 bullet 7's Android half: `RuntimeSemanticsTest` composes under Robolectric on
@@ -340,6 +346,7 @@ abstract class GenerateStrategyFixtures : DefaultTask() {
             Variant("viewmodel", "simple", "viewmodel"),
             Variant("navigation3viewmodel", "navigation3", "viewmodel"),
             Variant("viewmodelkoin", "simple", "viewmodel", injection = "koin"),
+            Variant("viewmodelmetro", "simple", "viewmodel", injection = "metro"),
         )
 
         /** A navigating fixture and a stateful one; see the comment above the task. */
