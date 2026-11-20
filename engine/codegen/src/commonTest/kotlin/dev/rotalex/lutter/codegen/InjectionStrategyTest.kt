@@ -6,7 +6,11 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedPage
 import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.NodeId
+import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.ids.PageId
+import dev.rotalex.lutter.schema.function.FunctionSpec
+import dev.rotalex.lutter.schema.registry.Registry
+import dev.rotalex.lutter.schema.registry.RegistryBuilder
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -59,7 +63,11 @@ class InjectionStrategyTest {
                 provided
         }
 
-        val emitter = StateEmitter(document, CodegenOptions("com.example.app", injection = strategy), emptyList())
+        val emitter = StateEmitter(
+            document,
+            CodegenOptions("com.example.app", injection = strategy),
+            functions(),
+        )
 
         assertEquals(provided, emitter.pageParameter(page()))
     }
@@ -67,10 +75,13 @@ class InjectionStrategyTest {
     /** The default pair, through the emitter: the state strategy's parameter, unchanged. */
     @Test
     fun `the emitter's default is the state strategy's parameter`() {
-        val emitter = StateEmitter(documentOf(page()), CodegenOptions("com.example.app"), emptyList())
+        val emitter = StateEmitter(documentOf(page()), CodegenOptions("com.example.app"), functions())
 
         assertEquals(ComposeSnapshotState.pageParameter("Home", screens), emitter.pageParameter(page()))
     }
+
+    /** No function is read: the holder lookup names no document-declared function. */
+    private fun functions(): Registry<FunctionId, FunctionSpec> = RegistryBuilder<FunctionId, FunctionSpec>().build()
 
     private fun page(): ResolvedPage {
         val root = ResolvedNode(
