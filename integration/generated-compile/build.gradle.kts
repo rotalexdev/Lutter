@@ -281,6 +281,7 @@ abstract class GenerateStrategyFixtures : DefaultTask() {
                         "--resources-package", ResPkgs.PACKAGE,
                         "--navigation", variant.navigation,
                         "--state", variant.state,
+                        "--injection", variant.injection,
                     )
                 }
                 check(target.listFiles()?.isNotEmpty() == true) {
@@ -310,7 +311,12 @@ abstract class GenerateStrategyFixtures : DefaultTask() {
             .map { it.nameWithoutExtension to it }
 
     /** One row of the matrix: a package segment and the two flags that select it. */
-    private data class Variant(val packageSegment: String, val navigation: String, val state: String)
+    private data class Variant(
+        val packageSegment: String,
+        val navigation: String,
+        val state: String,
+        val injection: String = "none",
+    )
 
     private companion object {
         /**
@@ -318,12 +324,17 @@ abstract class GenerateStrategyFixtures : DefaultTask() {
          * pair every other build in this repository already compiles, and the two remaining
          * combinations (`navigation-compose` + `viewmodel`, `navigation3` + `snapshot`) differ from
          * a row below only in a substitution each of those rows already proves.
+         *
+         * One injection row and not the matrix: `koin` is refused for a remembered holder, so
+         * `viewmodel` is the only state strategy it pairs with, and the pair is worth compiling
+         * because the container's Kotlin is the one thing here no unit test can resolve.
          */
         val VARIANTS: List<Variant> = listOf(
             Variant("navigationcompose", "navigation-compose", "snapshot"),
             Variant("navigation3", "navigation3", "snapshot"),
             Variant("viewmodel", "simple", "viewmodel"),
             Variant("navigation3viewmodel", "navigation3", "viewmodel"),
+            Variant("viewmodelkoin", "simple", "viewmodel", injection = "koin"),
         )
 
         /** A navigating fixture and a stateful one; see the comment above the task. */
@@ -333,8 +344,8 @@ abstract class GenerateStrategyFixtures : DefaultTask() {
 
 val generateStrategyFixtures by tasks.register<GenerateStrategyFixtures>("generateStrategyFixtures") {
     group = "build"
-    description = "Generates the conformance fixtures under each navigation and state strategy, " +
-        "so compiling this module proves each strategy's emission resolves."
+    description = "Generates the conformance fixtures under each navigation, state and injection " +
+        "strategy, so compiling this module proves each strategy's emission resolves."
     fixtures.set(layout.projectDirectory.dir("fixtures"))
     navigatingFixtures.set(layout.projectDirectory.dir("fixtures-navigating"))
     generated.set(layout.buildDirectory.dir("generated/forge-strategies"))
