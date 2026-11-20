@@ -62,6 +62,13 @@ public data object Metro : InjectionStrategy {
         KotlinSymbol("dev.zacsweers.metrox.viewmodel", "LocalMetroViewModelFactory")
 
     /** `androidx.compose.runtime.CompositionLocalProvider`: how the root hands the factory down. */
+    /** `dev.zacsweers.metro.provides`: the infix that installs a value into a composition local. */
+    private val providesInfix: KotlinSymbol = KotlinSymbol("dev.zacsweers.metro", "provides")
+
+    /** `dev.zacsweers.metrox.viewmodel.LocalMetroViewModelFactory`: the local `metroViewModel()` reads. */
+    private val localMetroViewModelFactory: KotlinSymbol =
+        KotlinSymbol("dev.zacsweers.metrox.viewmodel", "LocalMetroViewModelFactory")
+
     private val compositionLocalProvider: KotlinSymbol =
         KotlinSymbol("androidx.compose.runtime", "CompositionLocalProvider")
 
@@ -96,7 +103,8 @@ public data object Metro : InjectionStrategy {
      * be exactly the lifetime change this seam refuses to make.
      */
     override fun module(pages: List<KotlinSymbol>): List<KtDeclaration> {
-        if (pages.isEmpty()) return emptyList()
+        // A document with no holder still gets the graph: `appRoot` names it unconditionally, and a
+        // graph with no contribution is a graph that resolves nothing — not a missing file.
         val members: List<KtDeclaration> = pages.map { holder ->
             val keyed: KtAnnotation = KtAnnotation(
                 viewModelKey,
@@ -105,18 +113,13 @@ public data object Metro : InjectionStrategy {
             KtDeclaration.Function(
                 name = providerName(holder),
                 annotations = listOf(provides.toAnnotation(), intoMap.toAnnotation(), keyed),
-                type = KtExpr.FunctionType(
-                    emptyList(),
-                    KtExpr.Ref(KtSymbolRef(holder)),
-                ),
+                // The ViewModel, not `() -> ViewModel`: Metro treats a parameter-less function
+                // type as a provider type of its own and refuses it as a unique binding, so the
+                // wrapper it wants is the one it builds.
+                type = KtExpr.Ref(KtSymbolRef(holder)),
                 params = emptyList(),
                 body = listOf(
-                    KtStmt.Expr(
-                        KtExpr.Lambda(
-                            emptyList(),
-                            listOf(KtStmt.Expr(KtExpr.Call(KtExpr.Ref(KtSymbolRef(holder)), emptyList()))),
-                        ),
-                    ),
+                    KtStmt.Expr(KtExpr.Call(KtExpr.Ref(KtSymbolRef(holder)), emptyList())),
                 ),
             )
         }
@@ -151,13 +154,20 @@ public data object Metro : InjectionStrategy {
             ),
             delegate = null,
         )
-        val factory: KtExpr = KtExpr.Member(KtExpr.Name("graph"), "metroViewModelFactory")
         return listOf(
             graph,
             KtStmt.Expr(
                 KtExpr.Call(
                     KtExpr.Ref(KtSymbolRef(compositionLocalProvider)),
-                    listOf(KtArg(null, KtExpr.Call(KtExpr.Name("provides"), listOf(KtArg(null, factory)), null))),
+                    listOf(
+                        KtArg(
+                            null,
+                            KtExpr.Snippet(
+                                "LocalMetroViewModelFactory provides graph.metroViewModelFactory",
+                                listOf(localMetroViewModelFactory, providesInfix),
+                            ),
+                        ),
+                    ),
                     KtExpr.Lambda(emptyList(), body),
                 ),
             ),
