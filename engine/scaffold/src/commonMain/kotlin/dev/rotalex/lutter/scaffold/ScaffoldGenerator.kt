@@ -3,6 +3,7 @@ package dev.rotalex.lutter.scaffold
 import dev.rotalex.lutter.codegen.GeneratedFile
 import dev.rotalex.lutter.codegen.GeneratedFiles
 import dev.rotalex.lutter.codegen.GeneratedLibrary
+import dev.rotalex.lutter.codegen.GeneratedPlugin
 import dev.rotalex.lutter.schema.component.PlatformTag
 
 /**
