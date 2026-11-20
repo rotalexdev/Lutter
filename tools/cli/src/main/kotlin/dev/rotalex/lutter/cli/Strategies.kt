@@ -3,6 +3,7 @@ package dev.rotalex.lutter.cli
 import dev.rotalex.lutter.codegen.ComposeSnapshotState
 import dev.rotalex.lutter.codegen.InjectionStrategy
 import dev.rotalex.lutter.codegen.Koin
+import dev.rotalex.lutter.codegen.Metro
 import dev.rotalex.lutter.codegen.NoInjection
 import dev.rotalex.lutter.codegen.Navigation3
 import dev.rotalex.lutter.codegen.NavigationCompose
