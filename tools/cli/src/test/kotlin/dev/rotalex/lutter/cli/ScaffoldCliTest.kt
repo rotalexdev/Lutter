@@ -139,6 +139,78 @@ class ScaffoldCliTest {
     }
 
     // -------------------------------------------------------------------------------------
+    // The strategies
+    // -------------------------------------------------------------------------------------
+
+    /**
+     * `--navigation navigation3` reaches the Gradle project, not only the Kotlin.
+     *
+     * This is the pairing the flag could get wrong without any test noticing: the generated
+     * project compiles `NavDisplay` and its catalog never declares `navigation3-ui`, and the
+     * first failure is a build a user runs by hand.
+     */
+    @Test
+    fun `navigation3 reaches the project's catalog and shared module`() {
+        assertEquals(
+            ExitCode.Ok,
+            forge("scaffold", "Sample App", "--navigation", "navigation3", "--out", output().path),
+        )
+
+        val catalog = File(output(), "gradle/libs.versions.toml").readText()
+        val shared = File(output(), "shared/build.gradle.kts").readText()
+        assertTrue(catalog.contains("navigation3-ui"), catalog)
+        assertTrue(shared.contains("implementation(libs.navigation3.ui)"), shared)
+    }
+
+    /** `--state viewmodel` is the same claim for the lifecycle artifact. */
+    @Test
+    fun `viewmodel state reaches the project's catalog and shared module`() {
+        assertEquals(
+            ExitCode.Ok,
+            forge("scaffold", "Sample App", "--state", "viewmodel", "--out", output().path),
+        )
+
+        val catalog = File(output(), "gradle/libs.versions.toml").readText()
+        val shared = File(output(), "shared/build.gradle.kts").readText()
+        assertTrue(catalog.contains("lifecycle-viewmodel-compose"), catalog)
+        assertTrue(shared.contains("implementation(libs.lifecycle.viewmodel.compose)"), shared)
+    }
+
+    /**
+     * A misspelt strategy is refused before anything is written.
+     *
+     * Silence is the failure mode this guards: a fallen-back default generates a project that
+     * builds and does not do what the caller asked for, and the caller has to diff two trees to
+     * find out.
+     */
+    @Test
+    fun `an unknown navigation strategy is a usage failure naming the accepted ones`() {
+        val invocation = invoke(
+            "scaffold",
+            "Sample App",
+            "--navigation",
+            "navigaton3",
+            "--out",
+            output().path,
+        )
+
+        assertEquals(ExitCode.Unusable, invocation.exit)
+        val message = invocation.err.toString()
+        assertTrue(message.contains("navigaton3"), message)
+        assertTrue(message.contains("navigation3"), message)
+        assertFalse(output().exists())
+    }
+
+    @Test
+    fun `an unknown state strategy is a usage failure naming the accepted ones`() {
+        val invocation = invoke("scaffold", "Sample App", "--state", "redux", "--out", output().path)
+
+        assertEquals(ExitCode.Unusable, invocation.exit)
+        assertTrue(invocation.err.toString().contains("viewmodel"), invocation.err.toString())
+        assertFalse(output().exists())
+    }
+
+    // -------------------------------------------------------------------------------------
     // Refusals
     // -------------------------------------------------------------------------------------
 

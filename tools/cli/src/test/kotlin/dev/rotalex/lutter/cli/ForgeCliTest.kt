@@ -246,6 +246,60 @@ class ForgeCliTest {
     }
 
     // -------------------------------------------------------------------------------------
+    // The strategies
+    // -------------------------------------------------------------------------------------
+
+    /**
+     * `--navigation` reaches the generator, and the generated root changes with it.
+     *
+     * Asserted on the emitted files rather than on a `CodegenOptions`: a flag that parsed and
+     * was never handed to the generator reads exactly like a working one until someone builds
+     * the project it produced.
+     */
+    @Test
+    fun `generate emits the navigation strategy the flag names`() {
+        val document = write(VALID, "valid.json")
+        val out = File(directory, "nav3")
+
+        assertEquals(
+            ExitCode.Ok,
+            forge("generate", document.path, "--out", out.path, "--navigation", "navigation3"),
+        )
+
+        val navigation = File(out, "Navigation.kt").readText()
+        val app = File(out, "App.kt").readText()
+        assertTrue(navigation.contains("NavKey"), navigation)
+        assertTrue(app.contains("NavDisplay("), app)
+    }
+
+    /** The same claim for `--state`: the page's holder becomes a `ViewModel`. */
+    @Test
+    fun `generate emits the state strategy the flag names`() {
+        val document = write(VALID, "valid.json")
+        val out = File(directory, "viewmodel")
+
+        assertEquals(
+            ExitCode.Ok,
+            forge("generate", document.path, "--out", out.path, "--state", "viewmodel"),
+        )
+
+        val emitted = out.walkTopDown().filter { it.isFile }.joinToString("\n") { it.readText() }
+        assertTrue(emitted.contains("viewModel()"), "no viewModel() in the emission")
+        assertTrue(emitted.contains("class HomeViewModel"), "no HomeViewModel in the emission")
+    }
+
+    /** A misspelt strategy is a usage failure, and nothing is written. */
+    @Test
+    fun `an unknown strategy is refused before anything is generated`() {
+        val document = write(VALID, "valid.json")
+        val invocation = invoke("generate", document.path, "--out", File(directory, "x").path, "--state", "redux")
+
+        assertEquals(ExitCode.Unusable, forge("generate", document.path, "--state", "redux"))
+        assertTrue(invocation.err.toString().contains("snapshot"), invocation.err.toString())
+        assertTrue(invocation.err.toString().contains("viewmodel"), invocation.err.toString())
+    }
+
+    // -------------------------------------------------------------------------------------
     // The two failures a script has to tell apart
     // -------------------------------------------------------------------------------------
 
