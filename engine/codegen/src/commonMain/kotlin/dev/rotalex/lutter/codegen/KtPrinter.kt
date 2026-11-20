@@ -698,7 +698,9 @@ public class KtPrinter(
             collectExprSymbols(stmt.value, filePkg, seen)
         }
         is KtStmt.Return -> {
-            stmt.value?.let { collectExprSymbols(it, filePkg, seen) }
+            // `if`, not `?.let`: a nullable receiver makes `let` return `Unit?`, and this `when`
+            // is the return value of a `Unit` function.
+            if (stmt.value != null) collectExprSymbols(stmt.value, filePkg, seen)
         }
         // The subject and every arm value are expressions, and the arm bodies are statements
         // rather than expressions: an arm holds screen calls.
