@@ -53,6 +53,15 @@ dependencies {
     // shorthand is the deprecated spelling, but the catalog carries no resources alias and the
     // coordinate is the plugin's own.
     commonMainImplementation(compose.components.resources)
+    // §15's strategy emissions, and `api` rather than `implementation` because they reach the
+    // generated code's *public* surface: a screen takes the `NavHostController` or the page's
+    // `ViewModel`, and `AppRoot` a `NavHostController` or a `SnapshotStateList`-backed navigator,
+    // so a consumer of this module resolves these types too. Absent, the strategy variants do not
+    // compile — which is the check this module exists to perform, so the dependency and the proof
+    // are the same line.
+    commonMainApi(libs.navigation.compose)
+    commonMainApi(libs.navigation3.ui)
+    commonMainApi(libs.lifecycle.viewmodel.compose)
     // Desktop-only UI test runner; commonTest stays pure so Android host tests keep running.
     desktopTestImplementation(compose.desktop.uiTestJUnit4)
     // Plan §36.1 bullet 7's Android half: `RuntimeSemanticsTest` composes under Robolectric on
