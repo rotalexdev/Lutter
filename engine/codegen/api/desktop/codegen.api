@@ -633,6 +633,19 @@ public final class dev/rotalex/lutter/codegen/KtExpr$TypeApplication : dev/rotal
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/codegen/KtExpr$TypeProjection : dev/rotalex/lutter/codegen/KtExpr {
+	public fun <init> (Ldev/rotalex/lutter/codegen/TypeVariance;Ldev/rotalex/lutter/codegen/KtExpr;)V
+	public final fun component1 ()Ldev/rotalex/lutter/codegen/TypeVariance;
+	public final fun component2 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun copy (Ldev/rotalex/lutter/codegen/TypeVariance;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr$TypeProjection;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtExpr$TypeProjection;Ldev/rotalex/lutter/codegen/TypeVariance;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtExpr$TypeProjection;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getInner ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun getVariance ()Ldev/rotalex/lutter/codegen/TypeVariance;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/rotalex/lutter/codegen/KtExpr$Unary : dev/rotalex/lutter/codegen/KtExpr {
 	public fun <init> (Ldev/rotalex/lutter/codegen/KtOp;Ldev/rotalex/lutter/codegen/KtExpr;)V
 	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtOp;
@@ -1060,6 +1073,14 @@ public final class dev/rotalex/lutter/codegen/TypeSpelling$Unspelled : dev/rotal
 	public final fun getReason ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/TypeVariance : java/lang/Enum {
+	public static final field In Ldev/rotalex/lutter/codegen/TypeVariance;
+	public static final field Out Ldev/rotalex/lutter/codegen/TypeVariance;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/TypeVariance;
+	public static fun values ()[Ldev/rotalex/lutter/codegen/TypeVariance;
 }
 
 public final class dev/rotalex/lutter/codegen/ViewModelState : dev/rotalex/lutter/codegen/StateStrategy {

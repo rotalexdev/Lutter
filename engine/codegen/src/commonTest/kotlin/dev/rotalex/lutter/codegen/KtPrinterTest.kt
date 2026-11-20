@@ -37,6 +37,30 @@ class KtPrinterTest {
         assertContains(printed, "import com.example.screens.HomeViewModel")
     }
 
+    /** A projected argument keeps its variance and still imports what it projects. */
+    @Test
+    fun `a type projection prints its variance and imports its argument`() {
+        val printed: String = KtPrinter().print(
+            ktFile(
+                property(
+                    "owners",
+                    KtExpr.TypeApplication(
+                        KtExpr.Ref(KtSymbolRef(KotlinSymbol("kotlin.reflect", "KClass"))),
+                        listOf(
+                            KtExpr.TypeProjection(
+                                TypeVariance.Out,
+                                KtExpr.Ref(KtSymbolRef(KotlinSymbol("com.example.screens", "HomeViewModel"))),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        assertContains(printed, "KClass<out HomeViewModel>")
+        assertContains(printed, "import com.example.screens.HomeViewModel")
+    }
+
     @Test
     fun `an object prints the members it declares`() {
         val printed = KtPrinter().print(
