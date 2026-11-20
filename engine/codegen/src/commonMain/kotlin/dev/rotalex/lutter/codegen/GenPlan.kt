@@ -89,6 +89,12 @@ public data class PlannedFile(
     public val componentId: ComponentDeclId?,
 )
 
+/**
+ * The package `di/Injection.kt` lands in, named once because two files need it: the plan places
+ * the file, and `App.kt` names the module the file declares.
+ */
+public fun injectionPackage(basePackage: String): String = basePackage + ".di"
+
 /** The file list: every page becomes a screen, every component a function file. */
 public data class GenPlan(
     public val basePackage: String,
@@ -126,7 +132,13 @@ public fun planDocument(
     // A container's bindings are a file of their own, and only a container has any: the plan asks
     // the strategy rather than guessing, so a run that selected nothing plans nothing new.
     if (injection.emitsModule && document.pages.isNotEmpty()) {
-        files += PlannedFile("di/Injection.kt", basePackage + ".di", PlannedFileKind.Injection, null, null)
+        files += PlannedFile(
+            "di/Injection.kt",
+            injectionPackage(basePackage),
+            PlannedFileKind.Injection,
+            null,
+            null,
+        )
     }
     // §12.1's persistent row is the only document fact that asks for a store, so a document
     // without one plans no file and emits no local.

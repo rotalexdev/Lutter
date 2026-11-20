@@ -93,8 +93,11 @@ public interface InjectionStrategy {
      * Around and not inside: a lookup runs in a composable *below* the container, so a container
      * that started inside the first screen would be missing from every later one. Identity is the
      * default and the honest answer for a run that selected no container.
+     *
+     * [modulePackage] is where [module]'s declarations were emitted, because starting a container
+     * is naming what it was given, and that name lives in another file of the run.
      */
-    public fun appRoot(body: List<KtStmt>): List<KtStmt> = body
+    public fun appRoot(body: List<KtStmt>, modulePackage: String): List<KtStmt> = body
 }
 
 /**

@@ -269,7 +269,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             header = headerText(),
             receivers = screenReceivers.mapValues { (_, held) -> held.sortedBy(ActionReceiver::member) },
             appState = { content -> stateEmitter()?.appProvider(content, store) ?: listOf(content) },
-            injected = options.injection::appRoot,
+            injected = { body -> options.injection.appRoot(body, injectionPackage(options.basePackage)) },
             receiverType = ::receiverType,
             storeParameter = store?.let { storeParameter() },
         )

@@ -67,16 +67,18 @@ class KoinInjectionTest {
     @Test
     fun `the root starts the container around the app's body`() {
         val content: List<KtStmt> = listOf(KtStmt.Expr(KtExpr.Name("HomeScreen")))
-        val printed: String = printRoot(Koin.appRoot(content))
+        val printed: String = printRoot(Koin.appRoot(content, DI))
 
         assertContains(printed, "KoinApplication(")
         assertContains(printed, "configuration = koinConfiguration {")
         assertContains(printed, "modules(LutterModule)")
+        // The module lives in another package, so its name has to be imported to resolve at all.
+        assertContains(printed, "import com.example.app.di.LutterModule")
         assertContains(printed, "HomeScreen")
         assertContains(printed, "import org.koin.compose.KoinApplication")
         assertContains(printed, "import org.koin.dsl.koinConfiguration")
         assertTrue(
-            Koin.appRoot(emptyList()).isEmpty(),
+            Koin.appRoot(emptyList(), DI).isEmpty(),
             "a document with no content has nothing for a container to provide for",
         )
     }
@@ -136,6 +138,8 @@ class KoinInjectionTest {
     }
 
     private companion object {
+        private const val DI: String = "com.example.app.di"
+
         private val HOME: KotlinSymbol = KotlinSymbol("com.example.app.screens", "HomeViewModel")
         private val SETTINGS: KotlinSymbol = KotlinSymbol("com.example.app.screens", "SettingsViewModel")
     }

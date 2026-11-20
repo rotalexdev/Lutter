@@ -55,6 +55,9 @@ public data object Koin : InjectionStrategy {
     /** `org.koin.compose.KoinApplication`: starts the container and provides it to the content. */
     private val koinApplication: KotlinSymbol = KotlinSymbol("org.koin.compose", "KoinApplication")
 
+    /** `org.koin.core.module.Module`: the block's type, which explicit API mode requires. */
+    private val moduleType: KotlinSymbol = KotlinSymbol("org.koin.core.module", "Module")
+
     /** `org.koin.compose.viewmodel.koinViewModel`: the lookup a screen's parameter defaults to. */
     private val koinViewModel: KotlinSymbol = KotlinSymbol("org.koin.compose.viewmodel", "koinViewModel")
 
@@ -119,7 +122,10 @@ public data object Koin : InjectionStrategy {
             KtDeclaration.Property(
                 name = ModuleName,
                 annotations = emptyList(),
-                type = null,
+                // Spelled, because the project compiles under explicit API mode and a `val`
+                // without a type is refused there. It is also what makes `LutterModule` a `Module`
+                // at the next file's use site rather than an inferred type that file cannot name.
+                type = KtExpr.Ref(KtSymbolRef(moduleType)),
                 mutable = false,
                 initializer = KtExpr.Call(
                     KtExpr.Ref(KtSymbolRef(moduleOf)),
@@ -138,7 +144,7 @@ public data object Koin : InjectionStrategy {
      * `KoinApplication` is what starts a container in Compose without an `Application` class, which
      * is what a generated library can do: it owns a composable, not a process.
      */
-    override fun appRoot(body: List<KtStmt>): List<KtStmt> {
+    override fun appRoot(body: List<KtStmt>, modulePackage: String): List<KtStmt> {
         // A document with no pages has nothing that could look anything up, and an empty
         // `KoinApplication` would start a container for content that never asks for one.
         if (body.isEmpty()) return body
@@ -151,7 +157,7 @@ public data object Koin : InjectionStrategy {
                     KtStmt.Expr(
                         KtExpr.Call(
                             KtExpr.Name("modules"),
-                            listOf(KtArg(null, KtExpr.Name(ModuleName))),
+                            listOf(KtArg(null, KtExpr.Ref(KtSymbolRef(KotlinSymbol(modulePackage, ModuleName))))),
                         ),
                     ),
                 ),
