@@ -3,6 +3,7 @@ package dev.rotalex.lutter.codegen
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.function.FunctionPrecedence
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -16,6 +17,25 @@ import kotlin.test.assertTrue
  * cannot see a missing blank line.
  */
 class KtPrinterTest {
+
+    /** A function type is a type: its return symbol is imported and nothing is called. */
+    @Test
+    fun `a function type prints its parameters and its return type`() {
+        val printed: String = KtPrinter().print(
+            ktFile(
+                property(
+                    "builder",
+                    KtExpr.FunctionType(
+                        emptyList(),
+                        KtExpr.Ref(KtSymbolRef(KotlinSymbol("com.example.screens", "HomeViewModel"))),
+                    ),
+                ),
+            ),
+        )
+
+        assertContains(printed, "() -> HomeViewModel")
+        assertContains(printed, "import com.example.screens.HomeViewModel")
+    }
 
     @Test
     fun `an object prints the members it declares`() {
