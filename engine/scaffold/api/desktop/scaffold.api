@@ -1,14 +1,18 @@
 public final class dev/rotalex/lutter/scaffold/ProjectSpec {
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/Set;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/Set;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/Set;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/lang/String;
 	public final fun component3 ()Ljava/util/Set;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/util/Set;)Ldev/rotalex/lutter/scaffold/ProjectSpec;
-	public static synthetic fun copy$default (Ldev/rotalex/lutter/scaffold/ProjectSpec;Ljava/lang/String;Ljava/lang/String;Ljava/util/Set;ILjava/lang/Object;)Ldev/rotalex/lutter/scaffold/ProjectSpec;
+	public final fun component4 ()Ldev/rotalex/lutter/codegen/NavigationStrategy;
+	public final fun component5 ()Ldev/rotalex/lutter/codegen/StateStrategy;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/util/Set;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;)Ldev/rotalex/lutter/scaffold/ProjectSpec;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/scaffold/ProjectSpec;Ljava/lang/String;Ljava/lang/String;Ljava/util/Set;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;ILjava/lang/Object;)Ldev/rotalex/lutter/scaffold/ProjectSpec;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAppName ()Ljava/lang/String;
 	public final fun getBasePackage ()Ljava/lang/String;
+	public final fun getNavigation ()Ldev/rotalex/lutter/codegen/NavigationStrategy;
+	public final fun getState ()Ldev/rotalex/lutter/codegen/StateStrategy;
 	public final fun getTargetPlatforms ()Ljava/util/Set;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
