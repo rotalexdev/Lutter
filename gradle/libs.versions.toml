@@ -41,6 +41,10 @@ androidx-compose = "1.11.2"
 navigationCompose = "2.10.0"
 navigation3 = "1.2.0"
 lifecycleViewmodelCompose = "2.11.0"
+# Koin 4.2.2 (Maven Central metadata, 2026-11-20), the newest stable: `koin-compose-viewmodel`
+# carries `koin-compose`, `koin-core-viewmodel` and lifecycle-viewmodel-compose 2.9.6, so a
+# generated project resolves one ViewModel API at the newer lifecycleViewmodelCompose above.
+koin = "4.2.2"
 robolectric = "4.17"
 
 [libraries]
@@ -50,6 +54,8 @@ robolectric = "4.17"
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
 lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
 junit-jupiter = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }

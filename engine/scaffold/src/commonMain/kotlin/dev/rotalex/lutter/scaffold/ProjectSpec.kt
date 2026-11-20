@@ -49,4 +49,14 @@ public data class ProjectSpec(
     public val targetPlatforms: Set<PlatformTag> = PlatformTag.ALL,
     public val navigation: NavigationStrategy = SimpleBackStack(basePackage),
     public val state: StateStrategy = ComposeSnapshotState,
+
+    /**
+     * Who builds the generated screens' holders — §15.5's seam, and the third strategy a project
+     * selects with the other two.
+     *
+     * The scaffold reads only its [InjectionStrategy.libraries] and its
+     * [InjectionStrategy.emitsModule]; what the lookup says and where the container starts are the
+     * generator's, because they are Kotlin and this module writes Gradle.
+     */
+    public val injection: InjectionStrategy = NoInjection,
 )

@@ -52,7 +52,7 @@ class KoinInjectionTest {
     /** One declaration per page, keyed by the exact class the screen asks for. */
     @Test
     fun `the module declares every page holder`() {
-        val printed: String = print(Koin.module(listOf(HOME, SETTINGS)))
+        val printed: String = printDeclarations(Koin.module(listOf(HOME, SETTINGS)))
 
         assertContains(printed, "val LutterModule = module {")
         assertContains(printed, "viewModel<HomeViewModel> {")
@@ -66,7 +66,7 @@ class KoinInjectionTest {
     @Test
     fun `the root starts the container around the app's body`() {
         val content: List<KtStmt> = listOf(KtStmt.Expr(KtExpr.Name("HomeScreen")))
-        val printed: String = print(Koin.appRoot(content))
+        val printed: String = printRoot(Koin.appRoot(content))
 
         assertContains(printed, "KoinApplication(")
         assertContains(printed, "configuration = koinConfiguration {")
@@ -117,10 +117,10 @@ class KoinInjectionTest {
         visibility = "private",
     )
 
-    private fun print(declarations: List<KtDeclaration>): String =
+    private fun printDeclarations(declarations: List<KtDeclaration>): String =
         KtPrinter().print(KtFile("com.example.app.di", null, declarations))
 
-    private fun print(body: List<KtStmt>): String {
+    private fun printRoot(body: List<KtStmt>): String {
         val function: KtDeclaration = KtDeclaration.Function(
             name = "AppRoot",
             annotations = emptyList(),
