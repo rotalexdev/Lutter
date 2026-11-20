@@ -108,11 +108,13 @@ public class KtPrinter(
 
     /** One `@` line per annotation, sorted by name so two runs over one tree agree. */
     private fun renderAnnotations(
-        annotations: List<KotlinSymbol>,
+        annotations: List<KtAnnotation>,
         indent: Int,
         aliases: Map<String, String>,
-    ): String = annotations.sortedBy { it.name }.joinToString("") {
-        indentOf(indent) + "@" + (aliases[it.fqn()] ?: it.name) + "\n"
+    ): String = annotations.sortedBy { it.symbol.name }.joinToString("") { annotation ->
+        val name: String = aliases[annotation.symbol.fqn()] ?: annotation.symbol.name
+        val args: String = annotation.args.joinToString(", ") { renderExpr(it, indent, aliases) }
+        indentOf(indent) + "@" + name + (if (annotation.args.isEmpty()) "" else "(" + args + ")") + "\n"
     }
 
     // Explicit `public`: the generated module builds with explicitApi, and the IR carries no
@@ -592,6 +594,24 @@ public class KtPrinter(
 
     // Members, not locals: exprs and stmt recurse into each other, and local
     // functions cannot forward-reference. State travels in parameters.
+    /**
+     * An annotation's own name and everything its arguments mention.
+     *
+     * The arguments are walked because `@ViewModelKey(HomeViewModel::class)` names a class the
+     * file has to import; recording only the annotation would compile to a name the file cannot
+     * resolve, which is the failure mode this whole collector exists to prevent.
+     */
+    private fun recordAnnotations(
+        annotations: List<KtAnnotation>,
+        filePkg: String,
+        seen: MutableMap<String, MutableList<KotlinSymbol>>,
+    ) {
+        for (annotation in annotations) {
+            recordSymbol(annotation.symbol, filePkg, seen)
+            annotation.args.forEach { collectExprSymbols(it, filePkg, seen) }
+        }
+    }
+
     private fun recordSymbol(
         symbol: KotlinSymbol,
         filePkg: String,
@@ -710,7 +730,7 @@ public class KtPrinter(
     ): Unit {
         when (declaration) {
             is KtDeclaration.Function -> {
-                declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                recordAnnotations(declaration.annotations, filePkg, seen)
                 declaration.optIns.forEach { recordSymbol(it, filePkg, seen) }
                 for (param in declaration.params) {
                     collectExprSymbols(param.type, filePkg, seen)
@@ -719,7 +739,7 @@ public class KtPrinter(
                 declaration.body.forEach { collectStmtSymbols(it, filePkg, seen) }
             }
             is KtDeclaration.Property -> {
-                declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                recordAnnotations(declaration.annotations, filePkg, seen)
                 collectOptional(declaration.type, filePkg, seen)
                 collectOptional(declaration.initializer, filePkg, seen)
                 collectOptional(declaration.delegate, filePkg, seen)
@@ -727,7 +747,7 @@ public class KtPrinter(
                 declaration.setter?.forEach { collectStmtSymbols(it, filePkg, seen) }
             }
             is KtDeclaration.Class -> {
-                declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                recordAnnotations(declaration.annotations, filePkg, seen)
                 declaration.supertype?.let { recordSymbol(it, filePkg, seen) }
                 declaration.constructorProperties.forEach {
                     collectDeclarationSymbols(it, filePkg, seen)
@@ -735,12 +755,12 @@ public class KtPrinter(
                 declaration.members.forEach { collectDeclarationSymbols(it, filePkg, seen) }
             }
             is KtDeclaration.Interface -> {
-                declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                recordAnnotations(declaration.annotations, filePkg, seen)
                 for (supertype in declaration.supertypes) collectExprSymbols(supertype, filePkg, seen)
                 declaration.members.forEach { collectDeclarationSymbols(it, filePkg, seen) }
             }
             is KtDeclaration.Object -> {
-                declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                recordAnnotations(declaration.annotations, filePkg, seen)
                 for (supertype in declaration.supertypes) collectExprSymbols(supertype, filePkg, seen)
                 for (member in declaration.members) collectDeclarationSymbols(member, filePkg, seen)
             }

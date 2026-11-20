@@ -326,7 +326,8 @@ public class StateEmitter(
         for (state in declarations) {
             members += member(state, scope, reader, keyPrefix, saves) ?: return null
         }
-        val annotations: List<KotlinSymbol> = if (annotated == null) emptyList() else listOf(annotated)
+        val annotations: List<KtAnnotation> =
+            if (annotated == null) emptyList() else listOf(annotated.toAnnotation())
         // The store arrives as a constructor property rather than as a parameter on every member,
         // and defaults to the composition local so a screen's `remember…State()` keeps its shape.
         val constructor: List<KtDeclaration.Property> = if (saves) listOf(storeProperty()) else emptyList()

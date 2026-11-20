@@ -230,7 +230,7 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
             listOf(
                 KtDeclaration.Function(
                     name = RootName,
-                    annotations = listOf(composable),
+                    annotations = listOf(composable.toAnnotation()),
                     type = null,
                     params = parameters,
                     body = body,

@@ -501,7 +501,7 @@ public class KotlinGenerator<A : Any, T : Any>(
         }
         declarations += KtDeclaration.Function(
             page.name + ReservedCodegenNames.ScreenSuffix,
-            listOf(composable),
+            listOf(composable.toAnnotation()),
             null,
             params,
             // First: reading the accessor is composable work, and the composable must own it
@@ -539,7 +539,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             actionLocals(reads) + listOf(KtStmt.Expr(body))
         val function: KtDeclaration.Function = KtDeclaration.Function(
             componentId.value,
-            listOf(composable),
+            listOf(composable.toAnnotation()),
             null,
             declared + environmentParams(reads) + modifierParam() + slotParams(document, componentId),
             statements,

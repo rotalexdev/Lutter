@@ -150,6 +150,23 @@ public sealed interface KtExpr {
  * `a ?: b == c` where Kotlin reads `(a ?: b) == c`.
  */
 /**
+ * One annotation occurrence: the symbol it names, and the arguments it is given.
+ *
+ * Separate from [KotlinSymbol] because a symbol is a *name* and an annotation is a *use* of it:
+ * `@Composable` and `@ViewModelKey(HomeViewModel::class)` name different things and one of them
+ * carries a class the compiler must resolve. [args] is a list rather than a map because Kotlin
+ * annotations have at most one positional argument and no positional-and-named mix, and a list
+ * says the order the printer writes.
+ */
+public data class KtAnnotation(
+    public val symbol: KotlinSymbol,
+    public val args: List<KtExpr> = emptyList(),
+)
+
+/** The common case: an annotation with nothing to say, spelled once instead of at every use. */
+public fun KotlinSymbol.toAnnotation(): KtAnnotation = KtAnnotation(this)
+
+/**
  * Kotlin's two declaration-site variance markers, spelled where a type argument is projected.
  *
  * Only the two Kotlin has: a class's own declaration-site variance is a property of a type this
@@ -301,7 +318,7 @@ public sealed interface KtDeclaration {
      */
     public data class Function(
         public val name: String,
-        public val annotations: List<KotlinSymbol>,
+        public val annotations: List<KtAnnotation>,
         public val type: KtExpr?,
         public val params: List<KtParam>,
         public val body: List<KtStmt>,
@@ -327,7 +344,7 @@ public sealed interface KtDeclaration {
      */
     public data class Property(
         public val name: String,
-        public val annotations: List<KotlinSymbol>,
+        public val annotations: List<KtAnnotation>,
         public val type: KtExpr?,
         public val mutable: Boolean,
         public val initializer: KtExpr?,
@@ -346,7 +363,7 @@ public sealed interface KtDeclaration {
      */
     public data class Class(
         public val name: String,
-        public val annotations: List<KotlinSymbol>,
+        public val annotations: List<KtAnnotation>,
         public val members: List<KtDeclaration>,
         public val constructorProperties: List<Property> = emptyList(),
         /**
@@ -367,7 +384,7 @@ public sealed interface KtDeclaration {
      */
     public data class Interface(
         public val name: String,
-        public val annotations: List<KotlinSymbol>,
+        public val annotations: List<KtAnnotation>,
         public val sealed: Boolean,
         public val members: List<KtDeclaration>,
         /**
@@ -388,7 +405,7 @@ public sealed interface KtDeclaration {
      */
     public data class Object(
         public val name: String,
-        public val annotations: List<KotlinSymbol>,
+        public val annotations: List<KtAnnotation>,
         public val data: Boolean,
         public val supertypes: List<KtExpr>,
         /**

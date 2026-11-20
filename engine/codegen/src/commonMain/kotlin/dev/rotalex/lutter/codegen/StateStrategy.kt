@@ -301,7 +301,7 @@ public data object ComposeSnapshotState : StateStrategy {
      */
     private fun rememberFunction(name: String): KtDeclaration.Function = KtDeclaration.Function(
         name = RememberPrefix + name,
-        annotations = listOf(composable),
+        annotations = listOf(composable.toAnnotation()),
         type = KtExpr.Name(name),
         params = emptyList(),
         body = listOf(
