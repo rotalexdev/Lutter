@@ -8,6 +8,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Koin's three answers, printed rather than described.
@@ -74,7 +75,10 @@ class KoinInjectionTest {
         assertContains(printed, "HomeScreen")
         assertContains(printed, "import org.koin.compose.KoinApplication")
         assertContains(printed, "import org.koin.dsl.koinConfiguration")
-        assertEquals(content, Koin.appRoot(emptyList()), "nothing to provide for starts no container")
+        assertTrue(
+            Koin.appRoot(emptyList()).isEmpty(),
+            "a document with no content has nothing for a container to provide for",
+        )
     }
 
     /** The plan, not the emitter, decides the file list: a wrapper that emits one plans one. */
@@ -84,12 +88,12 @@ class KoinInjectionTest {
             ResolvedDocument(emptyMap(), emptyMap(), emptyMap(), ResolvedTheme(null), emptyList(), emptyMap())
 
         assertEquals(
-            listOf("App.kt", "Navigation.kt", "AppHost.kt"),
+            listOf("App.kt", "AppHost.kt", "Navigation.kt"),
             plans(planDocument(empty, "com.example.app", Koin)),
             "a document with no pages has no holder to declare",
         )
         assertEquals(
-            listOf("App.kt", "Navigation.kt", "AppHost.kt"),
+            listOf("App.kt", "AppHost.kt", "Navigation.kt"),
             plans(planDocument(empty, "com.example.app", NoInjection)),
             "selecting nothing plans nothing new",
         )

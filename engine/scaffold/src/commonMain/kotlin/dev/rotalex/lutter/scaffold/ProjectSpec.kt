@@ -1,7 +1,9 @@
 package dev.rotalex.lutter.scaffold
 
 import dev.rotalex.lutter.codegen.ComposeSnapshotState
+import dev.rotalex.lutter.codegen.InjectionStrategy
 import dev.rotalex.lutter.codegen.NavigationStrategy
+import dev.rotalex.lutter.codegen.NoInjection
 import dev.rotalex.lutter.codegen.SimpleBackStack
 import dev.rotalex.lutter.codegen.StateStrategy
 import dev.rotalex.lutter.schema.component.PlatformTag
