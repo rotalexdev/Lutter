@@ -44,6 +44,12 @@ lifecycleViewmodelCompose = "2.11.0"
 robolectric = "4.17"
 
 [libraries]
+# The three artifacts a *generated* project may pin, and the reason `:integration:generated-compile`
+# can compile the code `--navigation`/`--state` select. Same gap as the versions above: rootLibs
+# 1.2.7 carries none of them.
+navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
+lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
 junit-jupiter = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }

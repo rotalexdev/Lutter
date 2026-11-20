@@ -212,6 +212,127 @@ val generateNavigatingFixtures by tasks.register<GenerateFixtures>("generateNavi
     emitsRegistry.set(false)
 }
 
+// §15's strategies, compiled rather than asserted.
+//
+// A codegen test can read the bytes a strategy emits; only a compiler can say whether they are
+// Kotlin that resolves. `gradle check` on this module is that verdict, which is what makes the
+// conformance claim real: `NavDisplay`'s generic signature, `NavHostController`'s API and
+// `viewModel()`'s artifact are checked against the versions the catalog pins rather than against a
+// test's idea of them.
+//
+// One fixture per variant, not the whole corpus: the claim is "each strategy compiles", and a
+// hundred documents per variant would multiply CI time to say the same sentence. The two chosen
+// cover what the strategies disagree about — one navigates (a `nav.navigate` handler, so the
+// emitted `Route`/navigator pair is used) and one owns page state (so the emitted holder exists) —
+// and `navigation3` + `viewmodel` is compiled too, because that pair is where both strategies
+// change `AppRoot`'s receivers at once.
+//
+// Each variant lands in its own subpackage, because the same fixture generated twice yields the
+// same class names: two variants in one package would collide rather than compile.
+abstract class GenerateStrategyFixtures : DefaultTask() {
+
+    /** The fixtures to compile, by file name — both directories' documents are read. */
+    @get:InputDirectory
+    abstract val fixtures: DirectoryProperty
+
+    @get:InputDirectory
+    abstract val navigatingFixtures: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val generated: DirectoryProperty
+
+    @get:Classpath
+    abstract val cliClasspath: ConfigurableFileCollection
+
+    /** What each variant's package hangs off; the variant's name is appended to it. */
+    @get:Input
+    abstract val basePackage: Property<String>
+
+    @get:Inject
+    abstract val exec: ExecOperations
+
+    @TaskAction
+    fun run() {
+        val out = generated.get().asFile
+        out.deleteRecursively()
+        out.mkdirs()
+        val documents = documents()
+        check(documents.isNotEmpty()) { "No fixture to compile under any strategy" }
+        for (variant in VARIANTS) {
+            for ((id, document) in documents) {
+                val pkg = "${basePackage.get()}.${variant.packageSegment}.${id.replace(Regex("[^A-Za-z0-9_]"), "_")}"
+                val target = File(out, "${variant.packageSegment}/$id")
+                exec.javaexec {
+                    classpath = cliClasspath
+                    mainClass.set("dev.rotalex.lutter.cli.MainKt")
+                    args(
+                        "generate", document.absolutePath,
+                        "--out", target.absolutePath,
+                        "--package", pkg,
+                        "--resources-package", ResPkgs.PACKAGE,
+                        "--navigation", variant.navigation,
+                        "--state", variant.state,
+                    )
+                }
+                check(target.listFiles()?.isNotEmpty() == true) {
+                    "Fixture '$id' generated nothing under ${variant.packageSegment}"
+                }
+            }
+        }
+    }
+
+    /**
+     * The two documents this task compiles, by file name.
+     *
+     * Read from both directories with the same non-recursive rule the other tasks use, and looked
+     * up by name so a renamed fixture fails here with the name it asked for rather than silently
+     * compiling a different one.
+     */
+    private fun documents(): List<Pair<String, File>> =
+        FIXTURE_NAMES.map { name ->
+            val found = (jsonIn(fixtures.get().asFile) + jsonIn(navigatingFixtures.get().asFile))
+                .firstOrNull { (id, _) -> id == name }
+                ?: error("Fixture '$name' is not in either fixture directory")
+            name to found.second
+        }
+
+    private fun jsonIn(directory: File): List<Pair<String, File>> =
+        (directory.listFiles { file -> file.extension == "json" }?.sortedBy { it.name } ?: emptyList())
+            .map { it.nameWithoutExtension to it }
+
+    /** One row of the matrix: a package segment and the two flags that select it. */
+    private data class Variant(val packageSegment: String, val navigation: String, val state: String)
+
+    private companion object {
+        /**
+         * What is compiled, and why not the full 3×2 matrix: `simple` + `snapshot` is the default
+         * pair every other build in this repository already compiles, and the two remaining
+         * combinations (`navigation-compose` + `viewmodel`, `navigation3` + `snapshot`) differ from
+         * a row below only in a substitution each of those rows already proves.
+         */
+        val VARIANTS: List<Variant> = listOf(
+            Variant("navigationcompose", "navigation-compose", "snapshot"),
+            Variant("navigation3", "navigation3", "snapshot"),
+            Variant("viewmodel", "simple", "viewmodel"),
+            Variant("navigation3viewmodel", "navigation3", "viewmodel"),
+        )
+
+        /** A navigating fixture and a stateful one; see the comment above the task. */
+        val FIXTURE_NAMES: List<String> = listOf("button_navigate", "text_field_state")
+    }
+}
+
+val generateStrategyFixtures by tasks.register<GenerateStrategyFixtures>("generateStrategyFixtures") {
+    group = "build"
+    description = "Generates the conformance fixtures under each navigation and state strategy, " +
+        "so compiling this module proves each strategy's emission resolves."
+    fixtures.set(layout.projectDirectory.dir("fixtures"))
+    navigatingFixtures.set(layout.projectDirectory.dir("fixtures-navigating"))
+    generated.set(layout.buildDirectory.dir("generated/forge-strategies"))
+    cliClasspath.from(cliRuntime)
+    basePackage.set("dev.rotalex.lutter.strategies")
+}
+
 // PLAN §36.1's `CodegenGoldenTest`, and the only thing that can write its goldens: this module
 // compiles what the generator emits, which proves the output is valid Kotlin and nothing about
 // whether it is the output anybody agreed to. A golden needs a writer, and the writer is a task —
@@ -476,6 +597,8 @@ kotlin {
     sourceSets.named("commonMain") {
         kotlin.srcDir(generateFixtures)
         kotlin.srcDir(generateNavigatingFixtures)
+        // Each strategy's emission, compiled: the conformance half of §15's selection point.
+        kotlin.srcDir(generateStrategyFixtures)
         // On request only. Every document would otherwise land in
         // `api/desktop/generated-compile.api` and make a pull request's `checkKotlinAbi` a
         // function of the nightly's document count.
