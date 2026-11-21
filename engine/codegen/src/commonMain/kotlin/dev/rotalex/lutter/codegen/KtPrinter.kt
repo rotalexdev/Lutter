@@ -745,6 +745,10 @@ public class KtPrinter(
             is KtDeclaration.Function -> {
                 recordAnnotations(declaration.annotations, filePkg, seen)
                 declaration.optIns.forEach { recordSymbol(it, filePkg, seen) }
+                // The return type, through the same path as a parameter's: a function whose
+                // return names a foreign type is an import, and one nothing else in the file
+                // spells returns `Flow<String>` with no `Flow` to resolve.
+                collectOptional(declaration.type, filePkg, seen)
                 for (param in declaration.params) {
                     collectExprSymbols(param.type, filePkg, seen)
                     param.default?.let { collectExprSymbols(it, filePkg, seen) }

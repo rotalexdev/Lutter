@@ -492,7 +492,12 @@ class StateEmitterTest {
         // The decision: the parameter stays the screen's with a default, and the default is where
         // the adapter is read — so `AppRoot` forwards `host` and supplies nothing else.
         assertTrue("host: AppHost" in screen, screen)
-        assertTrue("viewModel(initializer = { HomeViewModel(host.clock()) })" in screen, screen)
+        // A named argument expands, and a lambda with a body is one statement per line: the two
+        // facts pinned here are the initializer form and that it constructs the holder from the
+        // host, not the indentation the printer happens to choose.
+        assertTrue("viewModel(" in screen, screen)
+        assertTrue("initializer = {" in screen, screen)
+        assertTrue("HomeViewModel(host.clock())" in screen, screen)
     }
 
     @Test
