@@ -72,7 +72,35 @@ public data object Hilt : InjectionStrategy {
                 "this one."
         }
 
+    /**
+     * `@HiltViewModel class HomeViewModel @Inject constructor() : ViewModel()`.
+     *
+     * Only the classes a platform owns: the decoration is what `hiltViewModel()` reads, and a class
+     * the composition remembers is refused before emission, so nothing else reaches here.
+     */
+    override fun decorate(declarations: List<KtDeclaration>): List<KtDeclaration> =
+        declarations.map { declaration ->
+            if (declaration is KtDeclaration.Class && declaration.supertype == viewModelType) {
+                declaration.copy(
+                    annotations = declaration.annotations + hiltViewModelAnnotation.toAnnotation(),
+                    constructorAnnotation = inject,
+                )
+            } else {
+                declaration
+            }
+        }
+
     /** `androidx.hilt.navigation.compose.hiltViewModel`: the composable lookup. */
+    /** `dagger.hilt.android.lifecycle.HiltViewModel`: what `hiltViewModel()` resolves. */
+    private val hiltViewModelAnnotation: KotlinSymbol =
+        KotlinSymbol("dagger.hilt.android.lifecycle", "HiltViewModel")
+
+    /** `javax.inject.Inject`: the constructor `@HiltViewModel` requires. */
+    private val inject: KotlinSymbol = KotlinSymbol("javax.inject", "Inject")
+
+    /** `androidx.lifecycle.ViewModel`: the supertype that marks a class as a holder. */
+    private val viewModelType: KotlinSymbol = KotlinSymbol("androidx.lifecycle", "ViewModel")
+
     private val hiltViewModel: KotlinSymbol =
         KotlinSymbol("androidx.hilt.navigation.compose", "hiltViewModel")
 }

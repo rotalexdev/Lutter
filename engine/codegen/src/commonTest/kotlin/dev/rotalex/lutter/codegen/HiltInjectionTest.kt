@@ -63,6 +63,41 @@ class HiltInjectionTest {
         assertTrue("Android-only" in message, message)
     }
 
+    /**
+     * The decoration `hiltViewModel()` reads, printed: `@HiltViewModel` on the class and
+     * `@Inject constructor()` in the head.
+     */
+    @Test
+    fun `hilt decorates the holder it resolves`() {
+        val holder: KtDeclaration = KtDeclaration.Class(
+            name = "HomeViewModel",
+            annotations = emptyList(),
+            members = emptyList(),
+            supertype = KotlinSymbol("androidx.lifecycle", "ViewModel"),
+        )
+        val decorated: String = printDeclarations(Hilt.decorate(listOf(holder)))
+
+        assertTrue("@HiltViewModel" in decorated, decorated)
+        assertTrue("public class HomeViewModel @Inject constructor() : ViewModel()" in decorated, decorated)
+        assertTrue("import dagger.hilt.android.lifecycle.HiltViewModel" in decorated, decorated)
+        assertTrue("import javax.inject.Inject" in decorated, decorated)
+    }
+
+    /** A class the platform does not own is not Hilt's to decorate. */
+    @Test
+    fun `hilt leaves a class that is not a holder alone`() {
+        val plain: KtDeclaration = KtDeclaration.Class(
+            name = "HomeScreenState",
+            annotations = emptyList(),
+            members = emptyList(),
+        )
+
+        assertEquals(listOf(plain), Hilt.decorate(listOf(plain)))
+    }
+
+    private fun printDeclarations(declarations: List<KtDeclaration>): String =
+        KtPrinter().print(KtFile("com.example.app.screens", null, declarations))
+
     private fun printedDefault(param: KtParam): String {
         val expression: KtExpr = param.default ?: error("a holder parameter always has a default")
         val property: KtDeclaration = KtDeclaration.Property(
