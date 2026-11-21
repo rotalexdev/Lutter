@@ -370,6 +370,9 @@ abstract class GenerateStrategyFixtures : DefaultTask() {
             Variant("viewmodelmetro", "simple", "viewmodel", injection = "metro"),
             // §15.5's T4: an external declaration only the ViewModel row can hold, so the cell is
             // its own fixture rather than a seventh combination of the two shared ones.
+            // One row, not a matrix: the external row is `viewmodel` + `none` and nothing else
+            // compiles (see the refusals in `StateEmitter`), so this proves the overload the
+            // default initializer calls and the `AppHost` member it reads.
             Variant("externalstate", "simple", "viewmodel", fixtures = listOf("external_state")),
         )
 

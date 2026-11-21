@@ -207,6 +207,13 @@ public data object ViewModelState : StateStrategy {
         )
     }
 
+    /**
+     * The one strategy whose row is a class: the holder has a constructor property to receive the
+     * adapter and a coroutine scope to collect it in, so the declaration has an emission here.
+     */
+    override val supportsExternal: Boolean
+        get() = true
+
     override val pageParameterName: String = ParameterName
 
     override fun pageReservedNames(pageName: String): Set<String> = setOf(
