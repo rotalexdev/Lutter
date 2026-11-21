@@ -189,6 +189,8 @@ public final class dev/rotalex/lutter/codegen/GeneratedLayout : java/lang/Enum {
 }
 
 public final class dev/rotalex/lutter/codegen/GeneratedLibrary : java/lang/Enum {
+	public static final field HiltAndroid Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static final field HiltNavigationCompose Ldev/rotalex/lutter/codegen/GeneratedLibrary;
 	public static final field KoinComposeViewModel Ldev/rotalex/lutter/codegen/GeneratedLibrary;
 	public static final field KoinCore Ldev/rotalex/lutter/codegen/GeneratedLibrary;
 	public static final field LifecycleViewModelCompose Ldev/rotalex/lutter/codegen/GeneratedLibrary;
@@ -213,6 +215,21 @@ public final class dev/rotalex/lutter/codegen/HeaderPolicy : java/lang/Enum {
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/HeaderPolicy;
 	public static fun values ()[Ldev/rotalex/lutter/codegen/HeaderPolicy;
+}
+
+public final class dev/rotalex/lutter/codegen/Hilt : dev/rotalex/lutter/codegen/InjectionStrategy {
+	public static final field INSTANCE Ldev/rotalex/lutter/codegen/Hilt;
+	public fun appRoot (Ljava/util/List;Ljava/lang/String;)Ljava/util/List;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getEmitsModule ()Z
+	public fun getLibraries ()Ljava/util/Set;
+	public fun getPlugins ()Ljava/util/Set;
+	public fun hashCode ()I
+	public fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtParam;
+	public fun module (Ljava/util/List;)Ljava/util/List;
+	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/lang/String;
+	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/util/Set;)Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
 }
 
 public abstract interface class dev/rotalex/lutter/codegen/HostDecl {
@@ -245,6 +262,7 @@ public abstract interface class dev/rotalex/lutter/codegen/InjectionStrategy {
 	public abstract fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtParam;
 	public fun module (Ljava/util/List;)Ljava/util/List;
 	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/lang/String;
+	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/util/Set;)Ljava/lang/String;
 }
 
 public final class dev/rotalex/lutter/codegen/InjectionStrategy$DefaultImpls {
@@ -254,6 +272,7 @@ public final class dev/rotalex/lutter/codegen/InjectionStrategy$DefaultImpls {
 	public static fun getPlugins (Ldev/rotalex/lutter/codegen/InjectionStrategy;)Ljava/util/Set;
 	public static fun module (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ljava/util/List;)Ljava/util/List;
 	public static fun refusal (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/lang/String;
+	public static fun refusal (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/util/Set;)Ljava/lang/String;
 }
 
 public final class dev/rotalex/lutter/codegen/Koin : dev/rotalex/lutter/codegen/InjectionStrategy {
@@ -267,6 +286,7 @@ public final class dev/rotalex/lutter/codegen/Koin : dev/rotalex/lutter/codegen/
 	public fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtParam;
 	public fun module (Ljava/util/List;)Ljava/util/List;
 	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/lang/String;
+	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/util/Set;)Ljava/lang/String;
 	public fun toString ()Ljava/lang/String;
 }
 
@@ -894,6 +914,7 @@ public final class dev/rotalex/lutter/codegen/Metro : dev/rotalex/lutter/codegen
 	public fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtParam;
 	public fun module (Ljava/util/List;)Ljava/util/List;
 	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/lang/String;
+	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/util/Set;)Ljava/lang/String;
 	public fun toString ()Ljava/lang/String;
 }
 
@@ -955,6 +976,7 @@ public final class dev/rotalex/lutter/codegen/NoInjection : dev/rotalex/lutter/c
 	public fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtParam;
 	public fun module (Ljava/util/List;)Ljava/util/List;
 	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/lang/String;
+	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/util/Set;)Ljava/lang/String;
 	public fun toString ()Ljava/lang/String;
 }
 
