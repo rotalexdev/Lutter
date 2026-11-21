@@ -37,6 +37,16 @@ public enum class GeneratedLibrary {
     LifecycleViewModelCompose,
 
     /**
+     * `org.jetbrains.kotlinx:kotlinx-coroutines-core`: the `Flow` an external declaration arrives
+     * as, and the `launch`/`collect` a holder uses to fold it into a state.
+     *
+     * Declared although Compose already carries coroutines transitively: a generated file that
+     * names `Flow` in a public signature has to have the artifact in its own catalog, or the
+     * project's compile classpath would depend on a transitive dependency's accidental presence.
+     */
+    Coroutines,
+
+    /**
      * `io.insert-koin:koin-core`: [Koin]'s `module` and `koinConfiguration`, and the `viewModel`
      * declaration that comes with them. Its generated holder takes no constructor arguments in v1,
      * so nothing here reads the container's resolution — the artifact is what the *declaration*

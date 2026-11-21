@@ -41,6 +41,11 @@ androidx-compose = "1.11.2"
 navigationCompose = "2.10.0"
 navigation3 = "1.2.0"
 lifecycleViewmodelCompose = "2.11.0"
+# An external state declaration arrives as a `Flow` (see `ExternalStateDecl`), so a generated
+# project under the ViewModel state strategy names kotlinx-coroutines in a public signature.
+# Pinned here for the reason the three above are: the scaffold reads versions from a catalog it
+# resolved against, and a number typed into the generator would be a second source of truth.
+coroutines = "1.10.2"
 # Koin 4.2.2 (Maven Central metadata, 2026-11-20), the newest stable: `koin-compose-viewmodel`
 # carries `koin-compose`, `koin-core-viewmodel` and lifecycle-viewmodel-compose 2.9.6, so a
 # generated project resolves one ViewModel API at the newer lifecycleViewmodelCompose above.
@@ -57,6 +62,7 @@ robolectric = "4.17"
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
 lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
 # Metro 1.4.5 (Maven Central, 2026-11-20): one version line for the runtime, the plugin and the

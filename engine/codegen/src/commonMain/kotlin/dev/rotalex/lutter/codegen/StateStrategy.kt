@@ -27,6 +27,25 @@ public enum class StateScope {
 }
 
 /**
+ * One external declaration, as the two strategies that emit it need it.
+ *
+ * [adapter] is the name the document chose and the name both the `AppHost` member and the holder's
+ * constructor parameter take; [state] is the declaration's own name, which is the property the
+ * holder exposes. Two names in one record because the strategy that writes the property and the
+ * generator that writes the host member are different files reading the same declaration.
+ */
+public data class ExternalAdapter(
+    /** The `AppHost` member and the constructor parameter: where the stream arrives. */
+    public val adapter: String,
+    /** The declaration's name: what the holder calls the value it collects. */
+    public val state: String,
+    /** The element type, spelled. Null when the document's type has no Kotlin spelling. */
+    public val type: KtExpr?,
+    /** The seed a stream has before its first emission. Null when the literal is unspellable. */
+    public val initial: KtExpr?,
+)
+
+/**
  * One scalar type as text on both sides of a `PersistentStore`.
  *
  * The store holds text because an engine-owned store must outlive a Kotlin version without
@@ -115,8 +134,36 @@ public interface StateStrategy {
      *
      * One call rather than one per declaration: a row is a row, and two strategies that spell
      * half of it each would be two places to look when the file stops compiling.
+     *
+     * [state] is null for a page whose every declaration is external: there is no state class to
+     * name, and a row that still spelled one would write a file referring to a class nothing emits.
      */
-    public fun pageExtras(pageName: String, state: KotlinSymbol, pkg: String): List<KtDeclaration>
+    public fun pageExtras(
+        pageName: String,
+        state: KotlinSymbol?,
+        pkg: String,
+        external: List<ExternalAdapter> = emptyList(),
+    ): List<KtDeclaration>
+
+    /**
+     * The name [pageParameter] gives the screen's parameter, for the reads that hop through it.
+     *
+     * Published rather than repeated because an external declaration is read as a member of the
+     * holder and not of the state class: that read has no parameter node of its own to consult, and
+     * a second spelling of `viewModel` is a file that compiles or not depending on which writer
+     * wrote it.
+     */
+    /**
+     * Whether a declaration whose values arrive from a host adapter has an emission here.
+     *
+     * False is a refusal, not a downgrade: an external declaration under the snapshot strategy
+     * would be a `remember { mutableStateOf(initial) }` that never hears from the stream, which is
+     * a file that compiles and shows a value that stopped being true.
+     */
+    public val supportsExternal: Boolean
+        get() = false
+
+    public val pageParameterName: String
 
     /**
      * The parameter a page's screen takes for its row: its name, its type and its default.
@@ -126,7 +173,11 @@ public interface StateStrategy {
      * file that does not compile, and a screen whose parameter calls a holder something the
      * holder is not is a file that compiles and lies.
      */
-    public fun pageParameter(pageName: String, pkg: String): KtParam
+    public fun pageParameter(
+        pageName: String,
+        pkg: String,
+        external: List<ExternalAdapter> = emptyList(),
+    ): KtParam
 
     /**
      * Every top-level name a page called [pageName] has generated for it, the state class
@@ -190,11 +241,16 @@ public data object ComposeSnapshotState : StateStrategy {
 
     override fun pageExtras(
         pageName: String,
-        state: KotlinSymbol,
+        state: KotlinSymbol?,
         pkg: String,
-    ): List<KtDeclaration> = listOf(rememberFunction(state.name))
+        external: List<ExternalAdapter>,
+    ): List<KtDeclaration> = listOf(rememberFunction(checkNotNull(state).name))
 
-    override fun pageParameter(pageName: String, pkg: String): KtParam {
+    override fun pageParameter(
+        pageName: String,
+        pkg: String,
+        external: List<ExternalAdapter>,
+    ): KtParam {
         val holder: String = pageName + ReservedCodegenNames.PageStateSuffix
         return KtParam(
             name = "state",
@@ -202,6 +258,8 @@ public data object ComposeSnapshotState : StateStrategy {
             default = KtExpr.Call(KtExpr.Name(RememberPrefix + holder), emptyList()),
         )
     }
+
+    override val pageParameterName: String = "state"
 
     override fun pageReservedNames(pageName: String): Set<String> = setOf(
         pageName + ReservedCodegenNames.PageStateSuffix,

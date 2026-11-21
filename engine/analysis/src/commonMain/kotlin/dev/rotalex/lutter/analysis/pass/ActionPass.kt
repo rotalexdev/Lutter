@@ -457,6 +457,15 @@ private class Walk(
                 mapOf("property" to key.value, "state" to decl.id.value),
             )
         }
+        // §12.1's external row is the host's to produce: the generated property is a getter, so a
+        // write that reached the emitter would be a file that does not compile.
+        if (decl.external != null) {
+            found += refusal(
+                at, event, DiagnosticCodes.ActionStateNotWritable,
+                "State '${decl.id.value}' arrives from a host adapter and cannot be written",
+                mapOf("property" to key.value, "state" to decl.id.value),
+            )
+        }
         checkArgument(key, actual, decl.type, at, event, scope)
     }
 
@@ -482,6 +491,15 @@ private class Walk(
             found += refusal(
                 at, event, DiagnosticCodes.ActionStateNotWritable,
                 "State '${decl.id.value}' is derived and cannot be written",
+                mapOf("property" to key.value, "state" to decl.id.value),
+            )
+        }
+        // §12.1's external row is the host's to produce: the generated property is a getter, so a
+        // write that reached the emitter would be a file that does not compile.
+        if (decl.external != null) {
+            found += refusal(
+                at, event, DiagnosticCodes.ActionStateNotWritable,
+                "State '${decl.id.value}' arrives from a host adapter and cannot be written",
                 mapOf("property" to key.value, "state" to decl.id.value),
             )
         }

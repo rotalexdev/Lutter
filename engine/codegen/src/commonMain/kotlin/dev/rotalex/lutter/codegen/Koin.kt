@@ -79,8 +79,13 @@ public data object Koin : InjectionStrategy {
      * `viewModel: HomeViewModel`, and its reads still hop through `viewModel.state` — because the
      * container changes who *constructs* the holder, not what the screen is given.
      */
-    override fun holderParameter(page: String, state: StateStrategy, screensPackage: String): KtParam {
-        val declared: KtParam = state.pageParameter(page, screensPackage)
+    override fun holderParameter(
+        page: String,
+        state: StateStrategy,
+        screensPackage: String,
+        external: List<ExternalAdapter>,
+    ): KtParam {
+        val declared: KtParam = state.pageParameter(page, screensPackage, external)
         return KtParam(
             declared.name,
             declared.type,

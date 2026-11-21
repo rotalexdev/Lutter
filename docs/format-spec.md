@@ -105,6 +105,11 @@ file is named because a tag is only meaningful within its union's scope.
 | Theme (doc/ThemeDecl.kt) | `material3` |
 | Node ownership (index/DocumentIndex.kt) | `page, component` |
 
+One field is additive without a tag: `StateDecl.external` (doc/ExternalStateDecl.kt) is a nullable
+object carrying only an adapter name, so a document that never mentions it writes no key and every
+document written before it existed re-encodes to the same bytes. It adds no member to any tagged
+union — the element type is `StateDecl.type`, and `Flow<T>` is not spellable here by design.
+
 Two facts a reader of the catalog must hold at once:
 
 - Tags are deliberately *reused* across unions (`bool`, `list`, `icon`, `page`,

@@ -138,14 +138,40 @@ public class StateEmitter(
     public fun pageState(page: ResolvedPage): List<KtDeclaration>? {
         if (page.state.isEmpty()) return null
         val name: String = classNameOf(page)
-        val holder: KtDeclaration.Class =
-            stateClass(name, StateScope.Page, page.state, page.id.value, stable) ?: return null
-        // What the row adds is the strategy's: a factory a plain class needs, a ViewModel a
-        // platform-owned one gets instead, or nothing at all when neither is called for.
-        return options.injection.decorate(
-            listOf(holder) + strategy.pageExtras(page.name, holderSymbol(name), screensPackage()),
-        )
+        // An external declaration is not a member of the state class: its values are the host's,
+        // and the class that holds a value is the wrong place for a stream the strategy folds.
+        // It travels to the strategy's extras instead, which is where the holder that *can* own
+        // one is emitted.
+        val held: List<ResolvedState> = page.state.filter { it.decl.external == null }
+        val holder: KtDeclaration.Class? =
+            if (held.isEmpty()) null else stateClass(name, StateScope.Page, held, page.id.value, stable)
+        val extras: List<KtDeclaration> =
+            strategy.pageExtras(
+                page.name,
+                if (holder == null) null else holderSymbol(name),
+                screensPackage(),
+                externalAdapters(page),
+            )
+        if (holder == null && extras.isEmpty()) return null
+        return options.injection.decorate(listOfNotNull(holder) + extras)
     }
+
+    /**
+     * [page]'s external declarations as the strategy and the host interface both read them.
+     *
+     * Built here rather than in either writer because the two facts a declaration contributes —
+     * the element type and the seed — are resolved by this class's `spellingFor`/`initialOf`, and
+     * a second copy of that resolution is a second place for a type to be spelled differently.
+     */
+    public fun externalAdapters(page: ResolvedPage): List<ExternalAdapter> =
+        page.state.filter { it.decl.external != null }.map { state ->
+            ExternalAdapter(
+                adapter = state.decl.external!!.adapter,
+                state = state.decl.name,
+                type = spelledType(state),
+                initial = initialOf(state),
+            )
+        }
 
     /**
      * The parameter §12.1 gives [page]'s screen. Its name and its type are the state strategy's —
@@ -157,7 +183,12 @@ public class StateEmitter(
      * forwards to the state strategy, so the default pair is unchanged.
      */
     public fun pageParameter(page: ResolvedPage): KtParam =
-        options.injection.holderParameter(page.name, strategy, screensPackage())
+        options.injection.holderParameter(
+            page.name,
+            strategy,
+            screensPackage(),
+            externalAdapters(page),
+        )
 
     /**
      * §12.1's component row: `var x by remember { mutableStateOf(init) }`, as composable locals.
@@ -227,6 +258,52 @@ public class StateEmitter(
                 )
             }
         }
+        // §12.1's external row: a stream the host owns, which only a holder that outlives a
+        // composition can fold, and only the composition can seed. Every one of these is a
+        // refusal by name because the alternative is a declaration that compiles and lies.
+        if (declaration.decl.external != null) {
+            if (scopeOf(declaration.decl.id) != StateScope.Page) {
+                return finding(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    at,
+                    "State '" + declaration.decl.name +
+                        "' arrives from a host adapter, and the external row is a page's",
+                )
+            }
+            if (declaration.derived != null) {
+                return finding(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    at,
+                    "State '" + declaration.decl.name +
+                        "' both derives and arrives from a host adapter, and only one of them can produce it",
+                )
+            }
+            if (declaration.decl.persistence != Persistence.None) {
+                return finding(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    at,
+                    "State '" + declaration.decl.name +
+                        "' arrives from a host adapter and asks to be " + declaration.decl.persistence +
+                        ", and the host is the one that would have to save it",
+                )
+            }
+            if (!strategy.supportsExternal) {
+                return finding(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    at,
+                    "State '" + declaration.decl.name +
+                        "' arrives from a host adapter, which the selected state strategy does not emit",
+                )
+            }
+            if (options.injection !== NoInjection) {
+                return finding(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    at,
+                    "State '" + declaration.decl.name + "' arrives from a host adapter, and the " +
+                        options.injection + " container constructs the holder without it",
+                )
+            }
+        }
         if (declaration.derived != null && scopeOf(declaration.decl.id) == StateScope.Component) {
             return finding(
                 DiagnosticCodes.CodegenStrategyUnsupported,
@@ -258,6 +335,11 @@ public class StateEmitter(
      */
     public fun readInScreen(id: StateId): KtExpr? {
         val bound: ResolvedState = bindings[id] ?: return null
+        // An external declaration lives on the holder itself, one hop above the state class, so
+        // its read names the same parameter the page's own receiver does without the second hop.
+        if (bound.decl.external != null) {
+            return KtExpr.Member(KtExpr.Name(strategy.pageParameterName), bound.decl.name)
+        }
         val scope: StateScope = scopeOf(id) ?: return null
         val receiver: KtExpr? = strategy.receiver(scope, localAppStateSymbol)
         return receiver?.let { KtExpr.Member(it, bound.decl.name) } ?: KtExpr.Name(bound.decl.name)

@@ -8,6 +8,7 @@ import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.DiagnosticCode
 import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
 import dev.rotalex.lutter.model.diagnostic.Severity
+import dev.rotalex.lutter.model.doc.ExternalStateDecl
 import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.ParamDecl
 import dev.rotalex.lutter.model.doc.StateDecl
@@ -336,6 +337,19 @@ class ActionPassTest {
         )
 
         assertEquals("s_doubled", finding.args["state"])
+    }
+
+    @Test
+    fun `a write to a state the host produces reports state not writable`() {
+        // The generated property for §12.1's external row is a getter, so a write that reached the
+        // emitter would be a file that does not compile. Refused by the same rule as `derived`.
+        val streamed = count.copy(external = ExternalStateDecl("clock"))
+        val finding = findingOf(
+            DiagnosticCodes.ActionStateNotWritable,
+            fieldWith(listOf(streamed)) { handler(write(streamed.id, constOf(Value.Int32(1)))) },
+        )
+
+        assertEquals("s_count", finding.args["state"])
     }
 
     @Test

@@ -208,6 +208,14 @@ public object ScaffoldGenerator {
             accessor = "libs.lifecycle.viewmodel.compose",
         )
 
+        GeneratedLibrary.Coroutines -> GeneratedDependency(
+            alias = "kotlinx-coroutines-core",
+            versionKey = "coroutines",
+            version = ScaffoldVersions.COROUTINES,
+            coordinates = "org.jetbrains.kotlinx:kotlinx-coroutines-core",
+            accessor = "libs.kotlinx.coroutines.core",
+        )
+
         GeneratedLibrary.HiltAndroid -> GeneratedDependency(
             alias = "hilt-android",
             versionKey = "hilt",

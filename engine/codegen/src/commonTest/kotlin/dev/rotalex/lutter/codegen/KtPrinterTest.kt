@@ -202,6 +202,39 @@ class KtPrinterTest {
     }
 
     @Test
+    fun `a declared return type records its import`() {
+        // `fun clock(): Flow<String>`: the return type is a symbol like a parameter's, and the
+        // only member of an interface a page's host declares. Missed here, the emitted file
+        // spells `Flow` and imports nothing that resolves it.
+        val printed = KtPrinter().print(
+            ktFile(
+                KtDeclaration.Function(
+                    "clock",
+                    emptyList(),
+                    KtExpr.TypeApplication(
+                        reference("kotlinx.coroutines.flow", "Flow"),
+                        listOf(KtExpr.Name("String")),
+                    ),
+                    emptyList(),
+                    emptyList(),
+                ),
+            ),
+        )
+
+        assertEquals(
+            """
+            package com.example.app
+
+            import kotlinx.coroutines.flow.Flow
+
+            public fun clock(): Flow<String> {}
+
+            """.trimIndent(),
+            printed,
+        )
+    }
+
+    @Test
     fun `a nested class indents its own members`() {
         val printed = KtPrinter().print(
             ktFile(

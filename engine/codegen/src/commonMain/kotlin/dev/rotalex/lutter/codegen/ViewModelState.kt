@@ -44,6 +44,15 @@ public data object ViewModelState : StateStrategy {
     private val viewModelOf: KotlinSymbol =
         KotlinSymbol("androidx.lifecycle.viewmodel.compose", "viewModel")
 
+    // An external declaration's four names: the stream, the value it holds, the scope that
+    // outlives a composition change, and the collector. `mutableStateOf`/`MutableState` come
+    // from the snapshot strategy because the property they back is the same kind of state.
+    private val flow: KotlinSymbol = KotlinSymbol("kotlinx.coroutines.flow", "Flow")
+    private val mutableStateOf: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "mutableStateOf")
+    private val mutableState: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "MutableState")
+    private val viewModelScope: KotlinSymbol = KotlinSymbol("androidx.lifecycle", "viewModelScope")
+    private val launch: KotlinSymbol = KotlinSymbol("kotlinx.coroutines", "launch")
+
     /**
      * The names the snapshot strategy emits, because this strategy emits the same files.
      *
@@ -56,7 +65,10 @@ public data object ViewModelState : StateStrategy {
      * `lifecycle-viewmodel-compose`: `viewModel()` reads it, and the `ViewModel` a page's holder
      * extends is the same artifact's.
      */
-    override val libraries: Set<GeneratedLibrary> = setOf(GeneratedLibrary.LifecycleViewModelCompose)
+    override val libraries: Set<GeneratedLibrary> = setOf(
+        GeneratedLibrary.LifecycleViewModelCompose,
+        GeneratedLibrary.Coroutines,
+    )
 
     override val reservedTopLevelNames: Set<String> = ComposeSnapshotState.reservedTopLevelNames
 
@@ -71,36 +83,145 @@ public data object ViewModelState : StateStrategy {
      */
     override fun pageExtras(
         pageName: String,
-        state: KotlinSymbol,
+        state: KotlinSymbol?,
         pkg: String,
+        external: List<ExternalAdapter>,
     ): List<KtDeclaration> = listOf(
         KtDeclaration.Class(
             name = pageName + ViewModelSuffix,
             annotations = emptyList(),
-            members = listOf(
+            constructorProperties = external.map { adapter ->
                 KtDeclaration.Property(
-                    name = "state",
+                    name = adapter.adapter,
                     annotations = emptyList(),
-                    type = KtExpr.Ref(KtSymbolRef(state)),
+                    type = KtExpr.TypeApplication(
+                        KtExpr.Ref(KtSymbolRef(flow)),
+                        listOfNotNull(adapter.type),
+                    ),
                     mutable = false,
-                    initializer = KtExpr.Call(KtExpr.Ref(KtSymbolRef(state)), emptyList()),
+                    initializer = null,
                     delegate = null,
                     getter = null,
-                ),
-            ),
+                    visibility = "private",
+                )
+            },
+            // The state class is the page's held declarations; a page whose every declaration is
+            // external has none, and the holder is then only what folds the streams.
+            members = listOfNotNull(
+                state?.let { held ->
+                    KtDeclaration.Property(
+                        name = "state",
+                        annotations = emptyList(),
+                        type = KtExpr.Ref(KtSymbolRef(held)),
+                        mutable = false,
+                        initializer = KtExpr.Call(KtExpr.Ref(KtSymbolRef(held)), emptyList()),
+                        delegate = null,
+                        getter = null,
+                    )
+                },
+            ) + external.flatMap { adapter -> externalProperty(adapter) },
             supertype = viewModel,
         ),
     )
 
+    /**
+     * One external declaration, as the pair of members a `ViewModel` can hold.
+     *
+     * `stateIn` would give a `StateFlow`, and a read of the declaration also happens inside an
+     * event lambda — where `collectAsState()` is not callable, because it is `@Composable`. So the
+     * stream is folded into a `MutableState`, readable from both places, and the public property is
+     * a getter over it so nothing outside can write a value the host owns.
+     */
+    private fun externalProperty(adapter: ExternalAdapter): List<KtDeclaration> {
+        val element: KtExpr = adapter.type ?: return emptyList()
+        val seed: KtExpr = adapter.initial ?: return emptyList()
+        val backing: String = adapter.state + "State"
+        // `backing` is the `.also` parameter, not the property: the initializer must not read the
+        // property it is initializing, and the parameter is the same `MutableState` it just built.
+        val collected: KtExpr = KtExpr.Member(KtExpr.Name("backing"), "value")
+        val assignment: KtStmt = KtStmt.Assign(collected, KtExpr.Name("value"))
+        val collector: KtExpr = KtExpr.Call(
+            KtExpr.Member(KtExpr.Name(adapter.adapter), "collect"),
+            emptyList(),
+            KtExpr.Lambda(listOf("value"), listOf(assignment)),
+        )
+        // `launch` is a top-level extension on `CoroutineScope`, so it is imported and not a
+        // member of `viewModelScope`: a `Member(…, "launch")` reads the same and resolves nothing,
+        // which is a lambda the compiler does not treat as a coroutine and a `collect` it refuses.
+        val started: KtExpr = KtExpr.Call(
+            KtExpr.Snippet("viewModelScope.launch", listOf(viewModelScope, launch)),
+            emptyList(),
+            KtExpr.Lambda(emptyList(), listOf(KtStmt.Expr(collector))),
+        )
+        val seeded: KtExpr = KtExpr.Call(
+            KtExpr.Member(
+                KtExpr.Call(KtExpr.Ref(KtSymbolRef(mutableStateOf)), listOf(KtArg(null, seed))),
+                "also",
+            ),
+            emptyList(),
+            KtExpr.Lambda(listOf("backing"), listOf(KtStmt.Expr(started))),
+        )
+        return listOf(
+            KtDeclaration.Property(
+                name = backing,
+                annotations = emptyList(),
+                type = KtExpr.TypeApplication(KtExpr.Ref(KtSymbolRef(mutableState)), listOf(element)),
+                mutable = false,
+                initializer = seeded,
+                delegate = null,
+                getter = null,
+                visibility = "private",
+            ),
+            KtDeclaration.Property(
+                name = adapter.state,
+                annotations = emptyList(),
+                type = element,
+                mutable = false,
+                initializer = null,
+                delegate = null,
+                getter = KtExpr.Member(KtExpr.Name(backing), "value"),
+            ),
+        )
+    }
+
     // The parameter is the ViewModel, and the read of a page declaration goes through it to the
     // state: `viewModel.state.count`, one hop that names which layer answers.
-    override fun pageParameter(pageName: String, pkg: String): KtParam = KtParam(
-        name = "viewModel",
-        type = KtExpr.Ref(KtSymbolRef(KotlinSymbol(pkg, pageName + ViewModelSuffix))),
-        // No type argument: the parameter's own type is the expected type, and `viewModel()`
-        // reads the same either way while spelling less.
-        default = KtExpr.Call(KtExpr.Ref(KtSymbolRef(viewModelOf)), emptyList()),
-    )
+    override fun pageParameter(
+        pageName: String,
+        pkg: String,
+        external: List<ExternalAdapter>,
+    ): KtParam {
+        val holder: KtExpr = KtExpr.Ref(KtSymbolRef(KotlinSymbol(pkg, pageName + ViewModelSuffix)))
+        if (external.isEmpty()) {
+            // No type argument: the parameter's own type is the expected type, and `viewModel()`
+            // reads the same either way while spelling less.
+            return KtParam("viewModel", holder, KtExpr.Call(KtExpr.Ref(KtSymbolRef(viewModelOf)), emptyList()))
+        }
+        // An external declaration cannot arrive from the platform's no-argument constructor, so
+        // the default becomes the initializer form: the screen still takes one `ViewModel` and the
+        // wiring stays in the screen's signature rather than moving into the navigation strategy.
+        val arguments: List<KtArg> = external.map { adapter ->
+            KtArg(null, KtExpr.Call(KtExpr.Member(KtExpr.Name("host"), adapter.adapter), emptyList()))
+        }
+        val constructed: KtExpr = KtExpr.Call(holder, arguments)
+        return KtParam(
+            "viewModel",
+            holder,
+            KtExpr.Call(
+                KtExpr.Ref(KtSymbolRef(viewModelOf)),
+                listOf(KtArg("initializer", KtExpr.Lambda(emptyList(), listOf(KtStmt.Expr(constructed))))),
+            ),
+        )
+    }
+
+    /**
+     * The one strategy whose row is a class: the holder has a constructor property to receive the
+     * adapter and a coroutine scope to collect it in, so the declaration has an emission here.
+     */
+    override val supportsExternal: Boolean
+        get() = true
+
+    override val pageParameterName: String = ParameterName
 
     override fun pageReservedNames(pageName: String): Set<String> = setOf(
         pageName + ReservedCodegenNames.PageStateSuffix,
