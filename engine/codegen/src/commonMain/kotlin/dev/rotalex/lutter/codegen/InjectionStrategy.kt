@@ -1,6 +1,7 @@
 package dev.rotalex.lutter.codegen
 
 import dev.rotalex.lutter.schema.component.KotlinSymbol
+import dev.rotalex.lutter.schema.component.PlatformTag
 
 /**
  * Who builds a page's state holder, and what the generated project must carry for that to work.
@@ -67,6 +68,17 @@ public interface InjectionStrategy {
      * strategy — refuses nothing.
      */
     public fun refusal(state: StateStrategy): String? = null
+
+    /**
+     * Why this container cannot serve a document that targets [targets], or null when it can.
+     *
+     * The second axis exists because a container can be as strict about *platforms* as about
+     * holders: [Hilt] is an Android artifact, so a document that also targets iOS, desktop or web
+     * cannot compile its lookup no matter which state strategy it selects. Defaulting to the
+     * holder-only refusal keeps the two containers that have no platform requirement — [Koin] and
+     * [Metro] — spelling nothing new.
+     */
+    public fun refusal(state: StateStrategy, targets: Set<PlatformTag>): String? = refusal(state)
 
     /**
      * Whether this container puts bindings in a file of its own, which the plan places at

@@ -208,6 +208,22 @@ public object ScaffoldGenerator {
             accessor = "libs.lifecycle.viewmodel.compose",
         )
 
+        GeneratedLibrary.HiltAndroid -> GeneratedDependency(
+            alias = "hilt-android",
+            versionKey = "hilt",
+            version = ScaffoldVersions.HILT,
+            coordinates = "com.google.dagger:hilt-android",
+            accessor = "libs.hilt.android",
+        )
+
+        GeneratedLibrary.HiltNavigationCompose -> GeneratedDependency(
+            alias = "hilt-navigation-compose",
+            versionKey = "hiltNavigationCompose",
+            version = ScaffoldVersions.HILT_NAVIGATION_COMPOSE,
+            coordinates = "androidx.hilt:hilt-navigation-compose",
+            accessor = "libs.hilt.navigation.compose",
+        )
+
         GeneratedLibrary.MetroRuntime -> GeneratedDependency(
             alias = "metro-runtime",
             versionKey = "metro",

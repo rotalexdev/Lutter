@@ -32,7 +32,7 @@ internal object GenerateCommand {
         name = "generate",
         signature = "generate <document.json> [--out <dir>] [--package <pkg>] " +
             "[--navigation <simple|navigation-compose|navigation3>] " +
-            "[--state <snapshot|viewmodel>] [--injection <none|koin>]",
+            "[--state <snapshot|viewmodel>] [--injection <none|koin|metro|hilt>]",
         summary = "decode, validate and emit Kotlin/Compose",
         positionals = listOf("document.json"),
         flags = mapOf(

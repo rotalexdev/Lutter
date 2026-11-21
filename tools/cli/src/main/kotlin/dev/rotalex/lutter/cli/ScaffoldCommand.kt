@@ -51,7 +51,7 @@ internal object ScaffoldCommand {
         name = "scaffold",
         signature = "scaffold <app-name> [--package <pkg>] [--out <dir>] [--platforms android,desktop] " +
             "[--document <file.json>] [--navigation <simple|navigation-compose|navigation3>] " +
-            "[--state <snapshot|viewmodel>] [--injection <none|koin>]",
+            "[--state <snapshot|viewmodel>] [--injection <none|koin|metro|hilt>]",
         summary = "write a Gradle project for a generated app",
         positionals = listOf("app-name"),
         flags = mapOf(
