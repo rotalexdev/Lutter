@@ -25,7 +25,7 @@ the scripts do not hot-reload.
 ```
 forge generate <document.json> [--out <dir>] [--package <package>]
                 [--navigation <simple|navigation-compose|navigation3>]
-                [--state <snapshot|viewmodel>] [--injection <none|koin>]
+                [--state <snapshot|viewmodel>] [--injection <none|koin|metro>]
 ```
 
 Generates Kotlin source from a valid document.
@@ -69,13 +69,19 @@ a generated app that depends on nothing beyond Compose Multiplatform itself.
 |---|---|---|
 | `none` | The state strategy's own lookup: `rememberHomeScreenState()` or `viewModel()` | nothing |
 | `koin` | `di/Injection.kt` with one binding per page holder, `AppRoot` wrapped in `KoinApplication`, screens defaulting to `koinViewModel()` | `koin-core`, `koin-compose-viewmodel` |
+| `metro` | `di/Injection.kt` with a `@DependencyGraph` interface contributing every holder and binding its `MetroViewModelFactory`, `AppRoot` creating the graph and providing the factory, screens defaulting to `metroViewModel()` | `dev.zacsweers.metro:runtime`, `dev.zacsweers.metro:metrox-viewmodel-compose`, and the `dev.zacsweers.metro` compiler plugin |
 
-The two flags compose, and one pair is refused rather than emitted. `koin` resolves a
+Metro is the one strategy that also brings a compiler plugin: its graph is an interface the
+plugin implements, so `metro-runtime` on the classpath without `dev.zacsweers.metro` applied
+compiles nothing. A scaffolded project declares the plugin for you.
+
+The two flags compose, and one pair is refused rather than emitted. `koin` and `metro` resolve a
 `ViewModel`, whose lifetime a `ViewModelStore` owns; a `snapshot` holder is remembered inside
 the page's composition, and handing it to the container would move a page's state out of the
 page's lifetime — a different policy, not a different lookup. So `--state snapshot --injection
-koin` fails with a diagnostic naming the fix, and `--state viewmodel --injection koin` is the
-pair that emits.
+koin` and `--state snapshot --injection metro` fail with a diagnostic naming the fix, and
+`--state viewmodel --injection koin` and `--state viewmodel --injection metro` are the pairs
+that emit.
 
 A strategy's library is a fact the strategy states, not something a caller wires: `forge
 scaffold` accepts the same three flags and emits the matching `gradle/libs.versions.toml`
