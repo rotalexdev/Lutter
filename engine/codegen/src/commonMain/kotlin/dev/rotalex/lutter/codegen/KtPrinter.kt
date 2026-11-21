@@ -197,6 +197,10 @@ public class KtPrinter(
     ): String = buildString {
         append(renderAnnotations(clazz.annotations, indent, aliases))
         append(indentOf(indent) + "public class " + clazz.name)
+        val annotation: KotlinSymbol? = clazz.constructorAnnotation
+        if (annotation != null) {
+            append(" @" + refOf(KtSymbolRef(annotation), aliases) + " constructor")
+        }
         append(renderConstructor(clazz, indent, aliases))
         // The supertype follows the constructor, which is Kotlin's own order:
         // `class X(private val y: Int) : Base()`. Its own parentheses are empty because the
@@ -273,7 +277,11 @@ public class KtPrinter(
         indent: Int,
         aliases: Map<String, String>,
     ): String {
-        if (clazz.constructorProperties.isEmpty()) return ""
+        if (clazz.constructorProperties.isEmpty()) {
+            // `@Inject constructor()`: a constructor annotation has to be attached to a
+            // constructor, so the parentheses exist even when nothing is passed.
+            return if (clazz.constructorAnnotation != null) "()" else ""
+        }
         for (property in clazz.constructorProperties) {
             if (property.annotations.isNotEmpty() || property.getter != null) {
                 throw CodegenBug(
@@ -754,6 +762,7 @@ public class KtPrinter(
             is KtDeclaration.Class -> {
                 recordAnnotations(declaration.annotations, filePkg, seen)
                 declaration.supertype?.let { recordSymbol(it, filePkg, seen) }
+                declaration.constructorAnnotation?.let { recordSymbol(it, filePkg, seen) }
                 declaration.constructorProperties.forEach {
                     collectDeclarationSymbols(it, filePkg, seen)
                 }

@@ -120,6 +120,17 @@ public interface InjectionStrategy {
      * is naming what it was given, and that name lives in another file of the run.
      */
     public fun appRoot(body: List<KtStmt>, modulePackage: String): List<KtStmt> = body
+
+    /**
+     * [declarations] with whatever this container needs on them, or unchanged.
+     *
+     * The state strategy declares the holder; the container is who must recognize it. [Hilt] is the
+     * reason this exists: `hiltViewModel()` resolves a class carrying `@HiltViewModel` and an
+     * `@Inject` constructor, and neither annotation belongs to the state strategy — a Koin project
+     * would be carrying Hilt's annotations for nothing. Identity is the default, so the containers
+     * that need no decoration spell nothing.
+     */
+    public fun decorate(declarations: List<KtDeclaration>): List<KtDeclaration> = declarations
 }
 
 /**

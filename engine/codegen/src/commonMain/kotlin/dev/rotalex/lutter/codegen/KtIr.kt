@@ -382,6 +382,14 @@ public sealed interface KtDeclaration {
          * and nothing this module emits implements more than one.
          */
         public val supertype: KotlinSymbol? = null,
+        /**
+         * The one annotation on the constructor, written `@Inject constructor(…)`.
+         *
+         * A symbol rather than an annotation because the annotation position has no arguments to
+         * carry — `@Inject` is the only one a generated class needs — and a list would let a caller
+         * write a constructor annotation the printer cannot place.
+         */
+        public val constructorAnnotation: KotlinSymbol? = null,
     ) : KtDeclaration
 
     /**

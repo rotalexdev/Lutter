@@ -142,7 +142,9 @@ public class StateEmitter(
             stateClass(name, StateScope.Page, page.state, page.id.value, stable) ?: return null
         // What the row adds is the strategy's: a factory a plain class needs, a ViewModel a
         // platform-owned one gets instead, or nothing at all when neither is called for.
-        return listOf(holder) + strategy.pageExtras(page.name, holderSymbol(name), screensPackage())
+        return options.injection.decorate(
+            listOf(holder) + strategy.pageExtras(page.name, holderSymbol(name), screensPackage()),
+        )
     }
 
     /**
