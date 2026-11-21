@@ -320,7 +320,11 @@ class ForgeCliTest {
             "--out", File(directory, "refused").path,
             "--state", "viewmodel", "--injection", "hilt",
         )
-        assertEquals(ExitCode.Rejected, refused.exit)
+        assertEquals(ExitCode.Rejected, forge(
+            "generate", document.path,
+            "--out", File(directory, "refused").path,
+            "--state", "viewmodel", "--injection", "hilt",
+        ))
         assertTrue(refused.err.toString().contains("Android-only"), refused.err.toString())
 
         val emitted = File(directory, "android")
