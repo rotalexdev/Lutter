@@ -66,6 +66,10 @@ dependencies {
     commonMainApi(libs.navigation.compose)
     commonMainApi(libs.navigation3.ui)
     commonMainApi(libs.lifecycle.viewmodel.compose)
+    // §12.1's external row reads a `Flow`: a generated `AppHost` declares `fun clock(): Flow<String>`
+    // and its `ViewModel` collects it, so the module compiling those files needs the stream's own
+    // artifact. `api` for the same reason as the row above — it is on a public interface.
+    commonMainApi(libs.kotlinx.coroutines.core)
     // §15.5's container: a `koin` row's generated screen calls `koinViewModel()`, its `AppRoot`
     // starts a `KoinApplication`, and `di/Injection.kt` declares a `module`. Same reasoning as the
     // three above — the variants' compilation is the proof that the emission resolves.

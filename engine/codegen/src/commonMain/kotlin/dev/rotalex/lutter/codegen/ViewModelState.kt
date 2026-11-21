@@ -83,7 +83,7 @@ public data object ViewModelState : StateStrategy {
      */
     override fun pageExtras(
         pageName: String,
-        state: KotlinSymbol,
+        state: KotlinSymbol?,
         pkg: String,
         external: List<ExternalAdapter>,
     ): List<KtDeclaration> = listOf(
@@ -105,16 +105,20 @@ public data object ViewModelState : StateStrategy {
                     visibility = "private",
                 )
             },
-            members = listOf(
-                KtDeclaration.Property(
-                    name = "state",
-                    annotations = emptyList(),
-                    type = KtExpr.Ref(KtSymbolRef(state)),
-                    mutable = false,
-                    initializer = KtExpr.Call(KtExpr.Ref(KtSymbolRef(state)), emptyList()),
-                    delegate = null,
-                    getter = null,
-                ),
+            // The state class is the page's held declarations; a page whose every declaration is
+            // external has none, and the holder is then only what folds the streams.
+            members = listOfNotNull(
+                state?.let { held ->
+                    KtDeclaration.Property(
+                        name = "state",
+                        annotations = emptyList(),
+                        type = KtExpr.Ref(KtSymbolRef(held)),
+                        mutable = false,
+                        initializer = KtExpr.Call(KtExpr.Ref(KtSymbolRef(held)), emptyList()),
+                        delegate = null,
+                        getter = null,
+                    )
+                },
             ) + external.flatMap { adapter -> externalProperty(adapter) },
             supertype = viewModel,
         ),
@@ -141,8 +145,11 @@ public data object ViewModelState : StateStrategy {
             emptyList(),
             KtExpr.Lambda(listOf("value"), listOf(assignment)),
         )
+        // `launch` is a top-level extension on `CoroutineScope`, so it is imported and not a
+        // member of `viewModelScope`: a `Member(…, "launch")` reads the same and resolves nothing,
+        // which is a lambda the compiler does not treat as a coroutine and a `collect` it refuses.
         val started: KtExpr = KtExpr.Call(
-            KtExpr.Member(KtExpr.Ref(KtSymbolRef(viewModelScope)), "launch"),
+            KtExpr.Snippet("viewModelScope.launch", listOf(viewModelScope, launch)),
             emptyList(),
             KtExpr.Lambda(emptyList(), listOf(KtStmt.Expr(collector))),
         )

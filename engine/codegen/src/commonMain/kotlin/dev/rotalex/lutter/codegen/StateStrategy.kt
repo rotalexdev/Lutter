@@ -134,10 +134,13 @@ public interface StateStrategy {
      *
      * One call rather than one per declaration: a row is a row, and two strategies that spell
      * half of it each would be two places to look when the file stops compiling.
+     *
+     * [state] is null for a page whose every declaration is external: there is no state class to
+     * name, and a row that still spelled one would write a file referring to a class nothing emits.
      */
     public fun pageExtras(
         pageName: String,
-        state: KotlinSymbol,
+        state: KotlinSymbol?,
         pkg: String,
         external: List<ExternalAdapter> = emptyList(),
     ): List<KtDeclaration>
@@ -238,10 +241,10 @@ public data object ComposeSnapshotState : StateStrategy {
 
     override fun pageExtras(
         pageName: String,
-        state: KotlinSymbol,
+        state: KotlinSymbol?,
         pkg: String,
         external: List<ExternalAdapter>,
-    ): List<KtDeclaration> = listOf(rememberFunction(state.name))
+    ): List<KtDeclaration> = listOf(rememberFunction(checkNotNull(state).name))
 
     override fun pageParameter(
         pageName: String,

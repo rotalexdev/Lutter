@@ -146,7 +146,12 @@ public class StateEmitter(
         val holder: KtDeclaration.Class? =
             if (held.isEmpty()) null else stateClass(name, StateScope.Page, held, page.id.value, stable)
         val extras: List<KtDeclaration> =
-            strategy.pageExtras(page.name, holderSymbol(name), screensPackage(), externalAdapters(page))
+            strategy.pageExtras(
+                page.name,
+                if (holder == null) null else holderSymbol(name),
+                screensPackage(),
+                externalAdapters(page),
+            )
         if (holder == null && extras.isEmpty()) return null
         return options.injection.decorate(listOfNotNull(holder) + extras)
     }
