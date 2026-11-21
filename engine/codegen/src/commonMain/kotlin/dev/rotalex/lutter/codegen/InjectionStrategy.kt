@@ -134,3 +134,14 @@ public data object NoInjection : InjectionStrategy {
     override fun holderParameter(page: String, state: StateStrategy, screensPackage: String): KtParam =
         state.pageParameter(page, screensPackage)
 }
+
+/**
+ * Whether [state]'s holder is one a platform owns — a `ViewModel`, in the vocabulary both seams use.
+ *
+ * Read off `libraries` rather than off a type because that is the fact the seams already publish: a
+ * state strategy that needs `lifecycle-viewmodel-compose` is one whose holder *is* a `ViewModel`.
+ * Top-level because all three containers ask the same question, and a copy per strategy is three
+ * places for the answer to drift.
+ */
+internal fun isPlatformHolder(state: StateStrategy): Boolean =
+    GeneratedLibrary.LifecycleViewModelCompose in state.libraries

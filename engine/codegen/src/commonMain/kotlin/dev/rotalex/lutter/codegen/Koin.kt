@@ -61,16 +61,7 @@ public data object Koin : InjectionStrategy {
     /** `org.koin.compose.viewmodel.koinViewModel`: the lookup a screen's parameter defaults to. */
     private val koinViewModel: KotlinSymbol = KotlinSymbol("org.koin.compose.viewmodel", "koinViewModel")
 
-    /**
-     * The one strategy whose holder a `ViewModelStore` owns, recognized by the library it needs.
-     *
-     * The trait is read off `libraries` rather than off a type because that is the fact both seams
-     * already publish: a strategy that needs `lifecycle-viewmodel-compose` is one whose holder *is*
-     * a `ViewModel`, and `ViewModelState` says exactly that where the scaffold can see it.
-     */
-    private fun isPlatformHolder(state: StateStrategy): Boolean =
-        GeneratedLibrary.LifecycleViewModelCompose in state.libraries
-
+    /** Refused for a holder the composition remembers: see [isPlatformHolder]. */
     override fun refusal(state: StateStrategy): String? =
         if (isPlatformHolder(state)) {
             null
