@@ -224,6 +224,13 @@ them in that order is reading the seam's history.
 | `snapshot` | emitted | refused | refused | refused |
 | `viewmodel` | emitted | emitted | emitted | emitted (Android-only) |
 
+**External state** — a declaration whose values arrive from a host `Flow` — is orthogonal to the
+table and has one cell: the `viewmodel` row under `none` injection. It is refused under `snapshot`
+(there is no holder to fold a stream into), under every container (a container constructs the holder
+with no arguments, and the adapter would have nowhere to come from until dependencies are declared
+in the document — DI v2), and alongside `derived` or a persistence (`ActionStateNotWritable` covers
+writes, since the generated property is a getter).
+
 Every emitted cell is compiled by `integration:generated-compile`, which is the only proof that
 matters: a refusal is unit-tested, but a cell that is supposed to emit is compiled by a real Kotlin
 build. A refused cell names its fix in the diagnostic instead of failing in a compile harness.

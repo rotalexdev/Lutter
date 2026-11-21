@@ -14,6 +14,7 @@ import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.DiagnosticCode
 import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
 import dev.rotalex.lutter.model.diagnostic.Severity
+import dev.rotalex.lutter.model.doc.ExternalStateDecl
 import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.ResourceDecl
 import dev.rotalex.lutter.model.doc.ResourceKind
@@ -365,6 +366,9 @@ public class KotlinGenerator<A : Any, T : Any>(
         for (declaration in declarations) {
             members += hostMember(declaration) ?: return null
         }
+        for (adapter in externalAdapters(document)) {
+            members += adapter ?: return null
+        }
         return KtFile(
             planned.packageName,
             headerText(),
@@ -412,6 +416,54 @@ public class KotlinGenerator<A : Any, T : Any>(
             suspending = declaration.suspend,
         )
     }
+
+    /**
+     * One `fun <adapter>(): Flow<T>` per external declaration, on the interface the app implements.
+     *
+     * The adapter is the whole of what §12.1's external row asks of a host: not a call the
+     * generated code makes, but a stream it is handed. Declared here rather than beside the
+     * functions because the position is the same one and the reader should find both kinds of
+     * "what the application must supply" in one place.
+     *
+     * A repeated name is a finding and not two members with one name: `AppHost` is one interface,
+     * and two declarations asking for one adapter would leave the second screen reading the
+     * first's stream with no way to say so.
+     */
+    private fun externalAdapters(document: ResolvedDocument): List<KtDeclaration.Function?> {
+        val seen: MutableMap<String, String> = mutableMapOf()
+        val members: MutableList<KtDeclaration.Function?> = mutableListOf()
+        for (page in document.pages.entries.sortedBy { it.key.value }.map { it.value }) {
+            for (state in page.state) {
+                val external: ExternalStateDecl = state.decl.external ?: continue
+                val owner: String? = seen.put(external.adapter, state.decl.name)
+                if (owner != null) {
+                    refuse(
+                        DiagnosticCodes.CodegenStrategyUnsupported,
+                        DiagnosticLocation(),
+                        "Host adapter '" + external.adapter + "' is asked for by '" +
+                            state.decl.name + "' and by '" + owner + "', and one member cannot hold both",
+                    )
+                    members += null
+                    continue
+                }
+                val element: KtExpr = spelledType(
+                    "Host adapter '" + external.adapter + "'",
+                    state.decl.type,
+                ) ?: return members + null
+                members += KtDeclaration.Function(
+                    name = external.adapter,
+                    annotations = emptyList(),
+                    type = KtExpr.TypeApplication(KtExpr.Ref(KtSymbolRef(flowSymbol)), listOf(element)),
+                    params = emptyList(),
+                    body = emptyList(),
+                )
+            }
+        }
+        return members
+    }
+
+    /** `kotlinx.coroutines.flow.Flow`: what an external declaration's adapter returns. */
+    private val flowSymbol: KotlinSymbol = KotlinSymbol("kotlinx.coroutines.flow", "Flow")
 
     /** The interpreter's own one operation, so the two sides of a snackbar are the same call. */
     private fun snackbarShow(): KtDeclaration.Function = KtDeclaration.Function(
@@ -488,7 +540,11 @@ public class KotlinGenerator<A : Any, T : Any>(
         appStateHoist = null
         fileOptIns.clear()
         val root: KtExpr = emitNode(page.root, true, emptyList()) ?: return null
-        val reads: Set<ActionReceiver> = drainReads()
+        // An external declaration makes the screen's default read `host`, which is a receiver the
+        // actions never mentioned: the demand is the declaration's, so it is recorded here rather
+        // than discovered from a call site that does not exist.
+        val reads: Set<ActionReceiver> = drainReads() +
+            if (page.state.any { it.decl.external != null }) setOf(ActionReceiver.Host) else emptySet()
         recordDemand(page.id, reads)
         val declarations: MutableList<KtDeclaration> = mutableListOf()
         val params: MutableList<KtParam> = mutableListOf()

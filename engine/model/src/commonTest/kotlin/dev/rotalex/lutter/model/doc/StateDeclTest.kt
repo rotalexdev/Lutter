@@ -10,6 +10,7 @@ import kotlinx.serialization.SerializationException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlinx.serialization.json.Json
@@ -160,5 +161,20 @@ class StateDeclTest {
         assertFailsWith<IllegalArgumentException> {
             Json.decodeFromString<StateDecl>("""{"id":"has space","name":"c","type":{"type":"i32"}}""")
         }
+    }
+
+    @Test
+    fun `an external state travels as its adapter and is absent by default`() {
+        val held = StateDecl(StateId("s_ticks"), "ticks", TypeRef.Int32, initial = Value.Int32(0))
+        val streamed = held.copy(external = ExternalStateDecl("ticker"))
+
+        // Absent by default: a document that never mentions a host adapter writes no key at all,
+        // so every document written before this row existed re-encodes to the same bytes.
+        assertNull(held.external)
+        assertFalse(Json.encodeToString<StateDecl>(held).contains("external"))
+        assertEquals(streamed, Json.decodeFromString<StateDecl>(Json.encodeToString<StateDecl>(streamed)))
+        // The element type is the declaration's and not the stream's: `Flow<int32>` is unwritable
+        // in this vocabulary, which is the whole reason the record carries only a name.
+        assertEquals(TypeRef.Int32, Json.decodeFromString<StateDecl>(Json.encodeToString<StateDecl>(streamed)).type)
     }
 }

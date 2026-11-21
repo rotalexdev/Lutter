@@ -36,8 +36,13 @@ public data object Hilt : InjectionStrategy {
     )
 
     /** `hiltViewModel()` for [page]'s screen parameter; the holder's type is the state's. */
-    override fun holderParameter(page: String, state: StateStrategy, screensPackage: String): KtParam {
-        val declared: KtParam = state.pageParameter(page, screensPackage)
+    override fun holderParameter(
+        page: String,
+        state: StateStrategy,
+        screensPackage: String,
+        external: List<ExternalAdapter>,
+    ): KtParam {
+        val declared: KtParam = state.pageParameter(page, screensPackage, external)
         return KtParam(
             declared.name,
             declared.type,

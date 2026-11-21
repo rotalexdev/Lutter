@@ -92,8 +92,13 @@ public data object Metro : InjectionStrategy {
                 "this one."
         }
 
-    override fun holderParameter(page: String, state: StateStrategy, screensPackage: String): KtParam {
-        val declared: KtParam = state.pageParameter(page, screensPackage)
+    override fun holderParameter(
+        page: String,
+        state: StateStrategy,
+        screensPackage: String,
+        external: List<ExternalAdapter>,
+    ): KtParam {
+        val declared: KtParam = state.pageParameter(page, screensPackage, external)
         return KtParam(
             declared.name,
             declared.type,
