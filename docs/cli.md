@@ -69,8 +69,13 @@ a generated app that depends on nothing beyond Compose Multiplatform itself.
 |---|---|---|
 | `none` | The state strategy's own lookup: `rememberHomeScreenState()` or `viewModel()` | nothing |
 | `koin` | `di/Injection.kt` with one binding per page holder, `AppRoot` wrapped in `KoinApplication`, screens defaulting to `koinViewModel()` | `koin-core`, `koin-compose-viewmodel` |
-| `hilt` | Screens defaulting to `hiltViewModel()`. **Android-only**: a document that targets any other platform is refused, because Hilt has no Kotlin Multiplatform ViewModel integration | `hilt-android`, `hilt-navigation-compose` (and, once the holder decorator lands, the Hilt compiler plugin) |
+| `hilt` | Screens defaulting to `hiltViewModel()`, and holders decorated `@HiltViewModel` with an `@Inject` constructor. **Android-only**: a document that targets any other platform is refused, because Hilt has no Kotlin Multiplatform ViewModel integration | `hilt-android`, `hilt-navigation-compose`, plus Hilt's compiler — and a project whose source set is Android-only, which `forge scaffold` does not emit yet (see below) |
 | `metro` | `di/Injection.kt` with a `@DependencyGraph` interface contributing every holder and binding its `MetroViewModelFactory`, `AppRoot` creating the graph and providing the factory, screens defaulting to `metroViewModel()` | `dev.zacsweers.metro:runtime`, `dev.zacsweers.metro:metrox-viewmodel-compose`, and the `dev.zacsweers.metro` compiler plugin |
+
+Hilt cannot be scaffolded yet. `forge generate --injection hilt` emits the lookup and the holder
+decorations correctly, but `forge scaffold` emits a Kotlin Multiplatform project: its shared module
+compiles `commonMain` for every target, and Hilt's compiler only runs on an Android compilation.
+Until the scaffold can emit an Android-only layout, a Hilt project needs one written by hand.
 
 Metro is the one strategy that also brings a compiler plugin: its graph is an interface the
 plugin implements, so `metro-runtime` on the classpath without `dev.zacsweers.metro` applied
