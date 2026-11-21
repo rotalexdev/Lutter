@@ -50,6 +50,25 @@ class HiltInjectionTest {
         }
     }
 
+    /**
+     * The second refusal axis is about the *project*, and it is answered by the container because
+     * it is a fact about Hilt: a container whose compiler has nowhere to run cannot be scaffolded
+     * even when its Kotlin is perfectly emittable.
+     */
+    @Test
+    fun `hilt cannot be carried by a scaffolded project`() {
+        val reason: String? = Hilt.scaffoldRefusal
+
+        assertNotNull(reason)
+        assertTrue("commonMain" in reason, reason)
+        assertTrue("generate" in reason, "the refusal names the command that can serve it: $reason")
+        // Every container that is a plain library can be scaffolded: the refusal is Hilt's own
+        // fact, not a property the seam gives every strategy.
+        assertNull(Koin.scaffoldRefusal)
+        assertNull(Metro.scaffoldRefusal)
+        assertNull(NoInjection.scaffoldRefusal)
+    }
+
     @Test
     fun `hilt refuses a holder a ViewModelStore does not own`() {
         assertNull(Hilt.refusal(ViewModelState))

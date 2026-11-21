@@ -73,6 +73,11 @@ public object ScaffoldGenerator {
     ): GeneratedFiles {
         requireAppName(spec.appName)
         requirePackage(spec.basePackage)
+        // A container that has no place in the project this writes is refused before a file
+        // exists: the alternative is a tree that looks generated and resolves no graph.
+        spec.injection.scaffoldRefusal?.let { reason ->
+            throw IllegalArgumentException(reason)
+        }
 
         val android: Boolean = PlatformTag.Android in spec.targetPlatforms
         val desktop: Boolean = PlatformTag.Desktop in spec.targetPlatforms

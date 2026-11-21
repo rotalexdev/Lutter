@@ -12,6 +12,7 @@ import dev.rotalex.lutter.codegen.NavigationStrategy
 import dev.rotalex.lutter.codegen.SimpleBackStack
 import dev.rotalex.lutter.codegen.StateStrategy
 import dev.rotalex.lutter.codegen.ViewModelState
+import dev.rotalex.lutter.schema.component.PlatformTag
 
 /**
  * `--navigation`, `--state` and `--injection` as the strategies §15's seams are selected through.
@@ -93,6 +94,40 @@ internal object Strategies {
                 ExitCode.Unusable,
                 "forge $command: unknown injection '$name'; accepted: ${INJECTIONS.keys.joinToString(", ")}",
             )
+    }
+
+    /**
+     * `--platforms` for both commands: the target set, which is a fact two different refusal
+     * axes read and no command could otherwise state.
+     *
+     * `generate` needs it because a container can be refused for a *target set* and not for a
+     * holder — [`Hilt`] is Android-only — and a refusal that tells a caller to select an
+     * Android-only target set must be answerable by a flag. `scaffold` has had the flag since it
+     * decides which app modules exist; this is the same list, parsed once.
+     */
+    fun platforms(value: String?, command: String, fallback: Set<PlatformTag>): Set<PlatformTag> {
+        val requested: List<String> = (value ?: return fallback)
+            .split(',')
+            .map { it.trim().lowercase() }
+            .filter { it.isNotEmpty() }
+        if (requested.isEmpty()) {
+            throw CliFailure(ExitCode.Unusable, "forge $command: --platforms names no platform")
+        }
+        return requested.map { name ->
+            when (name) {
+                "android" -> PlatformTag.Android
+                "desktop" -> PlatformTag.Desktop
+                "ios", "web" -> throw CliFailure(
+                    ExitCode.Unusable,
+                    "forge $command: '$name' is not a platform this engine emits for yet — §2 C1 " +
+                        "narrows the scope to Android and Desktop; accepted: android, desktop",
+                )
+                else -> throw CliFailure(
+                    ExitCode.Unusable,
+                    "forge $command: unknown platform '$name'; accepted: android, desktop",
+                )
+            }
+        }.toSet()
     }
 
     private const val DEFAULT_NAVIGATION: String = "simple"

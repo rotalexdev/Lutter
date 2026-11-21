@@ -24,6 +24,7 @@ the scripts do not hot-reload.
 
 ```
 forge generate <document.json> [--out <dir>] [--package <package>]
+                [--platforms <android,desktop>]
                 [--navigation <simple|navigation-compose|navigation3>]
                 [--state <snapshot|viewmodel>] [--injection <none|koin|metro|hilt>]
 ```
@@ -34,6 +35,7 @@ Generates Kotlin source from a valid document.
 |---|---|---|
 | `--out` | Output directory for generated files | `generated` (relative to the working directory) |
 | `--package` | Root package of the generated code | The document's own `app.packageName` |
+| `--platforms` | The target set the code is generated for. Read by the container refusal, which is the only thing in codegen that depends on the project rather than the document — `hilt` is Android-only, so `--platforms android` is what satisfies it | every platform |
 | `--navigation` | Which navigation the emitted code runs (see below) | `simple` |
 | `--state` | Which state model the emitted code uses (see below) | `snapshot` |
 | `--injection` | Who builds a screen's state holder (see below) | `none` |
@@ -72,10 +74,15 @@ a generated app that depends on nothing beyond Compose Multiplatform itself.
 | `hilt` | Screens defaulting to `hiltViewModel()`, and holders decorated `@HiltViewModel` with an `@Inject` constructor. **Android-only**: a document that targets any other platform is refused, because Hilt has no Kotlin Multiplatform ViewModel integration | `hilt-android`, `hilt-navigation-compose`, plus Hilt's compiler — and a project whose source set is Android-only, which `forge scaffold` does not emit yet (see below) |
 | `metro` | `di/Injection.kt` with a `@DependencyGraph` interface contributing every holder and binding its `MetroViewModelFactory`, `AppRoot` creating the graph and providing the factory, screens defaulting to `metroViewModel()` | `dev.zacsweers.metro:runtime`, `dev.zacsweers.metro:metrox-viewmodel-compose`, and the `dev.zacsweers.metro` compiler plugin |
 
-Hilt cannot be scaffolded yet. `forge generate --injection hilt` emits the lookup and the holder
-decorations correctly, but `forge scaffold` emits a Kotlin Multiplatform project: its shared module
-compiles `commonMain` for every target, and Hilt's compiler only runs on an Android compilation.
-Until the scaffold can emit an Android-only layout, a Hilt project needs one written by hand.
+Hilt cannot be scaffolded yet, and `forge scaffold --injection hilt` says so instead of writing a
+tree that does not build. `forge generate --injection hilt --platforms android` emits the lookup and
+the holder decorations correctly, but `forge scaffold` emits a Kotlin Multiplatform project: its
+shared module compiles `commonMain` for every target, and Hilt's compiler only runs on an Android
+compilation. Until the scaffold can emit an Android-only layout, a Hilt project's Android module is
+written by hand and takes the generated Kotlin.
+
+`--platforms` exists on `generate` for exactly that sentence: the target-set refusal tells a caller
+to select an Android-only target set, and a refusal a command cannot answer is a dead end.
 
 Metro is the one strategy that also brings a compiler plugin: its graph is an interface the
 plugin implements, so `metro-runtime` on the classpath without `dev.zacsweers.metro` applied

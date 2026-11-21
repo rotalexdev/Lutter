@@ -95,6 +95,26 @@ public data object Hilt : InjectionStrategy {
             }
         }
 
+    /**
+     * A scaffolded project cannot host Hilt, and the reason is where the sources land.
+     *
+     * `@HiltViewModel` is resolved by Hilt's own compiler, which runs in an Android compilation.
+     * This scaffold writes every generated file into `shared/src/commonMain` — a KMP common source
+     * set — and Hilt has no Kotlin Multiplatform story, so there is no module in the emitted
+     * project where that compiler could see the classes it must process. Applying the plugin
+     * anyway would produce a project that resolves no graph and fails on its first build, which is
+     * the one outcome this seam exists to prevent.
+     *
+     * The emission itself is sound and stays available: `forge generate --injection hilt
+     * --platforms android` writes the annotated Kotlin, which is what a hand-written Android
+     * module can compile.
+     */
+    override val scaffoldRefusal: String? =
+        "injection 'hilt' cannot be scaffolded: Hilt's compiler only runs in an Android " +
+            "compilation, and every generated file lands in shared/src/commonMain, where no " +
+            "Android compiler sees it. Use 'koin' or 'metro' for a scaffolded project, or " +
+            "'forge generate --injection hilt --platforms android' for the Kotlin alone."
+
     /** `androidx.hilt.navigation.compose.hiltViewModel`: the composable lookup. */
     /** `dagger.hilt.android.lifecycle.HiltViewModel`: what `hiltViewModel()` resolves. */
     private val hiltViewModelAnnotation: KotlinSymbol =

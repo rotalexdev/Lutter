@@ -209,6 +209,7 @@ page's state holder, and everything else about the emission stays the state stra
 | `module(pages)` | empty | The bindings in `di/Injection.kt`, when the container needs a file of its own |
 | `appRoot(body, modulePackage)` | identity | What wraps the app's content, when the container must start above it |
 | `refusal(state)` and `refusal(state, targets)` | null | Why this container cannot serve a holder, or a document's platforms |
+| `scaffoldRefusal` | null | Why a `forge scaffold` project cannot host this container, when its Kotlin is still emittable |
 | `decorate(declarations)` | identity | What the container needs written on the holder — Hilt's `@HiltViewModel` and `@Inject` constructor |
 | `emitsModule` / `plugins` | false / empty | What the plan and the scaffold must know before anything is emitted |
 
@@ -223,6 +224,14 @@ them in that order is reading the seam's history.
 |---|---|---|---|---|
 | `snapshot` | emitted | refused | refused | refused |
 | `viewmodel` | emitted | emitted | emitted | emitted (Android-only) |
+
+The `hilt` cell is emitted by `forge generate` and refused by `forge scaffold`: the generated Kotlin
+is sound (holder annotated `@HiltViewModel`, constructor `@Inject`, screens defaulting to
+`hiltViewModel()`), and the scaffolded project has nowhere to put Hilt's compiler, because every
+generated file lands in `shared/src/commonMain` and Hilt has no Kotlin Multiplatform story. The two
+refusal axes are separate on purpose — `refusal` is about the document, `scaffoldRefusal` is about
+the project — because a container can be perfectly emittable and still have no place in a project
+whose layout this generator does not write.
 
 **External state** — a declaration whose values arrive from a host `Flow` — is orthogonal to the
 table and has one cell: the `viewmodel` row under `none` injection. It is refused under `snapshot`
