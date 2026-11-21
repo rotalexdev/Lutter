@@ -1,9 +1,8 @@
 package dev.rotalex.lutter.scaffold
 
 import dev.rotalex.lutter.codegen.GeneratedFile
+import dev.rotalex.lutter.codegen.GeneratedFiles
 import dev.rotalex.lutter.codegen.GeneratedPlugin
-import dev.rotalex.lutter.codegen.GeneratedFile
-import dev.rotalex.lutter.codegen.GeneratedPlugins
 import dev.rotalex.lutter.codegen.Koin
 import dev.rotalex.lutter.codegen.Metro
 import dev.rotalex.lutter.codegen.Navigation3
