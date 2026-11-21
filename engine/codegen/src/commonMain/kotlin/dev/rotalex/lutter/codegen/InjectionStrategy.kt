@@ -1,6 +1,7 @@
 package dev.rotalex.lutter.codegen
 
 import dev.rotalex.lutter.schema.component.KotlinSymbol
+import dev.rotalex.lutter.schema.component.PlatformTag
 
 /**
  * Who builds a page's state holder, and what the generated project must carry for that to work.
@@ -69,6 +70,17 @@ public interface InjectionStrategy {
     public fun refusal(state: StateStrategy): String? = null
 
     /**
+     * Why this container cannot serve a document that targets [targets], or null when it can.
+     *
+     * The second axis exists because a container can be as strict about *platforms* as about
+     * holders: [Hilt] is an Android artifact, so a document that also targets iOS, desktop or web
+     * cannot compile its lookup no matter which state strategy it selects. Defaulting to the
+     * holder-only refusal keeps the two containers that have no platform requirement — [Koin] and
+     * [Metro] — spelling nothing new.
+     */
+    public fun refusal(state: StateStrategy, targets: Set<PlatformTag>): String? = refusal(state)
+
+    /**
      * Whether this container puts bindings in a file of its own, which the plan places at
      * `di/Injection.kt`.
      *
@@ -122,3 +134,14 @@ public data object NoInjection : InjectionStrategy {
     override fun holderParameter(page: String, state: StateStrategy, screensPackage: String): KtParam =
         state.pageParameter(page, screensPackage)
 }
+
+/**
+ * Whether [state]'s holder is one a platform owns — a `ViewModel`, in the vocabulary both seams use.
+ *
+ * Read off `libraries` rather than off a type because that is the fact the seams already publish: a
+ * state strategy that needs `lifecycle-viewmodel-compose` is one whose holder *is* a `ViewModel`.
+ * Top-level because all three containers ask the same question, and a copy per strategy is three
+ * places for the answer to drift.
+ */
+internal fun isPlatformHolder(state: StateStrategy): Boolean =
+    GeneratedLibrary.LifecycleViewModelCompose in state.libraries

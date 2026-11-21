@@ -2,6 +2,7 @@ package dev.rotalex.lutter.cli
 
 import dev.rotalex.lutter.codegen.ComposeSnapshotState
 import dev.rotalex.lutter.codegen.InjectionStrategy
+import dev.rotalex.lutter.codegen.Hilt
 import dev.rotalex.lutter.codegen.Koin
 import dev.rotalex.lutter.codegen.Metro
 import dev.rotalex.lutter.codegen.NoInjection
@@ -49,6 +50,7 @@ internal object Strategies {
         "none" to NoInjection,
         "koin" to Koin,
         "metro" to Metro,
+        "hilt" to Hilt,
     )
 
     /**

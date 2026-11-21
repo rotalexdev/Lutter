@@ -25,7 +25,7 @@ the scripts do not hot-reload.
 ```
 forge generate <document.json> [--out <dir>] [--package <package>]
                 [--navigation <simple|navigation-compose|navigation3>]
-                [--state <snapshot|viewmodel>] [--injection <none|koin|metro>]
+                [--state <snapshot|viewmodel>] [--injection <none|koin|metro|hilt>]
 ```
 
 Generates Kotlin source from a valid document.
@@ -69,6 +69,7 @@ a generated app that depends on nothing beyond Compose Multiplatform itself.
 |---|---|---|
 | `none` | The state strategy's own lookup: `rememberHomeScreenState()` or `viewModel()` | nothing |
 | `koin` | `di/Injection.kt` with one binding per page holder, `AppRoot` wrapped in `KoinApplication`, screens defaulting to `koinViewModel()` | `koin-core`, `koin-compose-viewmodel` |
+| `hilt` | Screens defaulting to `hiltViewModel()`. **Android-only**: a document that targets any other platform is refused, because Hilt has no Kotlin Multiplatform ViewModel integration | `hilt-android`, `hilt-navigation-compose` (and, once the holder decorator lands, the Hilt compiler plugin) |
 | `metro` | `di/Injection.kt` with a `@DependencyGraph` interface contributing every holder and binding its `MetroViewModelFactory`, `AppRoot` creating the graph and providing the factory, screens defaulting to `metroViewModel()` | `dev.zacsweers.metro:runtime`, `dev.zacsweers.metro:metrox-viewmodel-compose`, and the `dev.zacsweers.metro` compiler plugin |
 
 Metro is the one strategy that also brings a compiler plugin: its graph is an interface the

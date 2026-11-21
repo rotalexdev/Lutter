@@ -82,9 +82,6 @@ public data object Metro : InjectionStrategy {
     private val compositionLocalProvider: KotlinSymbol =
         KotlinSymbol("androidx.compose.runtime", "CompositionLocalProvider")
 
-    private fun isPlatformHolder(state: StateStrategy): Boolean =
-        GeneratedLibrary.LifecycleViewModelCompose in state.libraries
-
     override fun refusal(state: StateStrategy): String? =
         if (isPlatformHolder(state)) {
             null

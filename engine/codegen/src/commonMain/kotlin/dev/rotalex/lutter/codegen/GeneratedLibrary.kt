@@ -67,4 +67,17 @@ public enum class GeneratedLibrary {
      * generated project resolves one ViewModel API rather than two.
      */
     MetroxViewModelCompose,
+
+    /**
+     * `com.google.dagger:hilt-android`: the container itself, and the generated code its compiler
+     * produces.
+     */
+    HiltAndroid,
+
+    /**
+     * `androidx.hilt:hilt-navigation-compose`: `hiltViewModel()`, the composable lookup a screen
+     * calls. Separate from [HiltAndroid] because it is the half that is scoped to navigation, and a
+     * project that resolves the container but not the lookup compiles neither.
+     */
+    HiltNavigationCompose,
 }

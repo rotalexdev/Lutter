@@ -146,7 +146,7 @@ public class KotlinGenerator<A : Any, T : Any>(
         // A container that cannot build this state strategy's holder is a refusal about the pair of
         // options, not about anything the document declares: there is no node to point at, and the
         // fix is a different selection rather than an edit.
-        val refused: String? = options.injection.refusal(options.state)
+        val refused: String? = options.injection.refusal(options.state, options.targetPlatforms)
         if (refused != null) {
             diagnostics += Diagnostic(
                 Severity.Error,

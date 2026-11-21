@@ -46,6 +46,8 @@ lifecycleViewmodelCompose = "2.11.0"
 # generated project resolves one ViewModel API at the newer lifecycleViewmodelCompose above.
 koin = "4.2.2"
 metro = "1.4.5"
+hilt = "2.60.1"
+hiltNavigationCompose = "1.4.0"
 robolectric = "4.17"
 
 [libraries]
@@ -63,6 +65,8 @@ koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", ver
 # resolves inside the line the engine already builds and tests against.
 metro-runtime = { module = "dev.zacsweers.metro:runtime", version.ref = "metro" }
 metrox-viewmodel-compose = { module = "dev.zacsweers.metro:metrox-viewmodel-compose", version.ref = "metro" }
+hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
+hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 junit-jupiter = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
