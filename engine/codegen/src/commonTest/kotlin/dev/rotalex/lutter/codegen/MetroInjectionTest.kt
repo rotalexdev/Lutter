@@ -94,7 +94,7 @@ class MetroInjectionTest {
         val content: List<KtStmt> = listOf(KtStmt.Expr(KtExpr.Name("HomeScreen")))
         val printed: String = printRoot(Metro.appRoot(content, DI))
 
-        assertContains(printed, "val graph = createGraph<LutterGraph>()")
+        assertContains(printed, "val graph: LutterGraph = createGraph<LutterGraph>()")
         assertContains(printed, "CompositionLocalProvider(")
         assertContains(printed, "LocalMetroViewModelFactory provides graph.metroViewModelFactory")
         assertContains(printed, "import dev.zacsweers.metro.createGraph")
