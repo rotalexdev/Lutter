@@ -245,6 +245,7 @@ public final class dev/rotalex/lutter/codegen/Hilt : dev/rotalex/lutter/codegen/
 	public fun getEmitsModule ()Z
 	public fun getLibraries ()Ljava/util/Set;
 	public fun getPlugins ()Ljava/util/Set;
+	public fun getScaffoldRefusal ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtParam;
 	public fun module (Ljava/util/List;)Ljava/util/List;
@@ -281,6 +282,7 @@ public abstract interface class dev/rotalex/lutter/codegen/InjectionStrategy {
 	public fun getEmitsModule ()Z
 	public fun getLibraries ()Ljava/util/Set;
 	public fun getPlugins ()Ljava/util/Set;
+	public fun getScaffoldRefusal ()Ljava/lang/String;
 	public abstract fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtParam;
 	public static synthetic fun holderParameter$default (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtParam;
 	public fun module (Ljava/util/List;)Ljava/util/List;
@@ -294,6 +296,7 @@ public final class dev/rotalex/lutter/codegen/InjectionStrategy$DefaultImpls {
 	public static fun getEmitsModule (Ldev/rotalex/lutter/codegen/InjectionStrategy;)Z
 	public static fun getLibraries (Ldev/rotalex/lutter/codegen/InjectionStrategy;)Ljava/util/Set;
 	public static fun getPlugins (Ldev/rotalex/lutter/codegen/InjectionStrategy;)Ljava/util/Set;
+	public static fun getScaffoldRefusal (Ldev/rotalex/lutter/codegen/InjectionStrategy;)Ljava/lang/String;
 	public static synthetic fun holderParameter$default (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtParam;
 	public static fun module (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ljava/util/List;)Ljava/util/List;
 	public static fun refusal (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/lang/String;
@@ -308,6 +311,7 @@ public final class dev/rotalex/lutter/codegen/Koin : dev/rotalex/lutter/codegen/
 	public fun getEmitsModule ()Z
 	public fun getLibraries ()Ljava/util/Set;
 	public fun getPlugins ()Ljava/util/Set;
+	public fun getScaffoldRefusal ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtParam;
 	public fun module (Ljava/util/List;)Ljava/util/List;
@@ -939,6 +943,7 @@ public final class dev/rotalex/lutter/codegen/Metro : dev/rotalex/lutter/codegen
 	public fun getEmitsModule ()Z
 	public fun getLibraries ()Ljava/util/Set;
 	public fun getPlugins ()Ljava/util/Set;
+	public fun getScaffoldRefusal ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtParam;
 	public fun module (Ljava/util/List;)Ljava/util/List;
@@ -1002,6 +1007,7 @@ public final class dev/rotalex/lutter/codegen/NoInjection : dev/rotalex/lutter/c
 	public fun getEmitsModule ()Z
 	public fun getLibraries ()Ljava/util/Set;
 	public fun getPlugins ()Ljava/util/Set;
+	public fun getScaffoldRefusal ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtParam;
 	public fun module (Ljava/util/List;)Ljava/util/List;
