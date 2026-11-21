@@ -1,5 +1,6 @@
 package dev.rotalex.lutter.codegen
 
+import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.PlatformTag
 import kotlin.test.Test
 import kotlin.test.assertEquals
