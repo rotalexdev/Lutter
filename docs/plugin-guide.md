@@ -196,6 +196,38 @@ side. Contributing a modifier, enum, function or action follows its built-in sib
 your namespace; the builder call (`builder.modifier(...)`, `builder.action(...)`, and so
 on) is the only thing that changes.
 
+## Adding a container: the injection seam
+
+A container is not a component plugin, but it is the same shape of extension: one interface, four
+questions, and a built-in per answer. `InjectionStrategy` (`engine:codegen`) asks who builds a
+page's state holder, and everything else about the emission stays the state strategy's.
+
+| Question | Default | What it answers |
+|---|---|---|
+| `holderParameter(page, state, pkg)` | required | The default expression a screen's parameter carries — `hiltViewModel()`, `koinViewModel()`, or the state strategy's own lookup |
+| `libraries` | empty | The artifacts the lookup needs. The scaffold turns these into catalog entries, so a container never writes coordinates |
+| `module(pages)` | empty | The bindings in `di/Injection.kt`, when the container needs a file of its own |
+| `appRoot(body, modulePackage)` | identity | What wraps the app's content, when the container must start above it |
+| `refusal(state)` and `refusal(state, targets)` | null | Why this container cannot serve a holder, or a document's platforms |
+| `decorate(declarations)` | identity | What the container needs written on the holder — Hilt's `@HiltViewModel` and `@Inject` constructor |
+| `emitsModule` / `plugins` | false / empty | What the plan and the scaffold must know before anything is emitted |
+
+The three built-ins are the worked examples, and each exists because it answered a different
+question: `Koin` needs a module and a composition root; `Metro` needs a compiler plugin and a graph
+the plugin implements; `Hilt` needs a constructor annotation and a refusal about platforms. Reading
+them in that order is reading the seam's history.
+
+**The matrix, as it stands in v1:**
+
+| state \ injection | `none` | `koin` | `metro` | `hilt` |
+|---|---|---|---|---|
+| `snapshot` | emitted | refused | refused | refused |
+| `viewmodel` | emitted | emitted | emitted | emitted (Android-only) |
+
+Every emitted cell is compiled by `integration:generated-compile`, which is the only proof that
+matters: a refusal is unit-tested, but a cell that is supposed to emit is compiled by a real Kotlin
+build. A refused cell names its fix in the diagnostic instead of failing in a compile harness.
+
 ## Today's edges, stated plainly
 
 - **Distribution is an ordinary library dependency.** A plugin ships as a Kotlin module on
