@@ -84,7 +84,7 @@ internal object ScaffoldCommand {
         val document: File? = line.option("--document")?.let(::File)
         val codegen: GeneratedFiles = when (document) {
             null -> GeneratedFiles(emptyList())
-            else -> codegen(document, basePackage, navigation, state, injection, err)
+            else -> codegen(document, basePackage, platforms, navigation, state, injection, err)
                 ?: return ExitCode.Rejected
         }
 
@@ -125,6 +125,7 @@ internal object ScaffoldCommand {
     private fun codegen(
         document: File,
         basePackage: String,
+        platforms: Set<PlatformTag>,
         navigation: NavigationStrategy,
         state: StateStrategy,
         injection: InjectionStrategy,
@@ -172,13 +173,6 @@ internal object ScaffoldCommand {
         "com.example." + appName.lowercase().filter { it.isLetterOrDigit() }
 
     /**
-     * `--platforms` as the spec's target set.
-     *
-     * Names are matched case-insensitively so `--platforms Android` is not a refusal, and the
-     * two gated platforms get their own sentence: refusing `ios` as "unknown" would hide that
-     * it is a decision outside the scheduled platform scope (§2 C1) rather than a typo.
-     */
-    /**
      * The two runners this scaffold can write, and the default when `--platforms` is absent.
      *
      * Android and Desktop and not `PlatformTag.ALL`: iOS and Web are refused by
@@ -186,4 +180,6 @@ internal object ScaffoldCommand {
      * them would describe a project the scaffold cannot produce.
      */
     private val SCAFFOLDED_PLATFORMS: Set<PlatformTag> = setOf(PlatformTag.Android, PlatformTag.Desktop)
+
+    private const val DEFAULT_OUT: String = "scaffolded"
 }

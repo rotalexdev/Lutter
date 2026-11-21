@@ -105,6 +105,15 @@ internal object Strategies {
      * Android-only target set must be answerable by a flag. `scaffold` has had the flag since it
      * decides which app modules exist; this is the same list, parsed once.
      */
+    /**
+     * `--platforms`'s value, or [fallback] when the flag is absent.
+     *
+     * The fallback is the caller's, because the two commands ask different questions: `generate`
+     * defaults to every platform (a document has no runner set of its own), while `scaffold`
+     * defaults to the two it can write modules for. Only the container refusal reads the set, so a
+     * default that overstates the project is harmless — a default that *understates* it would
+     * refuse code that is perfectly emittable.
+     */
     fun platforms(value: String?, command: String, fallback: Set<PlatformTag>): Set<PlatformTag> {
         val requested: List<String> = (value ?: return fallback)
             .split(',')
