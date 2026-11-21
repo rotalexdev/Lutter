@@ -290,7 +290,7 @@ abstract class GenerateStrategyFixtures : DefaultTask() {
         check(documents.isNotEmpty()) { "No fixture to compile under any strategy" }
         for (variant in VARIANTS) {
             val chosen: List<Pair<String, File>> = variant.fixtures?.let { names ->
-                names.map { name -> documents.first { it.first == name } }
+                names.map { name -> name to documentNamed(name) }
             } ?: documents
             for ((id, document) in chosen) {
                 val pkg = "${basePackage.get()}.${variant.packageSegment}.${id.replace(Regex("[^A-Za-z0-9_]"), "_")}"
@@ -323,16 +323,18 @@ abstract class GenerateStrategyFixtures : DefaultTask() {
      * compiling a different one.
      */
     private fun documents(): List<Pair<String, File>> =
-        FIXTURE_NAMES.map { name ->
-            val found = (
-                jsonIn(fixtures.get().asFile) +
-                    jsonIn(navigatingFixtures.get().asFile) +
-                    jsonIn(hostedFixtures.get().asFile)
-                )
-                .firstOrNull { (id, _) -> id == name }
-                ?: error("Fixture '$name' is not in either fixture directory")
-            name to found.second
-        }
+        FIXTURE_NAMES.map { name -> name to documentNamed(name) }
+
+    /** One fixture by name, in any of the three directories this task reads. */
+    private fun documentNamed(name: String): File =
+        (
+            jsonIn(fixtures.get().asFile) +
+                jsonIn(navigatingFixtures.get().asFile) +
+                jsonIn(hostedFixtures.get().asFile)
+            )
+            .firstOrNull { (id, _) -> id == name }
+            ?.second
+            ?: error("Fixture '$name' is not in any fixture directory")
 
     private fun jsonIn(directory: File): List<Pair<String, File>> =
         (directory.listFiles { file -> file.extension == "json" }?.sortedBy { it.name } ?: emptyList())

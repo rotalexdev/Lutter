@@ -59,8 +59,12 @@ class InjectionStrategyTest {
         val document = documentOf(page())
         val provided = KtParam("state", KtExpr.Name("HomeScreenState"), KtExpr.Name("providedState"))
         val strategy: InjectionStrategy = object : InjectionStrategy {
-            override fun holderParameter(page: String, state: StateStrategy, screensPackage: String): KtParam =
-                provided
+            override fun holderParameter(
+                page: String,
+                state: StateStrategy,
+                screensPackage: String,
+                external: List<ExternalAdapter>,
+            ): KtParam = provided
         }
 
         val emitter = StateEmitter(
