@@ -2,7 +2,9 @@ package dev.rotalex.lutter.scaffold
 
 import dev.rotalex.lutter.codegen.GeneratedFile
 import dev.rotalex.lutter.codegen.GeneratedFiles
+import dev.rotalex.lutter.codegen.GeneratedPlugin
 import dev.rotalex.lutter.codegen.Koin
+import dev.rotalex.lutter.codegen.Metro
 import dev.rotalex.lutter.codegen.Navigation3
 import dev.rotalex.lutter.codegen.NavigationCompose
 import dev.rotalex.lutter.codegen.ViewModelState
@@ -173,6 +175,47 @@ class ScaffoldGeneratorTest {
         )
         assertTrue(shared.contains("implementation(libs.koin.core)"), shared)
         assertTrue(shared.contains("implementation(libs.koin.compose.viewmodel)"), shared)
+    }
+
+    /**
+     * A `Metro` project declares the container, the compose lookup and the compiler plugin.
+     *
+     * The plugin is the whole difference between Metro and Koin: the generated graph is an
+     * interface `dev.zacsweers.metro` implements, so a project with the runtime on its classpath
+     * and no plugin does not compile.
+     */
+    @Test
+    fun `a metro project depends on the runtime and applies its compiler plugin`() {
+        val metro = spec.copy(state = ViewModelState, injection = Metro)
+        val catalog = content("gradle/libs.versions.toml", metro)
+        val root = content("build.gradle.kts", metro)
+        val shared = content("shared/build.gradle.kts", metro)
+
+        assertTrue(catalog.contains("metro = \"${ScaffoldVersions.METRO}\""), catalog)
+        assertTrue(
+            catalog.contains(
+                "metro-runtime = { module = \"dev.zacsweers.metro:runtime\", version.ref = \"metro\" }",
+            ),
+            catalog,
+        )
+        assertTrue(
+            catalog.contains(
+                "metrox-viewmodel-compose = " +
+                    "{ module = \"dev.zacsweers.metro:metrox-viewmodel-compose\", version.ref = \"metro\" }",
+            ),
+            catalog,
+        )
+        assertTrue(
+            catalog.contains(
+                "metro = { id = \"dev.zacsweers.metro\", version.ref = \"metro\" }",
+            ),
+            catalog,
+        )
+        assertTrue(root.contains("alias(libs.plugins.metro) apply false"), root)
+        assertTrue(shared.contains("alias(libs.plugins.metro)"), shared)
+        assertTrue(shared.contains("implementation(libs.metro.runtime)"), shared)
+        assertTrue(shared.contains("implementation(libs.metrox.viewmodel.compose)"), shared)
+        assertTrue(metro.injection.plugins.contains(GeneratedPlugin.Metro))
     }
 
     /** The `viewModel()` a `ViewModelState` app calls comes from `lifecycle-viewmodel-compose`. */
