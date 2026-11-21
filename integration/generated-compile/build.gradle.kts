@@ -66,6 +66,10 @@ dependencies {
     commonMainApi(libs.navigation.compose)
     commonMainApi(libs.navigation3.ui)
     commonMainApi(libs.lifecycle.viewmodel.compose)
+    // §12.1's external row reads a `Flow`: a generated `AppHost` declares `fun clock(): Flow<String>`
+    // and its `ViewModel` collects it, so the module compiling those files needs the stream's own
+    // artifact. `api` for the same reason as the row above — it is on a public interface.
+    commonMainApi(libs.kotlinx.coroutines.core)
     // §15.5's container: a `koin` row's generated screen calls `koinViewModel()`, its `AppRoot`
     // starts a `KoinApplication`, and `di/Injection.kt` declares a `module`. Same reasoning as the
     // three above — the variants' compilation is the proof that the emission resolves.
@@ -258,6 +262,16 @@ abstract class GenerateStrategyFixtures : DefaultTask() {
     @get:InputDirectory
     abstract val navigatingFixtures: DirectoryProperty
 
+    /**
+     * The fixtures whose screens take a parameter the shared registry cannot supply.
+     *
+     * An external declaration's screen reads `host` for its default, exactly as a navigating
+     * screen reads the navigator its handler closed over, so this directory is generated for the
+     * strategy task alone and never reaches the registry.
+     */
+    @get:InputDirectory
+    abstract val hostedFixtures: DirectoryProperty
+
     @get:OutputDirectory
     abstract val generated: DirectoryProperty
 
@@ -279,7 +293,10 @@ abstract class GenerateStrategyFixtures : DefaultTask() {
         val documents = documents()
         check(documents.isNotEmpty()) { "No fixture to compile under any strategy" }
         for (variant in VARIANTS) {
-            for ((id, document) in documents) {
+            val chosen: List<Pair<String, File>> = variant.fixtures?.let { names ->
+                names.map { name -> name to documentNamed(name) }
+            } ?: documents
+            for ((id, document) in chosen) {
                 val pkg = "${basePackage.get()}.${variant.packageSegment}.${id.replace(Regex("[^A-Za-z0-9_]"), "_")}"
                 val target = File(out, "${variant.packageSegment}/$id")
                 exec.javaexec {
@@ -310,12 +327,18 @@ abstract class GenerateStrategyFixtures : DefaultTask() {
      * compiling a different one.
      */
     private fun documents(): List<Pair<String, File>> =
-        FIXTURE_NAMES.map { name ->
-            val found = (jsonIn(fixtures.get().asFile) + jsonIn(navigatingFixtures.get().asFile))
-                .firstOrNull { (id, _) -> id == name }
-                ?: error("Fixture '$name' is not in either fixture directory")
-            name to found.second
-        }
+        FIXTURE_NAMES.map { name -> name to documentNamed(name) }
+
+    /** One fixture by name, in any of the three directories this task reads. */
+    private fun documentNamed(name: String): File =
+        (
+            jsonIn(fixtures.get().asFile) +
+                jsonIn(navigatingFixtures.get().asFile) +
+                jsonIn(hostedFixtures.get().asFile)
+            )
+            .firstOrNull { (id, _) -> id == name }
+            ?.second
+            ?: error("Fixture '$name' is not in any fixture directory")
 
     private fun jsonIn(directory: File): List<Pair<String, File>> =
         (directory.listFiles { file -> file.extension == "json" }?.sortedBy { it.name } ?: emptyList())
@@ -327,6 +350,8 @@ abstract class GenerateStrategyFixtures : DefaultTask() {
         val navigation: String,
         val state: String,
         val injection: String = "none",
+        /** The fixtures this row compiles, by name. Null means the two every row shares. */
+        val fixtures: List<String>? = null,
     )
 
     private companion object {
@@ -347,6 +372,12 @@ abstract class GenerateStrategyFixtures : DefaultTask() {
             Variant("navigation3viewmodel", "navigation3", "viewmodel"),
             Variant("viewmodelkoin", "simple", "viewmodel", injection = "koin"),
             Variant("viewmodelmetro", "simple", "viewmodel", injection = "metro"),
+            // §15.5's T4: an external declaration only the ViewModel row can hold, so the cell is
+            // its own fixture rather than a seventh combination of the two shared ones.
+            // One row, not a matrix: the external row is `viewmodel` + `none` and nothing else
+            // compiles (see the refusals in `StateEmitter`), so this proves the overload the
+            // default initializer calls and the `AppHost` member it reads.
+            Variant("externalstate", "simple", "viewmodel", fixtures = listOf("external_state")),
         )
 
         /** A navigating fixture and a stateful one; see the comment above the task. */
@@ -360,6 +391,7 @@ val generateStrategyFixtures by tasks.register<GenerateStrategyFixtures>("genera
         "strategy, so compiling this module proves each strategy's emission resolves."
     fixtures.set(layout.projectDirectory.dir("fixtures"))
     navigatingFixtures.set(layout.projectDirectory.dir("fixtures-navigating"))
+    hostedFixtures.set(layout.projectDirectory.dir("fixtures-hosted"))
     generated.set(layout.buildDirectory.dir("generated/forge-strategies"))
     cliClasspath.from(cliRuntime)
     basePackage.set("dev.rotalex.lutter.strategies")
@@ -386,6 +418,7 @@ abstract class GenerateCodegenGoldens : DefaultTask() {
 
     @get:InputDirectory
     abstract val navigatingFixtures: DirectoryProperty
+
 
     @get:OutputDirectory
     abstract val goldens: DirectoryProperty

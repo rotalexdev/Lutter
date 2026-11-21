@@ -47,7 +47,12 @@ public interface InjectionStrategy {
      * [screensPackage] qualifies the factory a plain-class holder needs; a container's lookup names
      * no generated declaration and ignores it.
      */
-    public fun holderParameter(page: String, state: StateStrategy, screensPackage: String): KtParam
+    public fun holderParameter(
+        page: String,
+        state: StateStrategy,
+        screensPackage: String,
+        external: List<ExternalAdapter> = emptyList(),
+    ): KtParam
 
     /**
      * The libraries the generated project needs so this strategy's lookup resolves.
@@ -142,8 +147,12 @@ public interface InjectionStrategy {
  */
 public data object NoInjection : InjectionStrategy {
 
-    override fun holderParameter(page: String, state: StateStrategy, screensPackage: String): KtParam =
-        state.pageParameter(page, screensPackage)
+    override fun holderParameter(
+        page: String,
+        state: StateStrategy,
+        screensPackage: String,
+        external: List<ExternalAdapter>,
+    ): KtParam = state.pageParameter(page, screensPackage, external)
 }
 
 /**
