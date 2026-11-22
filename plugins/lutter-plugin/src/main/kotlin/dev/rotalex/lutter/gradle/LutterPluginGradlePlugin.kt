@@ -79,6 +79,14 @@ public class LutterPluginGradlePlugin : Plugin<Project> {
                     task.runtimeEntryPoint.set(extension.runtimeEntryPoint)
                     task.requirements.set(extension.dependsOn)
                     task.payload.from(extension.payload)
+
+                    // The payload is this module's own `jar`, and `from(archiveFile)` alone does
+                    // not make the container depend on it: run `lutterPluginContainer` on a clean
+                    // tree and the task found zero payload files (observed on PR #194, where the
+                    // step runs the task directly instead of through `check`). `dependsOn` a
+                    // `FileCollection` uses its own build dependencies, so this holds whether the
+                    // payload came from the jar or from a script that set it by hand.
+                    task.dependsOn(extension.payload)
                     val defaultPath = project.provider {
                         "lutter-plugin/${extension.id.get()}-${extension.version.get()}.lutterplugin"
                     }
