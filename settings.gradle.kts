@@ -85,3 +85,4 @@ include(":integration:generated-compile")
 // package and load; the container is what makes it a plugin, not the module it lives in.
 include(":integration:fixture-plugin")
 include(":samples:desktop-preview")
+include(":app:editor")
