@@ -4,8 +4,15 @@ import dev.rotalex.lutter.editing.DocumentController
 import dev.rotalex.lutter.editing.command.Command
 import dev.rotalex.lutter.editing.command.CommandResult
 import dev.rotalex.lutter.editing.patch.Patch
+import dev.rotalex.lutter.editing.patch.PatchOp
+import dev.rotalex.lutter.editing.policy.DropTarget
+import dev.rotalex.lutter.editing.policy.DropTargets
+import dev.rotalex.lutter.editing.template.IdRemapper
+import dev.rotalex.lutter.editing.template.NodeTemplate
 import dev.rotalex.lutter.model.diagnostic.Diagnostic
+import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.UiDocument
+import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.IdGenerator
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PropertyKey
@@ -71,6 +78,16 @@ public class EditorSession(
 
     /** What the palette and the inspector read. */
     public val schema: SchemaView<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec>,
+
+    /**
+     * Where a freshly inserted node's id comes from.
+     *
+     * The default is a fresh sequence, and that is safe rather than merely convenient:
+     * [IdRemapper] excludes every id the document holds at the moment it is asked, and the
+     * document grows after each insert. Sharing one generator with the controller (which
+     * [open] does) is the stronger contract and the one §28.3's determinism claim prefers.
+     */
+    private val ids: IdGenerator = SequentialIdGenerator(),
 ) {
 
     private val selectionFlow: MutableStateFlow<EditorSelection> = MutableStateFlow(EditorSelection.None)
@@ -97,6 +114,71 @@ public class EditorSession(
         val selected = selectionFlow.value as? EditorSelection.Node ?: return null
         return Inspector.of(document, schema, selected.id)
     }
+
+    /**
+     * Every place a [type] may be inserted **right now**, straight from
+     * [DropTargets.forNode] — the same check the planner will run, asked once.
+     *
+     * The list is a snapshot, not a reservation: the caller renders it, and a later edit can
+     * invalidate it. §25.3 accepts that because the planner is still the backstop.
+     */
+    public fun dropTargets(type: ComponentType): List<DropTarget> =
+        DropTargets.forNode(document, schema, type)
+
+    /**
+     * A new, empty node of [type] placed at [into], selected once it lands.
+     *
+     * The node carries nothing but its id and its type: defaults are `analysis`'s to apply and
+     * a required property is `analysis`'s to complain about, so an insertion that pre-filled
+     * one would be the editor inventing document content.
+     */
+    public fun insert(type: ComponentType, into: DropTarget): CommandResult {
+        val remapper = IdRemapper(document, ids)
+        val fresh: NodeId = remapper.fresh()
+        val result = dispatch(
+            Command.InsertNode(
+                parent = into.parent,
+                slot = into.slot,
+                index = into.index,
+                subtree = NodeTemplate(listOf(Node(id = fresh, type = type))),
+            ),
+        )
+        if (result is CommandResult.Ok) selectionFlow.value = EditorSelection.Node(fresh)
+        return result
+    }
+
+    /**
+     * A copy of [node]'s subtree, selected once it lands.
+     *
+     * The copy's id is the planner's to mint, so it is read back off the patch rather than
+     * predicted: the patch is the record of what actually happened, and a second guess at the
+     * id would be a second answer to the same question.
+     */
+    public fun duplicate(node: NodeId): CommandResult {
+        val result = dispatch(Command.DuplicateNode(node))
+        if (result is CommandResult.Ok) {
+            val copy = result.patch.ops
+                .filterIsInstance<PatchOp.InsertNodes>()
+                .firstOrNull()?.nodes?.firstOrNull()?.id
+            if (copy != null) selectionFlow.value = EditorSelection.Node(copy)
+        }
+        return result
+    }
+
+    /** [node] repositioned at [into], and still selected afterwards. */
+    public fun move(node: NodeId, into: DropTarget): CommandResult {
+        val result = dispatch(
+            Command.MoveNode(id = node, newParent = into.parent, slot = into.slot, index = into.index),
+        )
+        if (result is CommandResult.Ok) selectionFlow.value = EditorSelection.Node(node)
+        return result
+    }
+
+    /**
+     * [node]'s subtree lifted out. The selection is [dispatch]'s business: if it named this
+     * node, reconciliation clears it.
+     */
+    public fun remove(node: NodeId): CommandResult = dispatch(Command.RemoveNode(node))
 
     /**
      * One command, planned and applied by the controller, with the selection reconciled.
@@ -142,7 +224,7 @@ public class EditorSession(
             document: UiDocument,
             schema: SchemaView<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec>,
             ids: IdGenerator = SequentialIdGenerator(),
-        ): EditorSession = EditorSession(DocumentController(document, schema, ids), schema)
+        ): EditorSession = EditorSession(DocumentController(document, schema, ids), schema, ids)
     }
 
     private fun reconcile(): Unit {
