@@ -25,6 +25,8 @@ import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.Schema
 import dev.rotalex.lutter.schema.SchemaBuilder
+import dev.rotalex.lutter.schema.plugin.PluginDescriptor
+import dev.rotalex.lutter.schema.plugin.SchemaContribution
 import dev.rotalex.lutter.schema.action.ActionEmit
 import dev.rotalex.lutter.schema.action.ActionMetadata
 import dev.rotalex.lutter.schema.action.ActionSpec
@@ -94,6 +96,32 @@ internal val FirstId: FunctionId = FunctionId("list.first")
 /** A schema with real specs, so dispatch always goes through the registry. */
 internal fun testSchema(): Schema<ComponentSpec, ModifierSpec, String, String, String> =
     Schema.build<ComponentSpec, ModifierSpec, String, String, String> { walkingSkeleton() }
+
+/**
+ * [testSchema] plus the given plugins, installed in the order given.
+ *
+ * The contributions register nothing: §27.2's rule is about identity and version, and a plugin
+ * that added specs would make the vocabulary under test depend on the fixture. Order matters to
+ * `install` and is preserved, so a test may hand over a dependency before its dependent.
+ */
+internal fun pluginSchema(
+    vararg plugins: PluginDescriptor,
+): Schema<ComponentSpec, ModifierSpec, String, String, String> =
+    Schema.build<ComponentSpec, ModifierSpec, String, String, String> {
+        walkingSkeleton()
+        for (descriptor in plugins) install(silentContribution(descriptor))
+    }
+
+private fun silentContribution(
+    descriptor: PluginDescriptor,
+): SchemaContribution<ComponentSpec, ModifierSpec, String, String, String> =
+    object : SchemaContribution<ComponentSpec, ModifierSpec, String, String, String> {
+        override val descriptor: PluginDescriptor = descriptor
+
+        override fun contribute(
+            builder: SchemaBuilder<ComponentSpec, ModifierSpec, String, String, String>,
+        ): Unit = Unit
+    }
 
 /**
  * The same vocabulary with the types slot bound to [TypeSpec], so a registered `EnumTypeSpec`

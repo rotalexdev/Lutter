@@ -91,7 +91,53 @@ internal class SchemaPass(
             checkModifiers(document, node, scopes(id), diags)
         }
         checkThemeDefaults(document, explicit, diags)
+        // Document-level, so unconditional: a narrowed walk is about nodes, and a plugin
+        // requirement is a statement about the document as a whole.
+        checkPlugins(document, diags)
         return diags
+    }
+
+    /**
+     * §27.2: what the document says it was authored against, against what is installed.
+     *
+     * The document's `meta.plugins` is a claim the host may not be able to honour, and generating
+     * against a schema that cannot speak a document's components would produce code that compiles
+     * and does the wrong thing. Both failures are errors, not warnings: §27.2 calls this a
+     * refusal, and a warning would let `forge generate` proceed past it.
+     *
+     * Versions compare by exact string equality — ADR-018 records why no range grammar exists.
+     * That makes a mismatch louder than a range check would be: any other spelling is refused,
+     * including a newer compatible build. It is the honest reading of a rule nobody has specified
+     * further, and widening it later is a decision with a grammar behind it.
+     */
+    private fun checkPlugins(document: UiDocument, diags: MutableList<Diagnostic>) {
+        for (requirement in document.meta.plugins) {
+            val installed = schema.contributors.firstOrNull { it.id == requirement.id }
+            val location = DiagnosticLocation(path = listOf("meta", "plugins", requirement.id.value))
+            if (installed == null) {
+                diags += Diagnostic(
+                    Severity.Error,
+                    DiagnosticCodes.PluginMissing,
+                    location,
+                    "Document requires plugin '${requirement.id}' '${requirement.version}', " +
+                        "which this schema does not provide",
+                    mapOf("plugin" to requirement.id.value, "version" to requirement.version),
+                )
+            } else if (installed.version != requirement.version) {
+                diags += Diagnostic(
+                    Severity.Error,
+                    DiagnosticCodes.PluginVersionMismatch,
+                    location,
+                    "Document requires plugin '${requirement.id}' '${requirement.version}', " +
+                        "but '${installed.version}' is installed",
+                    mapOf(
+                        "plugin" to requirement.id.value,
+                        "required" to requirement.version,
+                        "installed" to installed.version,
+                    ),
+                )
+            }
+        }
     }
 
     /**
