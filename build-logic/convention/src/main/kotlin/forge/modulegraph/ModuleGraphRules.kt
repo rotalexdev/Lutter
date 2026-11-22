@@ -261,6 +261,12 @@ object ModuleGraphRules {
         // batch's sources are wired into that module's `commonMain`.
         ":integration:generated-compile" to setOf(":engine:test-support"),
 
+        // Phase 16 S9: the packager lives in its own included build and cannot link
+        // `:tools:plugin-container`, so the container it writes is read back here with the real
+        // reader. That comparison is the only thing keeping the format's two implementations
+        // honest, which makes the edge a requirement of the test rather than a convenience.
+        ":integration:fixture-plugin" to setOf(":tools:plugin-container"),
+
         // §32 Phase 14's "a golden of the scaffolded shape" is a committed file compared with
         // the same reader every other golden in this repo uses, so the harness is reachable
         // from here for the same reason it is reachable from the two lines above: a golden
