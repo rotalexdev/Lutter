@@ -85,16 +85,31 @@ class EditorSessionTest {
     }
 
     @Test
-    fun `a refused command keeps the selection`() {
+    fun `a refused command keeps a selection the document still backs`() {
         val session = session()
-        session.select(EditorSelection.Node(ABSENT))
+        session.select(EditorSelection.Node(LEAF))
 
         assertIs<CommandResult.Rejected>(
             session.dispatch(Command.RemoveNode(ABSENT)),
         )
 
-        // Nothing was removed and nothing was selected away: a refusal is about the command.
-        assertEquals(EditorSelection.Node(ABSENT), session.selection.value)
+        // A refusal is a fact about the command, not about the node that happens to be
+        // selected, so a selection the document still holds survives it untouched.
+        assertEquals(EditorSelection.Node(LEAF), session.selection.value)
+        assertNotNull(session.inspector())
+    }
+
+    @Test
+    fun `a selection naming a node outside the document is cleared`() {
+        val session = session()
+        session.select(EditorSelection.Node(ABSENT))
+
+        // Nothing is dispatched here: the reconciliation that follows a command also runs on a
+        // selection that never pointed at anything, and it is what keeps the inspector from
+        // having to guard against a stale id.
+        session.dispatch(Command.RemoveNode(ABSENT))
+
+        assertEquals(EditorSelection.None, session.selection.value)
     }
 
     @Test
