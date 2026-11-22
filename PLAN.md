@@ -2394,7 +2394,7 @@ Size legend: S ≤ 1 week, M 1–2 weeks, L 2–4 weeks (single senior developer
 | 13 | Incremental analysis + expression compilation; expression text parser/printer |
 | 14 | `:engine:scaffold` — project scaffolding (`ProjectSpec` → `settings.gradle.kts`, `shared/`, `androidApp/`, `desktopApp/`, `libs.versions.toml`), separate from UI codegen. The `composeApp/` shape is gone: AGP 9 forbids `com.android.application` beside `kotlin.multiplatform` in one module, so an app is a per-platform module by D28 |
 | 15 | Alternative strategies: Navigation Compose, Navigation 3, ViewModel state; persistent/external state |
-| 16 | Plugin manifest/discovery, third-party publishing guide |
+| 16 | The `.lutterplugin` container: manifest, three builds (`full`, `android-only`, `desktop-only`), JVM-host discovery, `lutter-plugin` packaging, third-party guide (ADR-018) |
 | 17 | Visual editor, in this repository (D28) — modules consuming `:editing`, `:runtime`, `:analysis`, `:codegen`, following the AGP 9 structure: the editor's platform-neutral code in `:app:editor`, its entry points in the root-level `androidApp/` and `desktopApp/`. A generated project keeps JetBrains' own `shared/` name, because that project *is* a generated app and the name is its convention, not this repo's |
 | 18 | Data models: `DataModelDecl` reaches `ResolvedDocument` and emits `model/Models.kt`, field access typechecks through the model, lists carry records — today a declared model dies at the resolver |
 | 19 | Resources I: a shipped `ResourceProvider` per platform, `String` resources end to end, and the scaffold's entry points hosting the generated `AppRoot` instead of a `TextView` and a `println` |
@@ -2454,12 +2454,13 @@ The table above is the index; the sections below expand each row into the phase 
 - **Acceptance:** a conformance document runs under every strategy with equal dumps; `SimpleBackStack` stays the zero-dependency default.
 - **Depends on:** P14 (generated projects carry the strategies).
 
-### Phase 16 — Plugin manifest, discovery, publishing (M)
-- **Objective:** dynamic plugin loading per §7.4/§8.2, closing the debt D35 recorded rather than fixed.
-- **APIs:** the loader reads `PluginDescriptor` (declared and carried since the MVP, read by nothing — D35's exact wording) and `Schema.contributors` (the field D35 found missing on the real `Schema`, to be added now); `dependsOn` is satisfied or refused; the registration shape stays D35's builder-plus-extension (`RendererRegistryBuilder`/`ModifierApplierRegistryBuilder` + `registerX()`).
-- **Tasks:** manifest format + discovery; the refusal diagnostics for unsatisfied `dependsOn` and duplicate registration; the third-party publishing guide in `docs/` (§7.4's four-step recipe stays the registration path).
-- **Tests:** a fixture plugin loading through the public path (the `ThirdPartyComponentTest` pattern, loaded dynamically); negative tests for each refusal diagnostic.
-- **Acceptance:** a fixture plugin loads, contributes, and reports its identity; the guide documents the whole path.
+### Phase 16 — The `.lutterplugin` container, discovery, packaging (M)
+- **Objective:** a plugin becomes a distributable artifact, closing the debt D35 recorded rather than fixed, under ADR-018's rule that the *engine* stays static and a host with a classloader does the loading.
+- **APIs:** `PluginManifest` and `PluginBuild` (`full` | `android-only` | `desktop-only`) in `:engine:model`; the container layout (`META-INF/lutter/plugin.json`, `classes/jvm/`, `classes/android/`); `Schema.contributors` — the field D35 found missing on the real `Schema` — plus `SchemaBuilder.install(contribution)`, which invokes `contribute()`, records the descriptor and refuses a duplicate `id` or an unsatisfied `dependsOn`; `plugin.missing` and `plugin.version_mismatch` emitted against a document's `meta.plugins`; the CLI's `--plugin <file.lutterplugin>`, which reads the container, verifies the declared build against the payloads it actually carries, picks the payload its own platform can execute and loads the entry point. The registration shape stays D35's builder-plus-extension (`RendererRegistryBuilder`/`ModifierApplierRegistryBuilder` + `registerX()`), and the manifest names those hooks as `FQCN#method`.
+- **Tasks:** manifest model and its pure validation; the container writer and reader; `install`/`contributors`/`dependsOn`; the document-requirement diagnostics; the CLI loader; the `lutter-plugin` Gradle plugin that packages the three builds; the third-party guide in `docs/` (§7.4's four-step recipe stays the registration path).
+- **Tests:** a fixture plugin packaged as a real container, loaded through the CLI's public path (the `ThirdPartyComponentTest` pattern, but through the file), and one negative test per refusal; container round-trip in the writer/reader pair; a manifest whose declared build disagrees with its payloads refused before any class is loaded.
+- **Acceptance:** a fixture plugin loads from `*.lutterplugin`, contributes components, and reports its identity; a document naming a plugin the host did not load is refused by `plugin.missing`; the guide documents the whole path including which build to publish.
+- **Boundary, stated plainly:** packaging a `.dex` payload is **not** in this phase — D8/R8 is a toolchain this repository does not carry yet, so `android-only` and `full` are declared, verified and refused where the payload is absent, and the packager refuses to claim a build it cannot produce. Loading on Android at runtime (a `DexClassLoader` inside a host app) is likewise deferred; the container already carries what that step will need.
 - **Depends on:** P15.
 
 ### Phase 17 — Visual editor (L)
@@ -2832,7 +2833,7 @@ Tests (`commonTest`): `IdsTest`, `DecimalTest`, `ValueFactoryTest`, `NodeTableTe
 - **Why:** `ServiceLoader`/class loading is not portable across KMP; MVP does not need it.
 - **Alternatives:** JVM `ServiceLoader`; OSGi-like; scripting-based plugins.
 - **Trade-offs:** third parties recompile the host.
-- **Consequences:** builtins are implemented as plugins (dogfooding); dynamic discovery can layer on top.
+- **Consequences:** builtins are implemented as plugins (dogfooding); dynamic discovery can layer on top, and ADR-018 is that layer — a host with a classloader loads a `.lutterplugin`, while no engine module ever does.
 
 ### ADR-011 Generated code is one-way and generate-only
 - **Decision:** No parsing generated Kotlin back; users extend via host functions, slots, and reusable components.
@@ -2882,6 +2883,13 @@ Tests (`commonTest`): `IdsTest`, `DecimalTest`, `ValueFactoryTest`, `NodeTableTe
 - **Alternatives:** override maps keyed by inner node ids; inheritance.
 - **Trade-offs:** less flexible than design-tool variants.
 - **Consequences:** variants are expressed as params (enum/boolean) and slots.
+
+### ADR-018 The `.lutterplugin` container; the engine stays static and a host loads
+- **Decision:** A distributable plugin is one file, `*.lutterplugin`: a ZIP container with `META-INF/lutter/plugin.json` (the `PluginManifest`) and platform payloads — `classes/jvm/` for jars, `classes/android/` for dex — and the manifest declares `id`, `version`, `apiVersion`, `dependsOn`, the single `build` it ships (`full`, `android-only`, `desktop-only`) and its entry points. **No `:engine:*` module reads a container, opens a classloader or reflects.** `SchemaBuilder.install(contribution)` is a call, exactly ADR-010's static composition. **A host that owns a classloader does the loading:** `:tools:cli` reads the container, refuses a declared build its payloads do not back, selects the payload its own platform executes and loads the entry point.
+- **Why:** ADR-010's prohibition is a statement about portability *inside the engine*, and it survives intact — nothing in common code gains `java.util.zip`, `ClassLoader` or reflection. What does not survive is the implication that a third-party plugin can only be used by recompiling the host, which is not a distribution story. One container rather than "a jar here and a dex there" because a plugin's identity must outlive packaging: `id`, `version`, `apiVersion` and `dependsOn` live in one manifest, and a build shipping both payloads is one plugin with one identity.
+- **Alternatives:** a plain jar with manifest attributes (cannot carry dex, cannot declare a build, cannot verify anything); Maven coordinates as the identity (publishing is decided after T27; the container is the artifact that decision will carry); `ServiceLoader` (cannot express payload selection or a named refusal, and would be the only class-scanning rule in a repository that has none).
+- **Trade-offs:** a manifest and its payloads can disagree, so verification is a first-class step; a dex payload cannot be produced by this repository's toolchain yet, so `android-only` and `full` are declared and verified before they are produced; a runtime hook needs a named callable (`FQCN#method`) because D35's runtime half is a builder-plus-function rather than an interface.
+- **Consequences:** `PluginDescriptor` becomes read and `Schema.contributors` exists; `dependsOn` is satisfied or refused at install; a document's `meta.plugins` yields `plugin.missing`/`plugin.version_mismatch`; version requirements compare by **exact string equality** (no section defines a range grammar and no parser exists — a range is a spec, a parser and its own tests, and belongs with the loader work that needs it); packaging is a Gradle plugin so a third party does not hand-zip.
 
 ---
 
