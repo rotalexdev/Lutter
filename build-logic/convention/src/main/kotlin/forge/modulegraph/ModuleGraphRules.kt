@@ -52,6 +52,7 @@ object ModuleGraphRules {
         ":engine:builtins-compose",
         ":engine:test-support",
         ":tools:cli",
+        ":tools:plugin-container",
         ":tools:architecture-tests",
         ":integration:generated-compile",
         ":samples:desktop-preview",
@@ -177,6 +178,13 @@ object ModuleGraphRules {
             ":engine:scaffold",
             ":engine:builtins",
             ":engine:editing",
+        ),
+        // ADR-018: the container reads a manifest and payloads, so it needs the manifest's own
+        // types and nothing else. It may not reach `:engine:schema` even though a loaded
+        // manifest becomes a `PluginDescriptor` — that conversion belongs to the loader, which
+        // is the module that already depends on both.
+        ":tools:plugin-container" to setOf(
+            ":engine:model",
         ),
         ":tools:architecture-tests" to emptySet(),
         ":integration:generated-compile" to setOf(
