@@ -98,6 +98,8 @@ With no argument it loads a fixture that exercises navigation, so `gradle
 - [The CLI page](cli.md) — both commands, all flags, and the exit-code table.
 - [The plugin guide](plugin-guide.md) — how to add your own components, modifiers, and
   renderers without touching engine modules.
+- [Packaging and shipping a plugin](plugin-publishing.md) — the `*.lutterplugin` container,
+  the packaging Gradle plugin, and what a host verifies before it loads your code.
 
 ## Troubleshooting
 
