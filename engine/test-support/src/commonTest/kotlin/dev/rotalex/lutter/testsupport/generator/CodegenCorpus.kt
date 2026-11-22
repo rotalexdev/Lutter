@@ -21,6 +21,7 @@ import dev.rotalex.lutter.schema.component.CodegenBinding
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
+import dev.rotalex.lutter.schema.plugin.PluginDescriptor
 import dev.rotalex.lutter.schema.registry.Registry
 import dev.rotalex.lutter.schema.registry.RegistryBuilder
 import dev.rotalex.lutter.schema.types.IconSet
@@ -611,6 +612,7 @@ internal class EmittableView(
     override val functions: Registry<FunctionId, FunctionSpec> = delegate.functions
     override val types: Registry<TypeId, TypeSpec> = delegate.types
     override val icons: Registry<String, IconSet> = delegate.icons
+    override val contributors: List<PluginDescriptor> = delegate.contributors
 }
 
 /** Stands in for a diagnostic location field that is not set. */

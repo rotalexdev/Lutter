@@ -19,6 +19,7 @@ import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.PropertySpec
 import dev.rotalex.lutter.schema.component.SlotSpec
 import dev.rotalex.lutter.schema.component.SpecOrigin
+import dev.rotalex.lutter.schema.plugin.PluginDescriptor
 import dev.rotalex.lutter.schema.registry.Registry
 import dev.rotalex.lutter.schema.registry.RegistryBuilder
 
@@ -107,6 +108,9 @@ public class SchemaOverlay<M : Any, A : Any, F : Any, T : Any>(
     override public val types: Registry<TypeId, T> = schema.types
 
     override public val icons: Registry<String, IconSet> = schema.icons
+
+    /** A document cannot install a plugin, so the list is the static schema's, unchanged. */
+    override public val contributors: List<PluginDescriptor> = schema.contributors
 
     private companion object {
         /**
