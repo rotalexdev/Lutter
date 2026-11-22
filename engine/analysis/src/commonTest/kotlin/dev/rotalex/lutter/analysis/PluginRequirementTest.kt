@@ -23,7 +23,7 @@ class PluginRequirementTest {
 
     /** The walking-skeleton document, with the requirements the test is about. */
     private fun homeDocumentRequiring(vararg requirements: PluginRequirement): UiDocument {
-        val document = homeDocument()
+        val document = homeDocument {}
         return document.copy(meta = document.meta.copy(plugins = requirements.toList()))
     }
 
@@ -70,7 +70,7 @@ class PluginRequirementTest {
 
     @Test
     fun `a document with no requirements reports nothing about plugins`() {
-        val result = analyzing().analyze(homeDocument())
+        val result = analyzing().analyze(homeDocument {})
 
         val codes = result.diagnostics.map { it.code.value }
         // One line per code: the catalog census reads test sources line by line, and a negative
