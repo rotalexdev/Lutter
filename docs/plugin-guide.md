@@ -164,7 +164,7 @@ val schema = Schema.build<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec,
     registerBuiltinEnums()
     registerBuiltinFunctions()
     registerBuiltinActions()
-    StatusBadgeContribution.contribute(this)   // the line
+    install(StatusBadgeContribution)           // the line
 }
 
 val renderers = RendererRegistryBuilder().apply {
@@ -177,6 +177,11 @@ val modifiers = ModifierApplierRegistryBuilder()
 val runtime = UiRuntime(renderers, modifiers, Implementations(builtinFunctionImpls()), schema)
 ```
 
+`install` rather than `contribute(this)`, because `install` is what makes the plugin's identity
+real: it contributes the specs, records the descriptor in `Schema.contributors`, and refuses a
+duplicate `id` or a `dependsOn` no earlier plugin satisfies — before your `contribute` runs.
+`contribute` is still the method you implement; `install` is the call your host makes.
+
 `ThirdPartyEngine.kt` builds the exact assembly above in two forms — with and without the
 plugin's line — and its tests assert that the plugin's addition changes nothing else and
 that coverage, codegen, and rendering all still hold. The host's total cost is two lines.
@@ -184,6 +189,10 @@ that coverage, codegen, and rendering all still hold. The host's total cost is t
 Once the schema is composed, everything downstream is plugin-agnostic: the CLI (`forge
 check`, `forge generate`) and the codegen run over any schema the same way, and generated
 code for your component emits calls exactly as the `composeCall` binding spelled them.
+
+**To ship it as a file**, see [Packaging and shipping a plugin](plugin-publishing.md): the
+`*.lutterplugin` container, the packaging Gradle plugin, what a host verifies before it loads your
+code, and the two ways the CLI takes one (`--plugin`, repeatable, in the order given).
 
 ## Plugins for the other four kinds
 
@@ -246,10 +255,14 @@ build. A refused cell names its fix in the diagnostic instead of failing in a co
 
 ## Today's edges, stated plainly
 
-- **Distribution is an ordinary library dependency.** A plugin ships as a Kotlin module on
-  the host's classpath; there is no plugin discovery and no dynamic loading today.
-- **The descriptor is declared, not yet enforced.** `PluginDescriptor` (id, version, API
-  version, dependencies) is part of the surface, but nothing currently reads it — a host
-  composes explicitly, which is why the recipe is four functions instead of an installer.
+- **Distribution is a file, or an ordinary library dependency.** A plugin can ship as a
+  `*.lutterplugin` container that a host installs with `--plugin`, or as a Kotlin module on the
+  host's classpath that the host composes itself. The container is the only route that records the
+  descriptor; the classpath route still works and is still what the integration tests do.
+- **The descriptor is enforced at install.** `PluginDescriptor` (id, version, API version,
+  dependencies) is read by `SchemaBuilder.install`, which refuses a duplicate id or an unsatisfied
+  `dependsOn`, and by analysis, which compares a document's `meta.plugins` against the contributors
+  it finds — `plugin.missing` and `plugin.version_mismatch`. What is not enforced is *discovery*:
+  nothing scans a directory for containers, so a host still names each `--plugin`.
 - **Configurable registration stays with your library.** The extension function is what a
   host calls; if your plugin needs parameters, your extension function takes them.
