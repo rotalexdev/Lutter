@@ -40,7 +40,8 @@ import java.io.File
  * | `registerBuiltin{Specs,Modifiers,Enums,Functions,Actions}` | `:engine:builtins` | `public` |
  * | `Diagnostic`, `DiagnosticLocation`, `DiagnosticCode`, `Severity` | `:engine:model` | `public` |
  * | `UiDocument` | `:engine:model` | `public` |
- * | `Schema`, `ComponentSpec`, `ModifierSpec`, `ActionSpec`, `FunctionSpec`, `TypeSpec` | `:engine:schema` | `public` |
+ * | `Schema`, `SchemaBuilder`, `SchemaContribution`, `ComponentSpec`, `ModifierSpec`, `ActionSpec`, `FunctionSpec`, `TypeSpec` | `:engine:schema` | `public` |
+ * | `PluginContainerReader`, `PluginContainer`, `PluginContainerException` | `:tools:plugin-container` | `public` |
  * | `JsonDocumentCodec` | `:engine:serialization` | `public` |
  *
  * Nothing in that list is `internal`, and nothing carries `@EngineInternalApi` — that annotation
@@ -76,14 +77,36 @@ internal object Engine {
      * — which is a property nothing checks and nothing can check later. One instance makes
      * "the generator saw the registry the analysis resolved against" true by construction.
      */
-    fun builtinSchema(): EngineSchema =
-        Schema.build<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec> {
-            registerBuiltinSpecs()
-            registerBuiltinModifiers()
-            registerBuiltinEnums()
-            registerBuiltinIconSets()
-            registerBuiltinFunctions()
-            registerBuiltinActions()
+    fun builtinSchema(command: String): EngineSchema = schema(emptyList(), command)
+
+    /**
+     * The builtins plus whichever plugins the host loaded, installed in the order given (S8).
+     *
+     * `install` records the descriptor and refuses a duplicate id or an unsatisfied `dependsOn`
+     * before the plugin contributes anything, so the order here is the order a caller named on
+     * the command line — which is the only order a dependency between two plugins can mean.
+     *
+     * A plugin set the builder refuses — one installed twice, a `dependsOn` no earlier install
+     * satisfies, a component key two plugins both register — is a fact about the invocation, so it
+     * becomes [ExitCode.Unusable] naming the reason rather than a stack trace. That refusal comes
+     * from the caller's choice of `--plugin` values, not from the document.
+     */
+    fun schema(plugins: List<PluginHost.Loaded>, command: String): EngineSchema =
+        try {
+            Schema.build<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec> {
+                registerBuiltinSpecs()
+                registerBuiltinModifiers()
+                registerBuiltinEnums()
+                registerBuiltinIconSets()
+                registerBuiltinFunctions()
+                registerBuiltinActions()
+                PluginHost.install(this, plugins)
+            }
+        } catch (failure: IllegalArgumentException) {
+            throw CliFailure(
+                ExitCode.Unusable,
+                "forge $command: the plugin set was refused: ${failure.message}",
+            )
         }
 
     /**

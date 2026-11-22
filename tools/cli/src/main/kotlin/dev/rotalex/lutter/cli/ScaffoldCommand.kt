@@ -132,7 +132,7 @@ internal object ScaffoldCommand {
         err: Appendable,
     ): GeneratedFiles? {
         val decoded: UiDocument = Engine.readDocument(document, spec.name)
-        val schema = Engine.builtinSchema()
+        val schema = Engine.builtinSchema(spec.name)
         val analysis = Engine.analyze(schema, decoded)
         Engine.report(analysis.diagnostics, err)
         if (analysis.hasErrors) return null

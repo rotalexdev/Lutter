@@ -179,6 +179,11 @@ object ModuleGraphRules {
             ":engine:scaffold",
             ":engine:builtins",
             ":engine:editing",
+            // ADR-018: the host reads containers and opens the classloader, so the CLI is the
+            // one module that reaches the reader. The container module stays off `:engine:schema`
+            // and the engine modules stay off the container; the loader that joins them is the
+            // CLI's own `PluginHost`.
+            ":tools:plugin-container",
         ),
         // ADR-018: the container reads a manifest and payloads, so it needs the manifest's own
         // types and nothing else. It may not reach `:engine:schema` even though a loaded
