@@ -56,6 +56,15 @@ public object DiagnosticCodes {
     public val ThemeDefaultNotConst: DiagnosticCode = DiagnosticCode("theme.default_not_const")
 
     /**
+     * §27.2's load-time rows, emitted by pass 3 because that is the pass holding both the document
+     * and the schema: a document records the plugins it was authored against, and analysis is the
+     * first layer that knows which plugins the host actually installed. Versions compare by exact
+     * string equality (ADR-018). The document-level counterpart of the container's own refusals.
+     */
+    public val PluginMissing: DiagnosticCode = DiagnosticCode("plugin.missing")
+    public val PluginVersionMismatch: DiagnosticCode = DiagnosticCode("plugin.version_mismatch")
+
+    /**
      * The expression rows (§17.3), emitted by pass 5. A fourth member of the same family —
      * `ref.dangling` and `ref.kind_mismatch` — already answers for references outside an
      * expression, so an expression's own failures name the expression instead of borrowing a
