@@ -48,7 +48,7 @@ class LutterPluginContainerTest {
                 id.set("forge.fixture")
                 version.set("1.0.0")
                 apiVersion.set(1)
-                build.set("$build")
+                pluginBuild.set("$build")
                 schemaEntryPoint.set("dev.rotalex.lutter.fixture.plugin.FixturePlugin")
                 payload.from(layout.projectDirectory.file("payload.jar"))
             }

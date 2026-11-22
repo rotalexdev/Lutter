@@ -37,7 +37,7 @@ lutterPlugin {
     id.set("forge.fixture")
     version.set("1.0.0")
     apiVersion.set(1)
-    build.set("desktop-only")
+    pluginBuild.set("desktop-only")
     schemaEntryPoint.set("dev.rotalex.lutter.fixture.plugin.FixturePlugin")
 }
 

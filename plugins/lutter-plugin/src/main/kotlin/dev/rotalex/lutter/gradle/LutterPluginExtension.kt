@@ -35,11 +35,16 @@ public abstract class LutterPluginExtension @Inject constructor(objects: ObjectF
     /**
      * The build this container ships.
      *
+     * Named `pluginBuild` rather than `build`: inside a build script, `build` is already the
+     * project's convention property and the `build` task, and a DSL that shadowed either would
+     * produce the kind of ambiguity a reader has to resolve from memory. The manifest field it
+     * becomes is still `build`.
+     *
      * Defaults to `desktop-only`, which is the only value this packager accepts. The others are
      * named in the refusal rather than silently mapped, because a build name that does not match
      * what the container carries is the exact lie `PluginManifest.problems` exists to catch.
      */
-    public val build: Property<String> = objects.property(String::class.java).convention("desktop-only")
+    public val pluginBuild: Property<String> = objects.property(String::class.java).convention("desktop-only")
 
     /** The `SchemaContribution` fully-qualified class name a host loads, if this plugin has one. */
     public val schemaEntryPoint: Property<String> = objects.property(String::class.java)
