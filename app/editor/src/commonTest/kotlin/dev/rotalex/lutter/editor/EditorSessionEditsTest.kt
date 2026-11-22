@@ -123,9 +123,11 @@ class EditorSessionEditsTest {
 
         assertIs<CommandResult.Ok>(session.duplicate(LEAF))
 
+        // `NodeTable.ids()` is a `Sequence`, so the filtered result needs materializing before
+        // it has a `size` — and materializing also pins the answer to this revision.
         val labels = session.document.nodes.ids().filter {
             session.document.nodes.require(it).type == LABEL
-        }
+        }.toList()
         assertEquals(2, labels.size)
         assertTrue(LEAF in labels)
         val copy = session.selection.value as? EditorSelection.Node
