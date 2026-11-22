@@ -13,6 +13,7 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
@@ -64,12 +65,20 @@ public abstract class LutterPluginContainer : DefaultTask() {
     @get:Input
     public abstract val build: Property<String>
 
-    /** `SchemaContribution` FQCN, or absent. */
+    /**
+     * `SchemaContribution` FQCN, or absent.
+     *
+     * `@get:Optional` because a plugin may carry only one of the two entry points, and Gradle
+     * refuses to run a task with an unset non-optional `@Input` before the action ever sees it.
+     * "At least one" is the rule, and it is checked in the action where it can name both fields.
+     */
     @get:Input
+    @get:Optional
     public abstract val schemaEntryPoint: Property<String>
 
-    /** `FQCN#method` runtime hook, or absent. */
+    /** `FQCN#method` runtime hook, or absent; `@get:Optional` for the same reason as above. */
     @get:Input
+    @get:Optional
     public abstract val runtimeEntryPoint: Property<String>
 
     /**
