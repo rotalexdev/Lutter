@@ -6,6 +6,13 @@ pluginManagement {
     // and still be applied by id from any module, without a classpath hack.
     includeBuild("build-logic")
 
+    // Phase 16 S9's packager: a Gradle plugin in its own included build, beside `build-logic`.
+    // It has to be resolvable at configuration time, which is what an included build gives a
+    // plugin applied by id without a classpath hack. Unlike `build-logic` it is only ever applied
+    // by a module that ships a plugin, so it stays out of the main build's plugin classpath until
+    // something asks for it.
+    includeBuild("plugins/lutter-plugin")
+
     repositories {
         google()
         mavenCentral()
