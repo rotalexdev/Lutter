@@ -328,6 +328,31 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+      # A `.lutterplugin` is a file format, and a format is easier to trust when it can be
+      # opened. `:integration:fixture-plugin` writes one as a side effect of its own tests
+      # (`lutterPluginContainer` is a `dependsOn` of that module's `Test`), so this repository
+      # already builds a real container on every run; it was simply thrown away with the
+      # runner. Uploading it costs one artifact and lets a reviewer check a manifest or a
+      # stored-entry CRC without a checkout.
+      #
+      # Exactly one container, and that is not an omission. `LutterPluginContainer.pack()`
+      # refuses every build but `desktop-only`: producing a dex needs a toolchain this
+      # repository does not carry, and a container that shipped an empty `classes/android/`
+      # would declare a build its payloads do not back (ADR-018, Phase 16 T27). The `full` and
+      # `android-only` containers appear here by themselves the day the packager can produce
+      # them, because the glob is the contract, not the file name.
+      #
+      # `always()` rather than `success()`: a red run is when a hand-inspected container is
+      # most useful, and the file exists as soon as the fixture module's tests have run.
+      - name: Upload the fixture plugin container
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lutter-plugins
+          path: '**/build/lutter-plugin/*.lutterplugin'
+          if-no-files-found: ignore
+          retention-days: 14
+
   # §32 Phase 14's acceptance test, and the only place S5 and S6 are actually proven:
   # "a generated project's Gradle build compiles in CI as a fixture" and "`cli scaffold`
   # produces a project that builds on the first try on both runners".
