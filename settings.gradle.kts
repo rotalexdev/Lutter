@@ -73,4 +73,8 @@ include(":tools:cli")
 include(":tools:plugin-container")
 include(":tools:architecture-tests")
 include(":integration:generated-compile")
+// ADR-018 / phase 16 P5: a plugin written outside `:engine:*`, as a third party writes one. It
+// ships in a normal module so the packaging plugin (P6) and the CLI (P7) have something real to
+// package and load; the container is what makes it a plugin, not the module it lives in.
+include(":integration:fixture-plugin")
 include(":samples:desktop-preview")

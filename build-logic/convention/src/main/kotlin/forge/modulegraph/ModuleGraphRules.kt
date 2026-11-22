@@ -55,6 +55,7 @@ object ModuleGraphRules {
         ":tools:plugin-container",
         ":tools:architecture-tests",
         ":integration:generated-compile",
+        ":integration:fixture-plugin",
         ":samples:desktop-preview",
     )
 
@@ -198,6 +199,13 @@ object ModuleGraphRules {
             ":engine:runtime",
             ":engine:builtins",
             ":engine:builtins-compose",
+        ),
+        // The plugin a third party would write: the spec vocabulary and the manifest's id and
+        // version, and nothing else. `:engine:analysis` and `:engine:codegen` would be edges a
+        // plugin does not need, because a plugin contributes to a schema rather than reading one.
+        ":integration:fixture-plugin" to setOf(
+            ":engine:model",
+            ":engine:schema",
         ),
         ":samples:desktop-preview" to setOf(
             ":engine:model",
