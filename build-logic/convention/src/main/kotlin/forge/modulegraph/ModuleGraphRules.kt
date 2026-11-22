@@ -57,6 +57,7 @@ object ModuleGraphRules {
         ":integration:generated-compile",
         ":integration:fixture-plugin",
         ":samples:desktop-preview",
+        ":app:editor",
     )
 
     // ---------------------------------------------------------------------------------------
@@ -191,6 +192,18 @@ object ModuleGraphRules {
         // is the module that already depends on both.
         ":tools:plugin-container" to setOf(
             ":engine:model",
+        ),
+        // PLAN §32 Phase 17 and D28: the editor *composes* the engine, so its row points at the
+        // engine and no engine row points back. It starts with the three modules the headless
+        // session needs; `:engine:runtime`, `:engine:analysis`, `:engine:codegen` and
+        // `:engine:serialization` join in the slices that first use them (preview, acceptance,
+        // persistence), each with its reason recorded in `app/editor/build.gradle.kts`. A row
+        // wider than the code is the same defect as a missing one: it reads as a decision
+        // nobody made.
+        ":app:editor" to setOf(
+            ":engine:model",
+            ":engine:schema",
+            ":engine:editing",
         ),
         ":tools:architecture-tests" to emptySet(),
         ":integration:generated-compile" to setOf(
