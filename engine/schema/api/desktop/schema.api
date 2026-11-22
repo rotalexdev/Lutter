@@ -2,6 +2,7 @@ public final class dev/rotalex/lutter/schema/Schema : dev/rotalex/lutter/schema/
 	public static final field Companion Ldev/rotalex/lutter/schema/Schema$Companion;
 	public fun getActions ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public fun getComponents ()Ldev/rotalex/lutter/schema/registry/Registry;
+	public fun getContributors ()Ljava/util/List;
 	public fun getFunctions ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public fun getIcons ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public fun getModifiers ()Ldev/rotalex/lutter/schema/registry/Registry;
@@ -24,6 +25,7 @@ public final class dev/rotalex/lutter/schema/SchemaBuilder {
 	public final fun component-blZ4y4I (Ljava/lang/String;Ljava/lang/Object;)V
 	public final fun function-THcHRMQ (Ljava/lang/String;Ljava/lang/Object;)V
 	public final fun iconSet (Ldev/rotalex/lutter/schema/types/IconSet;)V
+	public final fun install (Ldev/rotalex/lutter/schema/plugin/SchemaContribution;)V
 	public final fun modifier-oGUz0Hw (Ljava/lang/String;Ljava/lang/Object;)V
 	public final fun type-4Re_6Ho (Ljava/lang/String;Ljava/lang/Object;)V
 }
@@ -31,6 +33,7 @@ public final class dev/rotalex/lutter/schema/SchemaBuilder {
 public abstract interface class dev/rotalex/lutter/schema/SchemaView {
 	public abstract fun getActions ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public abstract fun getComponents ()Ldev/rotalex/lutter/schema/registry/Registry;
+	public abstract fun getContributors ()Ljava/util/List;
 	public abstract fun getFunctions ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public abstract fun getIcons ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public abstract fun getModifiers ()Ldev/rotalex/lutter/schema/registry/Registry;
@@ -1183,6 +1186,7 @@ public final class dev/rotalex/lutter/schema/overlay/SchemaOverlay : dev/rotalex
 	public fun <init> (Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/model/doc/UiDocument;)V
 	public fun getActions ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public fun getComponents ()Ldev/rotalex/lutter/schema/registry/Registry;
+	public fun getContributors ()Ljava/util/List;
 	public fun getFunctions ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public fun getIcons ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public fun getModifiers ()Ldev/rotalex/lutter/schema/registry/Registry;
