@@ -9,6 +9,7 @@ import dev.rotalex.lutter.schema.component.Category
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.PropertySpec
+import dev.rotalex.lutter.schema.component.component
 import dev.rotalex.lutter.schema.component.componentSpec
 import dev.rotalex.lutter.schema.component.prop
 import dev.rotalex.lutter.schema.function.FunctionSpec
