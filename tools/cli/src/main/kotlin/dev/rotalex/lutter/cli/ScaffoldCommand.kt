@@ -71,7 +71,8 @@ internal object ScaffoldCommand {
     internal fun run(line: CommandLine, out: Appendable, err: Appendable): Int {
         val appName: String = line.positional("app-name")
         val basePackage: String = line.option("--package") ?: defaultPackage(appName)
-        val platforms: Set<PlatformTag> = platforms(line.option("--platforms"))
+        val platforms: Set<PlatformTag> =
+            Strategies.platforms(line.option("--platforms"), spec.name, SCAFFOLDED_PLATFORMS)
         val outDir: File = File(line.option("--out") ?: DEFAULT_OUT)
         // Resolved once and handed to both halves below: the codegen pass and the spec. A second
         // parse would be a second chance for the two to disagree about what was asked for.
@@ -83,7 +84,7 @@ internal object ScaffoldCommand {
         val document: File? = line.option("--document")?.let(::File)
         val codegen: GeneratedFiles = when (document) {
             null -> GeneratedFiles(emptyList())
-            else -> codegen(document, basePackage, navigation, state, injection, err)
+            else -> codegen(document, basePackage, platforms, navigation, state, injection, err)
                 ?: return ExitCode.Rejected
         }
 
@@ -124,6 +125,7 @@ internal object ScaffoldCommand {
     private fun codegen(
         document: File,
         basePackage: String,
+        platforms: Set<PlatformTag>,
         navigation: NavigationStrategy,
         state: StateStrategy,
         injection: InjectionStrategy,
@@ -147,6 +149,10 @@ internal object ScaffoldCommand {
             state = state,
             injection = injection,
             resources = ResourceStrategy.None,
+            // The project's own target set, not the generator's default: a container refused for
+            // its targets has to be asked about the platforms this project actually has, or the
+            // refusal answers a question nobody asked.
+            targetPlatforms = platforms,
         )
         val result = KotlinGenerator(schema, options).generate(resolved, analysis.diagnostics)
         for (diagnostic in result.diagnostics) {
@@ -167,39 +173,13 @@ internal object ScaffoldCommand {
         "com.example." + appName.lowercase().filter { it.isLetterOrDigit() }
 
     /**
-     * `--platforms` as the spec's target set.
+     * The two runners this scaffold can write, and the default when `--platforms` is absent.
      *
-     * Names are matched case-insensitively so `--platforms Android` is not a refusal, and the
-     * two gated platforms get their own sentence: refusing `ios` as "unknown" would hide that
-     * it is a decision outside the scheduled platform scope (§2 C1) rather than a typo.
+     * Android and Desktop and not `PlatformTag.ALL`: iOS and Web are refused by
+     * `Strategies.platforms` because no app module for them exists here, so a default listing
+     * them would describe a project the scaffold cannot produce.
      */
-    private fun platforms(value: String?): Set<PlatformTag> {
-        val requested: List<String> = (value ?: DEFAULT_PLATFORMS)
-            .split(',')
-            .map { it.trim().lowercase() }
-            .filter { it.isNotEmpty() }
-        if (requested.isEmpty()) {
-            throw CliFailure(ExitCode.Unusable, "forge ${spec.name}: --platforms names no platform")
-        }
-        val tags = requested.map { name ->
-            when (name) {
-                "android" -> PlatformTag.Android
-                "desktop" -> PlatformTag.Desktop
-                "ios", "web" -> throw CliFailure(
-                    ExitCode.Unusable,
-                    "forge ${spec.name}: '$name' is not scaffolded yet — §2 C1 narrows the platform scope to " +
-                        "Android and Desktop; scaffolded: android, desktop",
-                )
-                else -> throw CliFailure(
-                    ExitCode.Unusable,
-                    "forge ${spec.name}: unknown platform '$name'; accepted: android, desktop",
-                )
-            }
-        }
-        return tags.toSet()
-    }
+    private val SCAFFOLDED_PLATFORMS: Set<PlatformTag> = setOf(PlatformTag.Android, PlatformTag.Desktop)
 
     private const val DEFAULT_OUT: String = "scaffolded"
-
-    private const val DEFAULT_PLATFORMS: String = "android,desktop"
 }

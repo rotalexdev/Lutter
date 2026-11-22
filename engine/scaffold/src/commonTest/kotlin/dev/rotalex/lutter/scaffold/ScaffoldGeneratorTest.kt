@@ -3,6 +3,7 @@ package dev.rotalex.lutter.scaffold
 import dev.rotalex.lutter.codegen.GeneratedFile
 import dev.rotalex.lutter.codegen.GeneratedFiles
 import dev.rotalex.lutter.codegen.GeneratedPlugin
+import dev.rotalex.lutter.codegen.Hilt
 import dev.rotalex.lutter.codegen.Koin
 import dev.rotalex.lutter.codegen.Metro
 import dev.rotalex.lutter.codegen.Navigation3
@@ -13,6 +14,7 @@ import dev.rotalex.lutter.testsupport.Golden
 import dev.rotalex.lutter.testsupport.classpathGoldenSource
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -216,6 +218,25 @@ class ScaffoldGeneratorTest {
         assertTrue(shared.contains("implementation(libs.metro.runtime)"), shared)
         assertTrue(shared.contains("implementation(libs.metrox.viewmodel.compose)"), shared)
         assertTrue(metro.injection.plugins.contains(GeneratedPlugin.Metro))
+    }
+
+    /**
+     * A container the project cannot host is refused before a file exists, and the refusal is a
+     * fact about the container: Hilt's compiler runs in an Android compilation, and this scaffold
+     * writes every generated file into `shared/src/commonMain`.
+     */
+    @Test
+    fun `a container the project cannot host is refused by name`() {
+        val hilt = spec.copy(state = ViewModelState, injection = Hilt)
+
+        val refusal = assertFailsWith<IllegalArgumentException> {
+            ScaffoldGenerator.generate(hilt)
+        }
+
+        assertEquals(Hilt.scaffoldRefusal, refusal.message)
+        // The default container is unaffected, so the refusal is a fact about one strategy rather
+        // than a check that every scaffold now pays for and every caller has to satisfy.
+        ScaffoldGenerator.generate(spec.copy(state = ViewModelState))
     }
 
     /** The `viewModel()` a `ViewModelState` app calls comes from `lifecycle-viewmodel-compose`. */

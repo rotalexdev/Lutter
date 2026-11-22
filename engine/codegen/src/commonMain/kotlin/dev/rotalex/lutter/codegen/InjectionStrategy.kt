@@ -106,6 +106,18 @@ public interface InjectionStrategy {
         get() = false
 
     /**
+     * Why a `forge scaffold` project cannot carry this container, or null when it can.
+     *
+     * Separate from [refusal], which asks whether the *document* can be generated for a container.
+     * The two are different questions about different artifacts: a container can be perfectly
+     * emittable as Kotlin and still have no place in the project this scaffold writes, because
+     * the scaffold decides where the generated sources land and which compilers run over them.
+     * Answering it here rather than in the scaffold keeps the fact where the container is, so a
+     * strategy added later cannot forget it.
+     */
+    public val scaffoldRefusal: String? get() = null
+
+    /**
      * `di/Injection.kt`'s declarations: the bindings a container needs before [holderParameter]'s
      * lookup finds anything.
      *

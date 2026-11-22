@@ -225,6 +225,22 @@ class ScaffoldCliTest {
         assertFalse(output().exists())
     }
 
+    /**
+     * §15.5's I4 boundary as a caller meets it: the Kotlin is sound, the project cannot host the
+     * compiler, and the refusal says which of the two commands serves which half.
+     */
+    @Test
+    fun `a container the scaffold cannot host is refused before any file exists`() {
+        val invocation = invoke("scaffold", "Sample App", "--state", "viewmodel", "--injection", "hilt", "--out", output().path)
+
+        assertEquals(ExitCode.Unusable, invocation.exit)
+        val message = invocation.err.toString()
+        assertTrue(message.contains("hilt"), message)
+        assertTrue(message.contains("commonMain"), message)
+        assertTrue(message.contains("forge generate"), message)
+        assertFalse(output().exists())
+    }
+
     @Test
     fun `a missing app name is a usage failure`() {
         val invocation = invoke("scaffold", "--out", output().path)

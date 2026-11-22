@@ -304,6 +304,43 @@ class ForgeCliTest {
         assertTrue(invocation.err.toString().contains("viewmodel"), invocation.err.toString())
     }
 
+    /**
+     * The target set is a codegen input and not only a scaffold one: a container refused for its
+     * targets — `hilt` is Android-only — tells a caller to select an Android-only target set, and
+     * this is the flag that can answer it.
+     */
+    @Test
+    fun `generate takes the target set, and android alone satisfies a container that needs it`() {
+        val document = write(VALID, "valid.json")
+
+        // The project's default is every platform, so the container is refused for its targets
+        // and the refusal names the selection that would work.
+        val refused = invoke(
+            "generate", document.path,
+            "--out", File(directory, "refused").path,
+            "--state", "viewmodel", "--injection", "hilt",
+        )
+        assertEquals(ExitCode.Rejected, forge(
+            "generate", document.path,
+            "--out", File(directory, "refused").path,
+            "--state", "viewmodel", "--injection", "hilt",
+        ))
+        assertTrue(refused.err.toString().contains("Android-only"), refused.err.toString())
+
+        val emitted = File(directory, "android")
+        assertEquals(
+            ExitCode.Ok,
+            forge(
+                "generate", document.path,
+                "--out", emitted.path,
+                "--platforms", "android",
+                "--state", "viewmodel", "--injection", "hilt",
+            ),
+        )
+        val kotlin = emitted.walkTopDown().filter { it.isFile }.joinToString("\n") { it.readText() }
+        assertTrue(kotlin.contains("@HiltViewModel"), "no holder annotation in the emission")
+    }
+
     // -------------------------------------------------------------------------------------
     // The two failures a script has to tell apart
     // -------------------------------------------------------------------------------------

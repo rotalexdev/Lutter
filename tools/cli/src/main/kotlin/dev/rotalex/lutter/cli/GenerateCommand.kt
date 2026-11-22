@@ -5,6 +5,7 @@ import dev.rotalex.lutter.codegen.ComposeResourceStrategy
 import dev.rotalex.lutter.codegen.KotlinGenerator
 import dev.rotalex.lutter.codegen.ResourceStrategy
 import dev.rotalex.lutter.model.doc.UiDocument
+import dev.rotalex.lutter.schema.component.PlatformTag
 import java.io.File
 
 /**
@@ -31,13 +32,14 @@ internal object GenerateCommand {
     val spec: CommandSpec = CommandSpec(
         name = "generate",
         signature = "generate <document.json> [--out <dir>] [--package <pkg>] " +
-            "[--navigation <simple|navigation-compose|navigation3>] " +
+            "[--platforms android,desktop] [--navigation <simple|navigation-compose|navigation3>] " +
             "[--state <snapshot|viewmodel>] [--injection <none|koin|metro|hilt>]",
         summary = "decode, validate and emit Kotlin/Compose",
         positionals = listOf("document.json"),
         flags = mapOf(
             "--out" to Arity.Value,
             "--package" to Arity.Value,
+            "--platforms" to Arity.Value,
             "--resources-package" to Arity.Value,
             "--navigation" to Arity.Value,
             "--state" to Arity.Value,
@@ -80,6 +82,15 @@ internal object GenerateCommand {
             // §20:1598: the scaffold owns the Res package; the command is told rather than
             // guessing. Absent, a resource emission is refused with a finding instead.
             resources = line.option("--resources-package")?.let(::ComposeResourceStrategy) ?: ResourceStrategy.None,
+            // Absent, the generator's own default: a portable target set, so a command that never
+            // says what it is building keeps the bytes it emitted before the flag existed. Named
+            // here because one refusal axis is the target set — `hilt` is Android-only — and an
+            // instruction to "select an Android-only target set" needs a flag that can do it.
+            targetPlatforms = Strategies.platforms(
+                line.option("--platforms"),
+                spec.name,
+                PlatformTag.ALL,
+            ),
         )
         val result = KotlinGenerator(schema, options).generate(resolved, analysis.diagnostics)
         // `CodegenResult.diagnostics` is the incoming list *plus* the generator's own, so the
