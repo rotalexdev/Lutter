@@ -9,7 +9,6 @@ import dev.rotalex.lutter.model.doc.UiDocument
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -19,9 +18,8 @@ class EditorPreviewTest {
 
     /** The fixture document lowered once, so a stub can hand the same good render back. */
     private val resolved: ResolvedDocument =
-        assertNotNull(Analyzer(schema).analyze(editorDocument()).resolved) {
-            "the preview fixtures must resolve, or no render case is reachable"
-        }
+        Analyzer(schema).analyze(editorDocument()).resolved
+            ?: error("the preview fixtures must resolve, or no render case is reachable")
 
     @Test
     fun `a fresh preview renders the session document`() {

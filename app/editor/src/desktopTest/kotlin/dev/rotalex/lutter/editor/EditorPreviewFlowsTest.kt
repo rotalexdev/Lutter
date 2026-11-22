@@ -32,9 +32,8 @@ class EditorPreviewFlowsTest {
 
     private val schema = editorSchema()
     private val resolved: ResolvedDocument =
-        assertNotNull(Analyzer(schema).analyze(editorDocument()).resolved) {
-            "the preview fixtures must resolve, or no render case is reachable"
-        }
+        Analyzer(schema).analyze(editorDocument()).resolved
+            ?: error("the preview fixtures must resolve, or no render case is reachable")
 
     @Test
     fun `follow re-resolves after a dispatch`() = runBlocking {
