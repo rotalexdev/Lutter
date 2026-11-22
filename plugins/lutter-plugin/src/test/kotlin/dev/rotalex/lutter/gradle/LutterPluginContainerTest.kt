@@ -101,7 +101,7 @@ class LutterPluginContainerTest {
             "dev.rotalex.lutter.fixture.plugin.FixturePlugin",
             manifest["entryPoints"]?.jsonObject?.get("schema")?.jsonPrimitive?.content,
         )
-        assertTrue("an undeclared dependency list", manifest["dependsOn"]!!.jsonArray.isEmpty())
+        assertTrue(manifest["dependsOn"]!!.jsonArray.isEmpty(), "an undeclared dependency list")
     }
 
     /** S9's refusal, and the reason has to be in the message: a caller reads the log, not a stack. */
@@ -115,8 +115,8 @@ class LutterPluginContainerTest {
 
         assertEquals(TaskOutcome.FAILED, result.task(":lutterPluginContainer")?.outcome)
         assertTrue(
-            "producing a dex needs a toolchain this repository does not carry",
             result.output.contains("a dex needs a toolchain this repository does not carry"),
+            "the refusal must say why, not only that it refused",
         )
     }
 
@@ -130,8 +130,8 @@ class LutterPluginContainerTest {
 
         assertEquals(TaskOutcome.FAILED, result.task(":lutterPluginContainer")?.outcome)
         assertTrue(
-            "a build its payloads do not back",
             result.output.contains("would declare a build its payloads do not back"),
+            "the refusal must say why, not only that it refused",
         )
     }
 

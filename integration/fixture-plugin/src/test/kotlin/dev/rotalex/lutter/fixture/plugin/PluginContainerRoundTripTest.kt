@@ -33,7 +33,7 @@ class PluginContainerRoundTripTest {
 
     @Test
     fun `the packaged container is the one this module's build produced`() {
-        assertTrue("the packaging task must have produced ${containerFile.path}", containerFile.isFile)
+        assertTrue(containerFile.isFile, "the packaging task must have produced ${containerFile.path}")
     }
 
     /** A desktop host loads a jar, so the container must declare it and carry it. */
