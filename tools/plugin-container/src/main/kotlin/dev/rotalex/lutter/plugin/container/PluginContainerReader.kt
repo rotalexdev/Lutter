@@ -7,7 +7,7 @@ import dev.rotalex.lutter.model.plugin.PluginPayload
 import dev.rotalex.lutter.model.plugin.problems
 import java.io.File
 import java.io.IOException
-import java.util.zip.ZipInputStream
+import java.util.zip.ZipFile
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 
@@ -132,13 +132,16 @@ public object PluginContainerReader {
         }
         val entries: MutableMap<String, ByteArray> = linkedMapOf()
         try {
-            ZipInputStream(file.inputStream().buffered()).use { zip ->
-                while (true) {
-                    val entry = zip.nextEntry ?: break
+            // `ZipFile`, not `ZipInputStream`: a stream treats "this is not a ZIP at all" as an
+            // empty archive and would report a missing manifest, while the random-access reader
+            // rejects the signature and says what is actually wrong. It also does not depend on a
+            // well-formed local header before the data.
+            ZipFile(file).use { archive ->
+                for (entry in archive.entries()) {
                     // A directory entry carries no payload; it is recorded as nothing rather than
                     // as an empty byte array, so `has` does not lie about a build's payloads.
-                    if (!entry.isDirectory) entries[entry.name] = zip.readBytes()
-                    zip.closeEntry()
+                    if (entry.isDirectory) continue
+                    entries[entry.name] = archive.getInputStream(entry).use { it.readBytes() }
                 }
             }
         } catch (error: IOException) {
