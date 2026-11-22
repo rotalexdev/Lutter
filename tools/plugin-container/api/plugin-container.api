@@ -1,0 +1,44 @@
+public final class dev/rotalex/lutter/plugin/container/PluginContainer {
+	public fun <init> (Ldev/rotalex/lutter/model/plugin/PluginManifest;Ljava/util/List;Ljava/util/List;)V
+	public final fun getAndroidPayloads ()Ljava/util/List;
+	public final fun getJvmPayloads ()Ljava/util/List;
+	public final fun getManifest ()Ldev/rotalex/lutter/model/plugin/PluginManifest;
+	public final fun has (Ldev/rotalex/lutter/model/plugin/PluginPayload;)Z
+	public final fun payloadsFor (Ldev/rotalex/lutter/model/plugin/PluginPayload;)Ljava/util/List;
+}
+
+public final class dev/rotalex/lutter/plugin/container/PluginContainerException : java/lang/Exception {
+	public static final field Companion Ldev/rotalex/lutter/plugin/container/PluginContainerException$Companion;
+	public fun <init> (Ljava/util/List;Ljava/lang/String;Ljava/lang/Throwable;)V
+	public synthetic fun <init> (Ljava/util/List;Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getCodes ()Ljava/util/List;
+	public final fun getProblems ()Ljava/util/List;
+}
+
+public final class dev/rotalex/lutter/plugin/container/PluginContainerException$Companion {
+}
+
+public final class dev/rotalex/lutter/plugin/container/PluginContainerProblem {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun getCode ()Ljava/lang/String;
+	public final fun getDetail ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/plugin/container/PluginContainerProblemCodes {
+	public static final field INSTANCE Ldev/rotalex/lutter/plugin/container/PluginContainerProblemCodes;
+	public static final field ManifestInvalid Ljava/lang/String;
+	public static final field ManifestMissing Ljava/lang/String;
+	public static final field Unreadable Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/plugin/container/PluginContainerReader {
+	public static final field INSTANCE Ldev/rotalex/lutter/plugin/container/PluginContainerReader;
+	public final fun read (Ljava/io/File;)Ldev/rotalex/lutter/plugin/container/PluginContainer;
+}
+
+public final class dev/rotalex/lutter/plugin/container/PluginContainerWriter {
+	public static final field INSTANCE Ldev/rotalex/lutter/plugin/container/PluginContainerWriter;
+	public final fun write (Ljava/io/File;Ldev/rotalex/lutter/model/plugin/PluginManifest;Ljava/util/Map;Ljava/util/Map;)V
+	public static synthetic fun write$default (Ldev/rotalex/lutter/plugin/container/PluginContainerWriter;Ljava/io/File;Ldev/rotalex/lutter/model/plugin/PluginManifest;Ljava/util/Map;Ljava/util/Map;ILjava/lang/Object;)V
+}
+
