@@ -34,7 +34,12 @@ dependencies {
     // signature here names a codec type.
     implementation(rootLibs.kotlinx.serialization.json)
 
-    // JUnit from the gap-filler catalog, as `:tools:cli` and `:tools:architecture-tests` do.
+    // `kotlin.test` for the assertion vocabulary — `assertFailsWith` is the one this module
+    // needs and JUnit's own assertions do not have — and JUnit from the gap-filler catalog as
+    // the runner, the pair `:tools:architecture-tests` settled on. `kotlin.test` resolves its
+    // JUnit 5 variant because `useJUnitPlatform()` and the Jupiter engine are both below.
+    testImplementation(kotlin("test"))
+
     testImplementation(platform(libs.junit.jupiter))
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
