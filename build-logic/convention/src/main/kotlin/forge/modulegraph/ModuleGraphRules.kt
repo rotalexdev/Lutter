@@ -204,6 +204,8 @@ object ModuleGraphRules {
             ":engine:model",
             ":engine:schema",
             ":engine:editing",
+            ":engine:analysis",
+            ":engine:serialization",
         ),
         ":tools:architecture-tests" to emptySet(),
         ":integration:generated-compile" to setOf(
