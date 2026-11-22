@@ -44,6 +44,9 @@ internal object GenerateCommand {
             "--navigation" to Arity.Value,
             "--state" to Arity.Value,
             "--injection" to Arity.Value,
+            // Repeatable, for the same reason `check` takes it: a document names plugins, and
+            // generation runs the schema those plugins extend.
+            "--plugin" to Arity.Many,
             "--help" to Arity.None,
             "-h" to Arity.None,
         ),
@@ -55,8 +58,14 @@ internal object GenerateCommand {
         val outDir: File = File(line.option("--out") ?: DEFAULT_OUT)
         val document: UiDocument = Engine.readDocument(File(input), spec.name)
 
-        // One schema for both stages; see `Engine.builtinSchema`.
-        val schema = Engine.builtinSchema()
+        val plugins = PluginHost.load(
+            line.values("--plugin").map(::File),
+            spec.name,
+        )
+        for (loaded in plugins) out.appendLine("forge ${spec.name}: loaded ${PluginHost.describe(loaded)}")
+
+        // One schema for both stages; see `Engine.schema`.
+        val schema = Engine.schema(plugins, spec.name)
         val analysis = Engine.analyze(schema, document)
         Engine.report(analysis.diagnostics, err)
         if (analysis.hasErrors) return ExitCode.Rejected

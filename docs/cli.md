@@ -27,6 +27,7 @@ forge generate <document.json> [--out <dir>] [--package <package>]
                 [--platforms <android,desktop>]
                 [--navigation <simple|navigation-compose|navigation3>]
                 [--state <snapshot|viewmodel>] [--injection <none|koin|metro|hilt>]
+                [--plugin <file.lutterplugin>]...
 ```
 
 Generates Kotlin source from a valid document.
@@ -39,6 +40,7 @@ Generates Kotlin source from a valid document.
 | `--navigation` | Which navigation the emitted code runs (see below) | `simple` |
 | `--state` | Which state model the emitted code uses (see below) | `snapshot` |
 | `--injection` | Who builds a screen's state holder (see below) | `none` |
+| `--plugin` | A plugin container to install before analysis and generation. Repeatable; see [Loading plugins](#loading-plugins) | none |
 
 Success output, on stdout, is one line that tells you exactly where everything went:
 
@@ -112,6 +114,10 @@ must not quietly produce the default strategy's project.
 forge check <document.json>
 ```
 
+```
+forge check <document.json> [--plugin <file.lutterplugin>]...
+```
+
 Validates a document without generating anything — the CI-friendly and editor-hook-friendly
 command.
 
@@ -129,6 +135,32 @@ Error component.unknown at nodes[3]: unknown component type 'TextCreativity'
 
 Each finding line names its severity, machine-readable code, source location, and message —
 the same catalog of codes the engine produces, [documented in the format specification](format-spec.md).
+
+## Loading plugins
+
+A document can name the plugins it was authored against in `meta.plugins`, and a component a
+plugin contributes is unknown until that plugin is installed. `--plugin` is how a container
+reaches the schema, and both commands take it:
+
+```
+forge check todo-list.json --plugin ../plugins/com.acme.charts.lutterplugin
+forge generate todo-list.json --plugin charts.lutterplugin --plugin inline.lutterplugin
+```
+
+`--plugin` is **repeatable** and order is preserved: plugins are installed in the order given,
+because that is the only order a `dependsOn` between two of them can mean. Each loaded container
+reports its identity on stdout before the usual summary:
+
+```
+forge check: loaded plugin com.acme.charts 2.1.0 (api 1, full)
+```
+
+A plugin set the engine refuses — the same id twice, a `dependsOn` no earlier plugin satisfies,
+or a component key two plugins both register — exits `2` and names the reason. So does a
+container this host cannot execute: the CLI runs on the JVM, so it loads a jar and refuses an
+`android-only` container by naming the build it declares. A container whose manifest does not
+match its payloads, or whose `apiVersion` this engine does not implement, is refused the same
+way, before any class is loaded.
 
 ## Exit codes
 
@@ -159,7 +191,8 @@ rules, all verified in tests:
 
 - Flags are the documented ones only. An unknown flag exits `2`, and the error names the
   flags the command accepts (no silent swallowing of typos like `--ouptut`).
-- A flag repeated twice exits `2` (duplicates are mistakes, not overrides).
+- A flag repeated twice exits `2` (duplicates are mistakes, not overrides) — except a repeatable
+  flag, which today is `--plugin` alone.
 - A flag's value may not look like a flag — `--out --package foo` exits `2`.
 - `--` ends flag parsing, letting you pass values that start with `-`.
 - A lone `-` is a legitimate value (for an actual file literally named `-`).

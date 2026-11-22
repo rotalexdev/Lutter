@@ -21,6 +21,15 @@ internal enum class Arity {
 
     /** `--out <dir>`: the next token is the flag's value. */
     Value,
+
+    /**
+     * `--plugin <file>`: the next token is a value, and the flag may be given more than once.
+     *
+     * A third arity rather than a second map: "repeatable" is a property of the flag, and a
+     * command whose table says `Value` while a hidden set elsewhere says otherwise would be two
+     * places describing one flags table.
+     */
+    Many,
 }
 
 /**
@@ -79,6 +88,7 @@ internal class CommandSpec(
 internal class CommandLine(
     val positionals: Map<String, String>,
     private val options: Map<String, String>,
+    private val repeated: Map<String, List<String>> = emptyMap(),
 ) {
 
     /**
@@ -93,6 +103,15 @@ internal class CommandLine(
 
     /** The value of [flag], or `null` when it was not given. A bare `-` is a legal value. */
     fun option(flag: String): String? = options[flag]
+
+    /**
+     * Every value given to a repeatable [flag], in the order it was given.
+     *
+     * Order matters and is preserved: installing plugins in a different order than a caller
+     * named them would make a `dependsOn` that only holds in one order fail for no stated
+     * reason.
+     */
+    fun values(flag: String): List<String> = repeated[flag].orEmpty()
 
     /** Whether [flag] was given. Only meaningful for an [Arity.None] flag. */
     fun has(flag: String): Boolean = options.containsKey(flag)
@@ -127,6 +146,7 @@ internal class CommandLine(
         fun parse(spec: CommandSpec, args: List<String>): CommandLine {
             val bare: MutableList<String> = mutableListOf()
             val options: MutableMap<String, String> = mutableMapOf()
+            val repeated: MutableMap<String, MutableList<String>> = mutableMapOf()
 
             var index = 0
             var literal = false
@@ -143,7 +163,10 @@ internal class CommandLine(
                             spec.flags.keys.sorted().joinToString(", "),
                     )
 
-                    options.containsKey(token) -> throw CliFailure(
+                    // A repeatable flag is exempt from the once-only rule; a single-valued one
+                    // is not, because "the second value silently won" is the behaviour the rule
+                    // exists to remove.
+                    spec.flags[token] != Arity.Many && options.containsKey(token) -> throw CliFailure(
                         ExitCode.Unusable,
                         "flag '$token' given more than once for 'forge ${spec.name}'",
                     )
@@ -163,14 +186,18 @@ internal class CommandLine(
                                     "a flag. Put '$FLAG_TERMINATOR' before a value that starts with '-'.",
                             )
                         }
-                        options[token] = value
+                        if (spec.flags[token] == Arity.Many) {
+                            repeated.getOrPut(token) { mutableListOf() } += value
+                        } else {
+                            options[token] = value
+                        }
                         index++
                     }
                 }
             }
 
             if (options.containsKey(HELP) || options.containsKey(HELP_SHORT)) {
-                return CommandLine(emptyMap(), options)
+                return CommandLine(emptyMap(), options, repeated)
             }
 
             if (bare.size > spec.positionals.size) {
@@ -187,7 +214,7 @@ internal class CommandLine(
                 )
             }
 
-            return CommandLine(spec.positionals.zip(bare).toMap(), options)
+            return CommandLine(spec.positionals.zip(bare).toMap(), options, repeated)
         }
     }
 }

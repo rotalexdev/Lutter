@@ -63,6 +63,10 @@ dependencies {
     // whole reason that row lists `:engine:scaffold`.
     implementation(project(":engine:scaffold"))
 
+    // ADR-018: `--plugin` is a host concern, so the CLI reads containers itself. The reader is
+    // the only thing between a `.lutterplugin` file and the classloader this module opens.
+    implementation(project(":tools:plugin-container"))
+
     // PLAN §36.3 is a claim about exit codes as much as about diagnostics, and a claim a test
     // cannot make is a claim nothing checks: `main` calls `exitProcess`, which would take the
     // test JVM with it. Every command body therefore returns its exit code, and `execute` in
