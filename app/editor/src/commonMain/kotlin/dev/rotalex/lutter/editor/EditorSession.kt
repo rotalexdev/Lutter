@@ -1,5 +1,6 @@
 package dev.rotalex.lutter.editor
 
+import dev.rotalex.lutter.editing.DocumentController
 import dev.rotalex.lutter.editing.command.Command
 import dev.rotalex.lutter.editing.command.CommandResult
 import dev.rotalex.lutter.editing.patch.Patch

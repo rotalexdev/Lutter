@@ -1,7 +1,7 @@
 package dev.rotalex.lutter.editor
 
 import dev.rotalex.lutter.model.doc.UiDocument
-import PropertyValue
+import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PropertyKey
