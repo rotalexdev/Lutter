@@ -72,13 +72,11 @@ class PluginRequirementTest {
     fun `a document with no requirements reports nothing about plugins`() {
         val result = analyzing().analyze(homeDocument())
 
-        assertTrue(
-            result.diagnostics.none {
-                it.code == DiagnosticCodes.PluginMissing ||
-                    it.code == DiagnosticCodes.PluginVersionMismatch
-            },
-            "got ${result.diagnostics.map { it.code.value }}",
-        )
+        val codes = result.diagnostics.map { it.code.value }
+        // One line per code: the catalog census reads test sources line by line, and a negative
+        // spelling only counts on the line that names the code.
+        assertTrue(result.diagnostics.none { it.code == DiagnosticCodes.PluginMissing }, "got $codes")
+        assertTrue(result.diagnostics.none { it.code == DiagnosticCodes.PluginVersionMismatch }, "got $codes")
     }
 
     @Test
