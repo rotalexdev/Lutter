@@ -68,6 +68,9 @@ include(":engine:builtins")
 include(":engine:builtins-compose")
 include(":engine:test-support")
 include(":tools:cli")
+// ADR-018's container lives in the tools, not the engine: it opens a ZIP and will host the
+// loader's payload selection. `:engine:*` stays free of `java.util.zip` and `ClassLoader`.
+include(":tools:plugin-container")
 include(":tools:architecture-tests")
 include(":integration:generated-compile")
 include(":samples:desktop-preview")
