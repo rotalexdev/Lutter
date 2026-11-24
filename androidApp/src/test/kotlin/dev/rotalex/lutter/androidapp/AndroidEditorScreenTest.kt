@@ -22,7 +22,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -36,12 +35,11 @@ import kotlin.test.assertTrue
  * the same composables `:desktopApp` asserts; what is new here is the column and the activity's
  * share of the wiring, which is exactly the part a desktop test cannot reach.
  *
- * `sdk = 36` pins Robolectric to the newest runtime it ships with; the module targets 37, and a
- * test that silently asks for a runtime no Robolectric release has is a red build with an
- * unhelpful message.
+ * The runtime is pinned in `src/test/resources/robolectric.properties` (35, as NowInAndroid does):
+ * this module targets 37, Robolectric ships up to 36, and 36's `ApplicationSharedMemory` reaches
+ * into `FileDescriptor` internals that a JDK 21 runtime refuses without `--add-opens`.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
 @LooperMode(LooperMode.Mode.PAUSED)
 class AndroidEditorScreenTest {
 
