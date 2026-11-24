@@ -67,7 +67,7 @@ publishing plugin is applied and nothing has been released.
 | Merged | Phase 0 in full (build logic, 15 modules, the architecture guardrails, CI). Phase 1, the domain model in full — the `Value` union, `TypeRef`, the `Expr` AST, `Node`, the document records, `NodeTable`, `DocumentIndex`, `ReferenceIndex` and the DSL all exist in `engine/model/src/commonMain/`. Phase 2, the schema registries. Phase 3, canonical JSON and the envelope. Phase 4, the analyzer and both backends. Phases 5, 6 and 7, components, expressions and state, events and navigation. |
 | Version | `0.1.0-SNAPSHOT`, group `dev.rotalex.lutter`, Gradle root project `forge-engine`. Never published — no publishing plugin is applied. |
 | Releases | None. |
-| Documentation | This file, and `PLAN.md`. The format spec, plugin guide and getting-started guide are Phase 10 and do not exist. |
+| Documentation | This file, `PLAN.md`, and `docs/`: `what-is-lutter.md`, `format-spec.md`, `getting-started.md`, `cli.md`, `plugin-guide.md`, `plugin-publishing.md`, `editor.md`, `ARCHITECTURE_REFINEMENTS.md`. The phase table above stops at Phase 10 and is not kept up to date; `PLAN.md`'s per-phase **Delivered** lines are. |
 
 ### Where each phase actually stands
 
@@ -548,7 +548,10 @@ engine/<name>/          KMP library modules
 tools/<name>/           JVM tools
 integration/            cross-module verification
 samples/                runnable demos
-docs/                   does not exist yet; format spec, plugin guide, getting started (Phase 10)
+app/<name>/             the editor (`editor`) — platform-neutral, two hosts draw it
+androidApp/             Android host: the three panes in a column
+desktopApp/             desktop host: the three panes in a row
+docs/                   format spec, CLI, plugin guide and publishing, getting started, the editor
 .github/ci-gradle.properties   properties CI overlays on ~/.gradle/gradle.properties
 ```
 

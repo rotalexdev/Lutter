@@ -1,0 +1,147 @@
+# The editor
+
+Lutter ships an editor in this repository (PLAN §32 Phase 17, D28's amended decision). It is
+three panes over one document: a palette on the left, a live preview in the middle, an
+inspector on the right. The desktop window shows them in a row; the Android app shows the
+same three in a column.
+
+This page describes the editor as it exists in the code — what each pane asks the engine,
+what the session persists, and what the preview guarantees. Behaviour here is pinned by the
+tests in `app/editor`, `desktopApp` and `androidApp`, so if this page and the editor ever
+disagree, that is a reportable bug.
+
+## Running it
+
+From the repository root:
+
+```
+gradle :desktopApp:run
+```
+
+The window opens on `integration/generated-compile/fixtures-navigating/button_navigate.json`.
+Pass another document as the first argument:
+
+```
+gradle :desktopApp:run --args="path/to/document.json"
+```
+
+The Android host is `:androidApp`, a single activity. It packages the same navigating fixture
+from `integration/generated-compile/fixtures-navigating` as an asset, so it opens on a
+document with real navigation instead of an empty page.
+
+Both hosts build the builtin engine themselves — `BuiltinEngine.schema()`,
+`runtime(schema)` — and hand the session, the preview and the runtime to the shared panes. The
+hosts own no editing logic; a host that grew some would be a second answer to a question
+`:app:editor` already answers.
+
+## The three panes
+
+### Palette
+
+`Palette.of(schema)` groups the schema's components by their declared `Category` and returns
+the sections in a fixed order, with each component's display name and keywords. That is
+metadata the schema already holds, so the palette is a view of the schema rather than a list
+someone maintains twice.
+
+Clicking an entry calls `EditorSession.dropTargets(type)` — `DropTargets.forNode`'s own
+answer, the check the planner will run anyway — and inserts at the first target it returns.
+An entry with no target is still shown: a component that cannot go anywhere right now is a
+fact worth knowing, and the palette does not hide it.
+
+### Canvas
+
+`CanvasPane` draws what the preview resolved and calls `session.select(...)` on a click. The
+preview is the runtime's own `UiApp` — the same renderer the shipped applications use — so
+what the canvas shows and what a built app shows cannot drift apart.
+
+### Inspector
+
+`Inspector.of(document, schema, nodeId)` returns one row per declared property: the key, the
+declared type, whether it is required, the spec's help text, and the current value in
+canonical text. Committing a row goes through `EditorSession.setProperty`, which parses the
+text and dispatches one `SetProperty` command.
+
+The expression field is the interesting half. Text is a view of the AST, never the truth
+(§10.8): `PropertyText.apply` parses what was typed, `PropertyText.of` prints the canonical
+form of a value, and a commit that parses to a literal becomes a `PropertyValue.Const` rather
+than an expression that happens to evaluate to one. `parse(print(expr)) == expr` is
+`ExprParser`'s own guarantee, and the editor relies on it instead of re-implementing it.
+
+A node the schema cannot describe — a document that outlived the plugin that authored it —
+gets no inspector rows rather than an empty panel. The canvas is where that diagnostic is
+already visible, so the panel says nothing instead of claiming the component has no
+properties.
+
+## The session
+
+`EditorSession` holds a `DocumentController` and a selection, and nothing else (§25.1: an
+editor holds a controller, never a copy of the model). Every edit goes through `dispatch`;
+`insert`, `move`, `duplicate`, `remove` and `setProperty` are the named shapes of that one
+gateway, and a host that needed another edit would add it here rather than reaching for the
+document.
+
+The selection lives in the session and not in the document, because which node a person
+clicked is not a fact about the document. It must not enter history and it must not survive a
+command that removes the node, so `dispatch` is the one place that reconciles it — a UI that
+had to remember to re-check after every command would forget once, and the failure is an
+inspector showing a node that is gone.
+
+## What is persisted
+
+`EditorSessionStore` writes one JSON record through the serialization storage seam
+(`DocumentStorage`), so a host can keep it in a file, a `Preferences` entry or a map:
+
+| Field | What it is |
+|---|---|
+| `documentLocation` | Where the document lives, in `DocumentStorage`'s spelling |
+| `selection` | `None`, a node id, or a page id |
+| `panels` | Which panes the host had open; the host decides what "open" means |
+
+**History is not persisted** (§26.3). A reopened session has an empty undo stack: the record
+says where to look and what was selected, never how the document got there. An undo stack in
+a session file would be a second, unverified history competing with the document's own.
+
+## What the preview guarantees
+
+`EditorPreview` re-resolves on the controller's revision and keeps the last good render when
+an edit does not resolve:
+
+- **`refresh()`** returns the current state untouched when the revision has not moved, so a
+  renderer is never woken for a revision it already drew.
+- **`follow()`** collects `controller.changes` and refreshes on each; cancellation is
+  rethrown, because it means the window is gone.
+- **`watch(location)`** polls an external file and refreshes when its bytes change, so an edit
+  outside the editor still reaches the canvas.
+- **`PreviewState.Refused`** carries `lastRendered` rather than the preview keeping a
+  document off to one side: "this edit does not resolve" and "the screen still shows the last
+  thing that did" are one fact about one screen.
+- A refused revision is not recorded as rendered, so the next refresh retries it.
+
+The preview never writes. It decodes the bytes it is given, resolves them, and reports what it
+found; persistence stays the session store's job.
+
+## What the editor does not do yet
+
+- **No page or state authoring.** The session edits nodes and their properties; creating a
+  page, declaring state or editing actions is not in this phase. A document that needs a second
+  page is authored as JSON for now.
+- **No plugin-driven palette without a host.** The palette reads `schema`, so a plugin's
+  components appear when the host installs it — the hosts build the builtin engine only.
+- **No dex payload.** A plugin container's `android-only` and `full` builds are declared and
+  refused by the packager (ADR-018); the editor loads nothing at runtime.
+
+## What is proven
+
+`app/editor`'s acceptance test authors a document through the session and only the session —
+one `dropTargets` answer, one insert, two property commits — then compares it with its own
+JSON form three ways:
+
+1. encoding the decoded form reproduces the bytes (the codec is canonical);
+2. both resolve to the same tree (the runtime draws `resolved`, so equal trees are equal
+   pictures);
+3. both generate the same files, byte for byte.
+
+The generation half runs on the builtin schema, because codegen bindings are per component
+spec and the module's synthetic fixture schema deliberately carries none. A separate test
+round-trips the expression field through `ExprParser`/`ExprPrinter` for each family of
+expression the field can hold.
