@@ -6,6 +6,7 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.editing.command.Command
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.serialization.JsonDocumentCodec
+import dev.rotalex.lutter.serialization.storage.DocumentStorage
 import dev.rotalex.lutter.serialization.storage.FileDocumentStorage
 import java.nio.file.Files
 import kotlin.test.Test
