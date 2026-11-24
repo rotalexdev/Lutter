@@ -309,6 +309,14 @@ object ModuleGraphRules {
         // helper is a fixture tool, and a second implementation of "compare with a file" would
         // report its diffs in a second dialect.
         ":engine:scaffold" to setOf(":engine:test-support"),
+
+        // P7's acceptance (§25.1/S4) says an authored document generates identically to its JSON
+        // form, and generation is a per-component binding the synthetic fixture schema carries
+        // none of — `KotlinGenerator` refuses its types by construction. The builtins are the
+        // schema the shipped applications use, so the claim is about the editor rather than about
+        // a test double, and both edges stay test scope: nothing in `:app:editor`'s `commonMain`
+        // names the pack or the generator, which the same allow-list refuses if it ever does.
+        ":app:editor" to setOf(":engine:builtins-compose", ":engine:codegen"),
     )
 
     // ---------------------------------------------------------------------------------------
