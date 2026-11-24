@@ -27,10 +27,6 @@ dependencies {
     // seam. The compiler plugin is already applied above; this is the runtime it needs.
     commonMainApi(rootLibs.kotlinx.serialization.json)
 
-    // P7's acceptance compares the authored document's generated code with its JSON form's.
-    // `implementation`, not `api`: nothing in the editor's public signatures names codegen.
-    commonMainImplementation(project(":engine:codegen"))
-
     // `EditorSession.selection` is a `StateFlow`, the same type `DocumentController.state` is, so
     // an editor host can collect both the same way.
     commonMainApi(rootLibs.kotlinx.coroutines.core)
@@ -42,9 +38,14 @@ dependencies {
     commonMainImplementation(rootLibs.jetbrains.compose.foundation)
     commonMainImplementation(rootLibs.jetbrains.compose.material3)
 
-    // No `:engine:test-support` edge: this module's tests build the one document and the one
-    // schema they need, the way `:engine:editing`'s planner fixtures do, and a harness that
-    // generated documents would make an assertion about the harness rather than about the
-    // session. `ModuleGraphRules.ALLOWED_IN_TESTS` has no line for `:app:editor`, and
-    // `forge.kmp.library` already wires the test framework the engine modules use.
+    // No `:engine:test-support` edge, and that stays true: this module's tests build the
+    // documents they need, the way `:engine:editing`'s planner fixtures do, because a harness
+    // that generated documents would make each assertion a statement about the harness.
+    //
+    // P7's acceptance makes three claims and the third one generates code, which is a
+    // per-component binding the synthetic fixture schema deliberately carries none of. The
+    // builtin schema and the generator are therefore test-scope edges: nothing in `commonMain`
+    // names either, and `ModuleGraphRules.ALLOWED_IN_TESTS` holds both with that reason.
+    commonTestImplementation(project(":engine:builtins-compose"))
+    commonTestImplementation(project(":engine:codegen"))
 }
