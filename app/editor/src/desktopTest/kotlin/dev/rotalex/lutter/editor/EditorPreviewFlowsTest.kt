@@ -46,13 +46,15 @@ class EditorPreviewFlowsTest {
         try {
             // The first read is immediate, so the preview starts from the same document the
             // session holds rather than from nothing.
-            delay(100)
-            assertEquals(0L, assertIs<PreviewState.Rendered>(preview.state.value).revision)
+            val first = assertIs<PreviewState.Rendered>(await(preview) { it is PreviewState.Rendered })
+            assertEquals(0L, first.revision)
 
             session.dispatch(Command.RemoveNode(LEAF))
-            delay(200)
 
-            assertEquals(1L, assertIs<PreviewState.Rendered>(preview.state.value).revision)
+            val second = assertIs<PreviewState.Rendered>(
+                await(preview) { it is PreviewState.Rendered && it.revision == 1L },
+            )
+            assertEquals(1L, second.revision)
         } finally {
             watcher.cancel()
         }
@@ -70,15 +72,13 @@ class EditorPreviewFlowsTest {
         )
         val watcher = launch { preview.watch(storage, location, interval = 20.milliseconds) }
         try {
-            delay(100)
-            val first = assertIs<PreviewState.Rendered>(preview.state.value)
+            val first = assertIs<PreviewState.Rendered>(await(preview) { it is PreviewState.Rendered })
             assertEquals(PreviewOrigin.External, first.origin)
             assertNull(first.revision)
             assertContentEquals(good, JsonDocumentCodec.encode(first.document))
 
             storage.write(location, "not a document".encodeToByteArray())
-            delay(100)
-            val refused = assertIs<PreviewState.Refused>(preview.state.value)
+            val refused = assertIs<PreviewState.Refused>(await(preview) { it is PreviewState.Refused })
             assertEquals(PreviewOrigin.External, refused.origin)
             assertEquals(first, refused.lastRendered)
             assertNotNull(refused.reason)
@@ -86,8 +86,7 @@ class EditorPreviewFlowsTest {
             // The bytes on screen come back, so the refusal goes with them instead of staying
             // stranded above a document that reads fine.
             storage.write(location, good)
-            delay(100)
-            assertEquals(first, preview.state.value)
+            assertEquals(first, await(preview) { it is PreviewState.Rendered })
         } finally {
             watcher.cancel()
         }
@@ -103,8 +102,7 @@ class EditorPreviewFlowsTest {
         )
         val watcher = launch { preview.watch(storage, "other.json", interval = 20.milliseconds) }
         try {
-            delay(100)
-            val refused = assertIs<PreviewState.Refused>(preview.state.value)
+            val refused = assertIs<PreviewState.Refused>(await(preview) { it is PreviewState.Refused })
             assertEquals(PreviewOrigin.External, refused.origin)
             assertNotNull(refused.reason)
         } finally {
@@ -125,19 +123,16 @@ class EditorPreviewFlowsTest {
             )
             val watcher = launch { preview.watch(storage, location, interval = 20.milliseconds) }
             try {
-                delay(100)
-                val first = assertIs<PreviewState.Rendered>(preview.state.value)
+                val first = assertIs<PreviewState.Rendered>(await(preview) { it is PreviewState.Rendered })
                 assertEquals(PreviewOrigin.External, first.origin)
 
                 // A save that truncates before writing is the ordinary shape of a bad read: the
                 // preview keeps the document it drew and says what it could not lower.
                 storage.write(location, "{}".encodeToByteArray())
-                delay(100)
-                assertIs<PreviewState.Refused>(preview.state.value)
+                assertIs<PreviewState.Refused>(await(preview) { it is PreviewState.Refused })
 
                 storage.write(location, JsonDocumentCodec.encode(editorDocument()))
-                delay(100)
-                assertIs<PreviewState.Rendered>(preview.state.value)
+                assertIs<PreviewState.Rendered>(await(preview) { it is PreviewState.Rendered })
             } finally {
                 watcher.cancel()
             }
@@ -161,14 +156,35 @@ class EditorPreviewFlowsTest {
         )
         val watcher = launch { preview.watch(storage, location, interval = 20.milliseconds) }
         try {
-            delay(150)
-            assertIs<PreviewState.Refused>(preview.state.value)
+            assertIs<PreviewState.Refused>(await(preview) { it is PreviewState.Refused })
             // The bytes never decoded, so analysis was never asked about them.
             assertTrue(analyzed == null)
-            assertTrue(preview.state.value is PreviewState.Refused)
         } finally {
             watcher.cancel()
         }
+    }
+
+    /**
+     * Waits for the preview to reach a state, reporting what it did reach.
+     *
+     * A fixed `delay` makes the assertion about the runner's speed rather than about the preview:
+     * the poll interval and the scheduler are both outside this test's control.
+     */
+    private suspend fun await(
+        preview: EditorPreview,
+        condition: (PreviewState) -> Boolean,
+    ): PreviewState {
+        val deadline = System.currentTimeMillis() + AWAIT_TIMEOUT_MILLIS
+        while (System.currentTimeMillis() < deadline) {
+            val state = preview.state.value
+            if (condition(state)) return state
+            delay(10)
+        }
+        error("preview never reached the expected state; it holds ${preview.state.value}")
+    }
+
+    private companion object {
+        const val AWAIT_TIMEOUT_MILLIS: Long = 3_000
     }
 
     private class MemoryStorage : DocumentStorage {

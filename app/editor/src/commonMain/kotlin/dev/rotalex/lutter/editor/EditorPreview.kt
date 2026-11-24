@@ -159,15 +159,20 @@ public class EditorPreview(
     ): Nothing {
         var settled: ByteArray? = null
         var refused: ByteArray? = null
+        var lastExternal: PreviewState.Rendered? = null
         while (true) {
             val bytes: ByteArray? = readOrKeep(storage, location)
             if (bytes != null) {
                 val onScreen: ByteArray? = settled
                 when {
                     onScreen != null && onScreen.contentEquals(bytes) -> {
-                        // Unchanged since the render on screen; a refusal the file was restored
-                        // from goes with it.
+                        // Unchanged since the render that was built from these bytes. A refusal
+                        // the file was restored from goes with them, and the render comes back
+                        // with it: bytes that read fine should not stay under an error.
                         refused = null
+                        if (lastExternal != null && stateFlow.value !== lastExternal) {
+                            stateFlow.value = lastExternal
+                        }
                     }
 
                     refused != null && refused.contentEquals(bytes) -> {
@@ -181,6 +186,7 @@ public class EditorPreview(
                         if (rendered != null) {
                             settled = bytes
                             refused = null
+                            lastExternal = rendered
                         }
                     }
                 }
