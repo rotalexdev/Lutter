@@ -18,21 +18,39 @@ From the repository root:
 gradle :desktopApp:run
 ```
 
-The window opens on `integration/generated-compile/fixtures-navigating/button_navigate.json`.
+The window opens on the starter document,
+`desktopApp/src/commonMain/resources/default-document.json`: two pages, a column of text and a
+button on each, and the buttons navigate between them. It is small on purpose — a preset is a
+place to start editing, not a demo — and it is the only document in the repository that no other
+harness owns, so both read paths are pinned by `BundledDocumentTest` instead.
+
 Pass another document as the first argument:
 
 ```
 gradle :desktopApp:run --args="path/to/document.json"
 ```
 
-The Android host is `:androidApp`, a single activity. It packages the same navigating fixture
-from `integration/generated-compile/fixtures-navigating` as an asset, so it opens on a
-document with real navigation instead of an empty page.
+The Android host is `:androidApp`, a single activity. It packages
+`integration/generated-compile/fixtures-navigating/button_navigate.json` as an asset, so it opens
+on a document with real navigation instead of an empty page.
 
-Both hosts build the builtin engine themselves — `BuiltinEngine.schema()`,
-`runtime(schema)` — and hand the session, the preview and the runtime to the shared panes. The
-hosts own no editing logic; a host that grew some would be a second answer to a question
-`:app:editor` already answers.
+### The packaged application
+
+A packaged build has no repository around it: the working directory belongs to whoever
+double-clicked the launcher, and `DEFAULT_DOCUMENT` — module-relative — resolves to nothing.
+`readDocument` therefore falls back to the same file read out of the jar. There is no second
+copy to drift: `DEFAULT_DOCUMENT` **is** the resource, so `gradle run` reads it from disk and a
+packaged launcher reads the identical bytes from the classpath. What the fallback needs is a
+document the engine accepts, and `BundledDocumentTest` resolves the bundled copy with the same
+`BuiltinEngine` the window builds — a present but unrunnable default would otherwise be found by
+a user rather than by CI.
+
+The installers are built by `.github/workflows/editor-artifacts.yml` and are not a required
+check. Each runner packages its own OS and cannot build the other's: `ubuntu-latest` produces a
+`.deb` and an app-image, `windows-latest` an `.msi` and an app-image. Every leg then runs
+`scripts/probe-desktop-package.sh`, which launches the packaged binary and distinguishes a
+broken package ("Failed to launch JVM") from a runner with no display — the difference a green
+build had not been able to make.
 
 ## The three panes
 

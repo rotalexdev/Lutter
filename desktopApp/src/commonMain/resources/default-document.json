@@ -1,0 +1,116 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.lutter.starter", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "Starter"},
+    "nodes": {
+      "n_about_back": {
+        "id": "n_about_back",
+        "events": {
+          "onClick": {
+            "steps": [
+              {
+                "action": "nav.navigate",
+                "args": {
+                  "page": {"type": "const", "value": {"type": "ref", "kind": "page", "id": "p_home"}}
+                }
+              }
+            ]
+          }
+        },
+        "slots": {"content": ["n_about_back_label"]},
+        "type": "m3.Button"
+      },
+      "n_about_back_label": {
+        "id": "n_about_back_label",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Back"}}},
+        "type": "m3.Text"
+      },
+      "n_about_body": {
+        "id": "n_about_body",
+        "props": {
+          "text": {
+            "type": "const",
+            "value": {"type": "str", "v": "Every change here goes through the document controller."}
+          }
+        },
+        "type": "m3.Text"
+      },
+      "n_about_root": {
+        "id": "n_about_root",
+        "modifiers": [
+          {"type": "layout.fillMaxSize"},
+          {
+            "type": "layout.padding",
+            "args": {"all": {"type": "const", "value": {"type": "dp", "v": 16}}}
+          }
+        ],
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 8}}},
+        "slots": {"children": ["n_about_title", "n_about_body", "n_about_back"]},
+        "type": "core.Column"
+      },
+      "n_about_title": {
+        "id": "n_about_title",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "About"}}},
+        "type": "m3.Text"
+      },
+      "n_home_hint": {
+        "id": "n_home_hint",
+        "props": {
+          "text": {
+            "type": "const",
+            "value": {"type": "str", "v": "Pick a component from the palette, or edit a property."}
+          }
+        },
+        "type": "m3.Text"
+      },
+      "n_home_open": {
+        "id": "n_home_open",
+        "events": {
+          "onClick": {
+            "steps": [
+              {
+                "action": "nav.navigate",
+                "args": {
+                  "page": {"type": "const", "value": {"type": "ref", "kind": "page", "id": "p_about"}}
+                }
+              }
+            ]
+          }
+        },
+        "slots": {"content": ["n_home_open_label"]},
+        "type": "m3.Button"
+      },
+      "n_home_open_label": {
+        "id": "n_home_open_label",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "About"}}},
+        "type": "m3.Text"
+      },
+      "n_home_root": {
+        "id": "n_home_root",
+        "modifiers": [
+          {"type": "layout.fillMaxSize"},
+          {
+            "type": "layout.padding",
+            "args": {"all": {"type": "const", "value": {"type": "dp", "v": 16}}}
+          }
+        ],
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 8}}},
+        "slots": {"children": ["n_home_title", "n_home_hint", "n_home_open"]},
+        "type": "core.Column"
+      },
+      "n_home_title": {
+        "id": "n_home_title",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Lutter"}}},
+        "type": "m3.Text"
+      }
+    },
+    "pages": {
+      "p_about": {"id": "p_about", "name": "About", "root": "n_about_root", "route": "about"},
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_home_root", "route": "home"}
+    }
+  }
+}
