@@ -89,3 +89,5 @@ include(":app:editor")
 // Phase 17 P5: the desktop host. Root-level because PLAN's D28 names it there, and because an
 // entry point is not part of the engine or of the editor's platform-neutral half.
 include(":desktopApp")
+// Phase 17 P6: the Android host. Same reason as `:desktopApp` for living at the root.
+include(":androidApp")

@@ -17,6 +17,10 @@ plugins {
     alias(rootLibs.plugins.compose.compiler) apply false
     alias(rootLibs.plugins.compose) apply false
     alias(rootLibs.plugins.android.kotlin.multiplatform.library) apply false
+    // Phase 17 P6: `androidApp/` is the one module in this build that is an Android application
+    // rather than a library. AGP 9 refuses `com.android.application` beside
+    // `kotlin.multiplatform` in one module, which is why the app modules are per platform.
+    alias(rootLibs.plugins.android.application) apply false
 
     // Gives the root a `check` / `build` / `assemble` lifecycle for the graph guardrail to
     // hook into. Without it, `gradle check` would only ever match the subprojects.

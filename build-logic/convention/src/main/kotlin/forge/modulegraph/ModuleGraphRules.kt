@@ -59,6 +59,7 @@ object ModuleGraphRules {
         ":samples:desktop-preview",
         ":app:editor",
         ":desktopApp",
+        ":androidApp",
     )
 
     // ---------------------------------------------------------------------------------------
@@ -206,6 +207,14 @@ object ModuleGraphRules {
             ":engine:schema",
             ":engine:editing",
             ":engine:analysis",
+            ":engine:serialization",
+            // P5/P6: the panes draw `UiApp` and name `UiRuntime` in their signatures.
+            ":engine:runtime",
+        ),
+        ":androidApp" to setOf(
+            ":app:editor",
+            ":engine:builtins-compose",
+            ":engine:runtime",
             ":engine:serialization",
         ),
         ":desktopApp" to setOf(

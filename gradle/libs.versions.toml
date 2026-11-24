@@ -18,6 +18,11 @@
 # will retire this file.
 junit = "5.14.0"
 
+# `androidx.activity:activity-compose`, absent from rootLibs 1.2.7. The Android host needs
+# `ComponentActivity` and `setContent`; 1.13.0 is the stable release that matches the
+# compileSdk 37 the shared catalog pins.
+activity-compose = "1.13.0"
+
 # The Android host UI-test stack for PLAN §36.1 bullet 7 (`RuntimeSemanticsTest`), absent from
 # rootLibs 1.2.7. Robolectric boots an Android runtime for the unit runner without a device.
 # The compose test version is the one the Compose Multiplatform android artifacts themselves
@@ -83,6 +88,7 @@ androidx-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", versi
 # does not carry it, so declaring it is required, not redundant.
 androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "androidx-compose" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
 # `NodeTable`'s backing persistent map, PLAN §33.1. The version is on the library line rather
 # than in `[versions]` only because a `version.ref` here does not fit in 120 columns.
 #
