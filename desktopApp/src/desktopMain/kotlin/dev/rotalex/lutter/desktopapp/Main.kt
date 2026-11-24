@@ -1,7 +1,11 @@
 package dev.rotalex.lutter.desktopapp
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -10,9 +14,11 @@ import androidx.compose.ui.window.rememberWindowState
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.editor.EditorPreview
 import dev.rotalex.lutter.editor.EditorSession
+import dev.rotalex.lutter.editor.EditorSessionRecord
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.serialization.JsonDocumentCodec
 import java.io.File
+import kotlinx.coroutines.runBlocking
 
 /**
  * The document the window opens on when it is given no path: the starter preset.
@@ -63,28 +69,90 @@ public fun readDocument(path: String): UiDocument {
     )
 }
 
+/**
+ * The window, opened on the document the editor owns.
+ *
+ * ### Two locations, and which one is used when
+ *
+ * Naming a file on the command line — `LutterEditor my-document.json` — edits **that file in
+ * place**. Naming nothing opens the starter, and the starter is a *seed*: it is copied into the
+ * editor's own workspace first (`workspaceDirectory()`), so `gradle run` and a packaged launch
+ * both write somewhere a user owns instead of into the repository they may not own at all.
+ *
+ * One document at a time is the whole of the rule. There is no file picker and no Save As,
+ * because both are decisions about where a document lives and this editor has one answer.
+ *
+ * ### The close handler saves, and why it is blocking
+ *
+ * [Autosave] writes on every change, but the last keystroke before the window closes can still be
+ * in flight. A coroutine would be cancelled by `exitApplication()` before it ran, so the final
+ * write is synchronous: at that instant the process has nothing better to do than finish one
+ * small file, and losing the work would be a worse use of the last ten milliseconds.
+ */
 public fun main(args: Array<String>): Unit = application {
-    val path: String = args.firstOrNull() ?: DEFAULT_DOCUMENT
-    val document: UiDocument = readDocument(path)
+    // A path the caller named must exist; silently opening something else would be the window
+    // answering a question nobody asked.
+    val named: String? = args.firstOrNull()
+    if (named != null && !File(named).isFile) {
+        error(
+            "No document at '${File(named).absolutePath}'. Pass an existing file, or no " +
+                "argument at all to open the starter document.",
+        )
+    }
+
     // The schema is what the engine is built from and what the palette and the inspector read;
     // a document does not carry one, so it is built once and shared.
     val schema = BuiltinEngine.schema()
     val runtime = BuiltinEngine.runtime(schema)
-    val session: EditorSession = EditorSession.open(document, schema)
+
+    val seed: UiDocument = readDocument(named ?: DEFAULT_DOCUMENT)
+    val directory: File = workspaceDirectory()
+    // A named document is edited where it lives; otherwise the workspace holds the working copy.
+    val location: String =
+        named?.let { File(it).absolutePath } ?: File(directory, WORKING_COPY).path
+
+    // Before the window exists: an editor that paints the starter and swaps it a frame later is
+    // an editor that shows the user a document they are not editing.
+    val opened: Opened = runBlocking { EditorWorkspace.open(directory, seed, location) }
+    val session: EditorSession = EditorSession.open(
+        document = opened.document,
+        schema = schema,
+        record = opened.record ?: EditorSessionRecord(documentLocation = location),
+    )
     val preview = EditorPreview(
         session = session,
         analyze = { BuiltinEngine.analyze(schema, it) },
     )
+    val saver = remember(opened.workspace) { WorkspaceSaver(opened.workspace) }
 
     Window(
-        onCloseRequest = ::exitApplication,
-        title = "Lutter Editor — ${File(path).name}",
+        onCloseRequest = {
+            runBlocking { saver.save(session.document, session.selection.value) }
+            exitApplication()
+        },
+        title = "Lutter Editor — ${File(location).name}",
         state = rememberWindowState(size = DpSize(1_280.dp, 800.dp)),
     ) {
         MaterialTheme {
             Surface {
-                EditorScreen(session = session, preview = preview, runtime = runtime)
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Autosave(session = session, saver = saver)
+                    EditorScreen(
+                        session = session,
+                        preview = preview,
+                        runtime = runtime,
+                        modifier = Modifier.weight(1f),
+                    )
+                    SaveStatusBar(
+                        workspace = opened.workspace,
+                        state = saver.state,
+                        notice = opened.notice,
+                    )
+                }
             }
         }
     }
 }
+
+/** The file name of the working copy the editor owns inside [workspaceDirectory]. */
+private const val WORKING_COPY: String = "document.json"
