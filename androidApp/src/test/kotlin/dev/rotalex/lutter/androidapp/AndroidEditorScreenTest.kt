@@ -2,11 +2,13 @@ package dev.rotalex.lutter.androidapp
 
 import android.os.Looper
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.editor.EditorPreview
@@ -70,6 +72,10 @@ class AndroidEditorScreenTest {
             MaterialTheme { AndroidEditorScreen(session, preview(session), BuiltinEngine.runtime(schema)) }
         }
 
+        // The palette is a 160dp `LazyColumn`, so a row past the fold is not composed until it
+        // is scrolled to — the same gesture a user makes, and the reason the tag is asserted
+        // after the scroll rather than assumed.
+        compose.onNodeWithTag("palette").performScrollToNode(hasTestTag("palette:m3.Text"))
         compose.onNodeWithTag("palette:m3.Text").performClick()
         compose.waitForIdle()
 
@@ -79,6 +85,7 @@ class AndroidEditorScreenTest {
     @Test
     fun the_inspector_applies_an_edited_expression() {
         val session = session()
+        val editorPreview = preview(session)
         val node: NodeId = session.document.nodes.ids().first {
             session.document.nodes.require(it).type.value == "m3.Text"
         }
@@ -86,7 +93,7 @@ class AndroidEditorScreenTest {
         val original = session.document.nodes.require(node).props[text]
         session.select(EditorSelection.Node(node))
         compose.setContent {
-            MaterialTheme { AndroidEditorScreen(session, preview(session), BuiltinEngine.runtime(schema)) }
+            MaterialTheme { AndroidEditorScreen(session, editorPreview, BuiltinEngine.runtime(schema)) }
         }
 
         compose.onNodeWithTag("inspector:text").performTextClearance()
@@ -97,7 +104,9 @@ class AndroidEditorScreenTest {
         val edited = session.document.nodes.require(node).props[text]
         assertNotEquals(original, edited)
         assertEquals(PropertyValue.Const(Value.Str("Edited")), edited)
-        assertTrue(preview(session).state.value is PreviewState.Rendered)
+        // The preview the composition follows, not a second one: a fresh `EditorPreview` would be
+        // `Empty` and the assertion would prove nothing.
+        assertTrue(editorPreview.state.value is PreviewState.Rendered)
     }
 
     /**
