@@ -20,6 +20,10 @@ dependencies {
     commonMainApi(project(":engine:analysis"))
     commonMainApi(project(":engine:serialization"))
 
+    // `EditorSessionRecord` (P4) is a `@Serializable` value the host writes through the storage
+    // seam. The compiler plugin is already applied above; this is the runtime it needs.
+    commonMainApi(rootLibs.kotlinx.serialization.json)
+
     // `EditorSession.selection` is a `StateFlow`, the same type `DocumentController.state` is, so
     // an editor host can collect both the same way.
     commonMainApi(rootLibs.kotlinx.coroutines.core)
