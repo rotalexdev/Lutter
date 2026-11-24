@@ -1,13 +1,13 @@
 package dev.rotalex.lutter.androidapp
 
 import java.io.File
-import kotlin.test.AfterTest
-import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
+import org.junit.After
+import org.junit.Test
 
 /**
  * The Android storage's half of the contract: a real file, replaced in one step, with nothing left
@@ -26,7 +26,7 @@ class AtomicFileStorageTest {
             file
         }
 
-    @AfterTest
+    @After
     fun removeTheTemporaryDirectory() {
         temporary.deleteRecursively()
     }
