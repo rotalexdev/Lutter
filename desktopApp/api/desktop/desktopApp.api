@@ -1,0 +1,16 @@
+public final class dev/rotalex/lutter/desktopapp/ComposableSingletons$EditorScreenKt {
+	public static final field INSTANCE Ldev/rotalex/lutter/desktopapp/ComposableSingletons$EditorScreenKt;
+	public fun <init> ()V
+	public final fun getLambda$2062634773$dev_rotalex_lutter_desktopApp ()Lkotlin/jvm/functions/Function3;
+}
+
+public final class dev/rotalex/lutter/desktopapp/EditorScreenKt {
+	public static final fun EditorScreen (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/editor/EditorPreview;Ldev/rotalex/lutter/runtime/UiRuntime;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class dev/rotalex/lutter/desktopapp/MainKt {
+	public static final field DEFAULT_DOCUMENT Ljava/lang/String;
+	public static final fun main ([Ljava/lang/String;)V
+	public static final fun readDocument (Ljava/lang/String;)Ldev/rotalex/lutter/model/doc/UiDocument;
+}
+
