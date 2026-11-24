@@ -1,5 +1,8 @@
 plugins {
-    id("forge.kmp.library")
+    // P5/P6: the panes are Compose, and two hosts draw them — the desktop window and the
+    // Android activity. `forge.kmp.compose` applies `forge.kmp.library` and the Compose compiler,
+    // so the panes stay platform-neutral and neither host owns a copy.
+    id("forge.kmp.compose")
     // `EditorSessionStore` (P4) persists a session record, and the session's own selection is a
     // value that crosses a process boundary. The compiler plugin is what makes that a
     // `@Serializable` class rather than a hand-written encoder.
@@ -27,6 +30,13 @@ dependencies {
     // `EditorSession.selection` is a `StateFlow`, the same type `DocumentController.state` is, so
     // an editor host can collect both the same way.
     commonMainApi(rootLibs.kotlinx.coroutines.core)
+
+    // The panes draw the runtime's `UiApp` and name `UiRuntime` in their public signatures, so
+    // this is an api edge and not an implementation detail.
+    commonMainApi(project(":engine:runtime"))
+    commonMainImplementation(rootLibs.jetbrains.compose.ui)
+    commonMainImplementation(rootLibs.jetbrains.compose.foundation)
+    commonMainImplementation(rootLibs.jetbrains.compose.material3)
 
     // No `:engine:test-support` edge: this module's tests build the one document and the one
     // schema they need, the way `:engine:editing`'s planner fixtures do, and a harness that
