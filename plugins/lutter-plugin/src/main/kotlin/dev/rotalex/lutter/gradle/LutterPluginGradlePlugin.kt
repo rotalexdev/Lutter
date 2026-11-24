@@ -41,24 +41,19 @@ public class LutterPluginGradlePlugin : Plugin<Project> {
                     // build script for it keeps a plugin project's script to its identity; a
                     // project that assembles its jar by hand sets `payload` instead, and the task
                     // still refuses anything but exactly one file.
-                    project.tasks.named("jar", Jar::class.java).configure(
-                        object : Action<Jar> {
-                            override fun execute(jar: Jar) {
-                                extension.payload.from(jar.archiveFile)
-                                // The container must run this jar first. `dependsOn` a
-                                // `FileCollection` did not produce the edge in practice (PR
-                                // #195: the container ran alone and found zero payload files),
-                                // so the task is named directly — lazily, because the callback
-                                // runs before the container task is registered.
-                                project.tasks
-                                    .withType(LutterPluginContainer::class.java)
-                                    .configureEach(
-                                        object : Action<LutterPluginContainer> {
-                                            override fun execute(container: LutterPluginContainer) {
-                                                container.dependsOn(jar)
-                                            }
-                                        },
-                                    )
+                    val jar = project.tasks.named("jar", Jar::class.java)
+                    extension.payload.from(jar.flatMap { it.archiveFile })
+
+                    // The container must run this jar first. Naming the task directly is what
+                    // makes the edge: `dependsOn` a `FileCollection` did not produce one (PR
+                    // #195 — the container ran alone and found zero payload files), and doing
+                    // this inside `jar.configure` is illegal: a task set may not be mutated from
+                    // a task-creation callback. Here the callback belongs to the plugin, which
+                    // is a legal context.
+                    project.tasks.withType(LutterPluginContainer::class.java).configureEach(
+                        object : Action<LutterPluginContainer> {
+                            override fun execute(container: LutterPluginContainer) {
+                                container.dependsOn(jar)
                             }
                         },
                     )
