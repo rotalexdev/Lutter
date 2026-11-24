@@ -39,12 +39,6 @@ import dev.rotalex.lutter.editor.ui.InspectorPane
 import dev.rotalex.lutter.editor.ui.PalettePane
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.runtime.UiRuntime
-import dev.rotalex.lutter.schema.SchemaView
-import dev.rotalex.lutter.schema.action.ActionSpec
-import dev.rotalex.lutter.schema.component.ComponentSpec
-import dev.rotalex.lutter.schema.function.FunctionSpec
-import dev.rotalex.lutter.schema.modifier.ModifierSpec
-import dev.rotalex.lutter.schema.types.TypeSpec
 import dev.rotalex.lutter.serialization.JsonDocumentCodec
 import java.io.File
 import java.text.SimpleDateFormat
@@ -87,7 +81,6 @@ public class MainActivity : ComponentActivity() {
             MaterialTheme {
                 Surface(Modifier.fillMaxSize()) {
                     EditorHost(
-                        schema = schema,
                         runtime = runtime,
                         documentLocation = documentLocation,
                         recordLocation = recordLocation,
@@ -132,12 +125,15 @@ public class MainActivity : ComponentActivity() {
  */
 @Composable
 private fun EditorHost(
-    schema: SchemaView<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec>,
     runtime: UiRuntime,
     documentLocation: String,
     recordLocation: String,
     seed: () -> UiDocument,
 ) {
+    // Built here rather than passed in: `analyze` takes the concrete `Schema`, and a parameter
+    // typed as the `SchemaView` supertype would erase exactly the thing it is needed for.
+    val schema = remember { BuiltinEngine.schema() }
+
     var opened: Opened? by remember { mutableStateOf(null) }
     var failure: String? by remember { mutableStateOf(null) }
 
