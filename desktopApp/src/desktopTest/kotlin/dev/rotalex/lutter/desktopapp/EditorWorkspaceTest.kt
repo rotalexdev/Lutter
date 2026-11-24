@@ -70,7 +70,7 @@ class EditorWorkspaceTest {
             document = session.document,
             record = EditorSessionRecord(
                 documentLocation = workingCopy(),
-                selection = EditorSelection.Node(node),
+                selection = EditorSelection.Node(node).toRecord(),
             ),
         )
 
