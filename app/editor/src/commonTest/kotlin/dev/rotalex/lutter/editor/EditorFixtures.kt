@@ -104,6 +104,26 @@ internal fun editorSchema(): Schema<ComponentSpec, ModifierSpec, ActionSpec, Fun
         )
     }
 
+/**
+ * A [dev.rotalex.lutter.serialization.storage.DocumentStorage] over a map.
+ *
+ * The storage seam is the point: a session record and a preview can be driven with no filesystem,
+ * and the one desktop test that needs real bytes uses `FileDocumentStorage` explicitly.
+ */
+internal class MapStorage : dev.rotalex.lutter.serialization.storage.DocumentStorage {
+    private val files = mutableMapOf<String, ByteArray>()
+
+    override suspend fun read(location: String): ByteArray =
+        files[location] ?: throw IllegalStateException("no document at '$location'")
+
+    override suspend fun write(location: String, bytes: ByteArray) {
+        files[location] = bytes
+    }
+
+    /** The bytes written at [location], or null. */
+    internal fun bytesAt(location: String): ByteArray? = files[location]
+}
+
 /** A session over [editorDocument] and [editorSchema]. */
 internal fun session(
     document: UiDocument = editorDocument(),

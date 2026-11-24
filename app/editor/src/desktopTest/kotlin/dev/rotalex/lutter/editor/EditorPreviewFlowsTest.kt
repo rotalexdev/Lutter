@@ -6,7 +6,6 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.editing.command.Command
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.serialization.JsonDocumentCodec
-import dev.rotalex.lutter.serialization.storage.DocumentStorage
 import dev.rotalex.lutter.serialization.storage.FileDocumentStorage
 import java.nio.file.Files
 import kotlin.test.Test
@@ -62,7 +61,7 @@ class EditorPreviewFlowsTest {
 
     @Test
     fun `watch renders external bytes and keeps the last good render on a refusal`(): Unit = runBlocking {
-        val storage = MemoryStorage()
+        val storage = MapStorage()
         val location = "document.json"
         val good = JsonDocumentCodec.encode(editorDocument())
         storage.write(location, good)
@@ -94,7 +93,7 @@ class EditorPreviewFlowsTest {
 
     @Test
     fun `watch survives a location it cannot read`(): Unit = runBlocking {
-        val storage = MemoryStorage()
+        val storage = MapStorage()
         storage.write("document.json", JsonDocumentCodec.encode(editorDocument()))
         val preview = EditorPreview(
             session = session(),
@@ -143,7 +142,7 @@ class EditorPreviewFlowsTest {
 
     @Test
     fun `watch does not decode the same refused bytes twice`(): Unit = runBlocking {
-        val storage = MemoryStorage()
+        val storage = MapStorage()
         val location = "document.json"
         storage.write(location, "broken".encodeToByteArray())
         var analyzed: UiDocument? = null
@@ -187,14 +186,4 @@ class EditorPreviewFlowsTest {
         const val AWAIT_TIMEOUT_MILLIS: Long = 3_000
     }
 
-    private class MemoryStorage : DocumentStorage {
-        private val files = mutableMapOf<String, ByteArray>()
-
-        override suspend fun read(location: String): ByteArray =
-            files[location] ?: throw IllegalStateException("no document at '$location'")
-
-        override suspend fun write(location: String, bytes: ByteArray) {
-            files[location] = bytes
-        }
-    }
 }
