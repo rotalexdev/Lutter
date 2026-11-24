@@ -26,7 +26,7 @@ plugins {
     // hook into. Without it, `gradle check` would only ever match the subprojects.
     base
 
-    id("forge.moduleGraph")
+    id("lutter.moduleGraph")
 }
 
 allprojects {

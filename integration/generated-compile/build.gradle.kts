@@ -12,7 +12,7 @@ import org.gradle.api.tasks.TaskAction
 import org.gradle.process.ExecOperations
 
 plugins {
-    id("forge.kmp.compose")
+    id("lutter.kmp.compose")
     // §15.5's `metro` row: the generated graph is an interface Metro's plugin implements, so the
     // variant cannot compile without it. Every other fixture is unaffected — a module with no
     // `@DependencyGraph` in it is a module the plugin has nothing to do in.
@@ -648,14 +648,14 @@ val generateFuzzBatch by tasks.register<GenerateFuzzBatch>("generateFuzzBatch") 
     // A starting point the first nightly run measures: nobody can time this from the repository,
     // so the count is tuned from the elapsed time that run reports rather than guessed at here.
     documentCount.set(
-        providers.gradleProperty("forge.fuzzCount").orElse("200").map { it.toInt() },
+        providers.gradleProperty("lutter.fuzzCount").orElse("200").map { it.toInt() },
     )
 }
 
-// `-Pforge.fuzzBatch=true` is the whole of the wiring, and it is read at configuration time
+// `-Plutter.fuzzBatch=true` is the whole of the wiring, and it is read at configuration time
 // because a source directory is a configuration-time fact. Configuration-cache safe for the reason
-// `forge.warningsAsErrors` is: the property read is recorded as a build input and replayed.
-val fuzzBatchRequested = providers.gradleProperty("forge.fuzzBatch").orNull.toBoolean()
+// `lutter.warningsAsErrors` is: the property read is recorded as a build input and replayed.
+val fuzzBatchRequested = providers.gradleProperty("lutter.fuzzBatch").orNull.toBoolean()
 
 kotlin {
     // Passing the task wires both the directory and the dependency: compilation waits for it.

@@ -23,7 +23,7 @@ import kotlin.test.assertTrue
  * Android host test — against the same assertions over independently computed bytes. A target that
  * spelled a number differently, sorted an import differently or separated lines differently fails
  * **its own** run and the build goes red. That is a real cross-target check and it costs nothing,
- * because `forge.kmp.library` turns host tests on for exactly this reason.
+ * because `lutter.kmp.library` turns host tests on for exactly this reason.
  *
  * **Across operating systems: no, and nothing in this repository can.** `.github/workflows/check.yml`
  * is `runs-on: ubuntu-latest` and there is no second runner in `.github/workflows/`. A test cannot

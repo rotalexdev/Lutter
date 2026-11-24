@@ -77,7 +77,7 @@ jobs:
           # `record` over `measure` only because its extra output is the paste-block
           # whose `.baselineNs` lines the comparison below consumes; the measured
           # table itself is identical in both modes.
-          if gradle -Pforge.benchmark=record :engine:test-support:desktopTest \
+          if gradle -Plutter.benchmark=record :engine:test-support:desktopTest \
                --tests "dev.rotalex.lutter.testsupport.benchmark.PerformanceHarnessTest" \
                > "$RUNNER_TEMP/benchmark.txt" 2>&1; then status=0; else status=$?; fi
           echo "benchmark: rows=6 elapsed=$(( $(date +%s) - start ))s exit=$status"

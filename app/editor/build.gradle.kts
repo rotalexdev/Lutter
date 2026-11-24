@@ -2,7 +2,7 @@ plugins {
     // P5/P6: the panes are Compose, and two hosts draw them — the desktop window and the
     // Android activity. `forge.kmp.compose` applies `forge.kmp.library` and the Compose compiler,
     // so the panes stay platform-neutral and neither host owns a copy.
-    id("forge.kmp.compose")
+    id("lutter.kmp.compose")
     // `EditorSessionStore` (P4) persists a session record, and the session's own selection is a
     // value that crosses a process boundary. The compiler plugin is what makes that a
     // `@Serializable` class rather than a hand-written encoder.

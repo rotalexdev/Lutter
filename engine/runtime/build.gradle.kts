@@ -1,5 +1,5 @@
 plugins {
-    id("forge.kmp.compose")
+    id("lutter.kmp.compose")
 }
 
 dependencies {

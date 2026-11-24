@@ -1,4 +1,4 @@
-package forge.modulegraph
+package lutter.modulegraph
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
@@ -10,7 +10,7 @@ import org.gradle.api.tasks.TaskAction
  * Fails the build when the declared module graph contains a forbidden edge.
  *
  * Inputs are plain strings, computed at configuration time by
- * `forge.moduleGraph.gradle.kts`. That is deliberate: the graph must be reported as a
+ * `lutter.moduleGraph.gradle.kts`. That is deliberate: the graph must be reported as a
  * whole, aligned and sorted, rather than streamed as each module is read.
  */
 abstract class VerifyModuleGraphTask : DefaultTask() {

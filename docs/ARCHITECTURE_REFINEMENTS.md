@@ -41,7 +41,7 @@ Reconstruction of the current architecture, confirmed against `PLAN.md`, with an
 ### C1 — Remove iOS/wasmJs from the build and CI; keep purity enforcement static-only
 
 #### Change
-Remove `iosSimulatorArm64()` and `wasmJs { browser() }` canary targets from the `forge.kmp.library` convention plugin (§21.1, §22.3) and from Phase 0 (§32). Remove the `canary` CI job (§28.7). Remove the two iOS/wasmJs bullet points from Definition of Done §36.4 ("compile canaries" and "pass `commonTest` on iOS simulator and wasmJs"). Reword G9 (§2) from a *verified-by-compilation* goal to a *verified-by-static-analysis* goal: "the domain stays portable to future KMP targets because it contains no Compose and no JVM/Android-only API — enforced by Konsist, not by compiling for those targets."
+Remove `iosSimulatorArm64()` and `wasmJs { browser() }` canary targets from the `lutter.kmp.library` convention plugin (§21.1, §22.3) and from Phase 0 (§32). Remove the `canary` CI job (§28.7). Remove the two iOS/wasmJs bullet points from Definition of Done §36.4 ("compile canaries" and "pass `commonTest` on iOS simulator and wasmJs"). Reword G9 (§2) from a *verified-by-compilation* goal to a *verified-by-static-analysis* goal: "the domain stays portable to future KMP targets because it contains no Compose and no JVM/Android-only API — enforced by Konsist, not by compiling for those targets."
 
 #### Reason
 The task scope is explicit and absolute: only Android and Desktop/JVM are supported targets, and "if an abstraction exists solely to support hypothetical future platforms, question whether it is actually necessary." Live iOS/wasmJs canary compilation is exactly that: it requires installing and maintaining Kotlin/Native and Kotlin/Wasm toolchains in CI, produces target-specific compiler diagnostics for platforms nobody runs, and gates every PR on infrastructure that serves no current product goal. The *purity* it protects (no Compose/JVM leakage into `commonMain`) is already independently enforced by `NoComposeInDomainTest` and `CommonMainPurityTest` (Konsist, §23.4) — static source-level checks give the same guarantee at a fraction of the build cost and with zero toolchain risk.
@@ -50,7 +50,7 @@ The task scope is explicit and absolute: only Android and Desktop/JVM are suppor
 `commonMain`-first structure, `expect/actual` policy (§21.3), the Compose confinement rule (§21.4), and every Konsist rule in §23.4 are unchanged. Nothing about the domain model, registries, runtime, or codegen changes. A future decision to target iOS/wasmJs (roadmap item 17, §32) re-adds the canary jobs at that time — the module code does not need to change, only the Gradle target declarations and CI config.
 
 #### Impacted modules
-`build-logic` (`forge.kmp.library` convention plugin), Phase 0 task list (§32), CI workflow definitions (§28.7), Definition of Done §36.4.
+`build-logic` (`lutter.kmp.library` convention plugin), Phase 0 task list (§32), CI workflow definitions (§28.7), Definition of Done §36.4.
 
 #### Migration required
 None — this is a plan-level correction prior to Phase 0 implementation. If Phase 0 has already stood up the canary targets, removing them is a pure deletion (Gradle target blocks + one CI job file), not a breaking change to any public API.
@@ -59,7 +59,7 @@ None — this is a plan-level correction prior to Phase 0 implementation. If Pha
 Low. The only thing lost is early warning if `commonMain` code accidentally references a JVM-only API in a way Konsist's pattern-matching doesn't catch; this is a narrow residual risk against a real, ongoing CI cost.
 
 #### Implementation constraint
-When Phase 0 is implemented, `forge.kmp.library` declares `android()` and `jvm("desktop")` only. Konsist's `CommonMainPurityTest` must still ban `java.*`/`android.*` imports in `commonMain` (that rule has value independent of target count, since `commonMain` is shared between Android and Desktop/JVM and must not accidentally depend on one or the other).
+When Phase 0 is implemented, `lutter.kmp.library` declares `android()` and `jvm("desktop")` only. Konsist's `CommonMainPurityTest` must still ban `java.*`/`android.*` imports in `commonMain` (that rule has value independent of target count, since `commonMain` is shared between Android and Desktop/JVM and must not accidentally depend on one or the other).
 
 ---
 
@@ -530,7 +530,7 @@ Since the *only* two targets are `android()` and `jvm("desktop")` — both of wh
 `DocumentStorage`'s public interface (§18.3) is unchanged — this only changes the *implementation* source set and its dependency, not any public API. `expect/actual` is not needed for this concern at all once both targets are JVM-based (the existing `expect/actual` allow-list, §21.3, keeps its other entries — back-press handling, default font resolution, benchmark clocks — untouched).
 
 #### Impacted modules
-`:engine:serialization` (`storage/DocumentStorage.kt` interface unchanged; `FileDocumentStorage.kt` implementation moves from a `nonWebMain` source set to a shared `jvmCommon` source set, §33.3), `build-logic` (`forge.kmp.library` — add the `jvmCommon` intermediate source set wiring), version catalog (remove `kotlinx-io` if it has no other use in the project).
+`:engine:serialization` (`storage/DocumentStorage.kt` interface unchanged; `FileDocumentStorage.kt` implementation moves from a `nonWebMain` source set to a shared `jvmCommon` source set, §33.3), `build-logic` (`lutter.kmp.library` — add the `jvmCommon` intermediate source set wiring), version catalog (remove `kotlinx-io` if it has no other use in the project).
 
 #### Migration required
 None if Phase 3 has not yet been implemented (the normal case per the phase plan, §32). **If `:engine:serialization`'s file storage has already been implemented against `kotlinx-io`/`nonWebMain`,** this becomes optional cleanup rather than a required change — the existing implementation continues to work correctly on both Android and Desktop/JVM (`kotlinx-io` runs fine on the JVM); do not force a rewrite of working, tested code purely for this simplification.

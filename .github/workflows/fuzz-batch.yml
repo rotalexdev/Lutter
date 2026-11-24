@@ -75,7 +75,7 @@ jobs:
         run: |
           count=200
           start=$(date +%s)
-          if gradle -Pforge.fuzzBatch=true -Pforge.fuzzCount="$count" :integration:generated-compile:compileKotlinDesktop; then status=0; else status=$?; fi
+          if gradle -Plutter.fuzzBatch=true -Plutter.fuzzCount="$count" :integration:generated-compile:compileKotlinDesktop; then status=0; else status=$?; fi
           echo "fuzz batch: documents=$count seeds=1-$count elapsed=$(( $(date +%s) - start ))s"
           exit $status
 

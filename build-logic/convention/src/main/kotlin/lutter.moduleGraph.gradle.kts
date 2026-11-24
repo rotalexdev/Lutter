@@ -1,7 +1,7 @@
-import forge.modulegraph.DeclaredGraph
-import forge.modulegraph.ModuleGraphRules
-import forge.modulegraph.SelfTestModuleGraphTask
-import forge.modulegraph.VerifyModuleGraphTask
+import lutter.modulegraph.DeclaredGraph
+import lutter.modulegraph.ModuleGraphRules
+import lutter.modulegraph.SelfTestModuleGraphTask
+import lutter.modulegraph.VerifyModuleGraphTask
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.language.base.plugins.LifecycleBasePlugin
