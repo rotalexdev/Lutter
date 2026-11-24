@@ -5,7 +5,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 plugins {
     // Phase 17 P5: the desktop host. `compose.desktop.application` is what creates `run`, so the
     // entry point is named here once and nowhere else.
-    id("forge.kmp.compose")
+    id("lutter.kmp.compose")
 }
 
 dependencies {

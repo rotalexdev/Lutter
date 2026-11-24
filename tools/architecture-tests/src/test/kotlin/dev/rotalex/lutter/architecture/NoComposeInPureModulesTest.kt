@@ -99,7 +99,7 @@ class NoComposeInPureModulesTest {
          * because `-` is neither a word character nor a dot.
          */
         val COMPOSE_DECLARATION = Regex(
-            """id\(\s*"forge\.kmp\.compose"|[\w.]*compose[\w.]*\s*\)|project\(":engine:builtins-compose"\)""",
+            """id\(\s*"lutter\.kmp\.compose"|[\w.]*compose[\w.]*\s*\)|project\(":engine:builtins-compose"\)""",
         )
     }
 }

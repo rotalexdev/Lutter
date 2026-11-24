@@ -1,4 +1,4 @@
-package forge.modulegraph
+package lutter.modulegraph
 
 /**
  * The graph a build declares, split by the source set that declares each edge.

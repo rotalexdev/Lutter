@@ -1,8 +1,8 @@
-import forge.rootLibs
+import lutter.rootLibs
 
 plugins {
-    id("forge.kmp.library")
-    // Bare `id(...)` for the reason explained in forge.kmp.library: the `plugins` block of
+    id("lutter.kmp.library")
+    // Bare `id(...)` for the reason explained in lutter.kmp.library: the `plugins` block of
     // a precompiled script plugin is compiled separately, and the catalog accessors are not
     // available there. The versions reach these plugins through the `compileOnly`
     // coordinates in build-logic/convention/build.gradle.kts instead.
@@ -30,7 +30,7 @@ dependencies {
     //
     // Named from the shared catalog rather than through `compose.runtime`, because that
     // shorthand is deprecated in Compose Multiplatform 1.11 ("Specify dependency
-    // directly") and the catalog already carries the coordinate. See forge/Catalogs.kt for
+    // directly") and the catalog already carries the coordinate. See lutter/Catalogs.kt for
     // why a precompiled script plugin reads the catalog through the extension.
     //
     // foundation and material3 are deliberately absent: they arrive with the components

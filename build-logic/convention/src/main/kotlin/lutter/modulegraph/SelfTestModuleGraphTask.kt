@@ -1,4 +1,4 @@
-package forge.modulegraph
+package lutter.modulegraph
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException

@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test
  * cycles (`ModuleGraphTest`), and `:engine:codegen` and `:engine:runtime` do not depend on
  * each other.
  *
- * The build already holds the same policy. `forge.moduleGraph.gradle.kts` walks the
+ * The build already holds the same policy. `lutter.moduleGraph.gradle.kts` walks the
  * *Gradle-resolved* declarations against `ModuleGraphRules`, and `selfTestModuleGraph`
  * proves the checker behaves. So this test is not a translated copy of that gate; it is the
  * same question answered by a second reader, and the second reader is what pays for itself:
@@ -261,7 +261,7 @@ private fun findCycle(
  * The five pieces of `ModuleGraphRules`, parsed from the file's own text.
  *
  * Everything here is derived lazily, on first use, from README-root-relative
- * `build-logic/convention/src/main/kotlin/forge/modulegraph/ModuleGraphRules.kt`. The
+ * `build-logic/convention/src/main/kotlin/lutter/modulegraph/ModuleGraphRules.kt`. The
  * extraction is deliberately crude — two quoted lists and two map segments — because the
  * file documents itself as a pure data object and the crudest correct reading is the check
  * on that claim: make the object no longer parseable as data and this test says so, before
@@ -284,7 +284,7 @@ private val POLICY: GraphPolicy
 private fun readPolicy(): GraphPolicy {
     val root = RepositoryRoot.path
     val rules = root.resolve(
-        "build-logic/convention/src/main/kotlin/forge/modulegraph/ModuleGraphRules.kt",
+        "build-logic/convention/src/main/kotlin/lutter/modulegraph/ModuleGraphRules.kt",
     )
     val text = Files.readString(rules)
 

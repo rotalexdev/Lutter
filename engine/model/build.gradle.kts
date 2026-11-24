@@ -1,5 +1,5 @@
 plugins {
-    id("forge.kmp.library")
+    id("lutter.kmp.library")
     // Records carry @Serializable, and the envelope format is a published contract, so the
     // compiler plugin is applied here rather than only where the codec lives.
     alias(rootLibs.plugins.kotlin.serialization)

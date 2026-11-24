@@ -1,4 +1,4 @@
-import forge.catalogVersion
+import lutter.catalogVersion
 import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.testing.AbstractTestTask
 import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
@@ -32,7 +32,7 @@ val androidMinSdk = catalogVersion("androidMinSdk").toInt()
 
 // A property, not an environment variable, so it is greppable and shows up in the CI log
 // next to the command that set it.
-val warningsAsErrors = providers.gradleProperty("forge.warningsAsErrors").orNull.toBoolean()
+val warningsAsErrors = providers.gradleProperty("lutter.warningsAsErrors").orNull.toBoolean()
 
 kotlin {
     // Every public declaration in every library module must state its visibility and its

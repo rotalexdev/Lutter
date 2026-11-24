@@ -15,7 +15,7 @@ package dev.rotalex.lutter.model.annotations
  * opt-in turns a routine refactor into a build failure everywhere the declaration is used,
  * including in the module that owns it, and the pressure that creates is to widen the
  * exemption rather than to stabilise the API. A warning still shows up in the build log,
- * and `forge.warningsAsErrors` turns it into a failure in CI, so an unacknowledged use
+ * and `lutter.warningsAsErrors` turns it into a failure in CI, so an unacknowledged use
  * cannot land silently.
  *
  * Usage:

@@ -28,7 +28,7 @@ import kotlin.test.fail
 // ### Why nothing here runs unless it is asked for
 //
 // A benchmark that runs in `check` is a benchmark that eventually blocks a build, gets a
-// threshold raised to unblock it, and then asserts nothing. `-Dforge.benchmark=<mode>` makes
+// threshold raised to unblock it, and then asserts nothing. `-Dlutter.benchmark=<mode>` makes
 // the cost opt-in:
 //
 //   * unset          — print one line saying nothing was measured, and return. The default.
@@ -79,9 +79,9 @@ private const val MIN_REPEATS: Int = 20
 private const val MAX_REPEATS: Int = 200
 
 /** The system property naming the mode. */
-private const val MODE_PROPERTY: String = "forge.benchmark"  // a system property, not a PropertyKey
+private const val MODE_PROPERTY: String = "lutter.benchmark"  // a system property, not a PropertyKey
 
-/** What `-Dforge.benchmark=` asked for. */
+/** What `-Dlutter.benchmark=` asked for. */
 private enum class Mode { Off, Measure, Record, Assert }
 
 /** One row's samples, and what this run concluded from them. */
@@ -131,7 +131,7 @@ class PerformanceHarnessTest {
         val mode = readMode()
         if (mode == Mode.Off) {
             println(
-                "[forge.benchmark] $MODE_PROPERTY is not set, so §29's six rows were not measured. " +
+                "[lutter.benchmark] $MODE_PROPERTY is not set, so §29's six rows were not measured. " +
                     "Set -D$MODE_PROPERTY=measure, =record or =assert to run them.",
             )
             return
@@ -142,9 +142,9 @@ class PerformanceHarnessTest {
         val bodies = scenarioBodies(workload)
         val entries = BenchmarkBaseline.parse(Golden.read(BenchmarkBaseline.RESOURCE, classpathGoldenSource()))
 
-        println("[forge.benchmark] ${machine()} (JVM Desktop; §29 scopes the table to this target)")
+        println("[lutter.benchmark] ${machine()} (JVM Desktop; §29 scopes the table to this target)")
         println(
-            "[forge.benchmark] workload: ${composed.describe()}, " +
+            "[lutter.benchmark] workload: ${composed.describe()}, " +
                 "${workload.bytes.size} canonical bytes; baseline machine '${entries["machine"]}'",
         )
 
@@ -158,7 +158,7 @@ class PerformanceHarnessTest {
         }
 
         if (mode == Mode.Record) {
-            println("[forge.benchmark] baseline to commit:\n")
+            println("[lutter.benchmark] baseline to commit:\n")
             print(BenchmarkBaseline.render(machine(), entries, measurements.mapValues { it.value.medianNanos }))
             return
         }

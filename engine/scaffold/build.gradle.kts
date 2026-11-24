@@ -11,7 +11,7 @@ import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.getByType
 
 plugins {
-    id("forge.kmp.library")
+    id("lutter.kmp.library")
 }
 
 dependencies {

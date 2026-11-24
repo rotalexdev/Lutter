@@ -50,7 +50,7 @@ import kotlin.test.fail
 //
 // It is **not** evidence about Android performance. §29's own header scopes the table to "JVM
 // Desktop on a typical developer laptop", so no Android number was ever promised, and nothing
-// in this repository runs on a device (`forge.kmp.library` turns host tests on and device
+// in this repository runs on a device (`lutter.kmp.library` turns host tests on and device
 // tests off with a comment saying a CI emulator costs more than it would prove). An
 // `androidUnitTest` runs on the host JVM, so its timings would be Desktop timings wearing an
 // Android label. The honest statement is the narrow one: the work is the same work on both

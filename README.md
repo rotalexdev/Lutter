@@ -188,10 +188,10 @@ version cascade here. One PR, full CI matrix.
 > catalog anyway, and this repository does not override it. If CI reports a version-matrix
 > symptom, the fix belongs in `rotalex-root-conventions`.
 
-> **Not currently enforced:** `forge.warningsAsErrors` is a Gradle property the convention
+> **Not currently enforced:** `lutter.warningsAsErrors` is a Gradle property the convention
 > plugin reads to append `-Werror` to the Kotlin compiler arguments of every module. It
 > defaults to `false` in `gradle.properties`, and no workflow currently passes
-> `-Pforge.warningsAsErrors=true`, so warnings are not build failures on CI. `PLAN.md` §28.7
+> `-Plutter.warningsAsErrors=true`, so warnings are not build failures on CI. `PLAN.md` §28.7
 > and §36.5 assume they are; that is a gap, not a guarantee.
 
 ### Targets

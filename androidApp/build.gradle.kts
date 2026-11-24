@@ -34,6 +34,23 @@ android {
         targetCompatibility = JavaVersion.toVersion(rootLibs.versions.jvmTarget.get())
     }
 
+    // Robolectric reads the module's resources, so the unit tests need them on the host
+    // classpath. NIA's modules set exactly this, and it is the difference between a Robolectric
+    // test that finds its theme and one that fails on a missing resource.
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+
+    packaging {
+        resources {
+            // The Compose test artifacts each ship these two licenses; without the exclusion the
+            // unit-test classpath has the same file twice and packaging fails.
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+
     sourceSets.getByName("main") {
         // The document the activity opens is the repository's own fixture, not a copy: the
         // directory is packaged as assets and read by name. A copy is the version that goes
@@ -52,4 +69,16 @@ dependencies {
     implementation(compose.ui)
     implementation(compose.foundation)
     implementation(compose.material3)
+
+    // Host-side UI tests, the way NowInAndroid's `app` and `core/designsystem` do it: Robolectric
+    // boots an Android runtime on the unit runner, so `check` covers the activity's wiring without
+    // a device or an emulator. `ui-test-manifest` is debug-only because it exists to provide the
+    // `ComponentActivity` the rule launches, and it must not reach a release build.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.ui.test.junit4)
+    debugImplementation(libs.androidx.ui.test.manifest)
+    // `kotlin-test` is absent from the shared catalog: Kotlin modules get it through
+    // `kotlin("test")`, which a plain AGP module has no accessor for. The version is the same
+    // Kotlin the build compiles with, so there is still one number.
+    testImplementation("org.jetbrains.kotlin:kotlin-test:${rootLibs.versions.kotlin.get()}")
 }
