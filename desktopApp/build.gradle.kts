@@ -39,10 +39,17 @@ compose.desktop {
     application {
         mainClass = "dev.rotalex.lutter.desktopapp.MainKt"
 
-        // The same shape the sample uses, for the same reason: `AppImage` is the folder form and
-        // its `targetOS` is `currentOS`, so it is the one format every runner can build.
+        // `AppImage` is the folder form and its `targetOS` is `currentOS`, so it is the one format
+        // every runner can build; `Msi` and `Deb` are the installers a maintainer or a user
+        // actually wants, and jpackage refuses to cross-build either. The matrix in
+        // `.github/workflows/editor-artifacts.yml` therefore hands Windows to a Windows runner
+        // and Linux to a Linux one, and the other format is simply not built there.
+        //
+        // Without a `targetFormats` entry `packageDistributionForCurrentOS` has no format for the
+        // current OS and resolves to UP-TO-DATE having written nothing — the sample's workflow
+        // learned that the expensive way.
         nativeDistributions {
-            targetFormats(TargetFormat.AppImage)
+            targetFormats(TargetFormat.AppImage, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "LutterEditor"
             packageVersion = "1.0.0"
             description = "Lutter desktop editor"

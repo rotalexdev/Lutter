@@ -15,28 +15,52 @@ import dev.rotalex.lutter.serialization.JsonDocumentCodec
 import java.io.File
 
 /**
- * The document the window opens on when it is given no path.
+ * The document the window opens on when it is given no path: the starter preset.
  *
- * Relative to the **module directory**, which is the working directory under `gradle run` and
- * under `desktopTest`. It is not relative to anything a packaged build can rely on, which is why
- * a path handed in on the command line wins.
+ * It is the **resource file itself**, not a copy of it — `src/commonMain/resources/
+ * default-document.json`, module-relative, which is the working directory under `gradle run` and
+ * under `desktopTest`. So the file a developer edits and the file a packaged build opens are the
+ * same bytes, and there is nothing to drift: `gradle run` reads it from disk, and the launcher
+ * reads the identical bytes out of the jar when the path resolves to nothing.
+ *
+ * Module-relative is exactly why a packaged build cannot use this path: unpack the app-image in
+ * `Downloads`, double-click the launcher, and the working directory is wherever the user put it.
+ * [readDocument] answers that with the bundled copy, and a path handed in on the command line
+ * still wins over both.
  */
-public const val DEFAULT_DOCUMENT: String =
-    "../integration/generated-compile/fixtures-navigating/button_navigate.json"
+public const val DEFAULT_DOCUMENT: String = "src/commonMain/resources/default-document.json"
+
+/** Where the same file lands inside the jar, for a packaged build with no repository around it. */
+private const val BUNDLED_DOCUMENT: String = "/default-document.json"
 
 /**
- * [path]'s document, decoded, or a refusal naming the path it tried.
+ * The document at [path], decoded, or the bundled one when [path] is not there.
  *
- * No bundled fallback: unlike the sample's read-only preview, an editor with no document has
- * nothing to edit, and silently opening a copy would hide which file the session record points
- * at. The refusal is the honest answer.
+ * The order is deliberate, and it is the sample's order for the sample's reasons. A path the
+ * caller named wins first — that is the `--args` case, and it is how a second document gets
+ * looked at. A path that exists wins next, which keeps `gradle run` reading the repository's
+ * fixture so an edit to it is visible without rebuilding. Only when neither holds does the
+ * bundled copy answer, and that is the packaged case, where it is the only document there is.
+ *
+ * The refusal names both paths it tried, because the useful question when one of them is wrong
+ * is which one was consulted.
+ *
+ * A `UiDocument` is the classloader handle: this file's facade is `MainKt` on the JVM and has no
+ * Kotlin name to reference, while `UiDocument` is already imported and its classloader is the
+ * same one either way.
  */
 public fun readDocument(path: String): UiDocument {
     val file = File(path)
-    if (!file.isFile) {
-        error("No document at '${file.absolutePath}'. Pass one: LutterEditor <document.json>")
-    }
-    return JsonDocumentCodec.decode(file.readText().encodeToByteArray()).document
+    if (file.isFile) return JsonDocumentCodec.decode(file.readText().encodeToByteArray()).document
+
+    val bundled: ByteArray? =
+        UiDocument::class.java.getResourceAsStream(BUNDLED_DOCUMENT)?.use { it.readBytes() }
+    if (bundled != null) return JsonDocumentCodec.decode(bundled).document
+
+    error(
+        "No document at '${file.absolutePath}' and no '$BUNDLED_DOCUMENT' in the jar. " +
+            "Pass one: LutterEditor <document.json>",
+    )
 }
 
 public fun main(args: Array<String>): Unit = application {
