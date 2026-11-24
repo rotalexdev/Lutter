@@ -7,7 +7,7 @@
 //
 // Build settings — jvmTarget, compileSdk, minSdk — are not here and not in
 // gradle.properties either. They come from the shared catalog, read by key through
-// forge/catalogs.kt's catalogVersion(...), so that every Rotalex project resolves the same
+// lutter/Catalogs.kt's catalogVersion(...), so that every Rotalex project resolves the same
 // numbers. This file used to say gradle.properties, which was wrong: nothing there defines
 // them, and a reader chasing that comment finds nothing at all.
 plugins {

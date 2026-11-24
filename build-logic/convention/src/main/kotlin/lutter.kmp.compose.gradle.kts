@@ -30,7 +30,7 @@ dependencies {
     //
     // Named from the shared catalog rather than through `compose.runtime`, because that
     // shorthand is deprecated in Compose Multiplatform 1.11 ("Specify dependency
-    // directly") and the catalog already carries the coordinate. See forge/Catalogs.kt for
+    // directly") and the catalog already carries the coordinate. See lutter/Catalogs.kt for
     // why a precompiled script plugin reads the catalog through the extension.
     //
     // foundation and material3 are deliberately absent: they arrive with the components
