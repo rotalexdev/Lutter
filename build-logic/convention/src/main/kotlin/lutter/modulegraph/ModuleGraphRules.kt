@@ -210,6 +210,8 @@ object ModuleGraphRules {
             ":engine:serialization",
             // P5/P6: the panes draw `UiApp` and name `UiRuntime` in their signatures.
             ":engine:runtime",
+            // P7's acceptance: generation is one of the three ways a document is "identical".
+            ":engine:codegen",
         ),
         ":androidApp" to setOf(
             ":app:editor",

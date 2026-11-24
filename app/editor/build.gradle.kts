@@ -27,6 +27,10 @@ dependencies {
     // seam. The compiler plugin is already applied above; this is the runtime it needs.
     commonMainApi(rootLibs.kotlinx.serialization.json)
 
+    // P7's acceptance compares the authored document's generated code with its JSON form's.
+    // `implementation`, not `api`: nothing in the editor's public signatures names codegen.
+    commonMainImplementation(project(":engine:codegen"))
+
     // `EditorSession.selection` is a `StateFlow`, the same type `DocumentController.state` is, so
     // an editor host can collect both the same way.
     commonMainApi(rootLibs.kotlinx.coroutines.core)
