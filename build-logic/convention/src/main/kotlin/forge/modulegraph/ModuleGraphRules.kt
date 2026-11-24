@@ -58,6 +58,7 @@ object ModuleGraphRules {
         ":integration:fixture-plugin",
         ":samples:desktop-preview",
         ":app:editor",
+        ":desktopApp",
     )
 
     // ---------------------------------------------------------------------------------------
@@ -205,6 +206,12 @@ object ModuleGraphRules {
             ":engine:schema",
             ":engine:editing",
             ":engine:analysis",
+            ":engine:serialization",
+        ),
+        ":desktopApp" to setOf(
+            ":app:editor",
+            ":engine:builtins-compose",
+            ":engine:runtime",
             ":engine:serialization",
         ),
         ":tools:architecture-tests" to emptySet(),

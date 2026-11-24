@@ -86,3 +86,6 @@ include(":integration:generated-compile")
 include(":integration:fixture-plugin")
 include(":samples:desktop-preview")
 include(":app:editor")
+// Phase 17 P5: the desktop host. Root-level because PLAN's D28 names it there, and because an
+// entry point is not part of the engine or of the editor's platform-neutral half.
+include(":desktopApp")
