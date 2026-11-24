@@ -22,7 +22,7 @@ import java.io.File
  * a path handed in on the command line wins.
  */
 public const val DEFAULT_DOCUMENT: String =
-    "../../integration/generated-compile/fixtures-navigating/button_navigate.json"
+    "../integration/generated-compile/fixtures-navigating/button_navigate.json"
 
 /**
  * [path]'s document, decoded, or a refusal naming the path it tried.
