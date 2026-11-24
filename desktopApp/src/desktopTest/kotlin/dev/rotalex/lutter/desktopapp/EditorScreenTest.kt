@@ -46,8 +46,9 @@ class EditorScreenTest {
         onNodeWithTag("canvas").fetchSemanticsNode()
         onNodeWithTag("inspector").fetchSemanticsNode()
 
-        // The canvas is the document: a line that exists only in the JSON proves it drew.
-        onNode(hasText("Continue")).fetchSemanticsNode()
+        // The canvas is the document: the starter's own heading, which no pane label shares, so
+        // finding it proves the JSON was lowered and drawn rather than that a tag exists.
+        onNode(hasText("Lutter")).fetchSemanticsNode()
     }
 
     @Test
