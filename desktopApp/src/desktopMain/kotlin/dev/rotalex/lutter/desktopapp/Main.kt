@@ -12,13 +12,19 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
+import dev.rotalex.lutter.editor.Autosave
 import dev.rotalex.lutter.editor.EditorPreview
 import dev.rotalex.lutter.editor.EditorSession
 import dev.rotalex.lutter.editor.EditorSessionRecord
+import dev.rotalex.lutter.editor.EditorWorkspace
+import dev.rotalex.lutter.editor.Opened
+import dev.rotalex.lutter.editor.SaveStatusBar
+import dev.rotalex.lutter.editor.WorkspaceSaver
 import dev.rotalex.lutter.editor.open
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.serialization.JsonDocumentCodec
 import java.io.File
+import java.time.LocalTime
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -114,7 +120,14 @@ public fun main(args: Array<String>): Unit = application {
 
     // Before the window exists: an editor that paints the starter and swaps it a frame later is
     // an editor that shows the user a document they are not editing.
-    val opened: Opened = runBlocking { EditorWorkspace.open(directory, seed, location) }
+    val opened: Opened = runBlocking {
+        EditorWorkspace.open(
+            documentLocation = location,
+            recordLocation = File(directory, SESSION_FILE).path,
+            seed = seed,
+            storage = AtomicDocumentStorage(),
+        )
+    }
     val session: EditorSession = EditorSession.open(
         document = opened.document,
         schema = schema,
@@ -124,7 +137,9 @@ public fun main(args: Array<String>): Unit = application {
         session = session,
         analyze = { BuiltinEngine.analyze(schema, it) },
     )
-    val saver = remember(opened.workspace) { WorkspaceSaver(opened.workspace) }
+    val saver = remember(opened.workspace) {
+        WorkspaceSaver(opened.workspace) { LocalTime.now().withNano(0).toString() }
+    }
 
     Window(
         onCloseRequest = {
@@ -145,7 +160,7 @@ public fun main(args: Array<String>): Unit = application {
                         modifier = Modifier.weight(1f),
                     )
                     SaveStatusBar(
-                        workspace = opened.workspace,
+                        location = opened.workspace.documentLocation,
                         state = saver.state,
                         notice = opened.notice,
                     )
@@ -157,3 +172,6 @@ public fun main(args: Array<String>): Unit = application {
 
 /** The file name of the working copy the editor owns inside [workspaceDirectory]. */
 private const val WORKING_COPY: String = "document.json"
+
+/** Where the session record lives, beside the working copy and never beside a named document. */
+private const val SESSION_FILE: String = "session.json"
