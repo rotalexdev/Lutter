@@ -12,7 +12,6 @@ import java.io.File
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -44,28 +43,40 @@ class MainActivityWorkspaceTest {
     private val filesDir: File
         get() = RuntimeEnvironment.getApplication().filesDir
 
-    @Before
-    fun waitForTheWorkspaceToOpen() {
-        compose.waitForIdle()
-    }
-
     @Test
     fun the_activity_creates_its_working_copy_in_private_storage() {
+        awaitFirstSave()
+
         assertTrue(
             File(filesDir, "document.json").isFile,
-            "the activity opened no workspace: a host that only read the asset writes nothing",
+            "the status bar says it saved but there is no working copy: a host that only read " +
+                "the asset writes nothing",
         )
     }
 
     @Test
     fun a_recreated_activity_reads_the_working_copy_rather_than_the_asset() {
-        val document = File(filesDir, "document.json")
+        val document = awaitFirstSave()
         markTheLeafText(document, MARKER)
 
         compose.activityRule.scenario.recreate()
-        compose.waitForIdle()
+        compose.waitUntil(TIMEOUT_MS) {
+            compose.onAllNodes(hasText(MARKER)).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
 
-        compose.onNode(hasText(MARKER)).assertExists()
+    /**
+     * Waits for the first save and returns the working copy.
+     *
+     * The wait is on the **status bar**, not on the file, because the file appears before the
+     * first autosave and a test that raced it would rewrite the document a moment later. "Saved"
+     * on screen means the write finished, which is exactly the moment the disk is ours to change.
+     */
+    private fun awaitFirstSave(): File {
+        compose.waitUntil(TIMEOUT_MS) {
+            compose.onAllNodes(hasText("Saved", substring = true)).fetchSemanticsNodes().isNotEmpty()
+        }
+        return File(filesDir, "document.json")
     }
 
     /** Rewrites the first `m3.Text` leaf's text, on disk, to [text]. */
@@ -87,6 +98,8 @@ class MainActivityWorkspaceTest {
     private companion object {
         /** A word the bundled fixture cannot contain, so a match cannot come from the asset. */
         const val MARKER: String = "Survived a rotation"
+
+        const val TIMEOUT_MS: Long = 10_000
 
         val TEXT: PropertyKey = PropertyKey("text")
     }
