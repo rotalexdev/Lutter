@@ -15,6 +15,7 @@ import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.editor.EditorPreview
 import dev.rotalex.lutter.editor.EditorSession
 import dev.rotalex.lutter.editor.EditorSessionRecord
+import dev.rotalex.lutter.editor.open
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.serialization.JsonDocumentCodec
 import java.io.File

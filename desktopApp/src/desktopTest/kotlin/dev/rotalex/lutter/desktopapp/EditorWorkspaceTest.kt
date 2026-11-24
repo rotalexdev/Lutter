@@ -4,6 +4,7 @@ import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.editor.EditorSelection
 import dev.rotalex.lutter.editor.EditorSession
 import dev.rotalex.lutter.editor.EditorSessionRecord
+import dev.rotalex.lutter.editor.open
 import dev.rotalex.lutter.editor.PropertyWrite
 import dev.rotalex.lutter.editor.toRecord
 import dev.rotalex.lutter.model.doc.UiDocument
