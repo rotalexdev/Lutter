@@ -138,6 +138,37 @@ an edit does not resolve:
 The preview never writes. It decodes the bytes it is given, resolves them, and reports what it
 found; persistence stays the session store's job.
 
+## Saving
+
+The editor saves on every change and has no Save button, because there is nothing to decide: it
+owns one document at one location, chosen once when it opens. `WorkspaceSaver` combines
+`controller.state` (a `StateFlow`, so not Compose snapshot state — `snapshotFlow` would see
+nothing) with `selection` and writes the pair; the window's close handler performs one final
+synchronous write, because a coroutine would be cancelled by `exitApplication()` first.
+
+Where that location is:
+
+| Opened with | Document | Session record |
+| --- | --- | --- |
+| `LutterEditor my-document.json` | `my-document.json`, **in place** | `<workspace>/session.json` |
+| no path (`gradle run`, a launcher) | `<workspace>/document.json`, seeded from the starter | `<workspace>/session.json` |
+
+`<workspace>` is `LUTTER_EDITOR_HOME` when set, otherwise the platform's application-data
+directory — `%APPDATA%\LutterEditor` on Windows, `~/Library/Application Support/LutterEditor` on
+macOS, `$XDG_DATA_HOME/lutter-editor` (or `~/.local/share/lutter-editor`) elsewhere. The starter
+is a **seed**, never a file the editor writes back to: `gradle run` does not dirty the repository,
+and a packaged launch writes somewhere the user owns.
+
+Every write goes to a sibling temporary file and is moved into place with `ATOMIC_MOVE`, so a
+process killed mid-save leaves either the old bytes or the new ones — never a truncated document.
+A document that does not parse is **kept** as `<name>.corrupt` and the starter opens instead,
+with the reason in the status bar; throwing it away would discard the only copy of somebody's
+work. The line under the panes always says which of those happened and where the bytes are;
+"NOT SAVED" with the reason is the one message it exists for.
+
+`EditorSessionRecord` carries the selection and not the undo stack (§26.3), so reopening restores
+what was being looked at and starts a fresh history.
+
 ## What the editor does not do yet
 
 - **No page or state authoring.** The session edits nodes and their properties; creating a
