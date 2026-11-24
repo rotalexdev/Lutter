@@ -14,6 +14,11 @@ dependencies {
     commonMainApi(project(":engine:model"))
     commonMainApi(project(":engine:schema"))
     commonMainApi(project(":engine:editing"))
+    // P3's preview: `decode` is `:engine:serialization`'s, `ResolvedDocument` and the refusal
+    // diagnostics are `:engine:analysis`'s. Neither edge draws anything, so the module stays
+    // platform-neutral; only the resolver is injected.
+    commonMainApi(project(":engine:analysis"))
+    commonMainApi(project(":engine:serialization"))
 
     // `EditorSession.selection` is a `StateFlow`, the same type `DocumentController.state` is, so
     // an editor host can collect both the same way.

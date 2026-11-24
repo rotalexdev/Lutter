@@ -41,10 +41,19 @@ public class LutterPluginGradlePlugin : Plugin<Project> {
                     // build script for it keeps a plugin project's script to its identity; a
                     // project that assembles its jar by hand sets `payload` instead, and the task
                     // still refuses anything but exactly one file.
-                    project.tasks.named("jar", Jar::class.java).configure(
-                        object : Action<Jar> {
-                            override fun execute(jar: Jar) {
-                                extension.payload.from(jar.archiveFile)
+                    val jar = project.tasks.named("jar", Jar::class.java)
+                    extension.payload.from(jar.flatMap { it.archiveFile })
+
+                    // The container must run this jar first. Naming the task directly is what
+                    // makes the edge: `dependsOn` a `FileCollection` did not produce one (PR
+                    // #195 — the container ran alone and found zero payload files), and doing
+                    // this inside `jar.configure` is illegal: a task set may not be mutated from
+                    // a task-creation callback. Here the callback belongs to the plugin, which
+                    // is a legal context.
+                    project.tasks.withType(LutterPluginContainer::class.java).configureEach(
+                        object : Action<LutterPluginContainer> {
+                            override fun execute(container: LutterPluginContainer) {
+                                container.dependsOn(jar)
                             }
                         },
                     )
@@ -80,13 +89,6 @@ public class LutterPluginGradlePlugin : Plugin<Project> {
                     task.requirements.set(extension.dependsOn)
                     task.payload.from(extension.payload)
 
-                    // The payload is this module's own `jar`, and `from(archiveFile)` alone does
-                    // not make the container depend on it: run `lutterPluginContainer` on a clean
-                    // tree and the task found zero payload files (observed on PR #194, where the
-                    // step runs the task directly instead of through `check`). `dependsOn` a
-                    // `FileCollection` uses its own build dependencies, so this holds whether the
-                    // payload came from the jar or from a script that set it by hand.
-                    task.dependsOn(extension.payload)
                     val defaultPath = project.provider {
                         "lutter-plugin/${extension.id.get()}-${extension.version.get()}.lutterplugin"
                     }
