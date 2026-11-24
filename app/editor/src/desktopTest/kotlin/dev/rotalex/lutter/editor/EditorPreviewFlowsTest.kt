@@ -36,7 +36,7 @@ class EditorPreviewFlowsTest {
             ?: error("the preview fixtures must resolve, or no render case is reachable")
 
     @Test
-    fun `follow re-resolves after a dispatch`() = runBlocking {
+    fun `follow re-resolves after a dispatch`(): Unit = runBlocking {
         val session = session()
         val preview = EditorPreview(
             session = session,
@@ -59,7 +59,7 @@ class EditorPreviewFlowsTest {
     }
 
     @Test
-    fun `watch renders external bytes and keeps the last good render on a refusal`() = runBlocking {
+    fun `watch renders external bytes and keeps the last good render on a refusal`(): Unit = runBlocking {
         val storage = MemoryStorage()
         val location = "document.json"
         val good = JsonDocumentCodec.encode(editorDocument())
@@ -94,7 +94,7 @@ class EditorPreviewFlowsTest {
     }
 
     @Test
-    fun `watch survives a location it cannot read`() = runBlocking {
+    fun `watch survives a location it cannot read`(): Unit = runBlocking {
         val storage = MemoryStorage()
         storage.write("document.json", JsonDocumentCodec.encode(editorDocument()))
         val preview = EditorPreview(
@@ -113,7 +113,7 @@ class EditorPreviewFlowsTest {
     }
 
     @Test
-    fun `watch reads a real file`() = runBlocking {
+    fun `watch reads a real file`(): Unit = runBlocking {
         val file = Files.createTempFile("lutter-preview", ".json")
         try {
             val storage: DocumentStorage = FileDocumentStorage()
@@ -147,7 +147,7 @@ class EditorPreviewFlowsTest {
     }
 
     @Test
-    fun `watch does not decode the same refused bytes twice`() = runBlocking {
+    fun `watch does not decode the same refused bytes twice`(): Unit = runBlocking {
         val storage = MemoryStorage()
         val location = "document.json"
         storage.write(location, "broken".encodeToByteArray())

@@ -4,7 +4,6 @@ import dev.rotalex.lutter.analysis.AnalysisResult
 import dev.rotalex.lutter.analysis.Analyzer
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.editing.command.Command
-import dev.rotalex.lutter.editing.command.CommandResult
 import dev.rotalex.lutter.model.doc.UiDocument
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -64,7 +63,7 @@ class EditorPreviewTest {
         )
         preview.refresh()
 
-        assertIs<CommandResult.Ok>(session.setProperty(LEAF, TEXT, "\"Bye\""))
+        assertIs<PropertyWrite.Applied>(session.setProperty(LEAF, TEXT, "\"Bye\""))
         val state = assertIs<PreviewState.Rendered>(preview.refresh())
 
         assertEquals(1L, state.revision)
