@@ -499,3 +499,17 @@ public final class dev/rotalex/lutter/editor/ui/EditorPanesKt {
 	public static final fun PalettePane (Ljava/util/List;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 }
 
+public final class dev/rotalex/lutter/editor/ui/theme/LutterSpacing {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/editor/ui/theme/LutterSpacing;
+	public final fun getLg-D9Ej5fM ()F
+	public final fun getMd-D9Ej5fM ()F
+	public final fun getSm-D9Ej5fM ()F
+	public final fun getXl-D9Ej5fM ()F
+	public final fun getXs-D9Ej5fM ()F
+}
+
+public final class dev/rotalex/lutter/editor/ui/theme/LutterThemeKt {
+	public static final fun LutterTheme (ZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+}
+
