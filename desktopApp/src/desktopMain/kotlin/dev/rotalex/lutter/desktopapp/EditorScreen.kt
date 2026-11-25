@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -47,11 +48,13 @@ public fun EditorScreen(
             },
             modifier = Modifier.width(220.dp).fillMaxHeight().testTag("palette"),
         )
+        VerticalDivider()
         CanvasPane(
             runtime = runtime,
             state = rendered,
             modifier = Modifier.weight(1f).fillMaxHeight().testTag("canvas"),
         )
+        VerticalDivider()
         InspectorPane(
             session = session,
             selection = selection,

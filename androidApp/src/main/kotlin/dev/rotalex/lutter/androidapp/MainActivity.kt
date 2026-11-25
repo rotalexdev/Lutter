@@ -3,12 +3,16 @@ package dev.rotalex.lutter.androidapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -68,6 +72,11 @@ import kotlinx.coroutines.withContext
 public class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // The window is drawn edge to edge at every SDK this app targets, so the app owns the
+        // insets: the palette used to render *under* the status bar, which is why its first
+        // line arrived mixed with the clock, and the status bar at the bottom sat under the
+        // gesture handle.
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val schema = BuiltinEngine.schema()
         val runtime = BuiltinEngine.runtime(schema)
@@ -79,13 +88,17 @@ public class MainActivity : ComponentActivity() {
 
         setContent {
             MaterialTheme {
+                // The surface fills the window (so the bars are tinted, not white), and only the
+                // content is inset from them.
                 Surface(Modifier.fillMaxSize()) {
-                    EditorHost(
-                        runtime = runtime,
-                        documentLocation = documentLocation,
-                        recordLocation = recordLocation,
-                        seed = { readDocument() },
-                    )
+                    Box(Modifier.fillMaxSize().safeDrawingPadding()) {
+                        EditorHost(
+                            runtime = runtime,
+                            documentLocation = documentLocation,
+                            recordLocation = recordLocation,
+                            seed = { readDocument() },
+                        )
+                    }
                 }
             }
         }
@@ -224,11 +237,13 @@ public fun AndroidEditorScreen(
             },
             modifier = Modifier.fillMaxWidth().height(160.dp).testTag("palette"),
         )
+        HorizontalDivider()
         CanvasPane(
             runtime = runtime,
             state = rendered,
             modifier = Modifier.fillMaxWidth().weight(1f).testTag("canvas"),
         )
+        HorizontalDivider()
         InspectorPane(
             session = session,
             selection = selection,
