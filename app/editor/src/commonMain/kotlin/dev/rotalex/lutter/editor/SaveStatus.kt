@@ -106,7 +106,36 @@ public fun Autosave(session: EditorSession, saver: WorkspaceSaver) {
 }
 
 /**
- * The line under the panes: where the document is, and whether what is on screen is what is on disk.
+ * The last segment of [location], which is the only part of a path worth showing.
+ *
+ * A status line exists to answer "did that save?", not to tell somebody where their app keeps its
+ * private files. The full path used to be printed here, and on Android it read
+ * `/data/user/0/dev.rotalex.lutter/files/document.json` across two lines at the bottom of the
+ * screen — a filesystem path is the one piece of vocabulary this window shares with nobody.
+ */
+internal fun documentLabel(location: String): String {
+    val name: String = location.substringAfterLast('/').substringAfterLast('\\')
+    return name.ifEmpty { location }
+}
+
+/**
+ * What the status line says. Pure, so the wording is a unit test rather than a screenshot.
+ *
+ * Three states and three sentences: the file name is the only part of the location shown, and a
+ * failure says why, because "not saved" without a reason sends the reader to the wrong place.
+ */
+internal fun saveStatusText(location: String, state: SaveState, notice: String?): String {
+    val label: String = documentLabel(location)
+    val text: String = when (state) {
+        SaveState.Idle -> "Not saved yet · $label"
+        is SaveState.Saved -> "Saved ${state.at} · $label"
+        is SaveState.Failed -> "NOT SAVED ${state.at}: ${state.reason}"
+    }
+    return notice?.let { "$it  ·  $text" } ?: text
+}
+
+/**
+ * The line under the panes: whether what is on screen is what is on disk.
  *
  * At the bottom and always present, because the question it answers — "did that save?" — is asked
  * at the moment somebody stops typing, and a status that appears only while saving is absent
@@ -117,11 +146,7 @@ public fun Autosave(session: EditorSession, saver: WorkspaceSaver) {
 public fun SaveStatusBar(location: String, state: SaveState, notice: String?) {
     val theme = MaterialTheme.colorScheme
     val failed: Boolean = state is SaveState.Failed
-    val text: String = when (state) {
-        SaveState.Idle -> "Not written yet — $location"
-        is SaveState.Saved -> "Saved ${state.at} — $location"
-        is SaveState.Failed -> "NOT SAVED ${state.at}: ${state.reason}"
-    }
+    val text: String = saveStatusText(location, state, notice)
 
     Row(
         modifier = Modifier
@@ -131,7 +156,7 @@ public fun SaveStatusBar(location: String, state: SaveState, notice: String?) {
             .testTag("save-status"),
     ) {
         Text(
-            text = notice?.let { "$it  ·  $text" } ?: text,
+            text = text,
             color = if (failed) theme.onErrorContainer else theme.onSurfaceVariant,
             style = MaterialTheme.typography.labelMedium,
             maxLines = 2,

@@ -3,27 +3,40 @@ package dev.rotalex.lutter.androidapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.editor.Autosave
+import dev.rotalex.lutter.editor.ui.CodeScreen
+import dev.rotalex.lutter.editor.ui.EditorDestination
 import dev.rotalex.lutter.editor.EditorPreview
 import dev.rotalex.lutter.editor.EditorSession
 import dev.rotalex.lutter.editor.EditorSessionRecord
@@ -68,6 +81,11 @@ import kotlinx.coroutines.withContext
 public class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // The window is drawn edge to edge at every SDK this app targets, so the app owns the
+        // insets: the palette used to render *under* the status bar, which is why its first
+        // line arrived mixed with the clock, and the status bar at the bottom sat under the
+        // gesture handle.
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val schema = BuiltinEngine.schema()
         val runtime = BuiltinEngine.runtime(schema)
@@ -79,6 +97,8 @@ public class MainActivity : ComponentActivity() {
 
         setContent {
             MaterialTheme {
+                // The surface fills the window (so the bars are tinted, not white); the scaffold
+                // inside it owns the insets.
                 Surface(Modifier.fillMaxSize()) {
                     EditorHost(
                         runtime = runtime,
@@ -158,7 +178,7 @@ private fun EditorHost(
     val current: Opened? = opened
     if (current == null) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
+            modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
@@ -186,19 +206,73 @@ private fun EditorHost(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Autosave(session = session, saver = saver)
-        AndroidEditorScreen(
-            session = session,
-            preview = preview,
-            runtime = runtime,
-            modifier = Modifier.weight(1f),
-        )
-        SaveStatusBar(
-            location = current.workspace.documentLocation,
-            state = saver.state,
-            notice = current.notice,
-        )
+    var destination: EditorDestination by rememberSaveable { mutableStateOf(EditorDestination.Editor) }
+
+    EditorScaffold(
+        destination = destination,
+        onDestination = { destination = it },
+    ) { contentModifier ->
+        Column(contentModifier.fillMaxSize()) {
+            Autosave(session = session, saver = saver)
+            // One screen at a time, and the save line under both: a person looking at the
+            // generated code still needs to know whether their edits are on disk.
+            Box(Modifier.fillMaxWidth().weight(1f)) {
+                when (destination) {
+                    EditorDestination.Editor -> AndroidEditorScreen(
+                        session = session,
+                        preview = preview,
+                        runtime = runtime,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    EditorDestination.Code -> CodeScreen(
+                        session = session,
+                        preview = preview,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+            SaveStatusBar(
+                location = current.workspace.documentLocation,
+                state = saver.state,
+                notice = current.notice,
+            )
+        }
+    }
+}
+
+/**
+ * The window's frame: a title, the two screens as tabs, and the content inset from the bars.
+ *
+ * The scaffold owns the insets rather than the content, because the top bar has to sit *below*
+ * the status bar while the surface behind it still reaches the edge of the screen. `WindowInsets(0)`
+ * on the content is what keeps them from being applied twice.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditorScaffold(
+    destination: EditorDestination,
+    onDestination: (EditorDestination) -> Unit,
+    content: @Composable (Modifier) -> Unit,
+) {
+    Scaffold(
+        modifier = Modifier.fillMaxSize().safeDrawingPadding(),
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = {
+            Column {
+                TopAppBar(title = { Text("Lutter") })
+                TabRow(selectedTabIndex = EditorDestination.entries.indexOf(destination)) {
+                    EditorDestination.entries.forEach { tab ->
+                        Tab(
+                            selected = destination == tab,
+                            onClick = { onDestination(tab) },
+                            text = { Text(tab.label) },
+                        )
+                    }
+                }
+            }
+        },
+    ) { padding ->
+        content(Modifier.fillMaxSize().padding(padding))
     }
 }
 
@@ -224,11 +298,13 @@ public fun AndroidEditorScreen(
             },
             modifier = Modifier.fillMaxWidth().height(160.dp).testTag("palette"),
         )
+        HorizontalDivider()
         CanvasPane(
             runtime = runtime,
             state = rendered,
             modifier = Modifier.fillMaxWidth().weight(1f).testTag("canvas"),
         )
+        HorizontalDivider()
         InspectorPane(
             session = session,
             selection = selection,
