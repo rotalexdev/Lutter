@@ -64,7 +64,7 @@ internal fun paletteSubtree(
         ?: return NodeTemplate(listOf(Node(id = root, type = type)))
 
     val label: String = spec.metadata.displayName
-    val child: Node = labelChild(components, spec, label, fresh)
+    val child: Node? = labelChild(components, spec, label, fresh)
     val slot: SlotSpec? = if (child == null) {
         null
     } else {
