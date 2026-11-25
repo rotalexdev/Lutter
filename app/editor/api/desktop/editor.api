@@ -485,6 +485,17 @@ public final class dev/rotalex/lutter/editor/ui/CodeScreenKt {
 	public static final fun CodeScreen (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/editor/EditorPreview;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 }
 
+public final class dev/rotalex/lutter/editor/ui/ComposableSingletons$EditorShellKt {
+	public static final field INSTANCE Ldev/rotalex/lutter/editor/ui/ComposableSingletons$EditorShellKt;
+	public fun <init> ()V
+	public final fun getLambda$-1218441939$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-1733867670$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-482675840$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$1791462828$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$662336193$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$682800373$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
+}
+
 public final class dev/rotalex/lutter/editor/ui/EditorDestination : java/lang/Enum {
 	public static final field Code Ldev/rotalex/lutter/editor/ui/EditorDestination;
 	public static final field Editor Ldev/rotalex/lutter/editor/ui/EditorDestination;
@@ -506,6 +517,7 @@ public final class dev/rotalex/lutter/editor/ui/EditorShellKt {
 }
 
 public final class dev/rotalex/lutter/editor/ui/EditorShellSave {
+	public static final field $stable I
 	public fun <init> (Ldev/rotalex/lutter/editor/WorkspaceSaver;Ljava/lang/String;Ljava/lang/String;)V
 	public final fun getLocation ()Ljava/lang/String;
 	public final fun getNotice ()Ljava/lang/String;
