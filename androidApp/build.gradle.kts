@@ -21,8 +21,12 @@ android {
         applicationId = "dev.rotalex.lutter"
         minSdk = rootLibs.versions.androidMinSdk.get().toInt()
         targetSdk = rootLibs.versions.androidTargetSdk.get().toInt()
-        versionCode = 1
-        versionName = "0.1.0"
+        // One number, and CI owns it: `.github/workflows/nightly.yml` passes the commit count as
+        // `versionCode` (Android refuses a build whose code does not move forward) and
+        // `0.1.0-alpha.<count>` as `versionName`. Local builds keep the defaults, so a debug run
+        // is installable without a property and cannot be mistaken for a published build.
+        versionCode = (findProperty("versionCode") as String?)?.toInt() ?: 1
+        versionName = (findProperty("versionName") as String?) ?: "0.1.0"
     }
 
     buildFeatures {

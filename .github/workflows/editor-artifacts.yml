@@ -13,17 +13,9 @@ name: editor-artifacts
 # NOT a required check, and not intended to become one. A flaky Windows leg would then block
 # every merge.
 on:
-  push:
-    branches: [ dev ]
-    paths:
-      - 'desktopApp/**'
-      - 'app/editor/**'
-      - 'engine/**'
-      - 'integration/generated-compile/fixtures-navigating/**'
-      - 'build-logic/**'
-      - 'gradle.properties'
-      - 'scripts/probe-desktop-package.sh'
-      - '.github/workflows/editor-artifacts.yml'
+  # Pull requests only. An installable build belongs to a line somebody decided to ship, and that
+  # is `main` — `.github/workflows/nightly.yml` owns it. A build per branch push was two answers
+  # to "where do I download the editor?" and neither was the one to give anyone.
   pull_request:
     branches: [ dev, main ]
     paths:
