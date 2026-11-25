@@ -105,6 +105,10 @@ class GeneratedCodeTest {
         // Build 555's palette inserted a bare node: no props, no children. Those documents are on
         // real devices and open on every launch, so "the editor refuses to show code for a
         // document it used to produce" is a regression, not an edge case.
+        //
+        // A bare *container* is the reachable case: a bare `m3.Text` has a required `text` and
+        // analysis refuses it before the generator ever sees it, which is a refusal the screen
+        // already shows. The generator's own answer to an empty column is an empty column.
         val bare = NodeTable.EMPTY
             .with(
                 Node(
@@ -113,12 +117,12 @@ class GeneratedCodeTest {
                     slots = mapOf(CHILDREN to listOf(BARE)),
                 ),
             )
-            .with(Node(id = BARE, type = ComponentType("m3.Text")))
+            .with(Node(id = BARE, type = ComponentType("core.Column")))
         val document = document().copy(nodes = bare)
 
         val view = generatedCode(schema, resolved(document), PACKAGE)
 
-        assertNull(view.failure, "a bare text node must not throw: ${view.failure}")
+        assertNull(view.failure, "a bare container must not throw: ${view.failure}")
         assertTrue(view.files.isNotEmpty(), "the rest of the document still emits")
     }
 
