@@ -1,9 +1,14 @@
 # The editor
 
 Lutter ships an editor in this repository (PLAN §32 Phase 17, D28's amended decision). It is
-three panes over one document: a palette on the left, a live preview in the middle, an
-inspector on the right. The desktop window shows them in a row; the Android app shows the
-same three in a column.
+two screens over one document. The **Editor** screen is three panes: a palette on the left, a
+live preview in the middle, an inspector on the right — the desktop window shows them in a row,
+the Android app shows the same three in a column. The **Code** screen is what that document
+becomes: the Kotlin `:engine:codegen` emits for it, one block per file, read-only.
+
+Both hosts reach the two screens the same way — a tab row under the window's title, on Android
+inside a `Scaffold` and on the desktop above the panes — and both keep the save line visible on
+either screen, because "did that save?" is a question the Code screen raises too.
 
 This page describes the editor as it exists in the code — what each pane asks the engine,
 what the session persists, and what the preview guarantees. Behaviour here is pinned by the
@@ -82,6 +87,15 @@ answer, the check the planner will run anyway — and inserts at the first targe
 An entry with no target is still shown: a component that cannot go anywhere right now is a
 fact worth knowing, and the palette does not hide it.
 
+What lands is a **template**, not a bare node: `paletteSubtree` adds the least a type needs to be
+visible — a `m3.Button` gets a `m3.Text` in its `content` slot reading `Button`, a `m3.Text` gets
+its required `text`, a `core.Column` gets one child. The shape comes from the schema (the first
+slot that admits the label type, or the required `Str` properties), never from a list of type
+names, so a plugin's components get the same treatment and a schema without the builtin label
+type inserts the bare node instead of guessing one. Properties are still `analysis`'s to default:
+a template adds *structure*, and the label it writes is the author's own word for the thing they
+just added.
+
 ### Canvas
 
 `CanvasPane` draws what the preview resolved and calls `session.select(...)` on a click. The
@@ -105,6 +119,25 @@ A node the schema cannot describe — a document that outlived the plugin that a
 gets no inspector rows rather than an empty panel. The canvas is where that diagnostic is
 already visible, so the panel says nothing instead of claiming the component has no
 properties.
+
+## The Code screen
+
+`generatedCode(schema, resolved, packageName)` calls the same `KotlinGenerator` the CLI and the
+acceptance test call, and `CodeScreen` lists what it returns: one card per file, path in the
+label, the file's text selectable and monospaced. Nothing is re-formatted, re-sorted or
+summarised — `GeneratedFiles` already sorts by path, and a second ordering would be a second
+answer to one question.
+
+It reads the **preview's** resolved document rather than analysing again, so the code on that
+screen is the code for the tree the canvas draws, not a second resolution that could disagree
+with it. It follows the preview while it is shown, for the same reason: the panes are out of the
+composition on that screen, and a preview that stopped following would show the code for a
+document the author has already edited.
+
+Read-only is the design, not a missing feature. The document is the source and Kotlin is a
+projection of it (ADR-011), so an edit made here would be lost at the next regeneration. When the
+generator refuses a document it returns no files *and* its diagnostics; the screen shows the
+reason rather than an empty list.
 
 ## The session
 
