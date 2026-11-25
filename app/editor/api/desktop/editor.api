@@ -483,12 +483,6 @@ public final class dev/rotalex/lutter/editor/ui/CodeScreenKt {
 	public static final fun CodeScreen (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/editor/EditorPreview;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 }
 
-public final class dev/rotalex/lutter/editor/ui/ComposableSingletons$EditorPanesKt {
-	public static final field INSTANCE Ldev/rotalex/lutter/editor/ui/ComposableSingletons$EditorPanesKt;
-	public fun <init> ()V
-	public final fun getLambda$2015368023$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
-}
-
 public final class dev/rotalex/lutter/editor/ui/EditorDestination : java/lang/Enum {
 	public static final field Code Ldev/rotalex/lutter/editor/ui/EditorDestination;
 	public static final field Editor Ldev/rotalex/lutter/editor/ui/EditorDestination;

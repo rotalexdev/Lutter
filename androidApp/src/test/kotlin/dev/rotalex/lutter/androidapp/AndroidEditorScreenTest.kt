@@ -7,6 +7,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
@@ -98,7 +99,9 @@ class AndroidEditorScreenTest {
 
         compose.onNodeWithTag("inspector:text").performTextClearance()
         compose.onNodeWithTag("inspector:text").performTextInput("\"Edited\"")
-        compose.onNodeWithTag("apply:text").performClick()
+        // The field commits on the keyboard's Done, which is one of the two ways out of it; the
+        // other is losing focus, and neither is a per-row button any more.
+        compose.onNodeWithTag("inspector:text").performImeAction()
         compose.waitForIdle()
 
         val edited = session.document.nodes.require(node).props[text]

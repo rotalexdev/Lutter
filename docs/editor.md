@@ -109,6 +109,13 @@ declared type, whether it is required, the spec's help text, and the current val
 canonical text. Committing a row goes through `EditorSession.setProperty`, which parses the
 text and dispatches one `SetProperty` command.
 
+A row commits when you leave it — focus moves elsewhere, or the keyboard's **Done** — and not on
+every keystroke: parsing a half-typed expression would report a refusal the author is about to
+finish typing past. Leaving a field you did not type in commits nothing, which is what keeps
+undo honest; the rule is `isNewEdit(sent, draft)` and it is tested without a screen. When the
+engine refuses a commit its own diagnostic appears under the field instead of the text quietly
+reverting.
+
 The expression field is the interesting half. Text is a view of the AST, never the truth
 (§10.8): `PropertyText.apply` parses what was typed, `PropertyText.of` prints the canonical
 form of a value, and a commit that parses to a literal becomes a `PropertyValue.Const` rather
