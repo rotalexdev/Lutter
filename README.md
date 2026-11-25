@@ -58,16 +58,17 @@ checks and the conformance suite exist. PLAN §4.2, ADR-003.
 
 ## State of the project
 
-**Phases 0 through 7 are merged. Phase 8 is partial, Phase 9 has not started, and Phase 10 is
-partial.** This is a project under construction, not a library anyone can depend on yet: no
-publishing plugin is applied and nothing has been released.
+**Phases 0 through 7 and 9 through 17 are delivered. Phase 8 is partial, Phase 10 is partial, and
+Phases 18 through 21 have not started.** This is a project under construction, not a library
+anyone can depend on yet: no publishing plugin is applied to the engine, and the editor's
+installers are nightlies rather than releases.
 
 | | |
 |---|---|
-| Merged | Phase 0 in full (build logic, 15 modules, the architecture guardrails, CI). Phase 1, the domain model in full — the `Value` union, `TypeRef`, the `Expr` AST, `Node`, the document records, `NodeTable`, `DocumentIndex`, `ReferenceIndex` and the DSL all exist in `engine/model/src/commonMain/`. Phase 2, the schema registries. Phase 3, canonical JSON and the envelope. Phase 4, the analyzer and both backends. Phases 5, 6 and 7, components, expressions and state, events and navigation. |
+| Merged | Phase 0 in full (build logic, 15 modules, the architecture guardrails, CI). Phase 1, the domain model in full — the `Value` union, `TypeRef`, the `Expr` AST, `Node`, the document records, `NodeTable`, `DocumentIndex`, `ReferenceIndex` and the DSL all exist in `engine/model/src/commonMain/`. Phase 2, the schema registries. Phase 3, canonical JSON and the envelope. Phase 4, the analyzer and both backends. Phases 5, 6 and 7, components, expressions and state, events and navigation. Phase 9, the editing API. Phases 11, 12 and 13, the component waves, `componentDefaults`, incremental analysis and the expression text view. Phases 14 and 15, project scaffolding and the navigation, state and injection strategies. Phase 16, the `.lutterplugin` container. Phase 17, the visual editor in `:app:editor` with its Android and desktop entry points. |
 | Version | `0.1.0-SNAPSHOT`, group `dev.rotalex.lutter`, Gradle root project `forge-engine`. Never published — no publishing plugin is applied. |
 | Releases | None. |
-| Documentation | This file, `PLAN.md`, and `docs/`: `what-is-lutter.md`, `format-spec.md`, `getting-started.md`, `cli.md`, `plugin-guide.md`, `plugin-publishing.md`, `editor.md`, `ARCHITECTURE_REFINEMENTS.md`. The phase table above stops at Phase 10 and is not kept up to date; `PLAN.md`'s per-phase **Delivered** lines are. |
+| Documentation | This file, `PLAN.md`, and `docs/`: `what-is-lutter.md`, `format-spec.md`, `getting-started.md`, `cli.md`, `plugin-guide.md`, `plugin-publishing.md`, `editor.md`, `ARCHITECTURE_REFINEMENTS.md`. The table below and `PLAN.md`'s per-phase **Delivered** lines say the same thing; where they disagree, the code wins and both are wrong. |
 
 ### Where each phase actually stands
 
@@ -86,8 +87,18 @@ the sentence this section exists to replace.
 | 6 — Expressions and state | done | `TypeChecker`/`OperatorRules`, `Evaluator`, page/app/derived state emit, `StateStrategy`, `SnapshotStateStore`, and `num.format` implemented with integer math on **both** sides through the one `fixedDecimalText`. |
 | 7 — Events, actions, navigation | done | `ActionSpec`/`ActionExecutor` and handlers, host functions and `AppHost`, `flow.if`, args → route params, `BackStackNavigator`, `AppRoot`, and a click-navigation conformance fixture. |
 | 8 — Components, themes, resources | partial | The records exist: `ComponentDecl` with `params` and `slots`, `ThemeDecl`, `ResourceDecl`, and `SchemaOverlay` synthesises them. **Missing:** token resolution against the selected theme (`UiScreen`'s own KDoc says the skeleton answers ambient style and real lookup is `ThemeHost`'s), `DeclInstanceRenderer`, theme codegen (`AppTheme.kt`, `AppTokens`), resource emit, and `struct.component_cycle`. |
-| 9 — Editing API | not started | `:engine:editing` is one file holding a package declaration and a comment. No `DocumentController`, commands, patches, history, diffing or `IdRemapper`. It depends only on P1 and P2, so it is the cheapest phase left. |
-| 10 — Tooling and hardening | partial | `forge generate` runs, and `:samples:desktop-preview` renders a document and packages an installer. **Missing:** `validate`, `diff` and `migrate` (the usage text names them; `main()` refuses anything but `generate`), benchmark suites, the permutation and fuzz jobs of §28.5/§29, hot reload, and `docs/`. |
+| 9 — Editing API | done | `DocumentController` over `DocumentState`; the patch algebra with its inverter and applier; one `Command` type with a planner per family — insert, move, field, remove, page, wrap (which is where `ExtractComponent` lives) and apply-patch; `History` and `Transaction`; `IdRemapper` and node templates; the drop-target policy. Phase 17's editor drives it; the module is still engine-only, so an editing client is not forced to take the Compose runtime. |
+| 10 — Tooling and hardening | partial | Three commands, registered in one list that the usage text is rendered from, so a command cannot be advertised and refused: `forge generate`, `forge check` (which also loads a `*.lutterplugin`) and `forge scaffold`. The benchmark scenarios, the shared 10,000-node document, the 200-document fuzz batch, `:samples:desktop-preview`, and the `docs/` tree. **Missing:** `validate`, `diff` and `migrate`; §28.5's permutation job; and codegen for themes — the theme *resolution* landed with Phase 12, the emit did not. |
+| 11 — Component wave 2 | done | `m3.Checkbox`, `m3.Switch`, `m3.RadioButton`, `m3.Slider`, `m3.ProgressIndicator`, `m3.Divider`, `m3.Icon`, `m3.Image`, `core.LazyColumn`/`LazyRow` and `core.FlowRow`/`FlowColumn`, each with its renderer, codegen binding and coverage row; `IterationSpec` with the typed item variable, emitted as `items(...)` and rendered through Compose's virtualization; `Image` resources end to end; the actions `state.toggle`, `list.append`, `list.remove`, `ui.showDialog` and `ui.showBottomSheet` (`ui.showSnackbar` too) with parity on both sides. **Missing:** `Font` and `File` resources — modeled, validated, with neither an emitter arm nor a provider — and `Icon` draws from the generated glyph table rather than a resource kind. |
+| 12 — Component wave 3 | done | `m3.Scaffold`, `m3.Surface`, `m3.Dialog`, `m3.BottomSheet`, `core.BoxWithConstraints` and the navigation bar/rail/drawer/item set; `componentDefaults` on `ThemeDecl`, applied once in the resolver so both backends read the same effective properties, refusals included. |
+| 13 — Incremental analysis and expressions | done | `ExprParser`/`ExprPrinter`, with the AST as truth and text as a view, round-tripping over the corpus; `TypedExpr` compiled to closures behind the interpreter's own interface; resolution reuse keyed on `SchemaRevision` with carried subtrees reference-identical; the dirty set folded from `DocumentDiff`; `IncrementalEqualityTest` comparing incremental against from-scratch analysis. The "under 10 ms" of the plan is a benchmark row, not a CI assertion — a wall-clock threshold on a shared runner is a flake. |
+| 14 — Project scaffolding | done | `:engine:scaffold`: `ProjectSpec` → `ScaffoldGenerator`, `forge scaffold`, D28's `shared/` + `androidApp/` + `desktopApp/` shape, and a version catalog emitted from this build's own. `check` builds a scaffolded project on both runners, so "builds on the first try" is a job rather than a claim. |
+| 15 — Alternative strategies | done | Navigation (`SimpleBackStack`, `NavigationCompose`, `Navigation3`) and state (`SnapshotStateStore`, `ViewModelState`) strategies, plus an injection seam routing the holder through Metro, Koin or Hilt; selected by flag on `generate` and `scaffold`, with their plugins and libraries carried into the scaffold; a declaration a strategy cannot host is refused by name instead of dropped. **Missing:** restoration across process death, under every strategy — nothing is restored today, and `Navigation3`'s KDoc says so. |
+| 16 — `.lutterplugin` container | done | The manifest model with its build↔payload validation, `:tools:plugin-container`, `contributors`/`install` with duplicate-`id` and `dependsOn` refusals, `plugin.missing`/`plugin.version_mismatch`, a fixture plugin through the CLI's own `--plugin` path, and the `lutter-plugin` Gradle plugin. **Missing by decision:** a `.dex` payload (no D8/R8 here), so `android-only` and `full` are declared and refused. |
+| 17 — Visual editor | done | `:app:editor` over `DocumentController`: the three panes, the expression field backed by Phase 13's parser, live preview that keeps the last good render on a refusal, and a session store; `androidApp/` and `desktopApp/` as entry points that depend on it and nothing reverses the dependency; both hosts save through one shared rule and survive a rotation. See `docs/editor.md`. |
+
+Phases 18 through 21 — data models and record binding, the two resources phases, and adaptive
+layout — have no source behind them yet, and `PLAN.md` §32 is where their scope is written.
 
 | Module | What is actually in it |
 |---|---|
@@ -246,31 +257,33 @@ has decided not to do, and what it has decided to do and has not built yet.
 
 | | |
 |---|---|
-| **Not an IDE** | No code editor, debugger, terminal, LSP or project explorer. |
-| **No visual editor** | None in this plan, only the editing API a future one will consume (§25). It is Phase 17, in this repository (D28). |
+| **Not an IDE** | No code editor, debugger, terminal, LSP or project explorer. The editor edits documents, not Kotlin: it authors one and shows it rendering (§3). |
 | **No arbitrary code execution** | No embedded Kotlin, no general-purpose scripting. Expressions are a small, typed language with a closed operator set (§10), and custom logic goes through declared host functions. |
 | **No round trip** | The engine never parses generated Kotlin back into a document. Generated code is a one-way artifact (ADR-011), so hand edits to a generated file are lost on the next regeneration. |
-| **No plugin marketplace** | No dynamic plugin loading in the MVP. Plugins are static contributions composed in code, and third parties recompile the host (ADR-010). |
+| **No plugin marketplace** | No discovery, no registry, no version resolution: a plugin is a file you hand to `--plugin`, and the host loads it (Phase 16, ADR-018). Nothing finds one for you, and nothing guards against two plugins claiming the same component. |
 | **No FlutterFlow parity** | No backend integrations, no auth, no database designer, no asset pipeline. |
 | **No complete Compose coverage** | The MVP ships a deliberately small component set that proves every mechanism, not a component library. |
-| **No project scaffolding** | No generated `settings.gradle.kts`, no project templates. Designed, then postponed to post-MVP (Phase 14). |
 | **No collaborative editing** | No OT in the MVP. The patch design keeps the door open (§26, ADR-013). |
 
-And from the MVP scope itself (§31.3), explicitly postponed: `LazyColumn` iteration scopes,
-persistent and external state, two-way binding sugar, component-level events and overrides,
-`componentDefaults` in themes, Navigation Compose and Navigation 3 strategies, CBOR,
-incremental analysis, an expression *text* parser, image and font resources, localization
-beyond plain string resources, iOS/Wasm *runtime* support, and collaboration.
+And from the MVP scope itself (§31.3), postponed at the time and — most of it — delivered since:
+`LazyColumn` iteration scopes and the wave-2 and wave-3 components (Phases 11 and 12),
+`componentDefaults` (12), incremental analysis and the expression *text* parser (13), image
+resources (11), and the Navigation Compose, Navigation 3, view-model, persistent and external
+state strategies (15). Still postponed: two-way binding sugar, component-level events and
+overrides, `Font` and `File` resources, CBOR, localization beyond plain string resources,
+iOS/Wasm *runtime* support, and collaboration.
 
 ### Not built yet
 
-The model, the schema, the codec, the analyzer and both backends are all here; what is left
-is named per phase in [Where each phase actually stands](#where-each-phase-actually-stands).
-The short version: `:engine:editing` is a shell, Phase 8's theme resolution and component
-instancing are records without a renderer or a generator, `validate` / `diff` / `migrate`
-are usage text, and there is one committed golden document where §36.2 wants twenty-five
-codegen fixtures. The phase plan is in PLAN §32: Phase 0 through Phase 10 plus a post-MVP
-roadmap.
+The model, the schema, the codec, the analyzer, both backends, the editing API and an editor
+over it are all here; what is left is named per phase in
+[Where each phase actually stands](#where-each-phase-actually-stands). The short version:
+Phase 8's component instancing and theme token lookup are records without a renderer or a
+generator, so a declared component still cannot be placed on a screen; `validate`, `diff` and
+`migrate` are not commands, because the usage text is rendered from the command list and a
+name that is not in it is not advertised; `Font` and `File` resources are validated and
+unimplemented; nothing restores state across process death; and Phases 18 through 21 have no
+source behind them. The phase plan is in PLAN §32, including the phases after 17.
 
 Two specific gaps in the guardrails themselves, since a guardrail you assume exists is
 worse than one you know is missing:
