@@ -98,9 +98,30 @@ just added.
 
 ### Canvas
 
-`CanvasPane` draws what the preview resolved and calls `session.select(...)` on a click. The
-preview is the runtime's own `UiApp` — the same renderer the shipped applications use — so
-what the canvas shows and what a built app shows cannot drift apart.
+`CanvasPane` draws what the preview resolved. The preview is the runtime's own `UiApp` — the
+same renderer the shipped applications use — so what the canvas shows and what a built app
+shows cannot drift apart.
+
+**The canvas is in edit mode, not in run mode.** A transparent overlay sits above the preview
+and owns every pointer, so tapping a `m3.Button` on the canvas *selects* it instead of pressing
+it. That is the split the Android Studio layout editor makes too, and the alternative — a preview
+that runs the app you are editing — is how an author loses the ability to reach the node they
+just dropped.
+
+**Selection is visible.** A click selects the deepest node under the pointer, and the selected
+node gets a ring drawn from its measured box.
+
+**A node can be moved.** A long press picks the node up and a drop on a container that admits its
+type calls `EditorSession.move`; the container under the finger is outlined while the drag is
+over it. The list of legal homes is `session.dropTargets(type)` — the engine's own answer, asked
+once at the start of the drag — so a drag can only end where the planner would have allowed the
+move. A node's own subtree is never offered, because a move into it would cut the branch out from
+under the node being moved.
+
+Positions on the canvas are *measured*, not stored: a document is a layout and its nodes have no
+`x`/`y`. `RenderHooks.onNodeMeasured` reports each node's box from `:engine:runtime`, and
+`NodeBounds` keeps those boxes for the overlay. Free positioning therefore is not a missing
+feature but a different document format, and nothing in the editor pretends otherwise.
 
 ### Inspector
 

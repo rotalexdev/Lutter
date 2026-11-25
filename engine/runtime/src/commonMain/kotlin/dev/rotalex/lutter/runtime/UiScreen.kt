@@ -7,6 +7,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.TextUnit
@@ -404,6 +406,22 @@ internal class DefaultRenderScope(
         for (entry in node.modifiers) {
             val applier = runtime.modifiers[entry.type] ?: continue
             current = applier.apply(current, entry.args, ScopeBag(node.scopes, handle))
+        }
+        // The editor's one measurement hook, and the reason it is appended here rather than by
+        // wrapping the renderer's output: `Modifier.weight` on a slot child is parent data a `Row`
+        // reads from its own child, so an extra `Box` between the two would silently drop it and
+        // move the preview's layout. Appending to the node's own chain measures the node's own box
+        // and leaves the tree alone.
+        //
+        // Guarded by identity: `RenderHooks.None` is a no-op, and a host that supplies no hooks
+        // must get back the exact `Modifier` it would have got before — `RenderScopeTest` asserts
+        // that identity, and it is the contract that keeps the preview byte-identical when a hook
+        // is absent.
+        val hooks = environment.hooks
+        if (hooks !== RenderHooks.None) {
+            current = current.onGloballyPositioned { coordinates ->
+                hooks.onNodeMeasured(node.id, coordinates.boundsInRoot())
+            }
         }
         return current
     }
