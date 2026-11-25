@@ -35,6 +35,16 @@ internal data class CodeView(
 
     /** What the generator reported alongside. Empty on a clean document. */
     val diagnostics: List<Diagnostic>,
+
+    /**
+     * The generator threw, and this is what it said.
+     *
+     * A throw is not a refusal: refusals arrive as [diagnostics] with a location, and this is the
+     * generator's own bug. It is carried rather than propagated because the caller is a screen —
+     * a document that trips a bug in a pure function must cost the author a message, not the
+     * composition they were in the middle of.
+     */
+    val failure: String? = null,
 ) {
 
     /**
@@ -45,6 +55,9 @@ internal data class CodeView(
      * together rather than as a sealed pair with an arm the caller cannot construct.
      */
     val isEmpty: Boolean get() = files.isEmpty()
+
+    /** Whether there is nothing to read *and* no explanation to read instead. */
+    val isSilent: Boolean get() = files.isEmpty() && diagnostics.isEmpty() && failure == null
 }
 
 /**
@@ -59,6 +72,17 @@ internal fun generatedCode(
     resolved: ResolvedDocument,
     packageName: String,
 ): CodeView {
-    val result = KotlinGenerator(schema, CodegenOptions(packageName)).generate(resolved)
-    return CodeView(result.files.files, result.diagnostics)
+    return try {
+        val result = KotlinGenerator(schema, CodegenOptions(packageName)).generate(resolved)
+        CodeView(result.files.files, result.diagnostics)
+    } catch (failure: IllegalStateException) {
+        // `CodegenBug` and `CodegenCoverage.check` both throw `IllegalStateException`, and both are
+        // the generator's defect rather than the document's. Catching it here is the difference
+        // between a screen that says "the generator failed" and an app that closes on a tap.
+        CodeView(
+            files = emptyList(),
+            diagnostics = emptyList(),
+            failure = failure.message ?: "the generator threw ${failure::class.simpleName}",
+        )
+    }
 }

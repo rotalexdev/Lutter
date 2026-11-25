@@ -86,15 +86,25 @@ public fun CodeScreen(
                     generatedCode(session.schema, current.resolved, packageName)
                 }
                 Text(
-                    text = if (view.isEmpty) {
-                        "Nothing was generated · package $packageName"
-                    } else {
-                        "${view.files.size} files · package $packageName · read-only"
+                    text = when {
+                        view.failure != null -> "The generator failed · package $packageName"
+                        view.isEmpty -> "Nothing was generated · package $packageName"
+                        else -> "${view.files.size} files · package $packageName · read-only"
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = theme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
                 )
+                // Said plainly, because the alternative is an author who believes they broke
+                // something. A throw here is the generator's bug, not a problem with the document.
+                view.failure?.let { reason ->
+                    Text(
+                        text = "This is a bug in the generator, not in your document: $reason",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = theme.error,
+                        modifier = Modifier.padding(bottom = 8.dp).testTag("code-failure"),
+                    )
+                }
                 if (view.diagnostics.isNotEmpty()) {
                     Text(
                         text = view.diagnostics.joinToString("\n") { "${it.code.value}: ${it.message}" },
@@ -103,13 +113,13 @@ public fun CodeScreen(
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
                 }
-                if (view.isEmpty) {
+                if (view.isEmpty && view.failure == null) {
                     Text(
                         text = "The generator refused this document and said why above.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = theme.onSurfaceVariant,
                     )
-                } else {
+                } else if (!view.isEmpty) {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize().testTag("code"),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
