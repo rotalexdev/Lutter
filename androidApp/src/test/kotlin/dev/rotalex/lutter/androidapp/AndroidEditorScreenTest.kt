@@ -31,6 +31,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.LooperMode
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -139,7 +140,7 @@ class AndroidEditorScreenTest {
         compose.onNodeWithText("Delete").performClick()
         compose.waitForIdle()
 
-        assertEquals(null, session.document.nodes[node])
+        assertNull(session.document.nodes[node])
         // Removal reconciles the selection, so the dock goes with the node it was acting on.
         compose.onNodeWithTag("selection-actions").assertDoesNotExist()
     }
