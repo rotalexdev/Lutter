@@ -1,19 +1,24 @@
 package dev.rotalex.lutter.editor.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,7 +26,9 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import dev.rotalex.lutter.editor.EditorPreview
@@ -82,17 +89,53 @@ public fun PalettePane(
     onInsert: (PaletteEntry) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    LazyColumn(modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    val theme = MaterialTheme.colorScheme
+    LazyColumn(
+        modifier
+            .background(theme.surface)
+            .padding(horizontal = 8.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        item(key = "hint") {
+            Text(
+                text = "Tap a component to add it",
+                style = MaterialTheme.typography.labelMedium,
+                color = theme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            )
+        }
         sections.forEach { section ->
-            item(key = section.category.name) {
-                Text(section.category.name, style = MaterialTheme.typography.titleSmall)
+            item(key = "section:${section.category.name}") {
+                Text(
+                    text = section.category.name,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = theme.primary,
+                    modifier = Modifier.padding(start = 8.dp, top = 10.dp, bottom = 4.dp),
+                )
             }
             items(section.entries, key = { it.type.value }) { entry ->
-                TextButton(
-                    onClick = { onInsert(entry) },
-                    modifier = Modifier.fillMaxWidth().testTag("palette:${entry.type.value}"),
+                // Left-aligned and two-column: a centred `TextButton` reads as a menu, and the
+                // type on the right is the one piece of information that tells `m3.Text` from
+                // `m3.TextField` in a list of forty near-identical names.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onInsert(entry) }
+                        .padding(horizontal = 8.dp, vertical = 8.dp)
+                        .testTag("palette:${entry.type.value}"),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(entry.displayName)
+                    Text(
+                        text = entry.displayName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        text = entry.type.value,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = theme.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -104,6 +147,13 @@ public fun PalettePane(
  *
  * `UiApp` is keyed on the document: a new document means a new page stack and a new page store,
  * which is the argument the desktop sample's `PreviewContent` makes at length.
+ *
+ * ### The page is a sheet on a desk
+ *
+ * The document renders inside a card on a tinted backdrop. That is not decoration: without it a
+ * page with nothing on it is a blank lavender rectangle the same colour as the chrome around it,
+ * and the reasonable reading of a blank rectangle is that the app broke. A white sheet with edges
+ * on a grey desk is a page with nothing on it, which is what it is.
  */
 @Composable
 public fun CanvasPane(
@@ -111,24 +161,49 @@ public fun CanvasPane(
     state: PreviewState,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier) {
+    val theme = MaterialTheme.colorScheme
+    Column(modifier.background(theme.surfaceVariant).padding(12.dp)) {
         when (state) {
-            PreviewState.Empty -> Text("Nothing resolved yet.", Modifier.padding(12.dp))
-            is PreviewState.Refused -> Text(
+            PreviewState.Empty -> PaneMessage("Nothing resolved yet.", isError = false)
+            is PreviewState.Refused -> PaneMessage(
                 text = state.reason
                     ?: state.diagnostics.joinToString("\n") { "${it.code.value}: ${it.message}" },
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(12.dp),
+                isError = true,
             )
             is PreviewState.Rendered -> {
                 val document: UiDocument = state.document
-                val navigator = remember(document) { BackStackNavigator(document.app.startPage) }
-                key(document) {
-                    UiApp(runtime, state.resolved, RuntimeEnvironment(navigator = navigator))
+                if (document.nodes.size == 0) {
+                    PaneMessage(
+                        text = "This page has nothing on it yet — tap a component in the palette.",
+                        isError = false,
+                    )
+                } else {
+                    val navigator = remember(document) { BackStackNavigator(document.app.startPage) }
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = theme.surface,
+                        shape = RoundedCornerShape(12.dp),
+                        shadowElevation = 1.dp,
+                    ) {
+                        key(document) {
+                            UiApp(runtime, state.resolved, RuntimeEnvironment(navigator = navigator))
+                        }
+                    }
                 }
             }
         }
     }
+}
+
+/** A line in the canvas when there is nothing to draw: what is missing, and in what colour. */
+@Composable
+private fun PaneMessage(text: String, isError: Boolean) {
+    Text(
+        text = text,
+        color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.padding(16.dp),
+    )
 }
 
 /**
@@ -143,17 +218,26 @@ public fun InspectorPane(
     selection: EditorSelection,
     modifier: Modifier = Modifier,
 ) {
+    val theme = MaterialTheme.colorScheme
     val model: InspectorModel? = remember(selection, session.document) { session.inspector() }
     if (model == null) {
-        Text("Select a node to inspect it.", modifier.padding(12.dp))
+        Text(
+            text = "Select a node to inspect it.",
+            color = theme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = modifier.background(theme.surface).padding(12.dp),
+        )
         return
     }
     Column(
-        modifier.padding(8.dp).verticalScroll(rememberScrollState()),
+        modifier
+            .background(theme.surface)
+            .padding(12.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(model.displayName, style = MaterialTheme.typography.titleMedium)
-        Text(model.type.value, style = MaterialTheme.typography.bodySmall)
+        Text(model.type.value, style = MaterialTheme.typography.labelSmall, color = theme.onSurfaceVariant)
         model.properties.forEach { row ->
             var text by remember(row.key, row.text) { mutableStateOf(row.text) }
             OutlinedTextField(

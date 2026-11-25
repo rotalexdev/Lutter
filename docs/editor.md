@@ -189,6 +189,10 @@ Turning the phone **recreates the activity**, and that is now harmless: the acti
 workspace on every creation, so a rotation lands on the document as it was last written, selection
 included. Before this host saved, a rotation silently discarded every edit.
 
+The window is drawn **edge to edge** — at `targetSdk` 37 the system enforces it — and the content,
+not the window, is inset from the system bars. Before that the palette's first row rendered under
+the clock and the status line sat under the gesture handle.
+
 ### What every write promises
 
 Desktop writes go to a sibling temporary file moved into place with `ATOMIC_MOVE`, so a process
@@ -198,8 +202,10 @@ cannot use `java.nio.file` on every supported API level, so `AtomicFileStorage` 
 
 A document that does not parse is **kept** as `<name>.corrupt` and the seed opens instead, with
 the reason in the status bar; throwing it away would discard the only copy of somebody's work. The
-line under the panes always says which of those happened and where the bytes are; "NOT SAVED" with
-the reason is the one message it exists for.
+line under the panes always says which of those happened, and names the file rather than its path:
+`document.json`, not `/data/user/0/dev.rotalex.lutter/files/document.json`. It printed the whole
+location until it was seen on a phone, where a private path nobody can open took the bottom two
+lines of the window. "NOT SAVED" with the reason is the one message it exists for.
 
 `EditorSessionRecord` carries the selection and not the undo stack (§26.3), so reopening restores
 what was being looked at and starts a fresh history.
