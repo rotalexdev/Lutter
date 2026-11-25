@@ -66,8 +66,8 @@ installers are nightlies rather than releases.
 | | |
 |---|---|
 | Merged | Phase 0 in full (build logic, 15 modules, the architecture guardrails, CI). Phase 1, the domain model in full — the `Value` union, `TypeRef`, the `Expr` AST, `Node`, the document records, `NodeTable`, `DocumentIndex`, `ReferenceIndex` and the DSL all exist in `engine/model/src/commonMain/`. Phase 2, the schema registries. Phase 3, canonical JSON and the envelope. Phase 4, the analyzer and both backends. Phases 5, 6 and 7, components, expressions and state, events and navigation. Phase 9, the editing API. Phases 11, 12 and 13, the component waves, `componentDefaults`, incremental analysis and the expression text view. Phases 14 and 15, project scaffolding and the navigation, state and injection strategies. Phase 16, the `.lutterplugin` container. Phase 17, the visual editor in `:app:editor` with its Android and desktop entry points. |
-| Version | `0.1.0-SNAPSHOT`, group `dev.rotalex.lutter`, Gradle root project `forge-engine`. Never published — no publishing plugin is applied. |
-| Releases | None. |
+| Version | `0.1.0-SNAPSHOT`, group `dev.rotalex.lutter`, Gradle root project `forge-engine`. The engine is never published — no publishing plugin is applied and there is nothing to depend on from a repository. |
+| Releases | No releases. One rolling pre-release, `nightly`, carrying the editor's `.msi`, `.deb` and debug-signed `.apk` for the latest commit on `main`; its version names the commit count (`0.1.0-alpha.555`) and nothing about the engine's stability. |
 | Documentation | This file, `PLAN.md`, and `docs/`: `what-is-lutter.md`, `format-spec.md`, `getting-started.md`, `cli.md`, `plugin-guide.md`, `plugin-publishing.md`, `editor.md`, `ARCHITECTURE_REFINEMENTS.md`. The table below and `PLAN.md`'s per-phase **Delivered** lines say the same thing; where they disagree, the code wins and both are wrong. |
 
 ### Where each phase actually stands
