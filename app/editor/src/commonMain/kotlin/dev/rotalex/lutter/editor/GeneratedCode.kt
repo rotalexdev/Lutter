@@ -79,6 +79,10 @@ internal fun generatedCode(
         // `CodegenBug` and `CodegenCoverage.check` both throw `IllegalStateException`, and both are
         // the generator's defect rather than the document's. Catching it here is the difference
         // between a screen that says "the generator failed" and an app that closes on a tap.
-        CodeView(failure = failure.message ?: "the generator threw ${failure::class.simpleName}")
+        CodeView(
+            files = emptyList(),
+            diagnostics = emptyList(),
+            failure = failure.message ?: "the generator threw ${failure::class.simpleName}",
+        )
     }
 }
