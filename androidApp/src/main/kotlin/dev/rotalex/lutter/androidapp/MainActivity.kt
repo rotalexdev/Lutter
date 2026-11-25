@@ -301,6 +301,7 @@ public fun AndroidEditorScreen(
         )
         HorizontalDivider()
         CanvasPane(
+            session = session,
             runtime = runtime,
             state = rendered,
             modifier = Modifier.fillMaxWidth().weight(1f).testTag("canvas"),

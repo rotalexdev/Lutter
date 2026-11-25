@@ -2,15 +2,17 @@ package dev.rotalex.lutter.androidapp
 
 import android.os.Looper
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
-import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.editor.EditorPreview
 import dev.rotalex.lutter.editor.EditorSelection
@@ -119,6 +121,26 @@ class AndroidEditorScreenTest {
      * arrives through the asset pipeline would make a packaging change look like a layout bug.
      * The document is the same one `fixtures-navigating/button_navigate.json` holds.
      */
+    @Test
+    fun a_click_on_the_preview_selects_the_node_under_the_finger() {
+        val session = session()
+        // Start from nothing selected, so the assertion is about the click rather than about what
+        // `open` restored.
+        session.select(EditorSelection.None)
+        compose.setContent {
+            MaterialTheme { AndroidEditorScreen(session, preview(session), BuiltinEngine.runtime(schema)) }
+        }
+
+        // The overlay sits above the preview and owns the pointer, so this click selects the text
+        // instead of doing nothing to it. Clicking the node's own centre is the honest gesture: a
+        // fixed offset would be a statement about the fixture's padding, not about the hit test.
+        compose.onNode(hasText("Welcome")).performTouchInput { click(center) }
+
+        compose.waitForIdle()
+        assertEquals(EditorSelection.Node(NodeId("n_title")), session.selection.value)
+        compose.onNodeWithTag("canvas-selection").assertExists()
+    }
+
     private fun session(): EditorSession {
         val document = JsonDocumentCodec.decode(DOCUMENT.encodeToByteArray()).document
         return EditorSession.open(document, schema)
