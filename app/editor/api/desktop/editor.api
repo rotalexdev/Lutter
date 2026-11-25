@@ -61,9 +61,11 @@ public final class dev/rotalex/lutter/editor/EditorSession {
 	public final fun inspector ()Ldev/rotalex/lutter/editor/InspectorModel;
 	public final fun move-owchrTU (Ljava/lang/String;Ldev/rotalex/lutter/editing/policy/DropTarget;)Ldev/rotalex/lutter/editing/command/CommandResult;
 	public final fun palette ()Ljava/util/List;
+	public final fun redo ()Z
 	public final fun remove-D9n_bC4 (Ljava/lang/String;)Ldev/rotalex/lutter/editing/command/CommandResult;
 	public final fun select (Ldev/rotalex/lutter/editor/EditorSelection;)V
 	public final fun setProperty-P1mFJUc (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/editor/PropertyWrite;
+	public final fun undo ()Z
 }
 
 public final class dev/rotalex/lutter/editor/EditorSession$Companion {
@@ -497,6 +499,17 @@ public final class dev/rotalex/lutter/editor/ui/EditorPanesKt {
 	public static final fun FollowPreview (Ldev/rotalex/lutter/editor/EditorPreview;Landroidx/compose/runtime/Composer;I)V
 	public static final fun InspectorPane (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/editor/EditorSelection;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 	public static final fun PalettePane (Ljava/util/List;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class dev/rotalex/lutter/editor/ui/EditorShellKt {
+	public static final fun EditorShell (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/editor/EditorPreview;Ldev/rotalex/lutter/runtime/UiRuntime;Ldev/rotalex/lutter/editor/ui/EditorShellSave;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class dev/rotalex/lutter/editor/ui/EditorShellSave {
+	public fun <init> (Ldev/rotalex/lutter/editor/WorkspaceSaver;Ljava/lang/String;Ljava/lang/String;)V
+	public final fun getLocation ()Ljava/lang/String;
+	public final fun getNotice ()Ljava/lang/String;
+	public final fun getSaver ()Ldev/rotalex/lutter/editor/WorkspaceSaver;
 }
 
 public final class dev/rotalex/lutter/editor/ui/theme/LutterSpacing {

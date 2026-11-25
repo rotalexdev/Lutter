@@ -5,51 +5,31 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
-import dev.rotalex.lutter.editor.Autosave
-import dev.rotalex.lutter.editor.ui.CodeScreen
-import dev.rotalex.lutter.editor.ui.EditorDestination
 import dev.rotalex.lutter.editor.EditorPreview
 import dev.rotalex.lutter.editor.EditorSession
 import dev.rotalex.lutter.editor.EditorSessionRecord
 import dev.rotalex.lutter.editor.EditorWorkspace
 import dev.rotalex.lutter.editor.Opened
-import dev.rotalex.lutter.editor.PreviewState
-import dev.rotalex.lutter.editor.SaveStatusBar
 import dev.rotalex.lutter.editor.WorkspaceSaver
 import dev.rotalex.lutter.editor.open
-import dev.rotalex.lutter.editor.ui.CanvasPane
-import dev.rotalex.lutter.editor.ui.FollowPreview
-import dev.rotalex.lutter.editor.ui.InspectorPane
-import dev.rotalex.lutter.editor.ui.PalettePane
+import dev.rotalex.lutter.editor.ui.EditorShell
+import dev.rotalex.lutter.editor.ui.EditorShellSave
 import dev.rotalex.lutter.editor.ui.theme.LutterTheme
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.runtime.UiRuntime
@@ -63,13 +43,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * The Android entry point (PLAN §32 Phase 17 P6): the same three panes as the desktop host, in a
- * narrow column instead of a row.
+ * The Android entry point (PLAN §32 Phase 17 P6): a window around the shared editor frame.
  *
- * The panes come from `:app:editor` — one implementation, two arrangements — and so does the
- * saving: [EditorWorkspace] decides where the bytes go and [Autosave] decides when, both shared
- * with the desktop window. What this activity owns is the frame, the document's private
- * directory, and the session's lifetime.
+ * The frame itself — app bar, the two screens as tabs, the palette and the inspector as sheets
+ * at this width — is `EditorShell` in `:app:editor`, the same composable the desktop window
+ * draws. What this activity owns is the document's private directory, the session's lifetime,
+ * and the insets; the arrangement is not a second implementation to keep in step.
  *
  * ### Turning the phone is a reopen, and that is the saving working
  *
@@ -85,7 +64,7 @@ public class MainActivity : ComponentActivity() {
         // The window is drawn edge to edge at every SDK this app targets, so the app owns the
         // insets: the palette used to render *under* the status bar, which is why its first
         // line arrived mixed with the clock, and the status bar at the bottom sat under the
-        // gesture handle.
+        // gesture handle. `EditorShell` applies them; the surface behind it reaches the edge.
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val schema = BuiltinEngine.schema()
@@ -98,8 +77,6 @@ public class MainActivity : ComponentActivity() {
 
         setContent {
             LutterTheme {
-                // The surface fills the window (so the bars are tinted, not white); the scaffold
-                // inside it owns the insets.
                 Surface(Modifier.fillMaxSize()) {
                     EditorHost(
                         runtime = runtime,
@@ -135,7 +112,7 @@ public class MainActivity : ComponentActivity() {
 }
 
 /**
- * The activity's content: the workspace as it is on disk, the session over it, and the autosave.
+ * The activity's content: the workspace as it is on disk, the session over it, and the frame.
  *
  * A composable rather than fields on the activity because a configuration change must not find a
  * half-built editor: the state it reads is [Opened], and until that exists the screen says so
@@ -206,111 +183,21 @@ private fun EditorHost(
             SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
         }
     }
-
-    var destination: EditorDestination by rememberSaveable { mutableStateOf(EditorDestination.Editor) }
-
-    EditorScaffold(
-        destination = destination,
-        onDestination = { destination = it },
-    ) { contentModifier ->
-        Column(contentModifier.fillMaxSize()) {
-            Autosave(session = session, saver = saver)
-            // One screen at a time, and the save line under both: a person looking at the
-            // generated code still needs to know whether their edits are on disk.
-            Box(Modifier.fillMaxWidth().weight(1f)) {
-                when (destination) {
-                    EditorDestination.Editor -> AndroidEditorScreen(
-                        session = session,
-                        preview = preview,
-                        runtime = runtime,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                    EditorDestination.Code -> CodeScreen(
-                        session = session,
-                        preview = preview,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
-            }
-            SaveStatusBar(
-                location = current.workspace.documentLocation,
-                state = saver.state,
-                notice = current.notice,
-            )
-        }
-    }
-}
-
-/**
- * The window's frame: a title, the two screens as tabs, and the content inset from the bars.
- *
- * The scaffold owns the insets rather than the content, because the top bar has to sit *below*
- * the status bar while the surface behind it still reaches the edge of the screen. `WindowInsets(0)`
- * on the content is what keeps them from being applied twice.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun EditorScaffold(
-    destination: EditorDestination,
-    onDestination: (EditorDestination) -> Unit,
-    content: @Composable (Modifier) -> Unit,
-) {
-    Scaffold(
-        modifier = Modifier.fillMaxSize().safeDrawingPadding(),
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            Column {
-                TopAppBar(title = { Text("Lutter") })
-                TabRow(selectedTabIndex = EditorDestination.entries.indexOf(destination)) {
-                    EditorDestination.entries.forEach { tab ->
-                        Tab(
-                            selected = destination == tab,
-                            onClick = { onDestination(tab) },
-                            text = { Text(tab.label) },
-                        )
-                    }
-                }
-            }
-        },
-    ) { padding ->
-        content(Modifier.fillMaxSize().padding(padding))
-    }
-}
-
-/** The narrow arrangement: palette, canvas, inspector, stacked. */
-@Composable
-public fun AndroidEditorScreen(
-    session: EditorSession,
-    preview: EditorPreview,
-    runtime: UiRuntime,
-    modifier: Modifier = Modifier,
-) {
-    val rendered: PreviewState by preview.state.collectAsState()
-    val selection by session.selection.collectAsState()
-
-    FollowPreview(preview)
-
-    Column(modifier.fillMaxSize()) {
-        PalettePane(
-            sections = session.palette(),
-            onInsert = { entry ->
-                val target = session.dropTargets(entry.type).firstOrNull()
-                if (target != null) session.insert(entry.type, target)
-            },
-            modifier = Modifier.fillMaxWidth().height(160.dp).testTag("palette"),
-        )
-        HorizontalDivider()
-        CanvasPane(
-            session = session,
-            runtime = runtime,
-            state = rendered,
-            modifier = Modifier.fillMaxWidth().weight(1f).testTag("canvas"),
-        )
-        HorizontalDivider()
-        InspectorPane(
-            session = session,
-            selection = selection,
-            modifier = Modifier.fillMaxWidth().height(200.dp).testTag("inspector"),
+    // Keyed on the workspace it writes to, so a reopened document gets a saver for the new
+    // directory rather than one that keeps answering for the old one.
+    val save: EditorShellSave = remember(current, saver) {
+        EditorShellSave(
+            saver = saver,
+            location = current.workspace.documentLocation,
+            notice = current.notice,
         )
     }
+
+    EditorShell(
+        session = session,
+        preview = preview,
+        runtime = runtime,
+        save = save,
+        modifier = Modifier.fillMaxSize(),
+    )
 }

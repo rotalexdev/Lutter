@@ -73,6 +73,29 @@ and an app-image, `windows-latest` an `.msi` and an app-image. Every leg then ru
 package ("Failed to launch JVM") from a runner with no display — the difference a green build had
 not been able to make.
 
+## The frame
+
+`EditorShell` — in `:app:editor`, drawn by both hosts — owns everything between the window and
+the panes: the app bar with the document's name and what is selected, undo and redo, the two
+screens as tabs, and the save line. Each host now only opens a window, a theme and a session:
+the arrangement is not implemented twice, which is also why the Android activity and the desktop
+window stopped disagreeing about the theme.
+
+**Two arrangements, chosen by width.** Under 600dp — the Material 3 compact boundary — one pane
+gets the window: the canvas, or the generated code, with the palette behind a floating button and
+the inspector behind the selection's `Properties` action, both as `ModalBottomSheet`s. The
+platform's sheet brings its own dismissal, drag handle, back navigation and screen-reader focus
+order; a hand-rolled overlay would have to re-earn all four. At or above 600dp the palette, the
+canvas and the inspector sit side by side in one row, which is the desktop window's arrangement.
+
+**A selection has three actions.** On a narrow screen they dock above the save line, where the
+thumb already is: `Properties` opens the inspector sheet, `Duplicate` copies the subtree, and
+`Delete` removes it — with `Undo` in the app bar, one tap away, because a delete that can be
+taken back does not need a confirmation. Undo and redo go through `EditorSession.undo`/`redo`
+rather than the controller, so the selection is reconciled with them: stepping back over an
+insert leaves nothing selected, instead of leaving an inspector open on a node that no longer
+exists.
+
 ## The three panes
 
 ### Palette
@@ -109,7 +132,8 @@ that runs the app you are editing — is how an author loses the ability to reac
 just dropped.
 
 **Selection is visible.** A click selects the deepest node under the pointer, and the selected
-node gets a ring drawn from its measured box.
+node gets a ring drawn from its measured box. A click on the margin clears the selection, the way
+every layout editor does it.
 
 **A node can be moved.** A long press picks the node up and a drop on a container that admits its
 type calls `EditorSession.move`; the container under the finger is outlined while the drag is

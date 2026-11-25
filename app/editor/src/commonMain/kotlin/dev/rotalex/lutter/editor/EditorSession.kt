@@ -186,6 +186,27 @@ public class EditorSession(
     public fun remove(node: NodeId): CommandResult = dispatch(Command.RemoveNode(node))
 
     /**
+     * One step back through the history, with the selection reconciled.
+     *
+     * The controller owns the stack, but reconciliation is the session's: undoing an insert
+     * leaves the selection pointing at a node that no longer exists, and a shell that called
+     * the controller directly would show an inspector for a ghost. `false` means there was
+     * nothing to undo, which is how the frame decides whether the action is available.
+     */
+    public fun undo(): Boolean {
+        val undone: Boolean = controller.undo()
+        reconcile()
+        return undone
+    }
+
+    /** One step forward again, on the same terms as [undo]. */
+    public fun redo(): Boolean {
+        val redone: Boolean = controller.redo()
+        reconcile()
+        return redone
+    }
+
+    /**
      * One command, planned and applied by the controller, with the selection reconciled.
      *
      * A refused command changes nothing, and the selection is reconciled either way: a
