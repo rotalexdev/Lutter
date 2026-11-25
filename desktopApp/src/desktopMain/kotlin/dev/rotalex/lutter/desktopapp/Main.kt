@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -23,6 +22,7 @@ import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.editor.Autosave
 import dev.rotalex.lutter.editor.EditorPreview
 import dev.rotalex.lutter.editor.EditorSession
+import dev.rotalex.lutter.editor.ui.theme.LutterTheme
 import dev.rotalex.lutter.editor.EditorSessionRecord
 import dev.rotalex.lutter.editor.EditorWorkspace
 import dev.rotalex.lutter.editor.Opened
@@ -159,7 +159,7 @@ public fun main(args: Array<String>): Unit = application {
         title = "Lutter Editor — ${File(location).name}",
         state = rememberWindowState(size = DpSize(1_280.dp, 800.dp)),
     ) {
-        MaterialTheme {
+        LutterTheme {
             Surface {
                 var destination: EditorDestination by remember { mutableStateOf(EditorDestination.Editor) }
                 Column(modifier = Modifier.fillMaxSize()) {

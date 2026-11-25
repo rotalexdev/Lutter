@@ -1,13 +1,19 @@
 package dev.rotalex.lutter.editor.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -21,6 +27,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -29,10 +36,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
+import dev.rotalex.lutter.editing.policy.DropTarget
 import dev.rotalex.lutter.editor.EditorPreview
 import dev.rotalex.lutter.editor.EditorSelection
 import dev.rotalex.lutter.editor.EditorSession
@@ -45,11 +63,13 @@ import dev.rotalex.lutter.editor.PropertyRow
 import dev.rotalex.lutter.editor.PropertyText
 import dev.rotalex.lutter.editor.PropertyWrite
 import dev.rotalex.lutter.model.doc.UiDocument
+import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.runtime.BackStackNavigator
 import dev.rotalex.lutter.runtime.RuntimeEnvironment
 import dev.rotalex.lutter.runtime.UiApp
 import dev.rotalex.lutter.runtime.UiRuntime
+import kotlin.math.roundToInt
 
 /**
  * The three panes (PLAN §32 Phase 17 P5, P6): what may be added, what it looks like, what it
@@ -69,14 +89,17 @@ import dev.rotalex.lutter.runtime.UiRuntime
  * [EditorSession.palette], the inspector asks [EditorSession.inspector], and the canvas draws
  * [PreviewState.Rendered] — the session's document lowered, not a second reading of it.
  *
- * ### Insertion without drag
+ * ### Two ways in, one command
  *
  * A palette click asks [EditorSession.dropTargets] for the first place the type fits and inserts
- * there. Dragging is the better gesture and the one this pane will grow; the click is what makes
- * the pane usable and testable today, and it goes through the same `dispatch` either way.
+ * there; a long press on a node and a drop on a container asks the same question and calls
+ * [EditorSession.move]. The click is what makes the pane usable and testable without a gesture,
+ * and the drag is what makes it an editor. Both go through `dispatch`, so an illegal drop is
+ * refused by the planner rather than by the gesture.
  *
  * Each pane carries a `testTag` so a host's UI test can find it: `palette`, `canvas`,
- * `inspector`, `palette:<type>`, `inspector:<key>`.
+ * `inspector`, `palette:<type>`, `inspector:<key>`. The canvas adds `canvas-surface` (the overlay
+ * that owns pointers), `canvas-selection` and `canvas-drop-target` (the two outlines).
  */
 
 /**
@@ -177,6 +200,7 @@ public fun PalettePane(
  */
 @Composable
 public fun CanvasPane(
+    session: EditorSession,
     runtime: UiRuntime,
     state: PreviewState,
     modifier: Modifier = Modifier,
@@ -199,20 +223,193 @@ public fun CanvasPane(
                     )
                 } else {
                     val navigator = remember(document) { BackStackNavigator(document.app.startPage) }
+                    // One recorder per document: its boxes describe *this* tree, and a map kept
+                    // across documents would draw the new page's selection ring where the old
+                    // page's node used to be.
+                    val bounds = remember(document) { NodeBounds() }
+                    val environment = remember(document, navigator, bounds) {
+                        RuntimeEnvironment(navigator = navigator, hooks = bounds)
+                    }
                     Surface(
                         modifier = Modifier.fillMaxSize(),
                         color = theme.surface,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         shadowElevation = 1.dp,
                     ) {
-                        key(document) {
-                            UiApp(runtime, state.resolved, RuntimeEnvironment(navigator = navigator))
-                        }
+                        EditorCanvas(
+                            session = session,
+                            runtime = runtime,
+                            resolved = state.resolved,
+                            document = document,
+                            environment = environment,
+                            bounds = bounds.measured,
+                        )
                     }
                 }
             }
         }
     }
+}
+
+/**
+ * The page, plus the two things an editor owes it: a selection you can see and a drag that moves.
+ *
+ * ### Why an overlay, and not a clickable on the preview
+ *
+ * `UiApp` is the real renderer, so its `m3.Button` really is a button. In edit mode a tap means
+ * "select this node", not "press it" — a preview that runs the app while you are editing it is
+ * how an author ends up unable to reach the thing they just dropped. The overlay therefore sits
+ * above the preview and owns every pointer, which is the split the Android Studio layout editor
+ * makes too: design mode, and a separate way to run.
+ *
+ * ### Why the coordinates are converted
+ *
+ * [bounds] are in root coordinates (the window), and a gesture position is local to this box.
+ * `originInRoot` is the conversion, captured from the box itself, so a top bar or a palette above
+ * the canvas does not shift every hit by its height.
+ *
+ * ### Why long-press to drag
+ *
+ * A plain drag on a canvas is also how a person scrolls it. `detectDragGesturesAfterLongPress`
+ * makes "pick this up" an explicit act, and leaves the plain drag free for panning later.
+ */
+@Composable
+private fun EditorCanvas(
+    session: EditorSession,
+    runtime: UiRuntime,
+    resolved: ResolvedDocument,
+    document: UiDocument,
+    environment: RuntimeEnvironment,
+    bounds: Map<NodeId, Rect>,
+) {
+    val selection: EditorSelection by session.selection.collectAsState()
+    val theme = MaterialTheme.colorScheme
+    var originInRoot: Offset by remember { mutableStateOf(Offset.Zero) }
+    var drag: Drag by remember(document) { mutableStateOf<Drag>(Drag.None) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .onGloballyPositioned { originInRoot = it.boundsInRoot().topLeft },
+    ) {
+        key(document) {
+            UiApp(runtime, resolved, environment)
+        }
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .testTag("canvas-surface")
+                .pointerInput(document) {
+                    detectTapGestures { position ->
+                        val hit = deepestNodeAt(document, bounds, position + originInRoot)
+                        if (hit != null) session.select(EditorSelection.Node(hit))
+                    }
+                }
+                .pointerInput(document) {
+                    // The list of legal homes is read once per drag, at its start: the document
+                    // cannot change while a finger is down (every edit goes through the overlay
+                    // this gesture owns), and asking the planner every frame would answer the
+                    // same question dozens of times.
+                    var targets: List<DropTarget> = emptyList()
+
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = { position ->
+                            val point = position + originInRoot
+                            val id = deepestNodeAt(document, bounds, point)
+                            val type: ComponentType? = id?.let { document.nodes[it]?.type }
+                            if (id != null && type != null) {
+                                val own = subtreeOf(document, id)
+                                targets = session.dropTargets(type).filterNot { it.parent in own }
+                                drag = Drag.Of(
+                                    node = id,
+                                    target = dropTargetAt(document, bounds, targets, point),
+                                )
+                            }
+                        },
+                        onDrag = { change, _ ->
+                            change.consume()
+                            val current = drag
+                            if (current is Drag.Of) {
+                                drag = current.copy(
+                                    target = dropTargetAt(
+                                        document = document,
+                                        bounds = bounds,
+                                        targets = targets,
+                                        point = change.position + originInRoot,
+                                    ),
+                                )
+                            }
+                        },
+                        onDragEnd = {
+                            val current = drag
+                            if (current is Drag.Of) {
+                                val target = current.target
+                                if (target != null) session.move(current.node, target)
+                            }
+                            drag = Drag.None
+                        },
+                        onDragCancel = { drag = Drag.None },
+                    )
+                },
+        )
+
+        // The drop target first, so the selection ring is drawn on top of it: the node being
+        // moved is usually inside the container it is about to land in.
+        (drag as? Drag.Of)?.target?.let { target ->
+            Outline(
+                box = bounds[target.parent],
+                originInRoot = originInRoot,
+                color = theme.tertiary,
+                fill = theme.tertiary.copy(alpha = 0.10f),
+                tag = "canvas-drop-target",
+            )
+        }
+        val selected: NodeId? = (selection as? EditorSelection.Node)?.id
+        Outline(
+            box = selected?.let { bounds[it] },
+            originInRoot = originInRoot,
+            color = theme.primary,
+            fill = theme.primary.copy(alpha = 0.06f),
+            tag = "canvas-selection",
+        )
+    }
+}
+
+/** What a finger is doing on the canvas. A value, so a drag has no half-set fields. */
+private sealed interface Drag {
+    data object None : Drag
+
+    data class Of(val node: NodeId, val target: DropTarget?) : Drag
+}
+
+/**
+ * One measured box drawn where the node actually is.
+ *
+ * A no-op when [box] is null, which is the honest answer for "not measured yet": a ring drawn at
+ * the origin would be a claim about a node that has not been laid out.
+ */
+@Composable
+private fun Outline(
+    box: Rect?,
+    originInRoot: Offset,
+    color: Color,
+    fill: Color,
+    tag: String,
+) {
+    if (box == null) return
+    val density: Density = LocalDensity.current
+    val local: Rect = box.translate(-originInRoot.x, -originInRoot.y)
+    Box(
+        modifier = Modifier
+            .offset { IntOffset(local.left.roundToInt(), local.top.roundToInt()) }
+            .size(
+                width = with(density) { local.width.toDp() },
+                height = with(density) { local.height.toDp() },
+            )
+            .background(fill)
+            .border(2.dp, color, MaterialTheme.shapes.extraSmall)
+            .testTag(tag),
+    )
 }
 
 /** A line in the canvas when there is nothing to draw: what is missing, and in what colour. */

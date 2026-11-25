@@ -50,6 +50,7 @@ public fun EditorScreen(
         )
         VerticalDivider()
         CanvasPane(
+            session = session,
             runtime = runtime,
             state = rendered,
             modifier = Modifier.weight(1f).fillMaxHeight().testTag("canvas"),

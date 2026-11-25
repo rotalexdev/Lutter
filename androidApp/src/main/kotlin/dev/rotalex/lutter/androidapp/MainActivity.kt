@@ -50,6 +50,7 @@ import dev.rotalex.lutter.editor.ui.CanvasPane
 import dev.rotalex.lutter.editor.ui.FollowPreview
 import dev.rotalex.lutter.editor.ui.InspectorPane
 import dev.rotalex.lutter.editor.ui.PalettePane
+import dev.rotalex.lutter.editor.ui.theme.LutterTheme
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.runtime.UiRuntime
 import dev.rotalex.lutter.serialization.JsonDocumentCodec
@@ -96,7 +97,7 @@ public class MainActivity : ComponentActivity() {
         val recordLocation = File(filesDir, SESSION_FILE).path
 
         setContent {
-            MaterialTheme {
+            LutterTheme {
                 // The surface fills the window (so the bars are tinted, not white); the scaffold
                 // inside it owns the insets.
                 Surface(Modifier.fillMaxSize()) {
@@ -300,6 +301,7 @@ public fun AndroidEditorScreen(
         )
         HorizontalDivider()
         CanvasPane(
+            session = session,
             runtime = runtime,
             state = rendered,
             modifier = Modifier.fillMaxWidth().weight(1f).testTag("canvas"),

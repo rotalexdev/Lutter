@@ -493,9 +493,23 @@ public final class dev/rotalex/lutter/editor/ui/EditorDestination : java/lang/En
 }
 
 public final class dev/rotalex/lutter/editor/ui/EditorPanesKt {
-	public static final fun CanvasPane (Ldev/rotalex/lutter/runtime/UiRuntime;Ldev/rotalex/lutter/editor/PreviewState;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+	public static final fun CanvasPane (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/runtime/UiRuntime;Ldev/rotalex/lutter/editor/PreviewState;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 	public static final fun FollowPreview (Ldev/rotalex/lutter/editor/EditorPreview;Landroidx/compose/runtime/Composer;I)V
 	public static final fun InspectorPane (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/editor/EditorSelection;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 	public static final fun PalettePane (Ljava/util/List;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class dev/rotalex/lutter/editor/ui/theme/LutterSpacing {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/editor/ui/theme/LutterSpacing;
+	public final fun getLg-D9Ej5fM ()F
+	public final fun getMd-D9Ej5fM ()F
+	public final fun getSm-D9Ej5fM ()F
+	public final fun getXl-D9Ej5fM ()F
+	public final fun getXs-D9Ej5fM ()F
+}
+
+public final class dev/rotalex/lutter/editor/ui/theme/LutterThemeKt {
+	public static final fun LutterTheme (ZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 }
 
