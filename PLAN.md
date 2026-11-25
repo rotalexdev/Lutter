@@ -2419,6 +2419,7 @@ The table above is the index; the sections below expand each row into the phase 
 - **Tests:** render/codegen parity per component (the `CoverageTests` pattern); iteration-scope rows in the expression corpus and the fuzz generator's draws; resource fixtures on both runners; `ExtractComponent` command tests.
 - **Acceptance:** conformance wave-2 fixtures green; every new component passes the coverage rows of §36.1; ABI dump updated.
 - **Depends on:** P0–P10.
+- **Delivered (2026-11-12):** wave 2's components — `m3.Checkbox`, `m3.Switch`, `m3.RadioButton`, `m3.Slider`, `m3.ProgressIndicator`, `m3.Divider`, `m3.Icon`, `m3.Image`, `core.LazyColumn`/`LazyRow` and `core.FlowRow`/`FlowColumn` — each with its spec, its renderer, its codegen binding and its coverage row; `IterationSpec` on the model with the typed item variable, emitted as an `items(...)` block and rendered through Compose's own virtualization, which is why `perf.large_column` stays the steer for the plain `Column`; `Image` resources end to end through `ResourceSelector` and a resources strategy in the generated fixtures; the five actions `state.toggle`, `list.append`, `list.remove`, `ui.showDialog` and `ui.showBottomSheet` with interpreter and codegen parity (`ui.showSnackbar` came with them); and editing's `ExtractComponent` planner. Two departures: `Font` and `File` remain modeled and validated with neither a codegen arm nor a provider, so the row's three resource kinds delivered one; and `Icon` renders from the generated `MaterialIconSet` glyph table instead of through a resource kind.
 
 ### Phase 12 — Component wave 3 and `componentDefaults` (M–L)
 - **Objective:** the structural/screen components and theme-level defaults.
@@ -2428,6 +2429,7 @@ The table above is the index; the sections below expand each row into the phase 
 - **Tests:** parity per component; a resolver test per default-vs-explicit case; fuzz draws wave-3 components into screens.
 - **Acceptance:** conformance wave-3 fixtures; coverage rows hold.
 - **Depends on:** P11.
+- **Delivered (2026-11-13):** `m3.Scaffold`, `m3.Surface`, `m3.Dialog`, `m3.BottomSheet`, `core.BoxWithConstraints` and the `m3.NavigationBar`/`NavigationRail`/`NavigationDrawer`/`NavigationItem` set, each with renderer and binding; and `componentDefaults` on `ThemeDecl`, applied in the resolver (`ResolvedProp`) so both backends read the same effective properties, with `ThemeDefaultsResolutionTest` covering the default-versus-explicit collision per case rather than the happy path alone.
 
 ### Phase 13 — Incremental analysis, expression compilation, textual expressions (L)
 - **Objective:** §29's row — incremental re-analysis after a single-property edit in under 10 ms on 10,000 nodes — plus §29.1's two post-MVP mechanisms and §10.8's text view.
@@ -2436,6 +2438,7 @@ The table above is the index; the sections below expand each row into the phase 
 - **Tests:** **full-vs-incremental equality**: for generated documents and random patches, incremental re-analysis yields a `ResolvedDocument` equal to a from-scratch analysis (property test — this is the row's correctness spine); the benchmark's incremental row measured on the 10,000-node harness; parser round-trip property `parse(print(ast)) == ast` and corpus rows re-expressed through the parser; memoization checked against schema-revision bumps (an overlay bump must not serve stale resolutions).
 - **Acceptance:** the §29 incremental row measured and met; conformance and corpus green with compilation enabled.
 - **Depends on:** P12 (per the roadmap's dependency order; the work itself is analysis-internal).
+- **Delivered (2026-11-18):** `ExprParser`/`ExprPrinter` in `:engine:model` — the AST as truth, text as a view — with the round-trip property and the corpus re-expressed through the parser; `TypedExpr` compiled into closures at resolve time behind the interpreter's existing interface, so the compiled and interpreted paths cannot disagree; resolution reuse keyed on `SchemaRevision` with carried subtrees staying reference-identical, which is also what makes a Compose skip possible; the dirty set folded from `DocumentDiff` into the analyzer; and `IncrementalEqualityTest`, comparing an incremental re-analysis against a from-scratch one. The row's "under 10 ms on 10,000 nodes" is measured by the benchmark in `:engine:test-support` rather than asserted in CI: a wall-clock threshold on a shared runner is a flake wearing a measurement's clothes.
 
 ### Phase 14 — `:engine:scaffold` — project scaffolding (M)
 - **Objective:** a generated app's Gradle structure from a `ProjectSpec`, separate from UI codegen (§33's post-MVP row: `ProjectSpec` → `settings.gradle.kts`, `shared/`, `androidApp/`, `desktopApp/`, `libs.versions.toml`).
@@ -2445,6 +2448,7 @@ The table above is the index; the sections below expand each row into the phase 
 - **Tests:** a generated project's Gradle build compiles in CI as a fixture (a golden of the scaffolded shape, compiled); regeneration is byte-stable.
 - **Acceptance:** `cli scaffold` produces a project that builds on the first try on both runners.
 - **Depends on:** P13.
+- **Delivered (2026-11-18):** `:engine:scaffold` placed in `ModuleGraphRules.ALLOWED`, `ProjectSpec` → `ScaffoldGenerator`, `forge scaffold`, and D28's shape — `shared/`, `androidApp/`, `desktopApp/` — with the version catalog emitted from this build's own catalog, so a generated project cannot pin a version the engine did not test. The acceptance is mechanical rather than claimed: `check`'s scaffold job generates a project and builds it on both runners, which is what makes "builds on the first try" a fact instead of a hope.
 
 ### Phase 15 — Alternative strategies (M–L)
 - **Objective:** the strategy seams the MVP stubbed: navigation beyond `SimpleBackStack`, and state beyond process memory.
@@ -2453,6 +2457,7 @@ The table above is the index; the sections below expand each row into the phase 
 - **Tests:** semantics dumps equal per strategy for the conformance set (a strategy changes wiring, not meaning); persistent-store round-trip on Android and Desktop (process death simulation).
 - **Acceptance:** a conformance document runs under every strategy with equal dumps; `SimpleBackStack` stays the zero-dependency default.
 - **Depends on:** P14 (generated projects carry the strategies).
+- **Delivered (2026-11-21):** the seams filled behind their existing interfaces — `SimpleBackStack`, `NavigationCompose` and `Navigation3` for navigation; `SnapshotStateStore`, `ViewModelState` and an injection seam that routes the holder through Metro, Koin or Hilt; `persistence` and external state through `PersistentStore` and `HostFunctions`, with a strategy that cannot hold a declaration refusing it by name rather than dropping it silently; both strategy families selected by flag on `generate` and `scaffold`, with their Gradle plugins and libraries carried into the scaffold, and the matrix of which strategy hosts which declaration in `docs/plugin-guide.md`. Two departures: this went past the row's list, which is why the plugin guide carries a container matrix the plan never asked for; and nothing is restored across process death under any strategy — `Navigation3`'s own KDoc states it — so the acceptance's round-trip half is the emit, not a restored process.
 
 ### Phase 16 — The `.lutterplugin` container, discovery, packaging (M)
 - **Objective:** a plugin becomes a distributable artifact, closing the debt D35 recorded rather than fixed, under ADR-018's rule that the *engine* stays static and a host with a classloader does the loading.
