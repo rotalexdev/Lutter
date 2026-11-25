@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -106,7 +107,11 @@ public fun EditorShell(
 
     val selection: EditorSelection by session.selection.collectAsState()
     val history by session.controller.state.collectAsState()
-    val selected: InspectorModel? = session.inspector()
+    // The two keys are also the subscription. `EditorSession.inspector` reads the session's own
+    // flows, which are not snapshot state, so a frame whose body never touched `selection` would
+    // not redraw when one arrived — and at compact width nothing else in this body does touch
+    // it. The symptom is a dock that keeps acting on the node before the one on screen.
+    val selected: InspectorModel? = remember(selection, history.document) { session.inspector() }
     var destination: EditorDestination by rememberSaveable { mutableStateOf(EditorDestination.Editor) }
     var paletteOpen: Boolean by remember { mutableStateOf(false) }
     var inspectorOpen: Boolean by remember { mutableStateOf(false) }
@@ -248,7 +253,10 @@ public fun EditorShell(
                             scope.launch { paletteSheet.hide() }
                                 .invokeOnCompletion { paletteOpen = false }
                         },
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp),
+                        // A fixed height, not `heightIn`: a sheet measures its content against
+                        // the window, and a lazily-sized list that took its height from the items
+                        // it had composed would answer the next measure with a different one.
+                        modifier = Modifier.fillMaxWidth().height(360.dp),
                     )
                 }
             }
@@ -265,7 +273,9 @@ public fun EditorShell(
                     InspectorPane(
                         session = session,
                         selection = selection,
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp),
+                        // Bounded and scrollable, so a node with twenty properties stays inside
+                        // the sheet instead of pushing its own heading off the top.
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp),
                     )
                 }
             }

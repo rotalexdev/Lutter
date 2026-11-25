@@ -83,7 +83,10 @@ class AndroidEditorScreenTest {
         compose.onNodeWithTag("palette-open").performClick()
         compose.waitForIdle()
 
-        // The sheet is a `LazyColumn` limited to 520dp, so a row past the fold is not composed
+        // The sheet first, then the list inside it: a frame whose button opened nothing fails
+        // here, with the sentence the person would have read on screen.
+        compose.onNodeWithText("Add component").assertExists()
+        // The list is a fixed 360dp, so a row past the fold is not composed
         // until it is scrolled to — the same gesture a user makes, and the reason the tag is
         // asserted after the scroll rather than assumed.
         compose.onNodeWithTag("palette").performScrollToNode(hasTestTag("palette:m3.Text"))
