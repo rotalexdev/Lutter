@@ -13,8 +13,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -29,7 +29,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import dev.rotalex.lutter.editor.EditorPreview
 import dev.rotalex.lutter.editor.EditorSelection
@@ -39,7 +41,10 @@ import dev.rotalex.lutter.editor.PaletteEntry
 import dev.rotalex.lutter.editor.PaletteSection
 import dev.rotalex.lutter.editor.PreviewState
 import dev.rotalex.lutter.editor.PropertyEdit
+import dev.rotalex.lutter.editor.PropertyRow
 import dev.rotalex.lutter.editor.PropertyText
+import dev.rotalex.lutter.editor.PropertyWrite
+import dev.rotalex.lutter.model.doc.NodeId
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.runtime.BackStackNavigator
 import dev.rotalex.lutter.runtime.RuntimeEnvironment
@@ -71,7 +76,7 @@ import dev.rotalex.lutter.runtime.UiRuntime
  * the pane usable and testable today, and it goes through the same `dispatch` either way.
  *
  * Each pane carries a `testTag` so a host's UI test can find it: `palette`, `canvas`,
- * `inspector`, `palette:<type>`, `inspector:<key>`, `apply:<key>`.
+ * `inspector`, `palette:<type>`, `inspector:<key>`.
  */
 
 /**
@@ -222,10 +227,24 @@ private fun PaneMessage(text: String, isError: Boolean) {
 }
 
 /**
- * The selected node's properties, each committed by its own **Apply**.
+ * Whether [draft] is something this field has not handed to the document yet.
  *
- * The field is local until it is applied: parsing on every keystroke would report a half-typed
- * expression as a refusal, and the document is the thing being edited.
+ * [sent] is the text the field last handed to the document, not the document's canonical form
+ * of the value: those differ (`1` typed prints back as `1`, an expression prints back
+ * normalised), and comparing against the canonical form would commit a value nobody touched.
+ * What the rule protects is history — a field that gains and loses focus without being typed in
+ * adds no command.
+ */
+internal fun isNewEdit(sent: String, draft: String): Boolean = sent != draft
+
+/**
+ * The selected node's properties, each committed when its field is left.
+ *
+ * The field is local until it is committed — on focus loss, or on the keyboard's **Done** —
+ * because parsing on every keystroke would report a half-typed expression as a refusal, and the
+ * document is the thing being edited. A commit that changes nothing is skipped by [isNewEdit];
+ * one the engine refuses says why under the field instead of silently reverting, which is what a
+ * commit-per-row button used to hide.
  */
 @Composable
 public fun InspectorPane(
@@ -254,23 +273,69 @@ public fun InspectorPane(
         Text(model.displayName, style = MaterialTheme.typography.titleMedium)
         Text(model.type.value, style = MaterialTheme.typography.labelSmall, color = theme.onSurfaceVariant)
         model.properties.forEach { row ->
-            var text by remember(row.key, row.text) { mutableStateOf(row.text) }
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                label = { Text(row.key.value + if (row.required) " *" else "") },
-                isError = row.isExpression && PropertyText.apply(text) is PropertyEdit.Unparseable,
-                keyboardActions = KeyboardActions(
-                    onDone = { session.setProperty(model.node, row.key, text) },
-                ),
-                modifier = Modifier.fillMaxWidth().testTag("inspector:${row.key.value}"),
-            )
-            Button(
-                onClick = { session.setProperty(model.node, row.key, text) },
-                modifier = Modifier.testTag("apply:${row.key.value}"),
-            ) {
-                Text("Apply")
+            PropertyField(session, model.node, row)
+        }
+    }
+}
+
+/** One property's field: a local draft, and the two ways it stops being local. */
+@Composable
+private fun PropertyField(session: EditorSession, node: NodeId, row: PropertyRow) {
+    val theme = MaterialTheme.colorScheme
+    // Keyed by the node as well as the key: two nodes both carry a `text`, and a field that
+    // survived a selection change would show the previous node's value in this node's row.
+    val focus = remember(node, row.key) { mutableStateOf(false) }
+    var text by remember(node, row.key) { mutableStateOf(row.text) }
+    var sent by remember(node, row.key) { mutableStateOf(row.text) }
+    var refusal by remember(node, row.key) { mutableStateOf<String?>(null) }
+
+    // The document is the truth: when something else changes this value (an undo, a palette
+    // insert) the field adopts it — unless the author is in the middle of typing, in which case
+    // adopting would delete their keystrokes.
+    LaunchedEffect(node, row.text) {
+        if (!focus.value) {
+            text = row.text
+            sent = row.text
+            refusal = null
+        }
+    }
+
+    fun commit() {
+        if (!isNewEdit(sent, text)) return
+        when (val write = session.setProperty(node, row.key, text)) {
+            is PropertyWrite.Unparseable -> refusal = write.message
+            is PropertyWrite.Refused -> refusal = write.reasons.joinToString("; ") { it.message }
+            is PropertyWrite.Applied -> {
+                sent = text
+                refusal = null
             }
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = {
+                text = it
+                refusal = null
+            },
+            label = { Text(row.key.value + if (row.required) " *" else "") },
+            isError = refusal != null ||
+                (row.isExpression && PropertyText.apply(text) is PropertyEdit.Unparseable),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { commit() }),
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged {
+                    focus.value = it.isFocused
+                    if (!it.isFocused) commit()
+                }
+                .testTag("inspector:${row.key.value}"),
+        )
+        // The engine's own words, not a rephrasing: a refusal that the author cannot read is
+        // indistinguishable from a keystroke that went nowhere.
+        refusal?.let {
+            Text(it, color = theme.error, style = MaterialTheme.typography.labelSmall)
         }
     }
 }
