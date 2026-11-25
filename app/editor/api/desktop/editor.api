@@ -228,6 +228,17 @@ public final class dev/rotalex/lutter/editor/EditorSessionStoreKt {
 	public static final fun toSelection (Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord;)Ldev/rotalex/lutter/editor/EditorSelection;
 }
 
+public final class dev/rotalex/lutter/editor/EditorWorkspace {
+	public static final field $stable I
+	public static final field Companion Ldev/rotalex/lutter/editor/EditorWorkspace$Companion;
+	public final fun getDocumentLocation ()Ljava/lang/String;
+	public final fun save (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/editor/EditorSessionRecord;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/rotalex/lutter/editor/EditorWorkspace$Companion {
+	public final fun open (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/serialization/storage/DocumentStorage;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public final class dev/rotalex/lutter/editor/Inspector {
 	public static final field $stable I
 	public static final field INSTANCE Ldev/rotalex/lutter/editor/Inspector;
@@ -242,6 +253,15 @@ public final class dev/rotalex/lutter/editor/InspectorModel {
 	public final fun getNode-qw1I0Vk ()Ljava/lang/String;
 	public final fun getProperties ()Ljava/util/List;
 	public final fun getType-RCZ7MqM ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/Opened {
+	public static final field $stable I
+	public fun <init> (Ldev/rotalex/lutter/editor/EditorWorkspace;Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/editor/EditorSessionRecord;Ljava/lang/String;)V
+	public final fun getDocument ()Ldev/rotalex/lutter/model/doc/UiDocument;
+	public final fun getNotice ()Ljava/lang/String;
+	public final fun getRecord ()Ldev/rotalex/lutter/editor/EditorSessionRecord;
+	public final fun getWorkspace ()Ldev/rotalex/lutter/editor/EditorWorkspace;
 }
 
 public final class dev/rotalex/lutter/editor/Palette {
@@ -408,6 +428,55 @@ public final class dev/rotalex/lutter/editor/PropertyWrite$Unparseable : dev/rot
 	public final fun getMessage ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/rotalex/lutter/editor/SaveState {
+}
+
+public final class dev/rotalex/lutter/editor/SaveState$Failed : dev/rotalex/lutter/editor/SaveState {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/editor/SaveState$Failed;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editor/SaveState$Failed;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/SaveState$Failed;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAt ()Ljava/lang/String;
+	public final fun getReason ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/SaveState$Idle : dev/rotalex/lutter/editor/SaveState {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/editor/SaveState$Idle;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/SaveState$Saved : dev/rotalex/lutter/editor/SaveState {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ldev/rotalex/lutter/editor/SaveState$Saved;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editor/SaveState$Saved;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/SaveState$Saved;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAt ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/SaveStatusKt {
+	public static final fun Autosave (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/editor/WorkspaceSaver;Landroidx/compose/runtime/Composer;I)V
+	public static final fun SaveStatusBar (Ljava/lang/String;Ldev/rotalex/lutter/editor/SaveState;Ljava/lang/String;Landroidx/compose/runtime/Composer;I)V
+}
+
+public final class dev/rotalex/lutter/editor/WorkspaceSaver {
+	public static final field $stable I
+	public fun <init> (Ldev/rotalex/lutter/editor/EditorWorkspace;Lkotlin/jvm/functions/Function0;)V
+	public final fun getState ()Ldev/rotalex/lutter/editor/SaveState;
+	public final fun save (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/editor/EditorSelection;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class dev/rotalex/lutter/editor/ui/ComposableSingletons$EditorPanesKt {

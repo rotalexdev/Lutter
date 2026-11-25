@@ -143,10 +143,14 @@ found; persistence stays the session store's job.
 The editor saves on every change and has no Save button, because there is nothing to decide: it
 owns one document at one location, chosen once when it opens. `WorkspaceSaver` combines
 `controller.state` (a `StateFlow`, so not Compose snapshot state — `snapshotFlow` would see
-nothing) with `selection` and writes the pair; the window's close handler performs one final
-synchronous write, because a coroutine would be cancelled by `exitApplication()` first.
+nothing) with `selection` and writes the pair; the desktop window's close handler then performs one
+final synchronous write, because a coroutine would be cancelled by `exitApplication()` first.
 
-Where that location is:
+The rule lives in `:app:editor` (`EditorWorkspace`, `WorkspaceSaver`, `Autosave`, `SaveStatusBar`)
+and both hosts use it. A host decides only **where** the two locations point, through the
+`DocumentStorage` seam.
+
+### Desktop
 
 | Opened with | Document | Session record |
 | --- | --- | --- |
@@ -159,12 +163,27 @@ macOS, `$XDG_DATA_HOME/lutter-editor` (or `~/.local/share/lutter-editor`) elsewh
 is a **seed**, never a file the editor writes back to: `gradle run` does not dirty the repository,
 and a packaged launch writes somewhere the user owns.
 
-Every write goes to a sibling temporary file and is moved into place with `ATOMIC_MOVE`, so a
-process killed mid-save leaves either the old bytes or the new ones — never a truncated document.
-A document that does not parse is **kept** as `<name>.corrupt` and the starter opens instead,
-with the reason in the status bar; throwing it away would discard the only copy of somebody's
-work. The line under the panes always says which of those happened and where the bytes are;
-"NOT SAVED" with the reason is the one message it exists for.
+### Android
+
+The document is `<filesDir>/document.json` and the record `<filesDir>/session.json` — the app's
+private storage, removed with the app, no permission asked. The first run seeds it from the
+bundled `button_navigate.json`.
+
+Turning the phone **recreates the activity**, and that is now harmless: the activity reopens its
+workspace on every creation, so a rotation lands on the document as it was last written, selection
+included. Before this host saved, a rotation silently discarded every edit.
+
+### What every write promises
+
+Desktop writes go to a sibling temporary file moved into place with `ATOMIC_MOVE`, so a process
+killed mid-save leaves either the old bytes or the new ones — never a truncated document. Android
+cannot use `java.nio.file` on every supported API level, so `AtomicFileStorage` uses
+`File.renameTo`, which is `rename(2)` on Android's filesystems and replaces the target in one step.
+
+A document that does not parse is **kept** as `<name>.corrupt` and the seed opens instead, with
+the reason in the status bar; throwing it away would discard the only copy of somebody's work. The
+line under the panes always says which of those happened and where the bytes are; "NOT SAVED" with
+the reason is the one message it exists for.
 
 `EditorSessionRecord` carries the selection and not the undo stack (§26.3), so reopening restores
 what was being looked at and starts a fresh history.
