@@ -210,6 +210,11 @@ object ModuleGraphRules {
             ":engine:serialization",
             // P5/P6: the panes draw `UiApp` and name `UiRuntime` in their signatures.
             ":engine:runtime",
+            // The Code screen shows what `:engine:codegen` emits for the document on screen. It
+            // is the same generator the acceptance test asserts, read rather than run, so the
+            // editor is the right owner: the host would otherwise carry the codegen edge twice,
+            // once per platform, for one pane.
+            ":engine:codegen",
         ),
         ":androidApp" to setOf(
             ":app:editor",
@@ -314,9 +319,10 @@ object ModuleGraphRules {
         // form, and generation is a per-component binding the synthetic fixture schema carries
         // none of — `KotlinGenerator` refuses its types by construction. The builtins are the
         // schema the shipped applications use, so the claim is about the editor rather than about
-        // a test double, and both edges stay test scope: nothing in `:app:editor`'s `commonMain`
-        // names the pack or the generator, which the same allow-list refuses if it ever does.
-        ":app:editor" to setOf(":engine:builtins-compose", ":engine:codegen"),
+        // a test double. The pack stays test scope — nothing in `:app:editor`'s `commonMain` names
+        // it, which the same allow-list refuses if that ever changes. The generator is no longer
+        // in this row: the Code screen reads it in `commonMain`, and its row moved to `ALLOWED`.
+        ":app:editor" to setOf(":engine:builtins-compose"),
     )
 
     // ---------------------------------------------------------------------------------------

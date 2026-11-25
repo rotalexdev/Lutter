@@ -43,9 +43,13 @@ dependencies {
     // that generated documents would make each assertion a statement about the harness.
     //
     // P7's acceptance makes three claims and the third one generates code, which is a
-    // per-component binding the synthetic fixture schema deliberately carries none of. The
-    // builtin schema and the generator are therefore test-scope edges: nothing in `commonMain`
-    // names either, and `ModuleGraphRules.ALLOWED_IN_TESTS` holds both with that reason.
+    // per-component binding the synthetic fixture schema deliberately carries none of, so the
+    // builtin schema is a test-scope edge and `ModuleGraphRules.ALLOWED_IN_TESTS` holds it with
+    // that reason.
     commonTestImplementation(project(":engine:builtins-compose"))
-    commonTestImplementation(project(":engine:codegen"))
+
+    // The Code screen (`GeneratedCode`, `ui/CodeScreen`) shows what the generator emits for the
+    // document on screen, so this one is `commonMain` and not test scope: it is read, never run,
+    // and it is the same generator the acceptance test asserts.
+    commonMainImplementation(project(":engine:codegen"))
 }
