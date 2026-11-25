@@ -1,0 +1,147 @@
+import org.gradle.api.DefaultTask
+import org.gradle.api.artifacts.VersionCatalog
+import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.provider.MapProperty
+import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.TaskProvider
+import org.gradle.api.tasks.TaskAction
+import org.gradle.kotlin.dsl.getByType
+
+plugins {
+    id("lutter.kmp.library")
+}
+
+dependencies {
+    commonMainApi(project(":engine:model"))
+    commonMainApi(project(":engine:schema"))
+    commonMainApi(project(":engine:codegen"))
+
+    // The golden helper and the classpath reader are the harness, and the harness is fixtures.
+    commonTestImplementation(project(":engine:test-support"))
+}
+
+// --- the versions a generated project pins, read from the catalog this build resolves against
+//
+// §32 Phase 14: "the version catalog emitted from the build's own catalog so a generated app
+// never pins a version the engine did not test". `rootLibs` is that catalog, and it is the only
+// place these numbers exist: this repo's own `libs.versions.toml` carries none of them on
+// purpose, and a constant written here by hand would be a second source of truth that drifts
+// on the first upgrade.
+//
+// Read at configuration time, passed to the task as plain strings. A task that read the catalog
+// itself would have to resolve it during execution, which the configuration cache refuses —
+// and rightly: the values are build configuration, not task input discovered mid-flight.
+// Read through the extension and not through the `rootLibs` accessor: in a module script the
+// accessor exists for the `plugins {}` block only, and `rootLibs.plugins.kotlin.multiplatform`
+// there resolves against the block's own DSL rather than against the catalog. CI proved it —
+// "None of the following candidates is applicable because of a receiver type mismatch" on the
+// very first row. `forge/Catalogs.kt` reads the same extension for the same reason.
+val sharedCatalog: VersionCatalog =
+    extensions.getByType<VersionCatalogsExtension>().named("rootLibs")
+
+/** The plugin marker version [alias] is declared at, from the catalog and nowhere else. */
+fun pinnedPlugin(alias: String): String =
+    sharedCatalog.findPlugin(alias).get().get().version.requiredVersion
+
+/**
+ * The catalog for the coordinates `rootLibs` does not carry yet (`gradle/libs.versions.toml`).
+ *
+ * Read through the extension for the reason above: the `libs` accessor in a module script
+ * resolves against the `plugins {}` block's DSL, and this file needs the catalog's versions as
+ * plain strings at configuration time.
+ */
+val gapCatalog: VersionCatalog =
+    extensions.getByType<VersionCatalogsExtension>().named("libs")
+
+/** The version bound to [alias] in the gap catalog, e.g. `navigation3`. */
+fun gapVersion(alias: String): String =
+    gapCatalog.findVersion(alias).get().requiredVersion
+
+/** The version bound to key [alias], e.g. `androidCompileSdk`. */
+fun pinnedVersion(alias: String): String =
+    sharedCatalog.findVersion(alias).get().requiredVersion
+
+val scaffoldVersions: Map<String, String> = mapOf(
+    "KOTLIN" to pinnedPlugin("kotlin.multiplatform"),
+    "AGP" to pinnedPlugin("android.kotlin.multiplatform.library"),
+    "COMPOSE" to pinnedPlugin("compose"),
+    "COMPOSE_COMPILER" to pinnedPlugin("compose.compiler"),
+    "JVM_TARGET" to pinnedVersion("jvmTarget"),
+    "ANDROID_COMPILE_SDK" to pinnedVersion("androidCompileSdk"),
+    "ANDROID_MIN_SDK" to pinnedVersion("androidMinSdk"),
+    // Only a generated project under a non-default strategy resolves these; see
+    // `GeneratedLibrary` for which strategy needs which.
+    "NAVIGATION_COMPOSE" to gapVersion("navigationCompose"),
+    "NAVIGATION3" to gapVersion("navigation3"),
+    "LIFECYCLE_VIEWMODEL_COMPOSE" to gapVersion("lifecycleViewmodelCompose"),
+    "COROUTINES" to gapVersion("coroutines"),
+    "KOIN" to gapVersion("koin"),
+        "METRO" to gapVersion("metro"),
+    "HILT" to gapVersion("hilt"),
+    "HILT_NAVIGATION_COMPOSE" to gapVersion("hiltNavigationCompose"),
+)
+
+/**
+ * Writes [ScaffoldVersions] for the scaffold to emit into generated projects.
+ *
+ * A generated source and not a resource, because the generator reads them as Kotlin constants
+ * and a resources lookup in `commonMain` would need a loader per target for no benefit.
+ *
+ * `internal`, like every other build-time fact this module publishes: the versions are an
+ * implementation detail of what the scaffold writes, and a public object would be an ABI
+ * promise to keep the catalog's key names stable forever.
+ */
+abstract class GenerateScaffoldVersions : DefaultTask() {
+
+    @get:Input
+    abstract val versions: MapProperty<String, String>
+
+    @get:OutputDirectory
+    abstract val output: DirectoryProperty
+
+    @TaskAction
+    fun generate() {
+        val file = output.get().asFile.resolve("dev/rotalex/lutter/scaffold/ScaffoldVersions.kt")
+        file.parentFile.mkdirs()
+
+        // Sorted, so a catalog that gains a key inserts it in a stable place rather than at
+        // whatever order the map happened to have.
+        val constants = versions.get().toSortedMap().entries.joinToString("\n") { (name, value) ->
+            "    public const val $name: String = \"$value\""
+        }
+
+        file.writeText(
+            """
+            |// Generated by :engine:scaffold's generateScaffoldVersions task. Do not edit:
+            |// the values come from the shared catalog, and an edit here would be overwritten.
+            |package dev.rotalex.lutter.scaffold
+            |
+            |/**
+            | * The versions a generated project pins, as the build itself resolved them.
+            | *
+            | * Every value is a `String` and not a number: `androidCompileSdk` is an `Int` to an
+            | * Android build and a decimal to a `.toml`, and the catalog's spelling is the one a
+            | * generated file has to reproduce exactly.
+            | */
+            |internal object ScaffoldVersions {
+            |$constants
+            |}
+            |""".trimMargin(),
+        )
+    }
+}
+
+val generatedVersions: Provider<Directory> = layout.buildDirectory.dir("generated/scaffoldVersions")
+
+val generateScaffoldVersions: TaskProvider<GenerateScaffoldVersions> =
+    tasks.register<GenerateScaffoldVersions>("generateScaffoldVersions") {
+        versions.set(scaffoldVersions)
+        output.set(generatedVersions)
+    }
+
+kotlin.sourceSets.named("commonMain") {
+    kotlin.srcDir(generateScaffoldVersions)
+}

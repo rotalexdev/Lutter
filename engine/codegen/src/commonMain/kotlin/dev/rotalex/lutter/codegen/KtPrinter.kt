@@ -108,11 +108,13 @@ public class KtPrinter(
 
     /** One `@` line per annotation, sorted by name so two runs over one tree agree. */
     private fun renderAnnotations(
-        annotations: List<KotlinSymbol>,
+        annotations: List<KtAnnotation>,
         indent: Int,
         aliases: Map<String, String>,
-    ): String = annotations.sortedBy { it.name }.joinToString("") {
-        indentOf(indent) + "@" + (aliases[it.fqn()] ?: it.name) + "\n"
+    ): String = annotations.sortedBy { it.symbol.name }.joinToString("") { annotation ->
+        val name: String = aliases[annotation.symbol.fqn()] ?: annotation.symbol.name
+        val args: String = annotation.args.joinToString(", ") { renderExpr(it, indent, aliases) }
+        indentOf(indent) + "@" + name + (if (annotation.args.isEmpty()) "" else "(" + args + ")") + "\n"
     }
 
     // Explicit `public`: the generated module builds with explicitApi, and the IR carries no
@@ -123,6 +125,14 @@ public class KtPrinter(
         aliases: Map<String, String>,
         abstractMember: Boolean = false,
     ): String = buildString {
+        // The opt-in first, the way Kotlin convention writes it: the `::class` form keeps the
+        // requirement local to this function, which a bare marker annotation would not.
+        if (function.optIns.isNotEmpty()) {
+            val markers: String = function.optIns
+                .sortedWith(compareBy({ it.packageName }, { it.name }))
+                .joinToString(", ") { (aliases[it.fqn()] ?: it.name) + "::class" }
+            append(indentOf(indent) + "@OptIn(" + markers + ")\n")
+        }
         append(renderAnnotations(function.annotations, indent, aliases))
         append(indentOf(indent) + "public ")
         if (function.suspending) append("suspend ")
@@ -170,8 +180,13 @@ public class KtPrinter(
         val getter: String = property.getter?.let {
             "\n" + indentOf(indent + 1) + "get() = " + renderExpr(it, indent + 1, aliases)
         } ?: ""
+        val setter: String = property.setter?.let { body ->
+            val head: String = "\n" + indentOf(indent + 1) + "set(value) {\n"
+            head + body.joinToString("") { renderStmt(it, indent + 2, aliases) + "\n" } +
+                indentOf(indent + 1) + "}"
+        } ?: ""
         return renderAnnotations(property.annotations, indent, aliases) +
-            indentOf(indent) + keyword + property.name + declared + assigned + getter
+            indentOf(indent) + keyword + property.name + declared + assigned + getter + setter
     }
 
     /** Braces on the head line when empty, one blank line between members otherwise. */
@@ -182,7 +197,15 @@ public class KtPrinter(
     ): String = buildString {
         append(renderAnnotations(clazz.annotations, indent, aliases))
         append(indentOf(indent) + "public class " + clazz.name)
+        val annotation: KotlinSymbol? = clazz.constructorAnnotation
+        if (annotation != null) {
+            append(" @" + refOf(KtSymbolRef(annotation), aliases) + " constructor")
+        }
         append(renderConstructor(clazz, indent, aliases))
+        // The supertype follows the constructor, which is Kotlin's own order:
+        // `class X(private val y: Int) : Base()`. Its own parentheses are empty because the
+        // platform types a holder extends all have a no-argument constructor.
+        clazz.supertype?.let { append(" : " + refOf(KtSymbolRef(it), aliases) + "()") }
         appendMembers(clazz.members, indent, aliases, this)
     }
 
@@ -200,6 +223,9 @@ public class KtPrinter(
         append(indentOf(indent) + "public ")
         if (declaration.sealed) append("sealed ")
         append("interface " + declaration.name)
+        if (declaration.supertypes.isNotEmpty()) {
+            append(" : " + declaration.supertypes.joinToString(", ") { renderExpr(it, indent, aliases) })
+        }
         appendMembers(declaration.members, indent, aliases, this, abstractMembers = true)
     }
 
@@ -216,6 +242,9 @@ public class KtPrinter(
         if (declaration.supertypes.isNotEmpty()) {
             append(" : " + declaration.supertypes.joinToString(", ") { renderExpr(it, indent, aliases) })
         }
+        // A marker keeps the bare header: `data object Home` needs no braces, and the routes a
+        // strategy declares without a body are the majority of them.
+        if (declaration.members.isNotEmpty()) appendMembers(declaration.members, indent, aliases, this)
     }
 
     private fun appendMembers(
@@ -248,7 +277,11 @@ public class KtPrinter(
         indent: Int,
         aliases: Map<String, String>,
     ): String {
-        if (clazz.constructorProperties.isEmpty()) return ""
+        if (clazz.constructorProperties.isEmpty()) {
+            // `@Inject constructor()`: a constructor annotation has to be attached to a
+            // constructor, so the parentheses exist even when nothing is passed.
+            return if (clazz.constructorAnnotation != null) "()" else ""
+        }
         for (property in clazz.constructorProperties) {
             if (property.annotations.isNotEmpty() || property.getter != null) {
                 throw CodegenBug(
@@ -274,6 +307,9 @@ public class KtPrinter(
             is KtStmt.Assign -> indentOf(indent) + renderExpr(stmt.target, indent, aliases) +
                 " = " + renderExpr(stmt.value, indent, aliases)
             is KtStmt.When -> indentOf(indent) + renderWhen(stmt, indent, aliases)
+            is KtStmt.If -> indentOf(indent) + renderIf(stmt, indent, aliases)
+            is KtStmt.Return -> indentOf(indent) +
+                (stmt.value?.let { "return " + renderExpr(it, indent, aliases) } ?: "return")
         }
 
     // `when (subject) {` on the head, one arm per line, every arm braced: an arm holds a screen
@@ -292,6 +328,14 @@ public class KtPrinter(
             for (inner in otherwise) append(renderStmt(inner, indent + 2, aliases) + "\n")
             append(indentOf(indent + 1) + "}\n")
         }
+        append(indentOf(indent) + "}")
+    }
+
+    // The statement shape's missing else is legal in statement position: a guarded call that
+    // renders nothing is the same silence the runtime's `if` renders.
+    private fun renderIf(stmt: KtStmt.If, indent: Int, aliases: Map<String, String>): String = buildString {
+        append("if (" + renderExpr(stmt.cond, indent, aliases) + ") {\n")
+        for (inner in stmt.then) append(renderStmt(inner, indent + 1, aliases) + "\n")
         append(indentOf(indent) + "}")
     }
 
@@ -345,6 +389,12 @@ public class KtPrinter(
             is KtExpr.TypeApplication -> renderExpr(expr.base, indent, aliases) + "<" +
                 expr.args.joinToString(", ") { renderExpr(it, indent, aliases) } + ">"
             is KtExpr.Nullable -> renderExpr(expr.inner, indent, aliases) + "?"
+            is KtExpr.TypeProjection ->
+                (if (expr.variance == TypeVariance.In) "in " else "out ") +
+                    renderExpr(expr.inner, indent, aliases)
+            is KtExpr.FunctionType -> "(" +
+                expr.params.joinToString(", ") { renderExpr(it, indent, aliases) } +
+                ") -> " + renderExpr(expr.returns, indent, aliases)
         }
 
     /**
@@ -554,6 +604,24 @@ public class KtPrinter(
 
     // Members, not locals: exprs and stmt recurse into each other, and local
     // functions cannot forward-reference. State travels in parameters.
+    /**
+     * An annotation's own name and everything its arguments mention.
+     *
+     * The arguments are walked because `@ViewModelKey(HomeViewModel::class)` names a class the
+     * file has to import; recording only the annotation would compile to a name the file cannot
+     * resolve, which is the failure mode this whole collector exists to prevent.
+     */
+    private fun recordAnnotations(
+        annotations: List<KtAnnotation>,
+        filePkg: String,
+        seen: MutableMap<String, MutableList<KotlinSymbol>>,
+    ) {
+        for (annotation in annotations) {
+            recordSymbol(annotation.symbol, filePkg, seen)
+            annotation.args.forEach { collectExprSymbols(it, filePkg, seen) }
+        }
+    }
+
     private fun recordSymbol(
         symbol: KotlinSymbol,
         filePkg: String,
@@ -615,6 +683,11 @@ public class KtPrinter(
             for (arg in expr.args) collectExprSymbols(arg, filePkg, seen)
         }
         if (expr is KtExpr.Nullable) collectExprSymbols(expr.inner, filePkg, seen)
+        if (expr is KtExpr.TypeProjection) collectExprSymbols(expr.inner, filePkg, seen)
+        if (expr is KtExpr.FunctionType) {
+            expr.params.forEach { collectExprSymbols(it, filePkg, seen) }
+            collectExprSymbols(expr.returns, filePkg, seen)
+        }
     }
 
     private fun collectStmtSymbols(
@@ -632,6 +705,9 @@ public class KtPrinter(
             collectExprSymbols(stmt.target, filePkg, seen)
             collectExprSymbols(stmt.value, filePkg, seen)
         }
+        // `?: Unit`: a nullable receiver makes `let` return `Unit?`, and this `when` is the
+        // return value of a `Unit` function.
+        is KtStmt.Return -> stmt.value?.let { collectExprSymbols(it, filePkg, seen) } ?: Unit
         // The subject and every arm value are expressions, and the arm bodies are statements
         // rather than expressions: an arm holds screen calls.
         is KtStmt.When -> {
@@ -641,6 +717,10 @@ public class KtPrinter(
                 for (inner in branch.body) collectStmtSymbols(inner, filePkg, seen)
             }
             for (inner in stmt.otherwise.orEmpty()) collectStmtSymbols(inner, filePkg, seen)
+        }
+        is KtStmt.If -> {
+            collectExprSymbols(stmt.cond, filePkg, seen)
+            for (inner in stmt.then) collectStmtSymbols(inner, filePkg, seen)
         }
     }
 
@@ -663,7 +743,12 @@ public class KtPrinter(
     ): Unit {
         when (declaration) {
             is KtDeclaration.Function -> {
-                declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                recordAnnotations(declaration.annotations, filePkg, seen)
+                declaration.optIns.forEach { recordSymbol(it, filePkg, seen) }
+                // The return type, through the same path as a parameter's: a function whose
+                // return names a foreign type is an import, and one nothing else in the file
+                // spells returns `Flow<String>` with no `Flow` to resolve.
+                collectOptional(declaration.type, filePkg, seen)
                 for (param in declaration.params) {
                     collectExprSymbols(param.type, filePkg, seen)
                     param.default?.let { collectExprSymbols(it, filePkg, seen) }
@@ -671,26 +756,31 @@ public class KtPrinter(
                 declaration.body.forEach { collectStmtSymbols(it, filePkg, seen) }
             }
             is KtDeclaration.Property -> {
-                declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                recordAnnotations(declaration.annotations, filePkg, seen)
                 collectOptional(declaration.type, filePkg, seen)
                 collectOptional(declaration.initializer, filePkg, seen)
                 collectOptional(declaration.delegate, filePkg, seen)
                 collectOptional(declaration.getter, filePkg, seen)
+                declaration.setter?.forEach { collectStmtSymbols(it, filePkg, seen) }
             }
             is KtDeclaration.Class -> {
-                declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                recordAnnotations(declaration.annotations, filePkg, seen)
+                declaration.supertype?.let { recordSymbol(it, filePkg, seen) }
+                declaration.constructorAnnotation?.let { recordSymbol(it, filePkg, seen) }
                 declaration.constructorProperties.forEach {
                     collectDeclarationSymbols(it, filePkg, seen)
                 }
                 declaration.members.forEach { collectDeclarationSymbols(it, filePkg, seen) }
             }
             is KtDeclaration.Interface -> {
-                declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                recordAnnotations(declaration.annotations, filePkg, seen)
+                for (supertype in declaration.supertypes) collectExprSymbols(supertype, filePkg, seen)
                 declaration.members.forEach { collectDeclarationSymbols(it, filePkg, seen) }
             }
             is KtDeclaration.Object -> {
-                declaration.annotations.forEach { recordSymbol(it, filePkg, seen) }
+                recordAnnotations(declaration.annotations, filePkg, seen)
                 for (supertype in declaration.supertypes) collectExprSymbols(supertype, filePkg, seen)
+                for (member in declaration.members) collectDeclarationSymbols(member, filePkg, seen)
             }
         }
     }

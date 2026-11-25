@@ -1,5 +1,5 @@
 plugins {
-    id("forge.kmp.library")
+    id("lutter.kmp.library")
     // `PatchOp`, `Patch`, `Record` and `RecordRef` are persisted types: §26.1's rejected
     // "full snapshot per step" is what the patch replaces, and a patch that cannot cross a
     // process boundary cannot be logged, shipped to a collaborating editor or replayed in a

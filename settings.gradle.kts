@@ -6,6 +6,13 @@ pluginManagement {
     // and still be applied by id from any module, without a classpath hack.
     includeBuild("build-logic")
 
+    // Phase 16 S9's packager: a Gradle plugin in its own included build, beside `build-logic`.
+    // It has to be resolvable at configuration time, which is what an included build gives a
+    // plugin applied by id without a classpath hack. Unlike `build-logic` it is only ever applied
+    // by a module that ships a plugin, so it stays out of the main build's plugin classpath until
+    // something asks for it.
+    includeBuild("plugins/lutter-plugin")
+
     repositories {
         google()
         mavenCentral()
@@ -62,11 +69,25 @@ include(":engine:interpreter")
 include(":engine:analysis")
 include(":engine:editing")
 include(":engine:codegen")
+include(":engine:scaffold")
 include(":engine:runtime")
 include(":engine:builtins")
 include(":engine:builtins-compose")
 include(":engine:test-support")
 include(":tools:cli")
+// ADR-018's container lives in the tools, not the engine: it opens a ZIP and will host the
+// loader's payload selection. `:engine:*` stays free of `java.util.zip` and `ClassLoader`.
+include(":tools:plugin-container")
 include(":tools:architecture-tests")
 include(":integration:generated-compile")
+// ADR-018 / phase 16 P5: a plugin written outside `:engine:*`, as a third party writes one. It
+// ships in a normal module so the packaging plugin (P6) and the CLI (P7) have something real to
+// package and load; the container is what makes it a plugin, not the module it lives in.
+include(":integration:fixture-plugin")
 include(":samples:desktop-preview")
+include(":app:editor")
+// Phase 17 P5: the desktop host. Root-level because PLAN's D28 names it there, and because an
+// entry point is not part of the engine or of the editor's platform-neutral half.
+include(":desktopApp")
+// Phase 17 P6: the Android host. Same reason as `:desktopApp` for living at the root.
+include(":androidApp")

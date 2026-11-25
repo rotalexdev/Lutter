@@ -1,0 +1,101 @@
+package dev.rotalex.lutter.desktopapp
+
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.v2.runComposeUiTest
+import dev.rotalex.lutter.builtins.compose.BuiltinEngine
+import dev.rotalex.lutter.editor.EditorPreview
+import dev.rotalex.lutter.editor.EditorSelection
+import dev.rotalex.lutter.editor.EditorSession
+import dev.rotalex.lutter.editor.PreviewState
+import dev.rotalex.lutter.model.doc.UiDocument
+import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.ids.NodeId
+import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.value.Value
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
+
+/**
+ * What the window shows and what its panes do, asserted on a headless runner.
+ *
+ * The frame itself cannot be asserted, so this drives [EditorScreen] over the same document
+ * `main` opens: a host that compiles and renders nothing would pass a build and prove nothing.
+ */
+@OptIn(ExperimentalTestApi::class)
+class EditorScreenTest {
+
+    private val schema = BuiltinEngine.schema()
+
+    @Test
+    fun `the three panes are on screen and the canvas renders the document`() = runComposeUiTest {
+        val session = session()
+        val preview = preview(session)
+        setContent {
+            MaterialTheme { EditorScreen(session, preview, BuiltinEngine.runtime(schema)) }
+        }
+
+        onNodeWithTag("palette").fetchSemanticsNode()
+        onNodeWithTag("canvas").fetchSemanticsNode()
+        onNodeWithTag("inspector").fetchSemanticsNode()
+
+        // The canvas is the document: the starter's own heading, which no pane label shares, so
+        // finding it proves the JSON was lowered and drawn rather than that a tag exists.
+        onNode(hasText("Lutter")).fetchSemanticsNode()
+    }
+
+    @Test
+    fun `a palette click inserts through the session`() = runComposeUiTest {
+        val session = session()
+        val preview = preview(session)
+        val before = session.document.nodes.size
+        setContent {
+            MaterialTheme { EditorScreen(session, preview, BuiltinEngine.runtime(schema)) }
+        }
+
+        onNodeWithTag("palette:m3.Text").performClick()
+        waitForIdle()
+
+        assertEquals(before + 1, session.document.nodes.size)
+    }
+
+    @Test
+    fun `the inspector applies an edited expression to the selected node`() = runComposeUiTest {
+        val session = session()
+        val preview = preview(session)
+        val document: UiDocument = session.document
+        val node: NodeId = document.nodes.ids().first {
+            document.nodes.require(it).type.value == "m3.Text"
+        }
+        val text = PropertyKey("text")
+        val original = document.nodes.require(node).props[text]
+        session.select(EditorSelection.Node(node))
+        setContent {
+            MaterialTheme { EditorScreen(session, preview, BuiltinEngine.runtime(schema)) }
+        }
+
+        onNodeWithTag("inspector:text").performTextClearance()
+        onNodeWithTag("inspector:text").performTextInput("\"Edited\"")
+        onNodeWithTag("apply:text").performClick()
+        waitForIdle()
+
+        val edited = session.document.nodes.require(node).props[text]
+        assertNotEquals(original, edited)
+        assertEquals(PropertyValue.Const(Value.Str("Edited")), edited)
+        // The canvas is still the same document, lowered: the edit resolved.
+        assertTrue(preview.state.value is PreviewState.Rendered)
+    }
+
+    private fun session(): EditorSession =
+        EditorSession.open(readDocument(DEFAULT_DOCUMENT), schema)
+
+    private fun preview(session: EditorSession): EditorPreview =
+        EditorPreview(session, analyze = { BuiltinEngine.analyze(schema, it) })
+}

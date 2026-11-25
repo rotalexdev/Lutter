@@ -18,6 +18,11 @@
 # will retire this file.
 junit = "5.14.0"
 
+# `androidx.activity:activity-compose`, absent from rootLibs 1.2.7. The Android host needs
+# `ComponentActivity` and `setContent`; 1.13.0 is the stable release that matches the
+# compileSdk 37 the shared catalog pins.
+activity-compose = "1.13.0"
+
 # The Android host UI-test stack for PLAN §36.1 bullet 7 (`RuntimeSemanticsTest`), absent from
 # rootLibs 1.2.7. Robolectric boots an Android runtime for the unit runner without a device.
 # The compose test version is the one the Compose Multiplatform android artifacts themselves
@@ -25,9 +30,54 @@ junit = "5.14.0"
 # `androidx.compose.ui:ui` 1.11.2), so the runtime and the test rule see exactly one compose
 # version rather than the BOM's answer to a different release line.
 androidx-compose = "1.11.2"
+
+# The navigation and lifecycle lines a *generated* project may pin, absent from rootLibs 1.2.7
+# for the same reason as the two above: the shared catalog carries no entry yet. They live here
+# because `:engine:scaffold` reads its emitted versions from a catalog this build resolved
+# against (§32 Phase 14), and a number typed into the generator would be the second source of
+# truth that rule exists to prevent. Only a project generated with a non-default strategy ever
+# resolves one of them; the default generated app still depends on nothing.
+#
+# Versions verified against Maven Central's metadata on 2026-11-19:
+# org.jetbrains.androidx.navigation:navigation-compose 2.10.0,
+# org.jetbrains.androidx.navigation3:navigation3-ui 1.2.0 (it brings navigation3-runtime, where
+# `NavKey` and `NavEntry` live), org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose
+# 2.11.0.
+navigationCompose = "2.10.0"
+navigation3 = "1.2.0"
+lifecycleViewmodelCompose = "2.11.0"
+# An external state declaration arrives as a `Flow` (see `ExternalStateDecl`), so a generated
+# project under the ViewModel state strategy names kotlinx-coroutines in a public signature.
+# Pinned here for the reason the three above are: the scaffold reads versions from a catalog it
+# resolved against, and a number typed into the generator would be a second source of truth.
+coroutines = "1.10.2"
+# Koin 4.2.2 (Maven Central metadata, 2026-11-20), the newest stable: `koin-compose-viewmodel`
+# carries `koin-compose`, `koin-core-viewmodel` and lifecycle-viewmodel-compose 2.9.6, so a
+# generated project resolves one ViewModel API at the newer lifecycleViewmodelCompose above.
+koin = "4.2.2"
+metro = "1.4.5"
+hilt = "2.60.1"
+hiltNavigationCompose = "1.4.0"
 robolectric = "4.17"
 
 [libraries]
+# The three artifacts a *generated* project may pin, and the reason `:integration:generated-compile`
+# can compile the code `--navigation`/`--state` select. Same gap as the versions above: rootLibs
+# 1.2.7 carries none of them.
+navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
+lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
+# Metro 1.4.5 (Maven Central, 2026-11-20): one version line for the runtime, the plugin and the
+# metrox ViewModel artifacts. 1.5+/1.6 pull lifecycle-viewmodel-compose 2.11.0, whose Compose
+# Multiplatform lands on 1.12.0-beta01 and fights this catalog's 1.11.1; 1.4.5 pins 2.10.0 and
+# resolves inside the line the engine already builds and tests against.
+metro-runtime = { module = "dev.zacsweers.metro:runtime", version.ref = "metro" }
+metrox-viewmodel-compose = { module = "dev.zacsweers.metro:metrox-viewmodel-compose", version.ref = "metro" }
+hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
+hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 junit-jupiter = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
 junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
@@ -38,6 +88,7 @@ androidx-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", versi
 # does not carry it, so declaring it is required, not redundant.
 androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "androidx-compose" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
 # `NodeTable`'s backing persistent map, PLAN §33.1. The version is on the library line rather
 # than in `[versions]` only because a `version.ref` here does not fit in 120 columns.
 #
@@ -46,3 +97,7 @@ robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectr
 # "coordinates that catalog does not have yet" — is where it goes meanwhile. The *coordinate*
 # is the thing that must not drift, and it is spelled the shared catalog's way.
 kotlinx-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version = "0.5.2" }
+
+[plugins]
+# Metro's compiler plugin: the graph `--injection metro` emits is an interface this implements.
+metro = { id = "dev.zacsweers.metro", version.ref = "metro" }

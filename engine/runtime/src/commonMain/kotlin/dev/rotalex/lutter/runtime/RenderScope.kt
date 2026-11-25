@@ -1,6 +1,7 @@
 package dev.rotalex.lutter.runtime
 
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.runtime.Composable
@@ -11,6 +12,7 @@ import dev.rotalex.lutter.model.doc.TokenName
 import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.value.Value
+import dev.rotalex.lutter.schema.component.IterationSpec
 import dev.rotalex.lutter.schema.component.PropertySpec
 
 /**
@@ -54,6 +56,9 @@ public sealed interface ScopeHandle {
 
     /** Inside a Box's content lambda. */
     public class Box(public val scope: BoxScope) : ScopeHandle
+
+    /** Inside a BoxWithConstraints's content lambda: the box scope plus the constraint members. */
+    public class BoxWithConstraints(public val scope: BoxWithConstraintsScope) : ScopeHandle
 }
 
 /**
@@ -68,6 +73,18 @@ public interface RenderScope {
     /** Token reads for the current theme. */
     public val theme: ThemeHandle
 
+    /**
+     * The layout scope the nearest slot opened, or null outside one.
+     *
+     * The handle exists for the same reason [ScopeHandle] carries its receiver: a nested
+     * function body has no access to the `RowScope` the caller's lambda introduced, and a
+     * modifier applier is not the only nested body that needs the receiver — a renderer whose
+     * callee is a scope extension (`NavigationBarItem` is a `RowScope` member) reads the
+     * receiver here and calls `with` against it, the same path the align projections take.
+     * Renderers that need no receiver ignore it.
+     */
+    public val handle: ScopeHandle?
+
     /** Typed reads over [node]'s effective properties. */
     public fun props(node: ResolvedNode): PropertyReader
 
@@ -81,6 +98,18 @@ public interface RenderScope {
     /** Opens [handle] for [content], so scoped modifiers below it resolve. */
     @Composable
     public fun withScope(handle: ScopeHandle, content: @Composable RenderScope.() -> Unit)
+
+    /**
+     * Binds an iterating slot's loop variable for [content]: the frame one list element renders in.
+     *
+     * A lazy children slot repeats per element, so the renderer binds [itemName] — the
+     * [IterationSpec.itemName] the slot's spec declared — to that element's value and renders
+     * the slot's children under the frame. A read of the variable answers the element; every
+     * other read is the screen's own answer, because the frame wraps rather than owning a store,
+     * and [ItemScope]'s precedence is the innermost frame the read is inside.
+     */
+    @Composable
+    public fun withItem(itemName: String, item: Value, content: @Composable RenderScope.() -> Unit)
 
     /**
      * The `doc.*` instance whose declaration body is rendering, or null outside one.

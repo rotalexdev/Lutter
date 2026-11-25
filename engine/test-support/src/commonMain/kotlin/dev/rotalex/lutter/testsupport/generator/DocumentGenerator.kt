@@ -10,6 +10,11 @@ import dev.rotalex.lutter.model.doc.DataModelDecl
 import dev.rotalex.lutter.model.doc.DocumentMeta
 import dev.rotalex.lutter.model.doc.EnumEntryDecl
 import dev.rotalex.lutter.model.doc.EnumTypeDecl
+import dev.rotalex.lutter.model.doc.ResourceDecl
+import dev.rotalex.lutter.model.doc.ResourceKind
+import dev.rotalex.lutter.model.doc.ResourceSource
+import dev.rotalex.lutter.model.doc.ResourceVariant
+import dev.rotalex.lutter.model.ids.ResourceId
 import dev.rotalex.lutter.model.doc.FieldDecl
 import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.ModifierEntry
@@ -54,18 +59,40 @@ import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.action.ActionSpec
 import dev.rotalex.lutter.schema.component.Cardinality
 import dev.rotalex.lutter.schema.component.ChildFilter
+import dev.rotalex.lutter.schema.component.CodegenBinding
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.EventSpec
 import dev.rotalex.lutter.schema.component.PropertyRule
 import dev.rotalex.lutter.schema.component.PropertySpec
 import dev.rotalex.lutter.schema.component.ScopeId
 import dev.rotalex.lutter.schema.component.SlotSpec
+import dev.rotalex.lutter.schema.component.ValueEmit
 import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import dev.rotalex.lutter.schema.overlay.documentDeclIdOf
 import dev.rotalex.lutter.schema.types.EnumTypeSpec
 import dev.rotalex.lutter.schema.types.TypeSpec
 import kotlin.random.Random
+
+/**
+ * The one resource the seeded documents' resource-kind props reference, and the declaration
+ * that makes the reference real.
+ *
+ * The ordinary Str filler writes literals, and a literal is one thing a resource-kind property
+ * may not carry: the schema's value check reads the reference against the document's resource
+ * map, and codegen's resource spelling needs the same map to name the accessor. So the seeded
+ * documents carry one declaration — deterministic, so a seed regenerates the same document —
+ * and the fill arm below points every resource-kind prop at it. Image is the only resource
+ * kind a registered spec declares today; a second kind needs its own declaration here.
+ */
+private val GENERATED_RESOURCE = ResourceDecl(
+    id = ResourceId("gen_hero"),
+    name = "hero",
+    kind = ResourceKind.Image,
+    variants = listOf(
+        ResourceVariant(qualifiers = emptySet(), source = ResourceSource.Bundled("drawable/hero.png")),
+    ),
+)
 
 /**
  * Builds `UiDocument`s from a seed, and reports what it meant to build.
@@ -269,6 +296,7 @@ public class DocumentGenerator(
             hostFunctions = hosts,
             themes = themes,
             theme = selection,
+            resources = mapOf(GENERATED_RESOURCE.id to GENERATED_RESOURCE),
         )
 
         return GeneratedDocument(seed, document, planFor(mode))
@@ -320,6 +348,10 @@ public class DocumentGenerator(
             heldState("appText", TypeRef.Str, Value.Str("gen")),
             count,
             heldState("appFlag", TypeRef.Bool, Value.Bool(random.nextBoolean())),
+            // One held list, because `list.append` and `list.remove` have no target without one:
+            // a corpus that never declared a list state would draw neither, and the coverage
+            // test would be asking the corpus to use an action it cannot spell.
+            heldState("appItems", TypeRef.ListOf(TypeRef.Str), Value.ListOf(listOf(Value.Str("gen")))),
             derivedState(
                 label = "appTotal",
                 declared = TypeRef.Int32,
@@ -527,7 +559,7 @@ public class DocumentGenerator(
         val slots = linkedMapOf<SlotName, List<NodeId>>()
         for (declared in spec.slots) {
             val children = mutableListOf<NodeId>()
-            fillSlot(declared, scope, MAX_DEPTH, children, instances)
+            fillSlot(declared, scope, MAX_DEPTH, children, COLUMN, instances)
             slots[declared.name] = children
         }
         return emit(COLUMN, scope, emptySet(), slots, buildProps(spec, scope, slots.keys), atRoot = true)
@@ -539,7 +571,7 @@ public class DocumentGenerator(
         val slots = linkedMapOf<SlotName, List<NodeId>>()
         for (declared in spec.slots) {
             val children = mutableListOf<NodeId>()
-            fillSlot(declared, scope, MAX_DEPTH, children)
+            fillSlot(declared, scope, MAX_DEPTH, children, COLUMN)
             children += outlet(scope, slotNames)
             slots[declared.name] = children
         }
@@ -610,7 +642,7 @@ public class DocumentGenerator(
             val children = mutableListOf<NodeId>()
             if (random.nextInt(100) < FILLED_INSTANCE_PERCENT) {
                 repeat(random.nextInt(3)) {
-                    val child = pickChild(ChildFilter.Any, MAX_DEPTH - 2)
+                    val child = pickChild(ChildFilter.Any, MAX_DEPTH - 2, type)
                     children += buildNode(child.type, scope, MAX_DEPTH - 3, emptySet())
                 }
             }
@@ -632,7 +664,7 @@ public class DocumentGenerator(
         val slots = linkedMapOf<SlotName, List<NodeId>>()
         for (declared in spec.slots) {
             val children = mutableListOf<NodeId>()
-            fillSlot(declared, scope, depth, children)
+            fillSlot(declared, scope, depth, children, type)
             slots[declared.name] = children
         }
         return emit(type, scope, available, slots, buildProps(spec, scope, slots.keys))
@@ -651,10 +683,11 @@ public class DocumentGenerator(
         scope: Scope,
         depth: Int,
         children: MutableList<NodeId>,
+        host: ComponentType,
         extra: List<NodeId> = emptyList(),
     ) {
         repeat(childCount(declared.cardinality)) {
-            val child = pickChild(declared.accepts, depth)
+            val child = pickChild(declared.accepts, depth, host)
             children += buildNode(child.type, scope, depth - 1, declared.provides)
         }
         children += extra
@@ -669,7 +702,7 @@ public class DocumentGenerator(
      * the admissible set has no leaf at all the deeper pool is used anyway, because a tree the
      * depth rule flattened is more useful to a property test than no tree.
      */
-    private fun pickChild(filter: ChildFilter, depth: Int): ComponentSpec {
+    private fun pickChild(filter: ChildFilter, depth: Int, host: ComponentType): ComponentSpec {
         val admissible = components.filter { admits(filter, it.type) }
         if (admissible.isEmpty()) error("No registered component satisfies the filter '$filter'")
 
@@ -679,12 +712,27 @@ public class DocumentGenerator(
          * free-form `gen-…`, which is no `SlotName`. Rewriting it into one emits `slot0()` —
          * a call to a parameter the generated signature does not declare.
          */
-        val drawable = admissible.filter { it.type != SLOT_OUTLET }
+        val drawable = admissible.filter { it.type != SLOT_OUTLET && hostAllows(it.type, host) }
         if (drawable.isEmpty()) error("Only '$SLOT_OUTLET' satisfies '$filter', and an outlet cannot be drawn here")
         val leaves = drawable.filter { it.slots.isEmpty() }
         val pool = if (depth <= 0 && leaves.isNotEmpty()) leaves else drawable
         return pool[random.nextInt(pool.size)]
     }
+
+    /**
+     * Whether the pool may draw [child] under the component whose slot is being filled.
+     *
+     * Most children draw anywhere, but one pair is host-bound: `m3.NavigationItem` composes
+     * through Compose's `RowScope.NavigationBarItem` extension, so the generated call needs the
+     * row scope `m3.NavigationBar` opens, and an item drawn anywhere else compiles into nothing
+     * (PR #144's CI settled the shape). The map names the host each bound child requires and
+     * stays empty against schemas that register neither component — `generatorSchema()` among
+     * them, so its draws are untouched — and this is the generator's constraint rather than a
+     * schema one: the fuzz is the caller that has to produce screens the codegen can compile,
+     * and v1 binds no rail or drawer item the same rule would apply to.
+     */
+    private fun hostAllows(child: ComponentType, host: ComponentType): Boolean =
+        HOST_BOUND[child]?.let { it == host } ?: true
 
     private fun admits(filter: ChildFilter, child: ComponentType): Boolean = when (filter) {
         is ChildFilter.Any -> true
@@ -798,11 +846,55 @@ public class DocumentGenerator(
         }
 
         val props = linkedMapOf<PropertyKey, PropertyValue>()
+        // An icon arm fills its pair from the registry, not from the Str filler: SchemaPass
+        // refuses a (set, name) outside a registered set, and "gen-48213" is always outside.
+        // The pair travels together, so both keys override or neither does.
+        val iconFills = iconFillsFor(spec)
+        // The same logic puts a real reference on a resource-kind prop: the filler's literal
+        // is a shape the value check refuses, and the declaration above is what answers it.
+        val resourceFills = resourceFillsFor(spec)
         for (key in wanted) {
-            val value = propertyValueFor(declared.getValue(key), scope, bounds[key])
+            val value = iconFills?.get(key)
+                ?.let { PropertyValue.Const(Value.Str(it)) }
+                ?: resourceFills?.get(key)
+                ?: propertyValueFor(declared.getValue(key), scope, bounds[key])
             if (value != null) props[key] = value
         }
         return props
+    }
+
+    /**
+     * The (set, name) fills a component's icon arm wants, when it has one.
+     *
+     * Read from the component's own binding: the `ValueEmit.Icon` declaration names the two
+     * properties the pair rides on, and the schema's icon registry supplies a pair that passes
+     * `checkIcons` — the first set's first name, deterministic so a seed regenerates the same
+     * document. Components without an icon arm get null and keep the ordinary filler.
+     */
+    private fun iconFillsFor(spec: ComponentSpec): Map<PropertyKey, String>? {
+        val binding = spec.codegen as? CodegenBinding.ComposeCall ?: return null
+        val emit = binding.params.firstNotNullOfOrNull { it.emit as? ValueEmit.Icon } ?: return null
+        val set = view.icons.all().firstOrNull() ?: return null
+        val name = set.icons.keys.firstOrNull() ?: return null
+        return mapOf(emit.setKey to set.name, emit.nameKey to name)
+    }
+
+    /**
+     * The fill a component's resource-kind props want, when it has any.
+     *
+     * Read from the component's own binding: every `ValueEmit.Resource` param gets the one
+     * reference [GENERATED_RESOURCE] answers, deterministic so a seed regenerates the same
+     * document. Components without a resource arm get null and keep the ordinary filler.
+     */
+    private fun resourceFillsFor(spec: ComponentSpec): Map<PropertyKey, PropertyValue>? {
+        val binding = spec.codegen as? CodegenBinding.ComposeCall ?: return null
+        val fills = binding.params
+            .filter { it.emit is ValueEmit.Resource }
+            .flatMap { param ->
+                param.from.map { key -> key to PropertyValue.Const(Value.Ref(RefKind.Resource, GENERATED_RESOURCE.id.value)) }
+            }
+            .toMap()
+        return if (fills.isEmpty()) null else fills
     }
 
     private fun takeOneOf(
@@ -832,13 +924,20 @@ public class DocumentGenerator(
      * against the same tree. A property typed `TypeRef.Object` or `TypeRef.Icon` has no
      * expression form the checker settles without a registry, and a generator that guessed would
      * produce `expr.type_mismatch` on a shape it believed was fine.
+     *
+     * A required list always prefers its expression form when one exists: a bound list is what
+     * an iterating slot is for, and the corpus documents a lazy list through the binding it was
+     * designed for — a constant list would compile, but it would exercise none of the frame
+     * machinery the corpus exists to pin.
      */
     private fun propertyValueFor(
         property: PropertySpec<*>,
         scope: Scope,
         bounds: NumberBounds?,
     ): PropertyValue? {
-        if (property.required && random.nextInt(100) < COMPUTED_PROPERTY_PERCENT) {
+        val wantsComputed = property.required &&
+            (property.type is TypeRef.ListOf || random.nextInt(100) < COMPUTED_PROPERTY_PERCENT)
+        if (wantsComputed) {
             val computed = computedFor(property.type, scope)
             if (computed != null) {
                 computedProperties += 1
@@ -1160,16 +1259,19 @@ public class DocumentGenerator(
     }
 
     /**
-     * One action step, drawn from the six §11.4 registers analysis can check without a runtime.
+     * One action step, drawn from the eleven registers analysis can check without a runtime.
      *
-     * Every arm is written out in full rather than half: §11.4 declares six actions and all six
-     * are here, because an action a generator never writes is an action
-     * `RoundTripPropertyTest` and `PatchInversePropertyTest` would only ever meet in a
-     * hand-written fixture. `nav.navigate` is the constrained one — §13.1 makes the target's
-     * `ParamDecl`s the step's arguments, so it may only name a page with none, which is what
-     * `parameterlessPages` holds. `state.set` is the other: its `target` must be a computed read
-     * of a *writable* declaration in the handler's own scope, and §12.3 refuses a derived one
-     * as `action.state_not_writable`.
+     * Every arm is written out in full rather than half: the schema registers eleven actions —
+     * §11.4's six and §12:964's wave-two five — and all eleven are here, because an action a
+     * generator never writes is an action `RoundTripPropertyTest` and `PatchInversePropertyTest`
+     * would only ever meet in a hand-written fixture. `nav.navigate` is the constrained one —
+     * §13.1 makes the target's `ParamDecl`s the step's arguments, so it may only name a page
+     * with none, which is what `parameterlessPages` holds. `state.set` is the other: its
+     * `target` must be a computed read of a *writable* declaration in the handler's own scope,
+     * and §12.3 refuses a derived one as `action.state_not_writable`. The wave-two three are
+     * constrained the same way — `state.toggle` only over a writable `Bool`, the two list
+     * actions only over a writable list whose element a constant can spell — and the two
+     * dialog actions draw two strings, which is all their v1 contract carries.
      */
     private fun step(event: EventSpec, scope: Scope): ActionStep {
         val options: MutableList<ActionStep> = mutableListOf()
@@ -1210,6 +1312,55 @@ public class DocumentGenerator(
                 ),
             )
         }
+
+        val booleans = writable.filter { it.type == TypeRef.Bool }
+        if (booleans.isNotEmpty()) {
+            val target = booleans[random.nextInt(booleans.size)]
+            options += ActionStep(
+                action = TOGGLE,
+                args = mapOf(
+                    PropertyKey("target") to PropertyValue.Computed(Expr.Ref(RefTarget.State(target.id))),
+                ),
+            )
+        }
+
+        val lists = writable.filter { it.type is TypeRef.ListOf }
+        if (lists.isNotEmpty()) {
+            val target = lists[random.nextInt(lists.size)]
+            val value = constantFor((target.type as TypeRef.ListOf).element, scope)
+            if (value != null) {
+                options += ActionStep(
+                    action = APPEND,
+                    args = mapOf(
+                        PropertyKey("target") to PropertyValue.Computed(Expr.Ref(RefTarget.State(target.id))),
+                        PropertyKey("value") to PropertyValue.Const(value),
+                    ),
+                )
+                options += ActionStep(
+                    action = REMOVE,
+                    args = mapOf(
+                        PropertyKey("target") to PropertyValue.Computed(Expr.Ref(RefTarget.State(target.id))),
+                        PropertyKey("value") to PropertyValue.Const(value),
+                    ),
+                )
+            }
+        }
+
+        options += ActionStep(
+            action = SHOW_DIALOG,
+            args = mapOf(
+                PropertyKey("title") to PropertyValue.Computed(strExpression(scope, 1)),
+                PropertyKey("message") to PropertyValue.Computed(strExpression(scope, 1)),
+            ),
+        )
+
+        options += ActionStep(
+            action = SHOW_SHEET,
+            args = mapOf(
+                PropertyKey("title") to PropertyValue.Computed(strExpression(scope, 1)),
+                PropertyKey("message") to PropertyValue.Computed(strExpression(scope, 1)),
+            ),
+        )
 
         if (hosts.isNotEmpty()) {
             val host = hosts[random.nextInt(hosts.size)]
@@ -1390,6 +1541,16 @@ public class DocumentGenerator(
         val COLUMN: ComponentType = ComponentType("core.Column")
         val SLOT_OUTLET: ComponentType = ComponentType("core.SlotOutlet")
 
+        /**
+         * The children the pool draws only under a named host, keyed by the child and valued by
+         * the host its binding requires. V1 holds one pair: the navigation item composes through
+         * Compose's `RowScope.NavigationBarItem` extension, so only the bar's row makes its
+         * generated call legal (see [hostAllows]).
+         */
+        val HOST_BOUND: Map<ComponentType, ComponentType> = mapOf(
+            ComponentType("m3.NavigationItem") to ComponentType("m3.NavigationBar"),
+        )
+
         /** §11.4's six MVP actions, by id. */
         val NAVIGATE: ActionId = ActionId("nav.navigate")
         val NAV_BACK: ActionId = ActionId("nav.back")
@@ -1397,6 +1558,11 @@ public class DocumentGenerator(
         val CONDITIONAL: ActionId = ActionId("flow.if")
         val HOST_CALL: ActionId = ActionId("host.call")
         val SHOW_SNACKBAR: ActionId = ActionId("ui.showSnackbar")
+        val TOGGLE: ActionId = ActionId("state.toggle")
+        val APPEND: ActionId = ActionId("list.append")
+        val REMOVE: ActionId = ActionId("list.remove")
+        val SHOW_DIALOG: ActionId = ActionId("ui.showDialog")
+        val SHOW_SHEET: ActionId = ActionId("ui.showBottomSheet")
 
         /** §10.2's string functions, by id. */
         val STR_TRIM: FunctionId = FunctionId("str.trim")

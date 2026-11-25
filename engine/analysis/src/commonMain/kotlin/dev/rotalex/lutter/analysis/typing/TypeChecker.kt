@@ -132,8 +132,11 @@ internal class TypeChecker(
             is RefTarget.Param -> ctx.scope.params[target.name]?.let { ExprType.Of(it) }
                 ?: unresolved(ctx, "parameter '${target.name}'")
 
-            // §10.1 marks an item as wave 2, so nothing binds one and a read of it is a refusal.
-            is RefTarget.Item -> unresolved(ctx, "item '${target.name}'")
+            // The iteration binding the node's position supplies: inside a lazy slot's children
+            // the slot's loop variable reads as the element type its list carries, and outside
+            // one the read is the refusal an unbound name always gets.
+            is RefTarget.Item -> ctx.scope.items[target.name]?.let { ExprType.Of(it) }
+                ?: unresolved(ctx, "item '${target.name}'")
 
             // §11.2 introduces an event argument in a handler, so the scope that carries one is
             // pass 6's: a property position binds none, which is why `ExprScope.eventArgs`
@@ -442,11 +445,18 @@ internal class TypeChecker(
  * [dev.rotalex.lutter.schema.component.EventArgSpec.name] both are one. It defaults to empty
  * because a property position binds none: §11.2 introduces an argument in a handler, so only
  * pass 6 fills it and every other caller inherits the refusal.
+ *
+ * [items] is the iteration binding a node's position supplies: a lazy slot's children read the
+ * slot's loop variable ([dev.rotalex.lutter.schema.component.IterationSpec.itemName]) as the
+ * element type its list carries. It defaults to empty the same way — only a node inside an
+ * iterating slot has one, and the walk that checks it supplies it; everywhere else an item
+ * read inherits the refusal.
  */
 internal data class ExprScope(
     public val state: Map<StateId, TypeRef>,
     public val params: Map<ParamName, TypeRef>,
     public val eventArgs: Map<String, TypeRef> = emptyMap(),
+    public val items: Map<String, TypeRef> = emptyMap(),
 )
 
 /** One expression's outcome: what it produced, what it names, and everything it reported. */

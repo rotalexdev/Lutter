@@ -50,6 +50,8 @@ class ReservedCodegenNamesTest {
                 "AppRoot",
                 "AppState",
                 "LocalAppState",
+                "PersistentStore",
+                "LocalPersistentStore",
             ),
             ReservedCodegenNames.literals(options),
         )
@@ -66,16 +68,26 @@ class ReservedCodegenNamesTest {
     @Test
     fun `the state strategy reserves every name it emits`() {
         assertEquals(
-            setOf("AppState", "LocalAppState"),
+            setOf("AppState", "LocalAppState", "PersistentStore", "LocalPersistentStore"),
             ComposeSnapshotState.reservedTopLevelNames,
         )
     }
 
     @Test
-    fun `a page's derived names are its screen, its holder and the holder's constructor`() {
+    fun `a page's derived names are its screen, its state and the state's constructor`() {
         assertEquals(
             setOf("HomeScreen", "HomeScreenState", "rememberHomeScreenState"),
-            ReservedCodegenNames.derivedFor("Home"),
+            ReservedCodegenNames.derivedFor("Home", ComposeSnapshotState),
+        )
+    }
+
+    @Test
+    fun `under the viewmodel strategy the reserved names say which layer is which`() {
+        // The state keeps its name and the ViewModel takes its own, so a document cannot declare
+        // either one out from under the file: two names, two layers, nothing renamed into a lie.
+        assertEquals(
+            setOf("HomeScreen", "HomeScreenState", "HomeViewModel"),
+            ReservedCodegenNames.derivedFor("Home", ViewModelState),
         )
     }
 

@@ -9,6 +9,7 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.analysis.resolved.ResolvedState
 import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
 import dev.rotalex.lutter.model.doc.Persistence
+import dev.rotalex.lutter.model.doc.ExternalStateDecl
 import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.expr.BinaryOp
 import dev.rotalex.lutter.model.expr.Expr
@@ -291,14 +292,134 @@ class StateEmitterTest {
     }
 
     @Test
-    fun `a persistence no strategy emits is refused rather than silently downgraded`() {
+    fun `a saveable page declaration reads and writes through the persistent store`() {
         val saveable = StateDecl(count, "count", TypeRef.Int32, Value.Int32(0), null, Persistence.Saveable)
+        val result = generate(pageDocument(listOf(held(saveable))))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen: String = content(result, "screens/HomeScreen.kt")
+        // §12.1's persistent row: the value lives in the store, and the store wins over `initial`
+        // only when it has something to say.
+        assertTrue(screen.contains("store?.read(\"p_home/s_count\")?.toIntOrNull() ?: 0"), screen)
+        assertTrue(screen.contains("\"p_home/s_count\","), screen)
+        assertTrue(screen.contains("value.toString(),"), screen)
+        val store: String = content(result, "state/PersistentStore.kt")
+        assertTrue(store.contains("public interface PersistentStore"), store)
+        assertTrue(store.contains("public fun read(key: String): String?"), store)
+    }
+
+    @Test
+    fun `a saveable app declaration is written through the store AppRoot is handed`() {
+        val saveable = StateDecl(theme, "theme", TypeRef.Str, Value.Str("light"), null, Persistence.Saveable)
+        val result = generate(pageDocument(emptyList(), appState = listOf(held(saveable))))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val state: String = content(result, "state/AppState.kt")
+        assertTrue(state.contains("store?.read(\"app/s_theme\") ?: \"light\""), state)
+        assertTrue(state.contains("\"app/s_theme\","), state)
+        val root: String = content(result, "App.kt")
+        assertTrue(root.contains("store: PersistentStore? = null"), root)
+        assertTrue(root.contains("store = store,"), root)
+    }
+
+    @Test
+    fun `a viewmodel page row keeps the state a state and adds a viewmodel over it`() {
+        val screen: String = screenOf(pageDocument(heldPageState()), ViewModelState)
+
+        // §12.1's page row, unchanged: the declarations are members of the state class, and the
+        // class is still called a state. What the strategy adds is the layer that owns it.
+        assertTrue(screen.contains("public class HomeScreenState {"), screen)
+        assertTrue(screen.contains("public var count: Int by mutableStateOf(0)"), screen)
+        assertTrue(!screen.contains("HomeScreenState : ViewModel"), screen)
+        // The ViewModel is a ViewModel, down to its name, and it holds the state rather than
+        // becoming it: a configuration change keeps the instance, and the state goes with it.
+        assertTrue(screen.contains("public class HomeViewModel : ViewModel() {"), screen)
+        assertTrue(screen.contains("public val state: HomeScreenState = HomeScreenState()"), screen)
+        // The screen talks to the ViewModel, which is the layer that survives; the composition
+        // no longer remembers the state and the file no longer carries a factory for it.
+        assertTrue(screen.contains("viewModel: HomeViewModel = viewModel()"), screen)
+        assertTrue(!screen.contains("rememberHomeScreenState"), screen)
+        assertTrue(screen.contains("import androidx.lifecycle.ViewModel"), screen)
+        assertTrue(screen.contains("import androidx.lifecycle.viewmodel.compose.viewModel"), screen)
+    }
+
+    @Test
+    fun `a page declaration is read through the viewmodel that owns it`() {
+        val document: ResolvedDocument = pageDocument(heldPageState(), appState = listOf(heldTheme()))
+        val options: CodegenOptions = CodegenOptions("com.example.app", state = ViewModelState)
+        val emitter: StateEmitter = StateEmitter(document, options, schema().functions)
+
+        // `viewModel.state.count`, not `state.count`: one extra hop that says which layer the
+        // value belongs to, and the same hop `ActionEmitter` writes for an assignment.
+        assertEquals(
+            KtExpr.Member(KtExpr.Member(KtExpr.Name("viewModel"), "state"), "count"),
+            emitter.readInScreen(count),
+        )
+        // The app row is the composition local under this strategy too, so its read is unchanged.
+        val localAppState: KotlinSymbol = KotlinSymbol("com.example.app.state", "LocalAppState")
+        assertEquals(
+            KtExpr.Member(KtExpr.Member(KtExpr.Ref(KtSymbolRef(localAppState)), "current"), "theme"),
+            emitter.readInScreen(theme),
+        )
+    }
+
+    @Test
+    fun `the app row keeps the snapshot emission under the viewmodel strategy`() {
+        val document: ResolvedDocument = pageDocument(heldPageState(), appState = listOf(heldTheme()))
+        val files: CodegenResult = generate(document, ViewModelState)
+        val app: String = content(files, "state/AppState.kt")
+
+        // The app row's lifetime is the process, which a ViewModelStore does not outlive; only a
+        // page has a lifecycle owner worth asking for, so the local keeps its remembered holder.
+        assertTrue(app.contains("public class AppState {"), app)
+        assertTrue(!app.contains("ViewModel"), app)
+        // The holder is remembered where `AppRoot` provides it, which is `App.kt`, not this file.
+        val root: String = content(files, "App.kt")
+        assertTrue(root.contains("remember {"), root)
+    }
+
+    @Test
+    fun `a saveable declaration is refused where the strategy emits no store row`() {
+        val saveable = StateDecl(count, "count", TypeRef.Int32, Value.Int32(0), null, Persistence.Saveable)
+        val result = generate(pageDocument(listOf(held(saveable))), ViewModelState)
+
+        // A ViewModel is constructed by the platform, outside the composition that provides
+        // `LocalPersistentStore`, so the store has no way in and the declaration is refused
+        // rather than emitted as a property that silently forgets.
+        assertEquals(listOf("codegen.strategy_unsupported"), result.diagnostics.map { it.code.value })
+    }
+
+    @Test
+    fun `a saveable declaration whose type has no store codec is refused by name`() {
+        // A codec is text on both sides of the store, so a type this engine cannot spell as one
+        // is a finding, not a silently unpersisted property.
+        val saveable = StateDecl(
+            count,
+            "count",
+            TypeRef.ListOf(TypeRef.Str),
+            Value.ListOf(emptyList()),
+            null,
+            Persistence.Saveable,
+        )
         val result = generate(pageDocument(listOf(held(saveable))))
 
         assertTrue(result.files.files.isEmpty())
         assertEquals(listOf("codegen.strategy_unsupported"), result.diagnostics.map { it.code.value })
         assertEquals(
-            "State 'count' asks to be Saveable, which no strategy emits yet",
+            "State 'count' asks to be Saveable, and 'list' has no store codec",
+            result.diagnostics.single().message,
+        )
+    }
+
+    @Test
+    fun `a saveable component declaration is refused because a component local is remembered`() {
+        val saveable = StateDecl(count, "count", TypeRef.Int32, Value.Int32(0), null, Persistence.Saveable)
+        val result = generate(pageDocument(emptyList(), componentHeld = listOf(held(saveable))))
+
+        assertTrue(result.files.files.isEmpty())
+        assertEquals(listOf("codegen.strategy_unsupported"), result.diagnostics.map { it.code.value })
+        assertEquals(
+            "State 'count' asks to be Saveable, and §12.1's component row is remembered, not stored",
             result.diagnostics.single().message,
         )
     }
@@ -337,6 +458,100 @@ class StateEmitterTest {
     // A held `Int` named `count`, a held `String` named `label`, and `count + 1` named
     // `doubled`: `StateResolutionTest` already proves this trio resolves and type-checks, so the
     // document here is the same fact expressed on the wire.
+    @Test
+    fun `an external declaration is collected by the ViewModel, not held by the state class`() {
+        val document = pageDocument(listOf(heldExternal()))
+        val files = generate(document, ViewModelState)
+        assertTrue(files.diagnostics.isEmpty(), "got ${files.diagnostics}")
+        val screen: String = content(files, "screens/HomeScreen.kt")
+
+        // The holder takes the stream, the state class does not: a value the host owns is not a
+        // property a plain class can answer.
+        assertTrue("public class HomeViewModel(private val clock: Flow<String>) : ViewModel()" in screen, screen)
+        assertTrue("public class HomeScreenState" !in screen, screen)
+        assertTrue("private val nowState: MutableState<String>" in screen, screen)
+        assertTrue("public val now: String" in screen, screen)
+        assertTrue("get() = nowState.value" in screen, screen)
+        assertTrue("clock.collect" in screen, screen)
+        assertTrue("viewModelScope.launch" in screen, screen)
+        // The imports the four names above need, since a `Name` would have compiled nowhere.
+        for (imported in listOf(
+            "import kotlinx.coroutines.flow.Flow",
+            "import kotlinx.coroutines.launch",
+            "import androidx.compose.runtime.MutableState",
+            "import androidx.lifecycle.viewModelScope",
+        )) {
+            assertTrue(imported in screen, "$imported missing from:\n$screen")
+        }
+    }
+
+    @Test
+    fun `the screen's default builds the holder from the host it declares`() {
+        val screen: String = screenOf(pageDocument(listOf(heldExternal())), ViewModelState)
+
+        // The decision: the parameter stays the screen's with a default, and the default is where
+        // the adapter is read — so `AppRoot` forwards `host` and supplies nothing else.
+        assertTrue("host: AppHost" in screen, screen)
+        // A named argument expands, and a lambda with a body is one statement per line: the two
+        // facts pinned here are the initializer form and that it constructs the holder from the
+        // host, not the indentation the printer happens to choose.
+        assertTrue("viewModel(" in screen, screen)
+        assertTrue("initializer = {" in screen, screen)
+        assertTrue("HomeViewModel(host.clock())" in screen, screen)
+    }
+
+    @Test
+    fun `the app host declares one Flow member per external declaration`() {
+        val files = generate(pageDocument(listOf(heldExternal())), ViewModelState)
+
+        assertEquals(
+            """
+            // Generated by Forge. Do not edit.
+            package com.example.app
+
+            ${"import"} kotlinx.coroutines.flow.Flow
+
+            public interface AppHost {
+                public fun clock(): Flow<String>
+            }
+
+            public interface SnackbarHost {
+                public fun show(message: String)
+            }
+
+            public interface DialogHost {
+                public fun show(title: String, message: String)
+
+                public fun showSheet(title: String, message: String)
+            }
+
+            """.trimIndent(),
+            content(files, "AppHost.kt"),
+        )
+    }
+
+    @Test
+    fun `the snapshot strategy refuses an external declaration by name`() {
+        val files = generate(pageDocument(listOf(heldExternal())))
+
+        assertTrue(files.diagnostics.isNotEmpty(), "a remembered holder cannot hear a stream")
+        assertTrue(
+            files.diagnostics.any { "host adapter" in it.message && "now" in it.message },
+            "got ${files.diagnostics}",
+        )
+    }
+
+    private fun heldExternal(): ResolvedState = held(
+        StateDecl(
+            StateId("s_now"),
+            "now",
+            TypeRef.Str,
+            Value.Str(""),
+            null,
+            external = ExternalStateDecl("clock"),
+        ),
+    )
+
     private fun heldPageState(): List<ResolvedState> = listOf(
         held(StateDecl(count, "count", TypeRef.Int32, Value.Int32(0))),
         held(StateDecl(label, "label", TypeRef.Str, Value.Str("Clicks"))),
@@ -397,18 +612,21 @@ class StateEmitterTest {
         )
     }
 
-    private fun screenOf(document: ResolvedDocument): String {
-        val files = generate(document)
+    private fun screenOf(document: ResolvedDocument, state: StateStrategy = ComposeSnapshotState): String {
+        val files = generate(document, state)
         assertTrue(files.diagnostics.isEmpty(), "got ${files.diagnostics}")
         return content(files, "screens/HomeScreen.kt")
     }
 
-    private fun content(files: CodegenResult, path: String): String =
-        files.files.files.firstOrNull { it.path == path }?.content
-            ?: error("no '$path' in ${files.files.files.map { it.path }}")
+    private fun content(generated: CodegenResult, path: String): String =
+        generated.files.files.firstOrNull { it.path == path }?.content
+            ?: error("no '$path' in ${generated.files.files.map { it.path }}")
 
-    private fun generate(document: ResolvedDocument): CodegenResult =
-        KotlinGenerator(schema(), CodegenOptions("com.example.app")).generate(document)
+    private fun generate(
+        document: ResolvedDocument,
+        state: StateStrategy = ComposeSnapshotState,
+    ): CodegenResult =
+        KotlinGenerator(schema(), CodegenOptions("com.example.app", state = state)).generate(document)
 
     private fun column(id: String, vararg texts: String): ResolvedNode = ResolvedNode(
         NodeId(id),

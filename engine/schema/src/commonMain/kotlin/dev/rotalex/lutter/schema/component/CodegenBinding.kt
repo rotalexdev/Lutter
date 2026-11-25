@@ -35,6 +35,19 @@ public sealed interface CodegenBinding {
         public val events: List<EventBinding> = emptyList(),
         public val slots: List<SlotBinding> = emptyList(),
         /**
+         * The truthy property the whole call renders behind: a declarative window (`m3.Dialog`,
+         * `m3.BottomSheet`) shows while its `visible` read holds. The slot position wraps the
+         * call in an `if`; a page root renders always — a document never makes one the page.
+         */
+        public val guard: PropertyKey? = null,
+        /**
+         * The opt-in marker the generated function must carry: a callee marked
+         * `@RequiresOptIn` refuses under warnings-as-errors, and the function that composes it
+         * is where the opt-in is spelled. The marker itself is the annotation — applying a
+         * `@RequiresOptIn` annotation is the opt-in — so a bare symbol is all the file needs.
+         */
+        public val requiresOptIn: KotlinSymbol? = null,
+        /**
          * The callee's modifier parameter takes no default (Compose's `Spacer`), so an empty
          * chain still spells one.
          */
@@ -67,7 +80,10 @@ public data class ParamBinding(
 
 /**
  * How a parameter's value emits. Direct delegates to the value kind; cases pick a template
- * by which properties are present (§7.2's arrangement-vs-spacing shape, D7).
+ * by which properties are present (§7.2's arrangement-vs-spacing shape, D7); icon resolves
+ * the (set, name) pair through the schema's icon registry (§10:796), because `Icons.Filled.Home`
+ * is a case transformation no text pattern can spell; literal writes a constant, for a required
+ * argument the spec has no property for (`Icon`'s `contentDescription` has no default).
  */
 @Serializable
 @JsonClassDiscriminator("type")
@@ -79,6 +95,32 @@ public sealed interface ValueEmit {
     @Serializable
     @SerialName("cases")
     public data class Cases(public val cases: List<EmitCase>) : ValueEmit
+
+    /** The set names the icon set, the name key the icon inside it (§20:1599). */
+    @Serializable
+    @SerialName("icon")
+    public data class Icon(
+        public val setKey: PropertyKey,
+        public val nameKey: PropertyKey,
+    ) : ValueEmit
+
+    /** A constant, spelled as Kotlin source text. Kept even with no property behind it. */
+    @Serializable
+    @SerialName("literal")
+    public data class Literal(public val text: String) : ValueEmit
+
+    /**
+     * A resource reference, spelled as a compose-resources `Res` lookup (§20:1598).
+     *
+     * The property's value is a `Value.Ref(kind=resource, id)`; the generator resolves the
+     * id through the document's declarations and emits the vocabulary the kind names —
+     * `painterResource(Res.drawable.<name>)` for an image, `stringResource(Res.string.<name>)`
+     * for a string. Font and file resources have no prop-position spelling: they are
+     * runtime-loaded data, so no spec binds them with this arm.
+     */
+    @Serializable
+    @SerialName("resource")
+    public data object Resource : ValueEmit
 }
 
 /**

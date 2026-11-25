@@ -1,0 +1,10 @@
+public final class dev/rotalex/lutter/desktopapp/EditorScreenKt {
+	public static final fun EditorScreen (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/editor/EditorPreview;Ldev/rotalex/lutter/runtime/UiRuntime;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class dev/rotalex/lutter/desktopapp/MainKt {
+	public static final field DEFAULT_DOCUMENT Ljava/lang/String;
+	public static final fun main ([Ljava/lang/String;)V
+	public static final fun readDocument (Ljava/lang/String;)Ldev/rotalex/lutter/model/doc/UiDocument;
+}
+

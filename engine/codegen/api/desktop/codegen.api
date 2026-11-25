@@ -5,13 +5,13 @@ public final class dev/rotalex/lutter/codegen/ActionEmitter {
 }
 
 public final class dev/rotalex/lutter/codegen/ActionReceiver : java/lang/Enum {
+	public static final field Dialogs Ldev/rotalex/lutter/codegen/ActionReceiver;
 	public static final field Host Ldev/rotalex/lutter/codegen/ActionReceiver;
 	public static final field Navigator Ldev/rotalex/lutter/codegen/ActionReceiver;
 	public static final field Scope Ldev/rotalex/lutter/codegen/ActionReceiver;
 	public static final field Snackbars Ldev/rotalex/lutter/codegen/ActionReceiver;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public final fun getMember ()Ljava/lang/String;
-	public final fun getType ()Ljava/lang/String;
 	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/ActionReceiver;
 	public static fun values ()[Ldev/rotalex/lutter/codegen/ActionReceiver;
 }
@@ -37,23 +37,27 @@ public final class dev/rotalex/lutter/codegen/CodegenExtensions$Companion {
 }
 
 public final class dev/rotalex/lutter/codegen/CodegenOptions {
-	public fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/codegen/GeneratedLayout;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ldev/rotalex/lutter/codegen/HeaderPolicy;Ldev/rotalex/lutter/codegen/FormattingOptions;Ljava/util/Set;)V
-	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/codegen/GeneratedLayout;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ldev/rotalex/lutter/codegen/HeaderPolicy;Ldev/rotalex/lutter/codegen/FormattingOptions;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/codegen/GeneratedLayout;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ldev/rotalex/lutter/codegen/InjectionStrategy;Ldev/rotalex/lutter/codegen/ResourceStrategy;Ldev/rotalex/lutter/codegen/HeaderPolicy;Ldev/rotalex/lutter/codegen/FormattingOptions;Ljava/util/Set;)V
+	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/codegen/GeneratedLayout;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ldev/rotalex/lutter/codegen/InjectionStrategy;Ldev/rotalex/lutter/codegen/ResourceStrategy;Ldev/rotalex/lutter/codegen/HeaderPolicy;Ldev/rotalex/lutter/codegen/FormattingOptions;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ldev/rotalex/lutter/codegen/GeneratedLayout;
 	public final fun component3 ()Ldev/rotalex/lutter/codegen/NavigationStrategy;
 	public final fun component4 ()Ldev/rotalex/lutter/codegen/StateStrategy;
-	public final fun component5 ()Ldev/rotalex/lutter/codegen/HeaderPolicy;
-	public final fun component6 ()Ldev/rotalex/lutter/codegen/FormattingOptions;
-	public final fun component7 ()Ljava/util/Set;
-	public final fun copy (Ljava/lang/String;Ldev/rotalex/lutter/codegen/GeneratedLayout;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ldev/rotalex/lutter/codegen/HeaderPolicy;Ldev/rotalex/lutter/codegen/FormattingOptions;Ljava/util/Set;)Ldev/rotalex/lutter/codegen/CodegenOptions;
-	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/CodegenOptions;Ljava/lang/String;Ldev/rotalex/lutter/codegen/GeneratedLayout;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ldev/rotalex/lutter/codegen/HeaderPolicy;Ldev/rotalex/lutter/codegen/FormattingOptions;Ljava/util/Set;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/CodegenOptions;
+	public final fun component5 ()Ldev/rotalex/lutter/codegen/InjectionStrategy;
+	public final fun component6 ()Ldev/rotalex/lutter/codegen/ResourceStrategy;
+	public final fun component7 ()Ldev/rotalex/lutter/codegen/HeaderPolicy;
+	public final fun component8 ()Ldev/rotalex/lutter/codegen/FormattingOptions;
+	public final fun component9 ()Ljava/util/Set;
+	public final fun copy (Ljava/lang/String;Ldev/rotalex/lutter/codegen/GeneratedLayout;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ldev/rotalex/lutter/codegen/InjectionStrategy;Ldev/rotalex/lutter/codegen/ResourceStrategy;Ldev/rotalex/lutter/codegen/HeaderPolicy;Ldev/rotalex/lutter/codegen/FormattingOptions;Ljava/util/Set;)Ldev/rotalex/lutter/codegen/CodegenOptions;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/CodegenOptions;Ljava/lang/String;Ldev/rotalex/lutter/codegen/GeneratedLayout;Ldev/rotalex/lutter/codegen/NavigationStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ldev/rotalex/lutter/codegen/InjectionStrategy;Ldev/rotalex/lutter/codegen/ResourceStrategy;Ldev/rotalex/lutter/codegen/HeaderPolicy;Ldev/rotalex/lutter/codegen/FormattingOptions;Ljava/util/Set;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/CodegenOptions;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getBasePackage ()Ljava/lang/String;
 	public final fun getFormatting ()Ldev/rotalex/lutter/codegen/FormattingOptions;
 	public final fun getHeader ()Ldev/rotalex/lutter/codegen/HeaderPolicy;
+	public final fun getInjection ()Ldev/rotalex/lutter/codegen/InjectionStrategy;
 	public final fun getLayout ()Ldev/rotalex/lutter/codegen/GeneratedLayout;
 	public final fun getNavigation ()Ldev/rotalex/lutter/codegen/NavigationStrategy;
+	public final fun getResources ()Ldev/rotalex/lutter/codegen/ResourceStrategy;
 	public final fun getState ()Ldev/rotalex/lutter/codegen/StateStrategy;
 	public final fun getTargetPlatforms ()Ljava/util/Set;
 	public fun hashCode ()I
@@ -73,13 +77,25 @@ public final class dev/rotalex/lutter/codegen/CodegenResult {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/codegen/ComposeResourceStrategy : dev/rotalex/lutter/codegen/ResourceStrategy {
+	public fun <init> (Ljava/lang/String;)V
+	public fun getResPackage ()Ljava/lang/String;
+}
+
 public final class dev/rotalex/lutter/codegen/ComposeSnapshotState : dev/rotalex/lutter/codegen/StateStrategy {
 	public static final field INSTANCE Ldev/rotalex/lutter/codegen/ComposeSnapshotState;
 	public fun equals (Ljava/lang/Object;)Z
+	public fun getLibraries ()Ljava/util/Set;
+	public fun getPageParameterName ()Ljava/lang/String;
 	public fun getReservedTopLevelNames ()Ljava/util/Set;
+	public fun getSupportsExternal ()Z
 	public fun hashCode ()I
 	public fun holder (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun pageExtras (Ljava/lang/String;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;)Ljava/util/List;
+	public fun pageParameter (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtParam;
+	public fun pageReservedNames (Ljava/lang/String;)Ljava/util/Set;
 	public fun receiver (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun saveable (Ldev/rotalex/lutter/codegen/StateScope;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/StoreCodec;Ldev/rotalex/lutter/codegen/KtExpr;)Ljava/util/List;
 	public fun supports (Ldev/rotalex/lutter/model/doc/Persistence;)Z
 	public fun toString ()Ljava/lang/String;
 }
@@ -94,12 +110,37 @@ public final class dev/rotalex/lutter/codegen/ExprEmitter {
 	public final fun emitRaw (Ldev/rotalex/lutter/model/expr/Expr;)Ldev/rotalex/lutter/codegen/KtExpr;
 }
 
+public final class dev/rotalex/lutter/codegen/ExternalAdapter {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun component4 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/ExternalAdapter;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/ExternalAdapter;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/ExternalAdapter;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAdapter ()Ljava/lang/String;
+	public final fun getInitial ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun getState ()Ljava/lang/String;
+	public final fun getType ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/rotalex/lutter/codegen/FileContext {
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function1;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Ldev/rotalex/lutter/codegen/KtParam;Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Ldev/rotalex/lutter/codegen/KtParam;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun appRootParameters ()Ljava/util/List;
+	public final fun appRootReceivers ()Ljava/util/List;
 	public final fun getAppState ()Lkotlin/jvm/functions/Function1;
 	public final fun getHeader ()Ljava/lang/String;
+	public final fun getInjected ()Lkotlin/jvm/functions/Function1;
 	public final fun getPkg ()Ljava/lang/String;
+	public final fun getReceiverType ()Lkotlin/jvm/functions/Function1;
 	public final fun getReceivers ()Ljava/util/Map;
+	public final fun getStoreParameter ()Ldev/rotalex/lutter/codegen/KtParam;
+	public final fun receiversOf (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;)Ljava/util/List;
+	public final fun rootBody (Ldev/rotalex/lutter/codegen/KtStmt;)Ljava/util/List;
 }
 
 public final class dev/rotalex/lutter/codegen/FormattingOptions {
@@ -133,7 +174,9 @@ public final class dev/rotalex/lutter/codegen/GenPlan {
 }
 
 public final class dev/rotalex/lutter/codegen/GenPlanKt {
-	public static final fun planDocument (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/GenPlan;
+	public static final fun injectionPackage (Ljava/lang/String;)Ljava/lang/String;
+	public static final fun planDocument (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ljava/lang/String;Ldev/rotalex/lutter/codegen/InjectionStrategy;)Ldev/rotalex/lutter/codegen/GenPlan;
+	public static synthetic fun planDocument$default (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ljava/lang/String;Ldev/rotalex/lutter/codegen/InjectionStrategy;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/GenPlan;
 }
 
 public final class dev/rotalex/lutter/codegen/GeneratedFile {
@@ -164,11 +207,51 @@ public final class dev/rotalex/lutter/codegen/GeneratedLayout : java/lang/Enum {
 	public static fun values ()[Ldev/rotalex/lutter/codegen/GeneratedLayout;
 }
 
+public final class dev/rotalex/lutter/codegen/GeneratedLibrary : java/lang/Enum {
+	public static final field Coroutines Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static final field HiltAndroid Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static final field HiltNavigationCompose Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static final field KoinComposeViewModel Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static final field KoinCore Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static final field LifecycleViewModelCompose Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static final field MetroRuntime Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static final field MetroxViewModelCompose Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static final field Navigation3 Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static final field NavigationCompose Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+	public static fun values ()[Ldev/rotalex/lutter/codegen/GeneratedLibrary;
+}
+
+public final class dev/rotalex/lutter/codegen/GeneratedPlugin : java/lang/Enum {
+	public static final field Metro Ldev/rotalex/lutter/codegen/GeneratedPlugin;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/GeneratedPlugin;
+	public static fun values ()[Ldev/rotalex/lutter/codegen/GeneratedPlugin;
+}
+
 public final class dev/rotalex/lutter/codegen/HeaderPolicy : java/lang/Enum {
 	public static final field Minimal Ldev/rotalex/lutter/codegen/HeaderPolicy;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/HeaderPolicy;
 	public static fun values ()[Ldev/rotalex/lutter/codegen/HeaderPolicy;
+}
+
+public final class dev/rotalex/lutter/codegen/Hilt : dev/rotalex/lutter/codegen/InjectionStrategy {
+	public static final field INSTANCE Ldev/rotalex/lutter/codegen/Hilt;
+	public fun appRoot (Ljava/util/List;Ljava/lang/String;)Ljava/util/List;
+	public fun decorate (Ljava/util/List;)Ljava/util/List;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getEmitsModule ()Z
+	public fun getLibraries ()Ljava/util/Set;
+	public fun getPlugins ()Ljava/util/Set;
+	public fun getScaffoldRefusal ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtParam;
+	public fun module (Ljava/util/List;)Ljava/util/List;
+	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/lang/String;
+	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/util/Set;)Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
 }
 
 public abstract interface class dev/rotalex/lutter/codegen/HostDecl {
@@ -193,6 +276,50 @@ public final class dev/rotalex/lutter/codegen/ImportPolicy$Companion {
 	public final fun getDefaultPackages ()Ljava/util/Set;
 }
 
+public abstract interface class dev/rotalex/lutter/codegen/InjectionStrategy {
+	public fun appRoot (Ljava/util/List;Ljava/lang/String;)Ljava/util/List;
+	public fun decorate (Ljava/util/List;)Ljava/util/List;
+	public fun getEmitsModule ()Z
+	public fun getLibraries ()Ljava/util/Set;
+	public fun getPlugins ()Ljava/util/Set;
+	public fun getScaffoldRefusal ()Ljava/lang/String;
+	public abstract fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtParam;
+	public static synthetic fun holderParameter$default (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtParam;
+	public fun module (Ljava/util/List;)Ljava/util/List;
+	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/lang/String;
+	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/util/Set;)Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/InjectionStrategy$DefaultImpls {
+	public static fun appRoot (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ljava/util/List;Ljava/lang/String;)Ljava/util/List;
+	public static fun decorate (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ljava/util/List;)Ljava/util/List;
+	public static fun getEmitsModule (Ldev/rotalex/lutter/codegen/InjectionStrategy;)Z
+	public static fun getLibraries (Ldev/rotalex/lutter/codegen/InjectionStrategy;)Ljava/util/Set;
+	public static fun getPlugins (Ldev/rotalex/lutter/codegen/InjectionStrategy;)Ljava/util/Set;
+	public static fun getScaffoldRefusal (Ldev/rotalex/lutter/codegen/InjectionStrategy;)Ljava/lang/String;
+	public static synthetic fun holderParameter$default (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtParam;
+	public static fun module (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ljava/util/List;)Ljava/util/List;
+	public static fun refusal (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/lang/String;
+	public static fun refusal (Ldev/rotalex/lutter/codegen/InjectionStrategy;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/util/Set;)Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/Koin : dev/rotalex/lutter/codegen/InjectionStrategy {
+	public static final field INSTANCE Ldev/rotalex/lutter/codegen/Koin;
+	public fun appRoot (Ljava/util/List;Ljava/lang/String;)Ljava/util/List;
+	public fun decorate (Ljava/util/List;)Ljava/util/List;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getEmitsModule ()Z
+	public fun getLibraries ()Ljava/util/Set;
+	public fun getPlugins ()Ljava/util/Set;
+	public fun getScaffoldRefusal ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtParam;
+	public fun module (Ljava/util/List;)Ljava/util/List;
+	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/lang/String;
+	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/util/Set;)Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/rotalex/lutter/codegen/KotlinGenerator {
 	public fun <init> (Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/codegen/CodegenOptions;Ldev/rotalex/lutter/codegen/CodegenExtensions;)V
 	public synthetic fun <init> (Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/codegen/CodegenOptions;Ldev/rotalex/lutter/codegen/CodegenExtensions;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -203,6 +330,20 @@ public final class dev/rotalex/lutter/codegen/KotlinGenerator {
 public final class dev/rotalex/lutter/codegen/KotlinTypes {
 	public static final field INSTANCE Ldev/rotalex/lutter/codegen/KotlinTypes;
 	public final fun spellingFor (Ldev/rotalex/lutter/model/type/TypeRef;)Ldev/rotalex/lutter/codegen/TypeSpelling;
+}
+
+public final class dev/rotalex/lutter/codegen/KtAnnotation {
+	public fun <init> (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/util/List;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtAnnotation;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtAnnotation;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtAnnotation;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArgs ()Ljava/util/List;
+	public final fun getSymbol ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class dev/rotalex/lutter/codegen/KtArg {
@@ -238,38 +379,44 @@ public abstract interface class dev/rotalex/lutter/codegen/KtDeclaration {
 }
 
 public final class dev/rotalex/lutter/codegen/KtDeclaration$Class : dev/rotalex/lutter/codegen/KtDeclaration {
-	public fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ldev/rotalex/lutter/schema/component/KotlinSymbol;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/util/List;
 	public final fun component3 ()Ljava/util/List;
 	public final fun component4 ()Ljava/util/List;
-	public final fun copy (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtDeclaration$Class;
-	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtDeclaration$Class;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtDeclaration$Class;
+	public final fun component5 ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
+	public final fun component6 ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)Ldev/rotalex/lutter/codegen/KtDeclaration$Class;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtDeclaration$Class;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ldev/rotalex/lutter/schema/component/KotlinSymbol;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtDeclaration$Class;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAnnotations ()Ljava/util/List;
+	public final fun getConstructorAnnotation ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
 	public final fun getConstructorProperties ()Ljava/util/List;
 	public final fun getMembers ()Ljava/util/List;
 	public final fun getName ()Ljava/lang/String;
+	public final fun getSupertype ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
 
 public final class dev/rotalex/lutter/codegen/KtDeclaration$Function : dev/rotalex/lutter/codegen/KtDeclaration {
-	public fun <init> (Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;Ljava/util/List;Z)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;Ljava/util/List;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;Ljava/util/List;ZLjava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;Ljava/util/List;ZLjava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/util/List;
 	public final fun component3 ()Ldev/rotalex/lutter/codegen/KtExpr;
 	public final fun component4 ()Ljava/util/List;
 	public final fun component5 ()Ljava/util/List;
 	public final fun component6 ()Z
-	public final fun copy (Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;Ljava/util/List;Z)Ldev/rotalex/lutter/codegen/KtDeclaration$Function;
-	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtDeclaration$Function;Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;Ljava/util/List;ZILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtDeclaration$Function;
+	public final fun component7 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;Ljava/util/List;ZLjava/util/List;)Ldev/rotalex/lutter/codegen/KtDeclaration$Function;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtDeclaration$Function;Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;Ljava/util/List;ZLjava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtDeclaration$Function;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAnnotations ()Ljava/util/List;
 	public final fun getBody ()Ljava/util/List;
 	public final fun getName ()Ljava/lang/String;
+	public final fun getOptIns ()Ljava/util/List;
 	public final fun getParams ()Ljava/util/List;
 	public final fun getSuspending ()Z
 	public final fun getType ()Ldev/rotalex/lutter/codegen/KtExpr;
@@ -278,33 +425,39 @@ public final class dev/rotalex/lutter/codegen/KtDeclaration$Function : dev/rotal
 }
 
 public final class dev/rotalex/lutter/codegen/KtDeclaration$Interface : dev/rotalex/lutter/codegen/KtDeclaration {
-	public fun <init> (Ljava/lang/String;Ljava/util/List;ZLjava/util/List;)V
+	public fun <init> (Ljava/lang/String;Ljava/util/List;ZLjava/util/List;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;ZLjava/util/List;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/util/List;
 	public final fun component3 ()Z
 	public final fun component4 ()Ljava/util/List;
-	public final fun copy (Ljava/lang/String;Ljava/util/List;ZLjava/util/List;)Ldev/rotalex/lutter/codegen/KtDeclaration$Interface;
-	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtDeclaration$Interface;Ljava/lang/String;Ljava/util/List;ZLjava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtDeclaration$Interface;
+	public final fun component5 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;ZLjava/util/List;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtDeclaration$Interface;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtDeclaration$Interface;Ljava/lang/String;Ljava/util/List;ZLjava/util/List;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtDeclaration$Interface;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAnnotations ()Ljava/util/List;
 	public final fun getMembers ()Ljava/util/List;
 	public final fun getName ()Ljava/lang/String;
 	public final fun getSealed ()Z
+	public final fun getSupertypes ()Ljava/util/List;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
 
 public final class dev/rotalex/lutter/codegen/KtDeclaration$Object : dev/rotalex/lutter/codegen/KtDeclaration {
-	public fun <init> (Ljava/lang/String;Ljava/util/List;ZLjava/util/List;)V
+	public fun <init> (Ljava/lang/String;Ljava/util/List;ZLjava/util/List;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;ZLjava/util/List;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/util/List;
 	public final fun component3 ()Z
 	public final fun component4 ()Ljava/util/List;
-	public final fun copy (Ljava/lang/String;Ljava/util/List;ZLjava/util/List;)Ldev/rotalex/lutter/codegen/KtDeclaration$Object;
-	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtDeclaration$Object;Ljava/lang/String;Ljava/util/List;ZLjava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtDeclaration$Object;
+	public final fun component5 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;ZLjava/util/List;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtDeclaration$Object;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtDeclaration$Object;Ljava/lang/String;Ljava/util/List;ZLjava/util/List;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtDeclaration$Object;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAnnotations ()Ljava/util/List;
 	public final fun getData ()Z
+	public final fun getMembers ()Ljava/util/List;
 	public final fun getName ()Ljava/lang/String;
 	public final fun getSupertypes ()Ljava/util/List;
 	public fun hashCode ()I
@@ -312,8 +465,8 @@ public final class dev/rotalex/lutter/codegen/KtDeclaration$Object : dev/rotalex
 }
 
 public final class dev/rotalex/lutter/codegen/KtDeclaration$Property : dev/rotalex/lutter/codegen/KtDeclaration {
-	public fun <init> (Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;ZLdev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/lang/String;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;ZLdev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;ZLdev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/lang/String;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;ZLdev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/lang/String;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/util/List;
 	public final fun component3 ()Ldev/rotalex/lutter/codegen/KtExpr;
@@ -322,8 +475,9 @@ public final class dev/rotalex/lutter/codegen/KtDeclaration$Property : dev/rotal
 	public final fun component6 ()Ldev/rotalex/lutter/codegen/KtExpr;
 	public final fun component7 ()Ldev/rotalex/lutter/codegen/KtExpr;
 	public final fun component8 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;ZLdev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtDeclaration$Property;
-	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtDeclaration$Property;Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;ZLdev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtDeclaration$Property;
+	public final fun component9 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;ZLdev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/lang/String;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtDeclaration$Property;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtDeclaration$Property;Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;ZLdev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtDeclaration$Property;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAnnotations ()Ljava/util/List;
 	public final fun getDelegate ()Ldev/rotalex/lutter/codegen/KtExpr;
@@ -331,6 +485,7 @@ public final class dev/rotalex/lutter/codegen/KtDeclaration$Property : dev/rotal
 	public final fun getInitializer ()Ldev/rotalex/lutter/codegen/KtExpr;
 	public final fun getMutable ()Z
 	public final fun getName ()Ljava/lang/String;
+	public final fun getSetter ()Ljava/util/List;
 	public final fun getType ()Ldev/rotalex/lutter/codegen/KtExpr;
 	public final fun getVisibility ()Ljava/lang/String;
 	public fun hashCode ()I
@@ -393,6 +548,19 @@ public final class dev/rotalex/lutter/codegen/KtExpr$Delegate : dev/rotalex/lutt
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getHolder ()Ldev/rotalex/lutter/codegen/KtExpr;
 	public final fun getOperators ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/KtExpr$FunctionType : dev/rotalex/lutter/codegen/KtExpr {
+	public fun <init> (Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun copy (Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr$FunctionType;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtExpr$FunctionType;Ljava/util/List;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtExpr$FunctionType;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getParams ()Ljava/util/List;
+	public final fun getReturns ()Ldev/rotalex/lutter/codegen/KtExpr;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -543,6 +711,19 @@ public final class dev/rotalex/lutter/codegen/KtExpr$TypeApplication : dev/rotal
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/codegen/KtExpr$TypeProjection : dev/rotalex/lutter/codegen/KtExpr {
+	public fun <init> (Ldev/rotalex/lutter/codegen/TypeVariance;Ldev/rotalex/lutter/codegen/KtExpr;)V
+	public final fun component1 ()Ldev/rotalex/lutter/codegen/TypeVariance;
+	public final fun component2 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun copy (Ldev/rotalex/lutter/codegen/TypeVariance;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr$TypeProjection;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtExpr$TypeProjection;Ldev/rotalex/lutter/codegen/TypeVariance;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtExpr$TypeProjection;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getInner ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun getVariance ()Ldev/rotalex/lutter/codegen/TypeVariance;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/rotalex/lutter/codegen/KtExpr$Unary : dev/rotalex/lutter/codegen/KtExpr {
 	public fun <init> (Ldev/rotalex/lutter/codegen/KtOp;Ldev/rotalex/lutter/codegen/KtExpr;)V
 	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtOp;
@@ -569,6 +750,10 @@ public final class dev/rotalex/lutter/codegen/KtFile {
 	public final fun getPkg ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/KtIrKt {
+	public static final fun toAnnotation (Ldev/rotalex/lutter/schema/component/KotlinSymbol;)Ldev/rotalex/lutter/codegen/KtAnnotation;
 }
 
 public final class dev/rotalex/lutter/codegen/KtOp : java/lang/Enum {
@@ -640,6 +825,19 @@ public final class dev/rotalex/lutter/codegen/KtStmt$Expr : dev/rotalex/lutter/c
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/codegen/KtStmt$If : dev/rotalex/lutter/codegen/KtStmt {
+	public fun <init> (Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;)V
+	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtStmt$If;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtStmt$If;Ldev/rotalex/lutter/codegen/KtExpr;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtStmt$If;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCond ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun getThen ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/rotalex/lutter/codegen/KtStmt$LocalProperty : dev/rotalex/lutter/codegen/KtStmt {
 	public fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/codegen/KtExpr;ZLdev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/KtExpr;)V
 	public final fun component1 ()Ljava/lang/String;
@@ -655,6 +853,17 @@ public final class dev/rotalex/lutter/codegen/KtStmt$LocalProperty : dev/rotalex
 	public final fun getMutable ()Z
 	public final fun getName ()Ljava/lang/String;
 	public final fun getType ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/KtStmt$Return : dev/rotalex/lutter/codegen/KtStmt {
+	public fun <init> (Ldev/rotalex/lutter/codegen/KtExpr;)V
+	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun copy (Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtStmt$Return;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtStmt$Return;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtStmt$Return;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ldev/rotalex/lutter/codegen/KtExpr;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -726,11 +935,85 @@ public final class dev/rotalex/lutter/codegen/KtTemplatePart$Text : dev/rotalex/
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/codegen/Metro : dev/rotalex/lutter/codegen/InjectionStrategy {
+	public static final field INSTANCE Ldev/rotalex/lutter/codegen/Metro;
+	public fun appRoot (Ljava/util/List;Ljava/lang/String;)Ljava/util/List;
+	public fun decorate (Ljava/util/List;)Ljava/util/List;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getEmitsModule ()Z
+	public fun getLibraries ()Ljava/util/Set;
+	public fun getPlugins ()Ljava/util/Set;
+	public fun getScaffoldRefusal ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtParam;
+	public fun module (Ljava/util/List;)Ljava/util/List;
+	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/lang/String;
+	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/util/Set;)Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/Navigation3 : dev/rotalex/lutter/codegen/NavigationStrategy {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/Navigation3;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/Navigation3;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/Navigation3;
+	public fun emitAppRoot (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ldev/rotalex/lutter/codegen/FileContext;)Ldev/rotalex/lutter/codegen/KtFile;
+	public fun emitNavigateCall (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtStmt;
+	public fun emitRoutes (Ljava/util/List;Ldev/rotalex/lutter/codegen/FileContext;)Ljava/util/List;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBasePackage ()Ljava/lang/String;
+	public fun getLibraries ()Ljava/util/Set;
+	public fun getNavigatorType ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
+	public fun getReservedTopLevelNames ()Ljava/util/Set;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/NavigationCompose : dev/rotalex/lutter/codegen/NavigationStrategy {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/NavigationCompose;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/NavigationCompose;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/NavigationCompose;
+	public fun emitAppRoot (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ldev/rotalex/lutter/codegen/FileContext;)Ldev/rotalex/lutter/codegen/KtFile;
+	public fun emitNavigateCall (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtStmt;
+	public fun emitRoutes (Ljava/util/List;Ldev/rotalex/lutter/codegen/FileContext;)Ljava/util/List;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBasePackage ()Ljava/lang/String;
+	public fun getLibraries ()Ljava/util/Set;
+	public fun getNavigatorType ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
+	public fun getReservedTopLevelNames ()Ljava/util/Set;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public abstract interface class dev/rotalex/lutter/codegen/NavigationStrategy {
 	public abstract fun emitAppRoot (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ldev/rotalex/lutter/codegen/FileContext;)Ldev/rotalex/lutter/codegen/KtFile;
 	public abstract fun emitNavigateCall (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtStmt;
 	public abstract fun emitRoutes (Ljava/util/List;Ldev/rotalex/lutter/codegen/FileContext;)Ljava/util/List;
+	public fun getLibraries ()Ljava/util/Set;
+	public abstract fun getNavigatorType ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
 	public abstract fun getReservedTopLevelNames ()Ljava/util/Set;
+}
+
+public final class dev/rotalex/lutter/codegen/NavigationStrategy$DefaultImpls {
+	public static fun getLibraries (Ldev/rotalex/lutter/codegen/NavigationStrategy;)Ljava/util/Set;
+}
+
+public final class dev/rotalex/lutter/codegen/NoInjection : dev/rotalex/lutter/codegen/InjectionStrategy {
+	public static final field INSTANCE Ldev/rotalex/lutter/codegen/NoInjection;
+	public fun appRoot (Ljava/util/List;Ljava/lang/String;)Ljava/util/List;
+	public fun decorate (Ljava/util/List;)Ljava/util/List;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getEmitsModule ()Z
+	public fun getLibraries ()Ljava/util/Set;
+	public fun getPlugins ()Ljava/util/Set;
+	public fun getScaffoldRefusal ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun holderParameter (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtParam;
+	public fun module (Ljava/util/List;)Ljava/util/List;
+	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/lang/String;
+	public fun refusal (Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/util/Set;)Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class dev/rotalex/lutter/codegen/PlannedFile {
@@ -757,8 +1040,10 @@ public final class dev/rotalex/lutter/codegen/PlannedFileKind : java/lang/Enum {
 	public static final field AppHost Ldev/rotalex/lutter/codegen/PlannedFileKind;
 	public static final field AppState Ldev/rotalex/lutter/codegen/PlannedFileKind;
 	public static final field Component Ldev/rotalex/lutter/codegen/PlannedFileKind;
+	public static final field Injection Ldev/rotalex/lutter/codegen/PlannedFileKind;
 	public static final field Navigation Ldev/rotalex/lutter/codegen/PlannedFileKind;
 	public static final field Screen Ldev/rotalex/lutter/codegen/PlannedFileKind;
+	public static final field Store Ldev/rotalex/lutter/codegen/PlannedFileKind;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/PlannedFileKind;
 	public static fun values ()[Ldev/rotalex/lutter/codegen/PlannedFileKind;
@@ -766,14 +1051,23 @@ public final class dev/rotalex/lutter/codegen/PlannedFileKind : java/lang/Enum {
 
 public final class dev/rotalex/lutter/codegen/ReservedCodegenNames {
 	public static final field AppHostName Ljava/lang/String;
+	public static final field DialogHostName Ljava/lang/String;
 	public static final field INSTANCE Ldev/rotalex/lutter/codegen/ReservedCodegenNames;
 	public static final field PageStateSuffix Ljava/lang/String;
-	public static final field RememberPrefix Ljava/lang/String;
 	public static final field ScreenSuffix Ljava/lang/String;
 	public static final field SnackbarHostName Ljava/lang/String;
-	public final fun derivedFor (Ljava/lang/String;)Ljava/util/Set;
+	public final fun derivedFor (Ljava/lang/String;Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/util/Set;
 	public final fun findings (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ldev/rotalex/lutter/codegen/CodegenOptions;)Ljava/util/List;
 	public final fun literals (Ldev/rotalex/lutter/codegen/CodegenOptions;)Ljava/util/Set;
+}
+
+public abstract interface class dev/rotalex/lutter/codegen/ResourceStrategy {
+	public static final field Companion Ldev/rotalex/lutter/codegen/ResourceStrategy$Companion;
+	public abstract fun getResPackage ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/ResourceStrategy$Companion {
+	public final fun getNone ()Ldev/rotalex/lutter/codegen/ResourceStrategy;
 }
 
 public final class dev/rotalex/lutter/codegen/SimpleBackStack : dev/rotalex/lutter/codegen/NavigationStrategy {
@@ -790,6 +1084,8 @@ public final class dev/rotalex/lutter/codegen/SimpleBackStack : dev/rotalex/lutt
 	public fun emitRoutes (Ljava/util/List;Ldev/rotalex/lutter/codegen/FileContext;)Ljava/util/List;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getBasePackage ()Ljava/lang/String;
+	public fun getLibraries ()Ljava/util/Set;
+	public fun getNavigatorType ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
 	public fun getReservedTopLevelNames ()Ljava/util/Set;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
@@ -799,20 +1095,30 @@ public final class dev/rotalex/lutter/codegen/SimpleBackStack$Companion {
 }
 
 public final class dev/rotalex/lutter/codegen/StateEmitter {
+	public static final field AppScopeKey Ljava/lang/String;
 	public static final field AppStateName Ljava/lang/String;
 	public static final field Companion Ldev/rotalex/lutter/codegen/StateEmitter$Companion;
 	public static final field LocalAppStateName Ljava/lang/String;
+	public static final field LocalPersistentStoreName Ljava/lang/String;
+	public static final field PersistentStoreName Ljava/lang/String;
+	public static final field StoredPrefix Ljava/lang/String;
 	public fun <init> (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ldev/rotalex/lutter/codegen/CodegenOptions;Ldev/rotalex/lutter/schema/registry/Registry;)V
-	public final fun appProvider (Ldev/rotalex/lutter/codegen/KtStmt;)Ljava/util/List;
+	public final fun appProvider (Ldev/rotalex/lutter/codegen/KtStmt;Ldev/rotalex/lutter/codegen/KtExpr;)Ljava/util/List;
+	public static synthetic fun appProvider$default (Ldev/rotalex/lutter/codegen/StateEmitter;Ldev/rotalex/lutter/codegen/KtStmt;Ldev/rotalex/lutter/codegen/KtExpr;ILjava/lang/Object;)Ljava/util/List;
 	public final fun appState ()Ljava/util/List;
 	public final fun componentLocals (Ljava/util/List;)Ljava/util/List;
+	public final fun externalAdapters (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;)Ljava/util/List;
+	public final fun hasHolder (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;)Z
 	public final fun pageParameter (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;)Ldev/rotalex/lutter/codegen/KtParam;
 	public final fun pageState (Ldev/rotalex/lutter/analysis/resolved/ResolvedPage;)Ljava/util/List;
+	public final fun persistentStore ()Ljava/util/List;
 	public final fun readInScreen-P6upbFI (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/KtExpr;
 	public final fun refusal (Ldev/rotalex/lutter/analysis/resolved/ResolvedState;Ldev/rotalex/lutter/model/diagnostic/DiagnosticLocation;)Ldev/rotalex/lutter/model/diagnostic/Diagnostic;
+	public final fun savesAnything ()Z
 }
 
 public final class dev/rotalex/lutter/codegen/StateEmitter$Companion {
+	public final fun savesAnything (Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;)Z
 }
 
 public abstract interface class dev/rotalex/lutter/codegen/StateRead {
@@ -829,10 +1135,41 @@ public final class dev/rotalex/lutter/codegen/StateScope : java/lang/Enum {
 }
 
 public abstract interface class dev/rotalex/lutter/codegen/StateStrategy {
+	public fun getLibraries ()Ljava/util/Set;
+	public abstract fun getPageParameterName ()Ljava/lang/String;
 	public abstract fun getReservedTopLevelNames ()Ljava/util/Set;
+	public fun getSupportsExternal ()Z
 	public abstract fun holder (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr;
+	public abstract fun pageExtras (Ljava/lang/String;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;)Ljava/util/List;
+	public static synthetic fun pageExtras$default (Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ljava/util/List;
+	public abstract fun pageParameter (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtParam;
+	public static synthetic fun pageParameter$default (Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtParam;
+	public abstract fun pageReservedNames (Ljava/lang/String;)Ljava/util/Set;
 	public abstract fun receiver (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)Ldev/rotalex/lutter/codegen/KtExpr;
+	public abstract fun saveable (Ldev/rotalex/lutter/codegen/StateScope;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/StoreCodec;Ldev/rotalex/lutter/codegen/KtExpr;)Ljava/util/List;
 	public abstract fun supports (Ldev/rotalex/lutter/model/doc/Persistence;)Z
+}
+
+public final class dev/rotalex/lutter/codegen/StateStrategy$DefaultImpls {
+	public static fun getLibraries (Ldev/rotalex/lutter/codegen/StateStrategy;)Ljava/util/Set;
+	public static fun getSupportsExternal (Ldev/rotalex/lutter/codegen/StateStrategy;)Z
+	public static synthetic fun pageExtras$default (Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ljava/util/List;
+	public static synthetic fun pageParameter$default (Ldev/rotalex/lutter/codegen/StateStrategy;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtParam;
+}
+
+public final class dev/rotalex/lutter/codegen/StoreCodec {
+	public fun <init> (Ldev/rotalex/lutter/codegen/KtExpr;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)V
+	public final fun component1 ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public final fun component2 ()Lkotlin/jvm/functions/Function1;
+	public final fun component3 ()Lkotlin/jvm/functions/Function1;
+	public final fun copy (Ldev/rotalex/lutter/codegen/KtExpr;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)Ldev/rotalex/lutter/codegen/StoreCodec;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/StoreCodec;Ldev/rotalex/lutter/codegen/KtExpr;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/StoreCodec;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDecode ()Lkotlin/jvm/functions/Function1;
+	public final fun getEncode ()Lkotlin/jvm/functions/Function1;
+	public final fun getType ()Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public abstract interface class dev/rotalex/lutter/codegen/TypeSpelling {
@@ -857,6 +1194,32 @@ public final class dev/rotalex/lutter/codegen/TypeSpelling$Unspelled : dev/rotal
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getReason ()Ljava/lang/String;
 	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/TypeVariance : java/lang/Enum {
+	public static final field In Ldev/rotalex/lutter/codegen/TypeVariance;
+	public static final field Out Ldev/rotalex/lutter/codegen/TypeVariance;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/codegen/TypeVariance;
+	public static fun values ()[Ldev/rotalex/lutter/codegen/TypeVariance;
+}
+
+public final class dev/rotalex/lutter/codegen/ViewModelState : dev/rotalex/lutter/codegen/StateStrategy {
+	public static final field INSTANCE Ldev/rotalex/lutter/codegen/ViewModelState;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getLibraries ()Ljava/util/Set;
+	public fun getPageParameterName ()Ljava/lang/String;
+	public fun getReservedTopLevelNames ()Ljava/util/Set;
+	public fun getSupportsExternal ()Z
+	public fun hashCode ()I
+	public fun holder (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/codegen/KtExpr;)Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun pageExtras (Ljava/lang/String;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;)Ljava/util/List;
+	public fun pageParameter (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtParam;
+	public fun pageReservedNames (Ljava/lang/String;)Ljava/util/Set;
+	public fun receiver (Ldev/rotalex/lutter/codegen/StateScope;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)Ldev/rotalex/lutter/codegen/KtExpr;
+	public fun saveable (Ldev/rotalex/lutter/codegen/StateScope;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/codegen/KtExpr;Ldev/rotalex/lutter/codegen/StoreCodec;Ldev/rotalex/lutter/codegen/KtExpr;)Ljava/util/List;
+	public fun supports (Ldev/rotalex/lutter/model/doc/Persistence;)Z
 	public fun toString ()Ljava/lang/String;
 }
 

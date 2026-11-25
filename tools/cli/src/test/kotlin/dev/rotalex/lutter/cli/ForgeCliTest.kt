@@ -246,6 +246,102 @@ class ForgeCliTest {
     }
 
     // -------------------------------------------------------------------------------------
+    // The strategies
+    // -------------------------------------------------------------------------------------
+
+    /**
+     * `--navigation` reaches the generator, and the generated root changes with it.
+     *
+     * Asserted on the emitted files rather than on a `CodegenOptions`: a flag that parsed and
+     * was never handed to the generator reads exactly like a working one until someone builds
+     * the project it produced.
+     */
+    @Test
+    fun `generate emits the navigation strategy the flag names`() {
+        val document = write(VALID, "valid.json")
+        val out = File(directory, "nav3")
+
+        assertEquals(
+            ExitCode.Ok,
+            forge("generate", document.path, "--out", out.path, "--navigation", "navigation3"),
+        )
+
+        val navigation = File(out, "Navigation.kt").readText()
+        val app = File(out, "App.kt").readText()
+        assertTrue(navigation.contains("NavKey"), navigation)
+        assertTrue(app.contains("NavDisplay("), app)
+    }
+
+    /**
+     * The same claim for `--state`: the page's holder becomes a `ViewModel`.
+     *
+     * `VALID` declares one page-state property, because a page without state has no holder to
+     * put in a `ViewModel` — and a test on a stateless page would pass whatever the flag did.
+     */
+    @Test
+    fun `generate emits the state strategy the flag names`() {
+        val document = write(VALID, "valid.json")
+        val out = File(directory, "viewmodel")
+
+        assertEquals(
+            ExitCode.Ok,
+            forge("generate", document.path, "--out", out.path, "--state", "viewmodel"),
+        )
+
+        val emitted = out.walkTopDown().filter { it.isFile }.joinToString("\n") { it.readText() }
+        assertTrue(emitted.contains("viewModel()"), "no viewModel() in the emission")
+        assertTrue(emitted.contains("class HomeViewModel"), "no HomeViewModel in the emission")
+    }
+
+    /** A misspelt strategy is a usage failure, and nothing is written. */
+    @Test
+    fun `an unknown strategy is refused before anything is generated`() {
+        val document = write(VALID, "valid.json")
+        val invocation = invoke("generate", document.path, "--out", File(directory, "x").path, "--state", "redux")
+
+        assertEquals(ExitCode.Unusable, forge("generate", document.path, "--state", "redux"))
+        assertTrue(invocation.err.toString().contains("snapshot"), invocation.err.toString())
+        assertTrue(invocation.err.toString().contains("viewmodel"), invocation.err.toString())
+    }
+
+    /**
+     * The target set is a codegen input and not only a scaffold one: a container refused for its
+     * targets — `hilt` is Android-only — tells a caller to select an Android-only target set, and
+     * this is the flag that can answer it.
+     */
+    @Test
+    fun `generate takes the target set, and android alone satisfies a container that needs it`() {
+        val document = write(VALID, "valid.json")
+
+        // The project's default is every platform, so the container is refused for its targets
+        // and the refusal names the selection that would work.
+        val refused = invoke(
+            "generate", document.path,
+            "--out", File(directory, "refused").path,
+            "--state", "viewmodel", "--injection", "hilt",
+        )
+        assertEquals(ExitCode.Rejected, forge(
+            "generate", document.path,
+            "--out", File(directory, "refused").path,
+            "--state", "viewmodel", "--injection", "hilt",
+        ))
+        assertTrue(refused.err.toString().contains("Android-only"), refused.err.toString())
+
+        val emitted = File(directory, "android")
+        assertEquals(
+            ExitCode.Ok,
+            forge(
+                "generate", document.path,
+                "--out", emitted.path,
+                "--platforms", "android",
+                "--state", "viewmodel", "--injection", "hilt",
+            ),
+        )
+        val kotlin = emitted.walkTopDown().filter { it.isFile }.joinToString("\n") { it.readText() }
+        assertTrue(kotlin.contains("@HiltViewModel"), "no holder annotation in the emission")
+    }
+
+    // -------------------------------------------------------------------------------------
     // The two failures a script has to tell apart
     // -------------------------------------------------------------------------------------
 
@@ -314,7 +410,15 @@ class ForgeCliTest {
                   }
                 },
                 "pages": {
-                  "p_home": {"id": "p_home", "name": "Home", "route": "home", "root": "n_root"}
+                  "p_home": {
+                    "id": "p_home",
+                    "name": "Home",
+                    "route": "home",
+                    "root": "n_root",
+                    "state": [
+                      {"id": "s_count", "name": "count", "type": {"type": "i32"}, "initial": {"type": "i32", "v": 0}}
+                    ]
+                  }
                 }
               }
             }

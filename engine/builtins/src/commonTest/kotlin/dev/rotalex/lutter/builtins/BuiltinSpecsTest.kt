@@ -5,6 +5,7 @@ import dev.rotalex.lutter.builtins.enums.VerticalArrangementSpec
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.schema.Schema
@@ -147,6 +148,38 @@ class BuiltinSpecsTest {
     }
 
     @Test
+    fun `surface is a themed container with one content slot`() {
+        assertEquals(ComponentType("m3.Surface"), SurfaceSpec.spec.type)
+        assertEquals(
+            listOf(PropertyKey("color"), PropertyKey("tonalElevation"), PropertyKey("shadowElevation")),
+            SurfaceSpec.spec.properties.map { it.key },
+        )
+        assertEquals(Cardinality.ExactlyOne, SurfaceSpec.content.cardinality)
+        assertEquals(emptySet(), SurfaceSpec.content.provides)
+
+        val call = assertIs<CodegenBinding.ComposeCall>(SurfaceSpec.spec.codegen)
+        assertEquals(KotlinSymbol("androidx.compose.material3", "Surface"), call.function)
+        assertEquals(
+            listOf("color", "tonalElevation", "shadowElevation"),
+            call.params.map { it.param },
+        )
+        assertEquals(LambdaTarget.Trailing, call.slots.single().target)
+    }
+
+    @Test
+    fun `box with constraints is the box shape with the constrained scope`() {
+        assertEquals(ComponentType("core.BoxWithConstraints"), BoxWithConstraintsSpec.spec.type)
+        assertEquals(emptyList(), BoxWithConstraintsSpec.spec.properties.map { it.key })
+        assertEquals(Cardinality.Many, BoxWithConstraintsSpec.content.cardinality)
+        assertEquals(setOf(LayoutScopes.BoxWithConstraints), BoxWithConstraintsSpec.content.provides)
+
+        val call = assertIs<CodegenBinding.ComposeCall>(BoxWithConstraintsSpec.spec.codegen)
+        assertEquals(KotlinSymbol("androidx.compose.foundation.layout", "BoxWithConstraints"), call.function)
+        assertEquals(emptyList(), call.params)
+        assertEquals(LambdaTarget.Trailing, call.slots.single().target)
+    }
+
+    @Test
     fun `spacer is its modifier and nothing else`() {
         assertEquals(ComponentType("core.Spacer"), SpacerSpec.spec.type)
         assertEquals(emptyList(), SpacerSpec.spec.properties.map { it.key })
@@ -212,6 +245,198 @@ class BuiltinSpecsTest {
         assertEquals(KotlinSymbol("androidx.compose.material3", "Card"), call.function)
         assertEquals(emptyList(), call.params)
         assertEquals(LambdaTarget.Trailing, call.slots.single().target)
+    }
+
+    @Test
+    fun `dialog is a guarded window whose body carries no scope`() {
+        assertEquals(ComponentType("m3.Dialog"), DialogSpec.spec.type)
+        assertEquals(
+            listOf(PropertyKey("visible")),
+            DialogSpec.spec.properties.map { it.key },
+        )
+        assertEquals(TypeRef.Bool, DialogSpec.visible.type)
+        assertEquals(Cardinality.Many, DialogSpec.content.cardinality)
+        assertEquals(emptySet(), DialogSpec.content.provides)
+
+        val call = assertIs<CodegenBinding.ComposeCall>(DialogSpec.spec.codegen)
+        // `Dialog` is a `ui.window` API: material3 does not re-export it.
+        assertEquals(KotlinSymbol("androidx.compose.ui.window", "Dialog"), call.function)
+        // A window has no modifier: the guard and the dismissal are all the call carries.
+        assertEquals(emptyList(), call.params)
+        assertEquals(PropertyKey("visible"), call.guard)
+        assertEquals(null, call.requiresOptIn)
+        assertEquals("onDismissRequest", call.events.single().param)
+        assertEquals(LambdaTarget.Trailing, call.slots.single().target)
+    }
+
+    @Test
+    fun `bottom sheet is the guarded window whose body the column scope aligns`() {
+        assertEquals(ComponentType("m3.BottomSheet"), BottomSheetSpec.spec.type)
+        assertEquals(
+            listOf(PropertyKey("visible")),
+            BottomSheetSpec.spec.properties.map { it.key },
+        )
+        assertEquals(Cardinality.Many, BottomSheetSpec.content.cardinality)
+        assertEquals(setOf(LayoutScopes.Column), BottomSheetSpec.content.provides)
+
+        val call = assertIs<CodegenBinding.ComposeCall>(BottomSheetSpec.spec.codegen)
+        assertEquals(KotlinSymbol("androidx.compose.material3", "ModalBottomSheet"), call.function)
+        assertEquals(emptyList(), call.params)
+        assertEquals(PropertyKey("visible"), call.guard)
+        // `ModalBottomSheet` is an experimental M3 API: the generated function composes it
+        // behind the marker, which under warnings-as-errors is the difference between
+        // compiling and refusing.
+        assertEquals(
+            KotlinSymbol("androidx.compose.material3", "ExperimentalMaterial3Api"),
+            call.requiresOptIn,
+        )
+        assertEquals("onDismissRequest", call.events.single().param)
+        assertEquals(LambdaTarget.Trailing, call.slots.single().target)
+    }
+
+    @Test
+    fun `scaffold frames the screen with three slots and no property`() {
+        assertEquals(ComponentType("m3.Scaffold"), ScaffoldSpec.spec.type)
+        // The document places, the theme dresses: colour and elevation are Material's, so the
+        // spec declares nothing a document could double-name.
+        assertEquals(emptyList(), ScaffoldSpec.spec.properties.map { it.key })
+        // All three slots are receiverless: `topBar` and `fab` are `() -> Unit` lambdas and the
+        // content lambda's `PaddingValues` is a parameter, not a receiver, so v1 opens no scope.
+        assertEquals(Cardinality.Many, ScaffoldSpec.topBar.cardinality)
+        assertEquals(emptySet(), ScaffoldSpec.topBar.provides)
+        assertEquals(Cardinality.Many, ScaffoldSpec.fab.cardinality)
+        assertEquals(emptySet(), ScaffoldSpec.fab.provides)
+        assertEquals(Cardinality.Many, ScaffoldSpec.content.cardinality)
+        assertEquals(emptySet(), ScaffoldSpec.content.provides)
+
+        val call = assertIs<CodegenBinding.ComposeCall>(ScaffoldSpec.spec.codegen)
+        assertEquals(KotlinSymbol("androidx.compose.material3", "Scaffold"), call.function)
+        assertEquals(emptyList(), call.params)
+        // The frame is always drawn: no guard, no event, and `Scaffold` is a stable M3 API.
+        assertEquals(null, call.guard)
+        assertEquals(null, call.requiresOptIn)
+        // `content` is last so the generated call's trailing lambda is the body; the bar and
+        // the button spell their named arguments, and Compose's parameter for the FAB is the
+        // longer `floatingActionButton` even though the document's slot stays `fab`.
+        assertEquals(
+            listOf(
+                SlotName("topBar") to LambdaTarget.NamedParam("topBar"),
+                SlotName("fab") to LambdaTarget.NamedParam("floatingActionButton"),
+                SlotName("content") to LambdaTarget.Trailing,
+            ),
+            call.slots.map { it.slot to it.target },
+        )
+    }
+
+    @Test
+    fun `navigation bar is one row of items the row scope aligns`() {
+        assertEquals(ComponentType("m3.NavigationBar"), NavigationBarSpec.spec.type)
+        // The document places, the theme dresses: colour, elevation and the indicator are
+        // Material's, so the spec declares nothing a document could double-name.
+        assertEquals(Category.Layout, NavigationBarSpec.spec.metadata.category)
+        assertEquals(emptyList(), NavigationBarSpec.spec.properties.map { it.key })
+        // The bar's items read through a `RowScope`, the same rule §7.3's `Row.children` follows.
+        assertEquals(Cardinality.Many, NavigationBarSpec.content.cardinality)
+        assertEquals(setOf(LayoutScopes.Row), NavigationBarSpec.content.provides)
+
+        val call = assertIs<CodegenBinding.ComposeCall>(NavigationBarSpec.spec.codegen)
+        assertEquals(KotlinSymbol("androidx.compose.material3", "NavigationBar"), call.function)
+        assertEquals(emptyList(), call.params)
+        // The frame is always drawn: no guard, no event, and `NavigationBar` is a stable M3 API.
+        assertEquals(null, call.guard)
+        assertEquals(null, call.requiresOptIn)
+        assertEquals(LambdaTarget.Trailing, call.slots.single().target)
+    }
+
+    @Test
+    fun `navigation rail is a columned header and a column of items the column scope aligns`() {
+        assertEquals(ComponentType("m3.NavigationRail"), NavigationRailSpec.spec.type)
+        assertEquals(Category.Layout, NavigationRailSpec.spec.metadata.category)
+        assertEquals(emptyList(), NavigationRailSpec.spec.properties.map { it.key })
+        // Both slots read through a `ColumnScope`: the items' aligns resolve against the rail's
+        // axis, and the header lambda is `@Composable (ColumnScope.() -> Unit)?` too — its
+        // receiver goes unused by a bare lambda, but a brand inside it is on the same axis.
+        assertEquals(Cardinality.Many, NavigationRailSpec.header.cardinality)
+        assertEquals(setOf(LayoutScopes.Column), NavigationRailSpec.header.provides)
+        assertEquals(Cardinality.Many, NavigationRailSpec.content.cardinality)
+        assertEquals(setOf(LayoutScopes.Column), NavigationRailSpec.content.provides)
+
+        val call = assertIs<CodegenBinding.ComposeCall>(NavigationRailSpec.spec.codegen)
+        assertEquals(KotlinSymbol("androidx.compose.material3", "NavigationRail"), call.function)
+        assertEquals(emptyList(), call.params)
+        // `content` is last so the generated call's trailing lambda is the items; the header
+        // spells its named argument.
+        assertEquals(
+            listOf(
+                SlotName("header") to LambdaTarget.NamedParam("header"),
+                SlotName("content") to LambdaTarget.Trailing,
+            ),
+            call.slots.map { it.slot to it.target },
+        )
+    }
+
+    @Test
+    fun `navigation drawer is a bare drawer column and a bare body`() {
+        assertEquals(ComponentType("m3.NavigationDrawer"), NavigationDrawerSpec.spec.type)
+        assertEquals(Category.Layout, NavigationDrawerSpec.spec.metadata.category)
+        assertEquals(emptyList(), NavigationDrawerSpec.spec.properties.map { it.key })
+        // Neither slot provides a scope: the resolved material3's `drawerContent` lambda carries
+        // no receiver and the body lambda is receiverless too. V1 does not
+        // drive the drawer's state, so no property could name one.
+        assertEquals(Cardinality.Many, NavigationDrawerSpec.drawerContent.cardinality)
+        assertEquals(emptySet(), NavigationDrawerSpec.drawerContent.provides)
+        assertEquals(Cardinality.Many, NavigationDrawerSpec.content.cardinality)
+        assertEquals(emptySet(), NavigationDrawerSpec.content.provides)
+
+        val call = assertIs<CodegenBinding.ComposeCall>(NavigationDrawerSpec.spec.codegen)
+        // The document names the shorter `drawerContent`; Compose's parameter for the frame is
+        // `ModalNavigationDrawer`, the call the binding spells.
+        assertEquals(KotlinSymbol("androidx.compose.material3", "ModalNavigationDrawer"), call.function)
+        assertEquals(emptyList(), call.params)
+        assertEquals(null, call.guard)
+        assertEquals(null, call.requiresOptIn)
+        // `content` is last so the generated call's trailing lambda is the body; the drawer's
+        // entries spell their named argument.
+        assertEquals(
+            listOf(
+                SlotName("drawerContent") to LambdaTarget.NamedParam("drawerContent"),
+                SlotName("content") to LambdaTarget.Trailing,
+            ),
+            call.slots.map { it.slot to it.target },
+        )
+    }
+
+    @Test
+    fun `navigation item is a required selection a press and two bare slots`() {
+        assertEquals(ComponentType("m3.NavigationItem"), NavigationItemSpec.spec.type)
+        assertEquals(Category.Basic, NavigationItemSpec.spec.metadata.category)
+        assertEquals(listOf(PropertyKey("selected")), NavigationItemSpec.spec.properties.map { it.key })
+        assertEquals(TypeRef.Bool, NavigationItemSpec.selected.type)
+        assertEquals(true, NavigationItemSpec.selected.required)
+        // The press is the shape `Button` binds: Material's nav item hands its handler no
+        // argument, so the event carries none.
+        assertEquals(listOf(EventKey("onClick")), NavigationItemSpec.spec.events.map { it.key })
+        // Both slots are receiverless `() -> Unit` lambdas, so neither provides a scope: the
+        // item fills the scope its container provided, and carries none of its own.
+        assertEquals(Cardinality.ExactlyOne, NavigationItemSpec.icon.cardinality)
+        assertEquals(emptySet(), NavigationItemSpec.icon.provides)
+        assertEquals(Cardinality.ZeroOrOne, NavigationItemSpec.label.cardinality)
+        assertEquals(emptySet(), NavigationItemSpec.label.provides)
+
+        val call = assertIs<CodegenBinding.ComposeCall>(NavigationItemSpec.spec.codegen)
+        assertEquals(KotlinSymbol("androidx.compose.material3", "NavigationBarItem"), call.function)
+        assertEquals("selected", call.params.single().param)
+        assertEquals(listOf(EventBinding(EventKey("onClick"), "onClick")), call.events)
+        assertEquals(null, call.guard)
+        assertEquals(null, call.requiresOptIn)
+        // Neither lambda is a trailing one: both spell their named arguments, in signature order.
+        assertEquals(
+            listOf(
+                SlotName("icon") to LambdaTarget.NamedParam("icon"),
+                SlotName("label") to LambdaTarget.NamedParam("label"),
+            ),
+            call.slots.map { it.slot to it.target },
+        )
     }
 
     private companion object {

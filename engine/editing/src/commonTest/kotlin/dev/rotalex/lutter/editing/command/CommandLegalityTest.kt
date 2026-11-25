@@ -4,13 +4,21 @@ import dev.rotalex.lutter.editing.template.NodeTemplate
 import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.DiagnosticCode
 import dev.rotalex.lutter.model.diagnostic.Severity
+import dev.rotalex.lutter.model.doc.ComponentDecl
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.Page
 import dev.rotalex.lutter.model.doc.UiDocument
+import dev.rotalex.lutter.model.expr.Expr
+import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.expr.RefTarget
+import dev.rotalex.lutter.model.ids.ComponentDeclId
+import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.IdGenerator
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
+import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.SlotName
+import dev.rotalex.lutter.model.value.Value
 import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -150,7 +158,7 @@ class CommandLegalityTest {
         val named: Set<KClass<out Command>> = REFUSED_COMMANDS + CommandPlannerRoundTripTest.PLANNED_COMMANDS
 
         assertEquals(COMMAND_VARIANTS.toSet(), named, "the two tables name ${named.size} commands")
-        assertEquals(12, COMMAND_VARIANTS.size, "§25.3 declares twelve; this list is the twelfth check")
+        assertEquals(13, COMMAND_VARIANTS.size, "§25.3 declares thirteen; this list is the thirteenth check")
     }
 
     companion object {
@@ -172,7 +180,7 @@ private class RejectionCase(
 /**
  * Every code the catalogue declares, written out so that a new one fails the coverage test.
  *
- * The same thirteen members as [EditCodes], and deliberately written out rather than reflected:
+ * The same eighteen members as [EditCodes], and deliberately written out rather than reflected:
  * `EditCodes` is an `object`, and enumerating an object's properties needs `kotlin-reflect`,
  * which this module does not carry. So the two lists are compared by hand and this one is the
  * one that fails when they drift.
@@ -191,11 +199,16 @@ private val ALL_CODES: List<DiagnosticCode> = listOf(
     EditCodes.EmptySubtree,
     EditCodes.NothingToUnwrap,
     EditCodes.RootMismatch,
+    EditCodes.ComponentName,
+    EditCodes.ComponentExists,
+    EditCodes.DanglingItem,
+    EditCodes.InComponentBody,
+    EditCodes.OutletName,
 )
 
 /**
- * §25.3's closed set, minus `ExtractComponent` — which is deferred, and the reason is on
- * [Command]. Twelve, asserted below.
+ * §25.3's closed set, complete — `ExtractComponent` arrived in wave 2 and the story of its
+ * four deferred decisions is on the variant's KDoc. Thirteen, asserted below.
  */
 private val COMMAND_VARIANTS: Set<KClass<out Command>> = setOf(
     Command.InsertNode::class,
@@ -209,6 +222,7 @@ private val COMMAND_VARIANTS: Set<KClass<out Command>> = setOf(
     Command.SetEventHandler::class,
     Command.RenameNode::class,
     Command.AddPage::class,
+    Command.ExtractComponent::class,
     Command.ApplyPatch::class,
 )
 
@@ -229,6 +243,36 @@ private fun pageFor(id: PageId, root: NodeId): Page =
     Page(id = id, name = "NewScreen", route = "/new", root = root)
 
 private val PAGE_SUBTREE = NodeTemplate(listOf(Node(id = MINTED_ONE, type = COLUMN)))
+
+/**
+ * A component the existing-declaration rows plant in the document.
+ *
+ * Its root is [BETA] so the same document also answers the in-body question: a node under
+ * [BETA] is owned by this declaration, and `ownerOf` says so without a second fixture.
+ */
+private val OUTER_DECL = ComponentDecl(
+    id = ComponentDeclId("Outer"),
+    name = "Outer",
+    params = emptyList(),
+    slots = emptyList(),
+    root = BETA,
+)
+
+/** DELTA whose text is computed from an iteration item — the dangling read, spelled. */
+private fun itemReadingDelta(): Node = Node(
+    id = DELTA,
+    type = TEXT,
+    props = mapOf(TEXT_KEY to PropertyValue.Computed(Expr.Ref(RefTarget.Item("i")))),
+)
+
+/** The id the computed-outlet row lists under [BETA], and the outlet that carries it. */
+private val OUTLET: NodeId = NodeId("n_outlet")
+
+private fun outletNode(): Node = Node(
+    id = OUTLET,
+    type = ComponentType("core.SlotOutlet"),
+    props = mapOf(PropertyKey("slot") to PropertyValue.Computed(Expr.Const(Value.Str("content")))),
+)
 
 private val REFUSALS: List<RejectionCase> = listOf(
     // -----------------------------------------------------------------------------------
@@ -593,6 +637,75 @@ private val REFUSALS: List<RejectionCase> = listOf(
         command = Command.AddPage(pageFor(id = NEW, root = GAMMA), NodeTemplate(listOf(gammaNode()))),
         ids = ::freshIds,
         expected = EditCodes.DuplicateId,
+        only = true,
+    ),
+    // -----------------------------------------------------------------------------------
+    // ExtractComponent: the four decisions wave 2 settled, as the refusals they make
+    // -----------------------------------------------------------------------------------
+    RejectionCase(
+        name = "extract under a name that is not a Kotlin identifier",
+        document = plannerDocument(),
+        command = Command.ExtractComponent(DELTA, "not a name"),
+        ids = ::freshIds,
+        expected = EditCodes.ComponentName,
+        only = true,
+    ),
+    RejectionCase(
+        name = "extract under a name the document already declares",
+        document = plannerDocument(
+            rootChildren = listOf(ALPHA, GAMMA, FOXTROT, GOLF),
+            components = mapOf(OUTER_DECL.id to OUTER_DECL),
+        ),
+        command = Command.ExtractComponent(DELTA, OUTER_DECL.name),
+        ids = ::freshIds,
+        expected = EditCodes.ComponentExists,
+        only = true,
+    ),
+    RejectionCase(
+        name = "extract a page root",
+        document = plannerDocument(),
+        command = Command.ExtractComponent(ROOT, "Hero"),
+        ids = ::freshIds,
+        expected = EditCodes.NoParent,
+        only = true,
+    ),
+    RejectionCase(
+        name = "extract a node inside a component's body",
+        document = plannerDocument(
+            rootChildren = listOf(ALPHA, GAMMA, FOXTROT, GOLF),
+            components = mapOf(OUTER_DECL.id to OUTER_DECL),
+        ),
+        command = Command.ExtractComponent(DELTA, "Hero"),
+        ids = ::freshIds,
+        expected = EditCodes.InComponentBody,
+        only = true,
+    ),
+    RejectionCase(
+        name = "extract a subtree that reads an item bound outside it",
+        document = plannerDocument(rows = baseRows() - deltaNode() + itemReadingDelta()),
+        command = Command.ExtractComponent(BETA, "Hero"),
+        ids = ::freshIds,
+        expected = EditCodes.DanglingItem,
+        only = true,
+    ),
+    RejectionCase(
+        name = "extract a body that names an outlet with a computed string",
+        document = plannerDocument(
+            rows = baseRows() - betaNode() +
+                Node(id = BETA, type = COLUMN, slots = mapOf(CHILDREN to listOf(DELTA, ECHO, OUTLET))) +
+                outletNode(),
+        ),
+        command = Command.ExtractComponent(BETA, "Hero"),
+        ids = ::freshIds,
+        expected = EditCodes.OutletName,
+        only = true,
+    ),
+    RejectionCase(
+        name = "extract out of a slot whose filter does not admit the instance",
+        document = plannerDocument(),
+        command = Command.ExtractComponent(HOTEL, "Hero"),
+        ids = ::freshIds,
+        expected = EditCodes.SlotChildNotAllowed,
         only = true,
     ),
 )

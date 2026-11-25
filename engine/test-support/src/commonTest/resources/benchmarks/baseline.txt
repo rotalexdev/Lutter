@@ -1,4 +1,4 @@
-# Forge benchmark baseline — PLAN §29's five rows, on a document of at least 10000 nodes.
+# Forge benchmark baseline — PLAN §29's six rows, on a document of at least 10000 nodes.
 #
 # No timings are recorded here, and that is a deliberate state rather than an oversight.
 # A wall-clock number is a fact about the machine that recorded it: a CI runner is shared,
@@ -35,3 +35,5 @@ codegen.targetMs 300
 codegen.baselineNs 0
 command.targetMs 15
 command.baselineNs 0
+incremental.targetMs 10
+incremental.baselineNs 0

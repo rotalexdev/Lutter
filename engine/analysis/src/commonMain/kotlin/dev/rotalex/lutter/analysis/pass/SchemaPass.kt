@@ -6,20 +6,25 @@ import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
 import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.doc.ModifierEntry
+import dev.rotalex.lutter.model.doc.ResourceKind
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.TypeId
+import dev.rotalex.lutter.model.type.RefKind
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.Cardinality
 import dev.rotalex.lutter.schema.component.ChildFilter
+import dev.rotalex.lutter.schema.component.CodegenBinding
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.PropertyRule
 import dev.rotalex.lutter.schema.component.ScopeId
+import dev.rotalex.lutter.schema.component.ValueEmit
 import dev.rotalex.lutter.schema.kind.ValueKinds
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import dev.rotalex.lutter.schema.types.EnumTypeSpec
@@ -28,17 +33,44 @@ import dev.rotalex.lutter.schema.types.EnumTypeSpec
  * Pass 3: every node against its spec — props, rules, slots, modifiers and their scopes.
  *
  * Computed values only fail when the property refuses bindings; typing them is pass 5.
+ *
+ * [visit] narrows the node walk to the dirty closure. One thing deliberately escapes it: the
+ * §14.2 shadowing report is a claim about what the whole document writes, so [explicit] is still
+ * built from every node when the walk is narrowed — a cheap read of each node's property names,
+ * with no per-node validation. The full path keeps collecting it inside the validating walk.
  */
 internal class SchemaPass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
+    private val scopesOf: ((NodeId) -> Set<ScopeId>)? = null,
+    private val visit: ((NodeId) -> Boolean)? = null,
 ) : AnalysisPass {
     override val name: String = "schema"
     override val blocking: Boolean = false
 
     override fun run(document: UiDocument): List<Diagnostic> {
         val diags = mutableListOf<Diagnostic>()
-        val scopes = ScopeAnalysis.computeScopes(document) { schema.components[it] }
+        // A caller inside the incremental path hands over its own lookup (one node at a time);
+        // with none, the full map is built once and every ask answers from it, as before.
+        val scopes: (NodeId) -> Set<ScopeId> = scopesOf ?: run {
+            val full = ScopeAnalysis.computeScopes(document, { schema.components[it] })
+            val lookup: (NodeId) -> Set<ScopeId> = { id -> full[id] ?: emptySet() }
+            lookup
+        }
+        // §14.2's shadowing report needs to know what the document writes explicitly, so the
+        // node walk collects one key set per component type while it validates. When the walk is
+        // narrowed to the dirty closure, the key set is collected up front from every node
+        // instead: a node whose type the schema does not register can only add keys for a type
+        // the shadowing report never consults, so reading `props.keys` without a spec lookup is
+        // not a loss of answer.
+        val explicit: LinkedHashMap<ComponentType, MutableSet<PropertyKey>> = LinkedHashMap()
+        if (visit != null) {
+            for (id in document.nodes.ids()) {
+                val node = document.nodes[id] ?: continue
+                explicit.getOrPut(node.type) { LinkedHashSet() }.addAll(node.props.keys)
+            }
+        }
         for (id in document.nodes.ids()) {
+            if (visit != null && !visit(id)) continue
             val node = document.nodes[id] ?: continue
             val spec = schema.components[node.type]
             if (spec == null) {
@@ -49,12 +81,127 @@ internal class SchemaPass(
                 )
                 continue
             }
+            if (visit == null) {
+                explicit.getOrPut(node.type) { LinkedHashSet() }.addAll(node.props.keys)
+            }
             checkProps(document, node, spec, diags)
             checkRules(node, spec, diags)
+            checkIcons(node, spec, diags)
             checkSlots(document, node, spec, diags)
-            checkModifiers(document, node, scopes[id] ?: emptySet(), diags)
+            checkModifiers(document, node, scopes(id), diags)
         }
+        checkThemeDefaults(document, explicit, diags)
+        // Document-level, so unconditional: a narrowed walk is about nodes, and a plugin
+        // requirement is a statement about the document as a whole.
+        checkPlugins(document, diags)
         return diags
+    }
+
+    /**
+     * §27.2: what the document says it was authored against, against what is installed.
+     *
+     * The document's `meta.plugins` is a claim the host may not be able to honour, and generating
+     * against a schema that cannot speak a document's components would produce code that compiles
+     * and does the wrong thing. Both failures are errors, not warnings: §27.2 calls this a
+     * refusal, and a warning would let `forge generate` proceed past it.
+     *
+     * Versions compare by exact string equality — ADR-018 records why no range grammar exists.
+     * That makes a mismatch louder than a range check would be: any other spelling is refused,
+     * including a newer compatible build. It is the honest reading of a rule nobody has specified
+     * further, and widening it later is a decision with a grammar behind it.
+     */
+    private fun checkPlugins(document: UiDocument, diags: MutableList<Diagnostic>) {
+        for (requirement in document.meta.plugins) {
+            val installed = schema.contributors.firstOrNull { it.id == requirement.id }
+            val location = DiagnosticLocation(path = listOf("meta", "plugins", requirement.id.value))
+            if (installed == null) {
+                diags += Diagnostic(
+                    Severity.Error,
+                    DiagnosticCodes.PluginMissing,
+                    location,
+                    "Document requires plugin '${requirement.id}' '${requirement.version}', " +
+                        "which this schema does not provide",
+                    mapOf("plugin" to requirement.id.value, "version" to requirement.version),
+                )
+            } else if (installed.version != requirement.version) {
+                diags += Diagnostic(
+                    Severity.Error,
+                    DiagnosticCodes.PluginVersionMismatch,
+                    location,
+                    "Document requires plugin '${requirement.id}' '${requirement.version}', " +
+                        "but '${installed.version}' is installed",
+                    mapOf(
+                        "plugin" to requirement.id.value,
+                        "required" to requirement.version,
+                        "installed" to installed.version,
+                    ),
+                )
+            }
+        }
+    }
+
+    /**
+     * The theme's `componentDefaults` against the schema (§14.2): a default names a component
+     * type, a property that type declares and a plain constant of that property's type. Any
+     * other spelling is theme configuration the resolver would silently ignore, which is why
+     * each one fails visibly here rather than at a node that happens to consult it. A default
+     * the document shadows is not broken, only dead — that one is a warning.
+     */
+    private fun checkThemeDefaults(
+        document: UiDocument,
+        explicit: Map<ComponentType, Set<PropertyKey>>,
+        diags: MutableList<Diagnostic>,
+    ) {
+        for ((themeId, theme) in document.themes) {
+            val location = DiagnosticLocation(path = listOf("themes", themeId.value))
+            for ((type, defaults) in theme.componentDefaults) {
+                val spec = schema.components[type]
+                if (spec == null) {
+                    diags += Diagnostic(
+                        Severity.Error, DiagnosticCodes.ThemeComponentUnknown, location,
+                        "Theme '$themeId' defaults component '${type.value}', which the schema does not register",
+                        mapOf("theme" to themeId.value, "type" to type.value),
+                    )
+                    continue
+                }
+                for ((key, value) in defaults) {
+                    val keyLocation = DiagnosticLocation(
+                        path = listOf("themes", themeId.value, type.value, key.value),
+                    )
+                    if (spec.properties.none { it.key == key }) {
+                        diags += Diagnostic(
+                            Severity.Error, DiagnosticCodes.ThemeDefaultUnknown, keyLocation,
+                            "Theme '$themeId' defaults '${key.value}', which '${type.value}' does not declare",
+                            mapOf("theme" to themeId.value, "type" to type.value, "property" to key.value),
+                        )
+                        continue
+                    }
+                    if (value !is PropertyValue.Const) {
+                        diags += Diagnostic(
+                            Severity.Error, DiagnosticCodes.ThemeDefaultNotConst, keyLocation,
+                            "Theme '$themeId' defaults '${key.value}' with an expression; a default is what the resolver writes when the document wrote nothing, so only a constant can be one",
+                            mapOf("theme" to themeId.value, "type" to type.value, "property" to key.value),
+                        )
+                    } else {
+                        val declared = spec.properties.first { it.key == key }
+                        if (!acceptsValue(declared.type, value.value)) {
+                            diags += Diagnostic(
+                                Severity.Error, DiagnosticCodes.ThemeDefaultTypeMismatch, keyLocation,
+                                "Theme '$themeId' defaults '${key.value}' with ${labelOf(value.value)} but '${type.value}' declares ${labelOf(declared.type)}",
+                                mapOf("theme" to themeId.value, "type" to type.value, "property" to key.value, "expected" to labelOf(declared.type), "found" to labelOf(value.value)),
+                            )
+                        }
+                    }
+                    if (explicit[type]?.contains(key) == true) {
+                        diags += Diagnostic(
+                            Severity.Warning, DiagnosticCodes.PropDefaultShadowed, keyLocation,
+                            "Theme '$themeId' defaults '${type.value}.${key.value}', but the document writes it explicitly — the default never reaches a node",
+                            mapOf("theme" to themeId.value, "type" to type.value, "property" to key.value),
+                        )
+                    }
+                }
+            }
+        }
     }
 
     private fun checkProps(
@@ -74,7 +221,7 @@ internal class SchemaPass(
                 )
                 continue
             }
-            checkValue(document, node.id, key, declared.type, declared.bindable, actual, null, diags)
+            checkValue(document, node.id, key, declared.type, declared.bindable, declared.resourceKind, actual, null, diags)
         }
         for (declared in spec.properties) {
             if (declared.required && declared.key !in node.props) {
@@ -94,6 +241,7 @@ internal class SchemaPass(
         key: PropertyKey,
         declared: TypeRef,
         bindable: Boolean,
+        resourceKind: ResourceKind?,
         actual: PropertyValue,
         modifierIndex: Int?,
         diags: MutableList<Diagnostic>,
@@ -111,6 +259,24 @@ internal class SchemaPass(
                     "Property '${key.value}' does not accept a computed value (node '$nodeId')",
                     mapOf("node" to nodeId.value, "property" to key.value),
                 )
+            }
+            return
+        }
+        // §10:795's resource row: a spec that declares a resource kind accepts a resource
+        // reference where its type says `Str`, and the kind the reference names must match
+        // the declaration. Existence is `ReferencePass`'s check — a missing declaration is
+        // reported there once, so a kind mismatch is only asked of one that exists.
+        if (const is Value.Ref && const.kind == RefKind.Resource && resourceKind != null) {
+            val decl = document.resources.keys.firstOrNull { it.value == const.id }
+            if (decl != null) {
+                val kind = document.resources.getValue(decl).kind
+                if (kind != resourceKind) {
+                    diags += Diagnostic(
+                        Severity.Error, DiagnosticCodes.ResourceKindMismatch, location(),
+                        "Property '${key.value}' wants a ${resourceKind.name} resource but '${const.id}' is a ${kind.name} (node '$nodeId')",
+                        mapOf("node" to nodeId.value, "property" to key.value, "expected" to resourceKind.name, "found" to kind.name),
+                    )
+                }
             }
             return
         }
@@ -150,6 +316,33 @@ internal class SchemaPass(
     private fun enumEntries(document: UiDocument, id: TypeId): List<String>? =
         (schema.types[id] as? EnumTypeSpec)?.entries?.map { it.name }
             ?: document.enums[id]?.entries?.map { it.name }
+
+    // §10:796's validation column: an icon is valid when the (set, name) pair its spec resolves
+    // is in the registered set. The declaration this walks is the same `ValueEmit.Icon` the
+    // generator resolves, so validation and emission cannot disagree about which pair names an
+    // icon. Constant strings only: a computed name is pass 5's business, and unresolvable ones
+    // are refused there with the same registry.
+    private fun checkIcons(node: Node, spec: ComponentSpec, diags: MutableList<Diagnostic>) {
+        val binding = spec.codegen as? CodegenBinding.ComposeCall ?: return
+        for (param in binding.params) {
+            val emit = param.emit as? ValueEmit.Icon ?: continue
+            val setValue: String = constString(node, emit.setKey) ?: continue
+            val nameValue: String = constString(node, emit.nameKey) ?: continue
+            if (schema.icons[setValue]?.get(nameValue) == null) {
+                diags += Diagnostic(
+                    Severity.Error, DiagnosticCodes.PropIconUnregistered,
+                    DiagnosticLocation(nodeId = node.id, property = emit.setKey),
+                    "Icon '" + setValue + "/" + nameValue + "' is not in a registered set (node '" + node.id + "')",
+                    mapOf("node" to node.id.value, "property" to param.param),
+                )
+            }
+        }
+    }
+
+    private fun constString(node: Node, key: PropertyKey): String? {
+        val prop = node.props[key] as? PropertyValue.Const ?: return null
+        return (prop.value as? Value.Str)?.v
+    }
 
     private fun checkRules(node: Node, spec: ComponentSpec, diags: MutableList<Diagnostic>) {
         val present = node.props.keys
@@ -300,7 +493,7 @@ internal class SchemaPass(
                 )
                 continue
             }
-            checkValue(document, node.id, key, param.type, param.bindable, actual, index, diags)
+            checkValue(document, node.id, key, param.type, param.bindable, null, actual, index, diags)
         }
         // A required argument the entry does not carry is the modifier's problem, not the value's,
         // so it reports as `arg_invalid` like its other two failures: unknown, or wrongly typed.

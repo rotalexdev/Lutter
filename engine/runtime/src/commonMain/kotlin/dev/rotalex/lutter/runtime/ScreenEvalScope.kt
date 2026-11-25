@@ -46,13 +46,14 @@ internal class ScreenEvalScope(
             ?: throw IllegalStateException("Unknown param '${target.name}': UiScreen seeds the page params")
 
         // §17.1 puts both in pass 5's scope resolution and neither is bound in a property
-        // position; Phase 7's handler scope and a future loop scope bind them there.
+        // position; Phase 7's handler scope and an iterating slot's frame bind them there.
         is RefTarget.EventArg -> throw IllegalStateException(
             "Event arg '${target.name}' resolves only inside an action handler (Phase 7)",
         )
 
         is RefTarget.Item -> throw IllegalStateException(
-            "Iteration variable '${target.name}' has no binding: loops are post-MVP",
+            "Iteration variable '${target.name}' has no binding: " +
+                "item refs resolve only inside an iterating slot's children",
         )
     }
 

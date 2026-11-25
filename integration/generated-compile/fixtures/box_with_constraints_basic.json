@@ -1,0 +1,25 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "BoxWithConstraintsBasic"},
+    "nodes": {
+      "n_root": {
+        "id": "n_root",
+        "slots": {"content": ["n_a"]},
+        "type": "core.BoxWithConstraints"
+      },
+      "n_a": {
+        "id": "n_a",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Constrained"}}},
+        "type": "m3.Text"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

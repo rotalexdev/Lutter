@@ -2,6 +2,7 @@ package dev.rotalex.lutter.codegen
 
 import dev.rotalex.lutter.model.doc.Persistence
 import dev.rotalex.lutter.schema.component.KotlinSymbol
+import dev.rotalex.lutter.schema.function.FunctionPrecedence
 
 /**
  * Which §12.1 list a declaration was written in, and so what a read of it reaches through.
@@ -15,7 +16,10 @@ public enum class StateScope {
     /** §12.1's component-local list: a `var` the composable declares, so a read is bare. */
     Component,
 
-    /** §12.1's page list: the screen's own `state` parameter. */
+    /**
+     * §12.1's page list: the screen's own parameter — `state` where the composition owns the
+     * holder, `viewModel` where a `ViewModelStore` does.
+     */
     Page,
 
     /** §12.1's app list: the composition local `AppRoot` provides. */
@@ -23,11 +27,55 @@ public enum class StateScope {
 }
 
 /**
+ * One external declaration, as the two strategies that emit it need it.
+ *
+ * [adapter] is the name the document chose and the name both the `AppHost` member and the holder's
+ * constructor parameter take; [state] is the declaration's own name, which is the property the
+ * holder exposes. Two names in one record because the strategy that writes the property and the
+ * generator that writes the host member are different files reading the same declaration.
+ */
+public data class ExternalAdapter(
+    /** The `AppHost` member and the constructor parameter: where the stream arrives. */
+    public val adapter: String,
+    /** The declaration's name: what the holder calls the value it collects. */
+    public val state: String,
+    /** The element type, spelled. Null when the document's type has no Kotlin spelling. */
+    public val type: KtExpr?,
+    /** The seed a stream has before its first emission. Null when the literal is unspellable. */
+    public val initial: KtExpr?,
+)
+
+/**
+ * One scalar type as text on both sides of a `PersistentStore`.
+ *
+ * The store holds text because an engine-owned store must outlive a Kotlin version without
+ * knowing the document's types, so each row says which Kotlin type it is and how the generated
+ * property moves it in and out. [decode] answers null for text that is not a value of the type,
+ * and the caller keeps its `initial` in that case: a store holding garbage must not make a
+ * declaration unreadable.
+ */
+public data class StoreCodec(
+    /** The scalar's Kotlin type, which the backing state is a `MutableState` of. */
+    public val type: KtExpr,
+    /** `value -> text`, the write side. */
+    public val encode: (KtExpr) -> KtExpr,
+    /** `text -> value?`, the read side. */
+    public val decode: (KtExpr) -> KtExpr,
+)
+
+/**
  * PLAN §12.2: the only place that knows *how* state is emitted.
  *
- * Three questions and no others — what a read reaches through, what a held property delegates
- * to, and whether a persistence has an emission yet. A later strategy (ViewModel, Molecule,
- * Circuit) answers them differently and touches nothing else, which is the whole claim.
+ * Two groups of questions and no others. The rows: what a read reaches through, what a held
+ * property delegates to, whether a persistence has an emission yet, and which names the
+ * strategy's own emission takes. The page row whole: what the strategy puts beside the page's
+ * state class, what the screen's parameter is called and defaults to, and every name that row
+ * therefore occupies. A later strategy (ViewModel, Molecule, Circuit) answers them differently
+ * and touches nothing else, which is the whole claim.
+ *
+ * The page row is asked as a row on purpose. What a page emits is one decision — whether the
+ * composition or a platform type owns the state — and splitting its name from its class from
+ * its parameter is how the three drift into a file that calls one thing by another's name.
  */
 public interface StateStrategy {
 
@@ -39,6 +87,16 @@ public interface StateStrategy {
      * answer has to exist before anything is emitted, so it is stated by the strategy that emits.
      */
     public val reservedTopLevelNames: Set<String>
+
+    /**
+     * The libraries the generated project needs to compile this strategy's emission.
+     *
+     * The same contract as `NavigationStrategy.libraries`, and empty by default for the same
+     * reason: [ComposeSnapshotState] emits `mutableStateOf` and `remember` and needs nothing a
+     * Compose Multiplatform app does not already have.
+     */
+    public val libraries: Set<GeneratedLibrary>
+        get() = emptySet()
 
     /**
      * The receiver a read of [scope]'s declaration carries, or null when the name is read bare.
@@ -64,6 +122,86 @@ public interface StateStrategy {
      * that asked to be saved is a file that compiles and drops data on restart.
      */
     public fun supports(persistence: Persistence): Boolean
+
+    /**
+     * The declarations §12.1's page row carries beside the state class.
+     *
+     * [state] is the class the page's declarations are members of — a state under every
+     * strategy, and named one — so the extra is whatever that strategy puts *around* it: the
+     * `@Composable remember…State()` factory a plain class needs, or the layer that owns the
+     * state and outlives the composition. [pkg] is the package the file lands in, because a
+     * strategy that emits a type of its own cannot read it from a file it is not writing.
+     *
+     * One call rather than one per declaration: a row is a row, and two strategies that spell
+     * half of it each would be two places to look when the file stops compiling.
+     *
+     * [state] is null for a page whose every declaration is external: there is no state class to
+     * name, and a row that still spelled one would write a file referring to a class nothing emits.
+     */
+    public fun pageExtras(
+        pageName: String,
+        state: KotlinSymbol?,
+        pkg: String,
+        external: List<ExternalAdapter> = emptyList(),
+    ): List<KtDeclaration>
+
+    /**
+     * The name [pageParameter] gives the screen's parameter, for the reads that hop through it.
+     *
+     * Published rather than repeated because an external declaration is read as a member of the
+     * holder and not of the state class: that read has no parameter node of its own to consult, and
+     * a second spelling of `viewModel` is a file that compiles or not depending on which writer
+     * wrote it.
+     */
+    /**
+     * Whether a declaration whose values arrive from a host adapter has an emission here.
+     *
+     * False is a refusal, not a downgrade: an external declaration under the snapshot strategy
+     * would be a `remember { mutableStateOf(initial) }` that never hears from the stream, which is
+     * a file that compiles and shows a value that stopped being true.
+     */
+    public val supportsExternal: Boolean
+        get() = false
+
+    public val pageParameterName: String
+
+    /**
+     * The parameter a page's screen takes for its row: its name, its type and its default.
+     *
+     * The name is the strategy's, not a constant, because it is the same word the read of a page
+     * declaration reaches through ([receiver]): a screen whose parameter and reads disagree is a
+     * file that does not compile, and a screen whose parameter calls a holder something the
+     * holder is not is a file that compiles and lies.
+     */
+    public fun pageParameter(
+        pageName: String,
+        pkg: String,
+        external: List<ExternalAdapter> = emptyList(),
+    ): KtParam
+
+    /**
+     * Every top-level name a page called [pageName] has generated for it, the state class
+     * included, so `ReservedCodegenNames` refuses a document that takes one of them.
+     */
+    public fun pageReservedNames(pageName: String): Set<String>
+
+    /**
+     * The two members a `Saveable` declaration of [scope] is emitted as: the private backing
+     * state, seeded from [store] under [key], and the property that reads it and writes both.
+     *
+     * Two members rather than a delegate because the write side is the whole row: a delegate
+     * hands the value to whoever asked and the store never hears about it, while a property with
+     * a setter is the one shape where "held and saved" is a single fact. [codec] carries the
+     * text conversion, so the strategy names no document type.
+     */
+    public fun saveable(
+        scope: StateScope,
+        name: String,
+        key: String,
+        initial: KtExpr,
+        codec: StoreCodec,
+        store: KtExpr,
+    ): List<KtDeclaration.Property>
 }
 
 /** The one strategy that exists: snapshot state, which is §12.2's default and §15.3's runtime. */
@@ -73,11 +211,25 @@ public data object ComposeSnapshotState : StateStrategy {
      * §16.5's `state/AppState.kt`. Read off [StateEmitter]'s constants rather than spelled again,
      * so a rename of the holder cannot leave this set claiming a name nothing emits.
      */
-    override val reservedTopLevelNames: Set<String> =
-        setOf(StateEmitter.AppStateName, StateEmitter.LocalAppStateName)
+    override val reservedTopLevelNames: Set<String> = setOf(
+        StateEmitter.AppStateName,
+        StateEmitter.LocalAppStateName,
+        StateEmitter.PersistentStoreName,
+        StateEmitter.LocalPersistentStoreName,
+    )
 
     private val mutableStateOf: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "mutableStateOf")
+    private val mutableState: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "MutableState")
     private val remember: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "remember")
+    private val composable: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "Composable")
+
+    /**
+     * `rememberHomeScreenState`: the state class's constructor, spelled in front of its name.
+     *
+     * Here rather than beside [ReservedCodegenNames.PageStateSuffix] because it is this
+     * strategy's emission: a strategy whose row is not a remembered state does not declare one.
+     */
+    internal const val RememberPrefix: String = "remember"
 
     // `by` resolves through these, extensions on `MutableState` outside Kotlin's default
     // imports, so a file that delegates without naming them delegates to nothing. Both, because
@@ -85,6 +237,33 @@ public data object ComposeSnapshotState : StateStrategy {
     private val operators: List<KotlinSymbol> = listOf(
         KotlinSymbol("androidx.compose.runtime", "getValue"),
         KotlinSymbol("androidx.compose.runtime", "setValue"),
+    )
+
+    override fun pageExtras(
+        pageName: String,
+        state: KotlinSymbol?,
+        pkg: String,
+        external: List<ExternalAdapter>,
+    ): List<KtDeclaration> = listOf(rememberFunction(checkNotNull(state).name))
+
+    override fun pageParameter(
+        pageName: String,
+        pkg: String,
+        external: List<ExternalAdapter>,
+    ): KtParam {
+        val holder: String = pageName + ReservedCodegenNames.PageStateSuffix
+        return KtParam(
+            name = "state",
+            type = KtExpr.Ref(KtSymbolRef(KotlinSymbol(pkg, holder))),
+            default = KtExpr.Call(KtExpr.Name(RememberPrefix + holder), emptyList()),
+        )
+    }
+
+    override val pageParameterName: String = "state"
+
+    override fun pageReservedNames(pageName: String): Set<String> = setOf(
+        pageName + ReservedCodegenNames.PageStateSuffix,
+        RememberPrefix + pageName + ReservedCodegenNames.PageStateSuffix,
     )
 
     override fun receiver(scope: StateScope, appState: KotlinSymbol): KtExpr? = when (scope) {
@@ -108,12 +287,97 @@ public data object ComposeSnapshotState : StateStrategy {
     }
 
     /**
-     * `Persistence.None` only, and the reason is `PageStateStore`.
+     * Both rows, because §12.1's persistent row is emitted here rather than refused.
      *
-     * §12.1 asks for `rememberSaveable` where the type allows, and no engine code reads a
-     * non-`None` value on either side: `PageStateHost` seeds `mutableStateOf` for every held
-     * declaration. Emitting the saveable form on this side alone would make the generated
-     * screen restore what the runtime drops, which is the one comparison §28.4 cannot make.
+     * [persistence] alone cannot say whether a declaration is emittable — a `Saveable` one also
+     * needs a store codec for its type and a scope that has a store — so those refusals are the
+     * emitter's, which is the only caller holding the declaration.
      */
-    override fun supports(persistence: Persistence): Boolean = persistence == Persistence.None
+    override fun supports(persistence: Persistence): Boolean = true
+
+    override fun saveable(
+        scope: StateScope,
+        name: String,
+        key: String,
+        initial: KtExpr,
+        codec: StoreCodec,
+        store: KtExpr,
+    ): List<KtDeclaration.Property> {
+        val backing: String = StateEmitter.StoredPrefix + name
+        val text: KtExpr = KtExpr.Call(
+            KtExpr.Member(store, "read", safe = true),
+            listOf(KtArg(null, KtExpr.Literal("\"" + key + "\""))),
+        )
+        // The store wins only where it has a value of the declared type; `initial` is what the
+        // document says the value is before anything happened, so it is the fallback and not
+        // the seed a stale entry could overwrite.
+        val seeded: KtExpr = KtExpr.PatternCall(
+            "{0} ?: {1}",
+            listOf(codec.decode(text), initial),
+            precedence = FunctionPrecedence.Elvis,
+        )
+        val held: KtDeclaration.Property = KtDeclaration.Property(
+            name = backing,
+            annotations = emptyList(),
+            type = KtExpr.TypeApplication(KtExpr.Ref(KtSymbolRef(mutableState)), listOf(codec.type)),
+            mutable = false,
+            initializer = KtExpr.Call(KtExpr.Ref(KtSymbolRef(mutableStateOf)), listOf(KtArg(null, seeded))),
+            delegate = null,
+            getter = null,
+            visibility = "private",
+        )
+        val written: KtStmt = KtStmt.Expr(
+            KtExpr.Call(
+                KtExpr.Member(store, "write", safe = true),
+                listOf(
+                    KtArg(null, KtExpr.Literal("\"" + key + "\"")),
+                    KtArg(null, codec.encode(KtExpr.Name("value"))),
+                ),
+            ),
+        )
+        val property: KtDeclaration.Property = KtDeclaration.Property(
+            name = name,
+            annotations = emptyList(),
+            type = codec.type,
+            mutable = true,
+            initializer = null,
+            delegate = null,
+            getter = KtExpr.Member(KtExpr.Name(backing), "value"),
+            setter = listOf(
+                KtStmt.Assign(KtExpr.Member(KtExpr.Name(backing), "value"), KtExpr.Name("value")),
+                written,
+            ),
+        )
+        return listOf(held, property)
+    }
+
+    /**
+     * `@Composable fun remember<Name>(): <Name>`, which constructs the holder once per screen.
+     *
+     * A local plus `return` rather than an expression body because the IR has a block body only,
+     * and `return` resolves to the nearest function lexically — no symbol, so no import.
+     */
+    private fun rememberFunction(name: String): KtDeclaration.Function = KtDeclaration.Function(
+        name = RememberPrefix + name,
+        annotations = listOf(composable.toAnnotation()),
+        type = KtExpr.Name(name),
+        params = emptyList(),
+        body = listOf(
+            KtStmt.LocalProperty(
+                name = "state",
+                type = KtExpr.Name(name),
+                mutable = false,
+                initializer = KtExpr.Call(
+                    KtExpr.Ref(KtSymbolRef(remember)),
+                    emptyList(),
+                    KtExpr.Lambda(
+                        emptyList(),
+                        listOf(KtStmt.Expr(KtExpr.Call(KtExpr.Name(name), emptyList()))),
+                    ),
+                ),
+                delegate = null,
+            ),
+            KtStmt.Expr(KtExpr.Call(KtExpr.Name("return"), listOf(KtArg(null, KtExpr.Name("state"))))),
+        ),
+    )
 }

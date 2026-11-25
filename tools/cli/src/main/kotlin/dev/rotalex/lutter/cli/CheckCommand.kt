@@ -51,6 +51,9 @@ internal object CheckCommand {
         flags = mapOf(
             "--help" to Arity.None,
             "-h" to Arity.None,
+            // Repeatable: a document may name several plugins, and a host that loaded only one
+            // of them would refuse the document for a reason the caller did not cause.
+            "--plugin" to Arity.Many,
         ),
         run = { line, out, err -> run(line, out, err) },
     )
@@ -58,8 +61,13 @@ internal object CheckCommand {
     internal fun run(line: CommandLine, out: Appendable, err: Appendable): Int {
         val input: String = line.positional("document.json")
         val document = Engine.readDocument(File(input), spec.name)
+        val plugins = PluginHost.load(
+            line.values("--plugin").map(::File),
+            spec.name,
+        )
+        for (loaded in plugins) out.appendLine("forge ${spec.name}: loaded ${PluginHost.describe(loaded)}")
 
-        val analysis = Engine.analyze(Engine.builtinSchema(), document)
+        val analysis = Engine.analyze(Engine.schema(plugins, spec.name), document)
         Engine.report(analysis.diagnostics, err)
 
         // All three severities, not only the one that decides the verdict: the counts describe

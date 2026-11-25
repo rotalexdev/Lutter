@@ -8,7 +8,8 @@ import dev.rotalex.lutter.model.value.Value
  * What an expression may read: state through the store, params through the map, and the
  * arguments of the event being handled wherever a scope binds them.
  *
- * Iteration variables refuse on every scope: loops are post-MVP.
+ * An item ref resolves elsewhere: the frame that renders an iterating slot's children binds
+ * it ([ItemScope]), and a name no frame binds throws rather than answering null.
  */
 public interface EvalScope {
     /** Resolves [target]; throws stating why when the skeleton cannot. */
@@ -32,8 +33,33 @@ public class MapEvalScope(
             "Event arg '${target.name}' resolves only inside an action handler (Phase 7)",
         )
         is RefTarget.Item -> throw IllegalStateException(
-            "Iteration variable '${target.name}' has no binding: loops are post-MVP",
+            "Iteration variable '${target.name}' has no binding: " +
+                "item refs resolve only inside an iterating slot's children",
         )
+    }
+}
+
+/**
+ * One iteration frame over another scope: [name] bound, everything else through.
+ *
+ * A rendering scope drives an iterating slot's children through a frame per item — the
+ * `RenderScope.withItem` runtime does exactly this wrap for one element a list carries. State,
+ * params and event arguments stay the inner scope's own answer; only the frame's own variable
+ * is answered here, because a read naming nothing bound must refuse rather than alias it.
+ *
+ * Innermost wins: an inner frame's variable answers a read before an outer one does, so
+ * nested iterations that name their loop variables alike shadow rather than merge — the same
+ * precedence pass 5's bindings walk applies to the document's slot chain.
+ */
+public class ItemScope(
+    private val inner: EvalScope,
+    private val name: String,
+    private val item: Value,
+) : EvalScope {
+
+    override fun read(target: RefTarget): Value = when {
+        target is RefTarget.Item && target.name == name -> item
+        else -> inner.read(target)
     }
 }
 

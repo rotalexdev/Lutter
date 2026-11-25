@@ -3,6 +3,7 @@ package dev.rotalex.lutter.codegen
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.function.FunctionPrecedence
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -16,6 +17,103 @@ import kotlin.test.assertTrue
  * cannot see a missing blank line.
  */
 class KtPrinterTest {
+
+    /** A function type is a type: its return symbol is imported and nothing is called. */
+    @Test
+    fun `a function type prints its parameters and its return type`() {
+        val printed: String = KtPrinter().print(
+            ktFile(
+                property(
+                    "builder",
+                    KtExpr.FunctionType(
+                        emptyList(),
+                        KtExpr.Ref(KtSymbolRef(KotlinSymbol("com.example.screens", "HomeViewModel"))),
+                    ),
+                ),
+            ),
+        )
+
+        assertContains(printed, "() -> HomeViewModel")
+        assertContains(printed, "import com.example.screens.HomeViewModel")
+    }
+
+    /** An annotation's argument prints inside its parentheses, and its imports are recorded. */
+    @Test
+    fun `an annotation prints the argument it was given`() {
+        val holder: KotlinSymbol = KotlinSymbol("com.example.screens", "HomeViewModel")
+        val printed: String = KtPrinter().print(
+            ktFile(
+                KtDeclaration.Function(
+                    "provideHome",
+                    listOf(
+                        KtAnnotation(
+                            KotlinSymbol("com.example.di", "ViewModelKey"),
+                            listOf(KtExpr.Snippet("HomeViewModel::class", listOf(holder))),
+                        ),
+                    ),
+                    null,
+                    emptyList(),
+                    emptyList(),
+                ),
+            ),
+        )
+
+        assertContains(printed, "@ViewModelKey(HomeViewModel::class)")
+        assertContains(printed, "import com.example.screens.HomeViewModel")
+    }
+
+    /** A projected argument keeps its variance and still imports what it projects. */
+    @Test
+    fun `a type projection prints its variance and imports its argument`() {
+        val printed: String = KtPrinter().print(
+            ktFile(
+                property(
+                    "owners",
+                    KtExpr.TypeApplication(
+                        KtExpr.Ref(KtSymbolRef(KotlinSymbol("kotlin.reflect", "KClass"))),
+                        listOf(
+                            KtExpr.TypeProjection(
+                                TypeVariance.Out,
+                                KtExpr.Ref(KtSymbolRef(KotlinSymbol("com.example.screens", "HomeViewModel"))),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        assertContains(printed, "KClass<out HomeViewModel>")
+        assertContains(printed, "import com.example.screens.HomeViewModel")
+    }
+
+    @Test
+    fun `an object prints the members it declares`() {
+        val printed = KtPrinter().print(
+            ktFile(
+                KtDeclaration.Object(
+                    "Route",
+                    emptyList(),
+                    data = false,
+                    supertypes = emptyList(),
+                    members = listOf(
+                        property("Home", KtExpr.Name("String"), initializer = KtExpr.Literal("\"home\"")),
+                        property("Profile", KtExpr.Name("String"), initializer = KtExpr.Literal("\"profile\"")),
+                    ),
+                ),
+            ),
+        )
+
+        val expected = """
+            package com.example.app
+
+            public object Route {
+                public val Home: String = "home"
+
+                public val Profile: String = "profile"
+            }
+        """.trimIndent() + "\n"
+        assertEquals(expected, printed)
+    }
 
     @Test
     fun `a class prints its members with a blank line between them`() {
@@ -97,6 +195,39 @@ class KtPrinterTest {
             package com.example.app
 
             public fun make(): Home {}
+
+            """.trimIndent(),
+            printed,
+        )
+    }
+
+    @Test
+    fun `a declared return type records its import`() {
+        // `fun clock(): Flow<String>`: the return type is a symbol like a parameter's, and the
+        // only member of an interface a page's host declares. Missed here, the emitted file
+        // spells `Flow` and imports nothing that resolves it.
+        val printed = KtPrinter().print(
+            ktFile(
+                KtDeclaration.Function(
+                    "clock",
+                    emptyList(),
+                    KtExpr.TypeApplication(
+                        reference("kotlinx.coroutines.flow", "Flow"),
+                        listOf(KtExpr.Name("String")),
+                    ),
+                    emptyList(),
+                    emptyList(),
+                ),
+            ),
+        )
+
+        assertEquals(
+            """
+            package com.example.app
+
+            import kotlinx.coroutines.flow.Flow
+
+            public fun clock(): Flow<String> {}
 
             """.trimIndent(),
             printed,
@@ -316,7 +447,7 @@ class KtPrinterTest {
     fun `an annotation prints above the declaration it belongs to`() {
         val annotated = KtDeclaration.Property(
             "count",
-            listOf(KotlinSymbol("kotlin.jvm", "JvmField")),
+            listOf(KotlinSymbol("kotlin.jvm", "JvmField").toAnnotation()),
             KtExpr.Name("Int"),
             true,
             KtExpr.Literal("0"),
@@ -663,6 +794,39 @@ class KtPrinterTest {
                 public val themed: Theme<Tint, Spacing>
 
                 public val picked: Tint?
+            }
+
+            """.trimIndent(),
+            printed,
+        )
+    }
+
+    @Test
+    fun `an if statement prints its condition and its body with no else`() {
+        val drawn = KtDeclaration.Function(
+            "Draw",
+            emptyList(),
+            null,
+            emptyList(),
+            listOf(
+                KtStmt.If(
+                    KtExpr.Member(KtExpr.Name("state"), "open"),
+                    listOf(KtStmt.Expr(badgeCall())),
+                ),
+            ),
+        )
+        val printed = KtPrinter().print(ktFile(drawn))
+
+        assertEquals(
+            """
+            package com.example.app
+
+            ${"import"} androidx.compose.material.Badge
+
+            public fun Draw() {
+                if (state.open) {
+                    Badge()
+                }
             }
 
             """.trimIndent(),

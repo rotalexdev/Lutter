@@ -8,16 +8,47 @@ import dev.rotalex.lutter.interpreter.StateStore
 import dev.rotalex.lutter.interpreter.env.HostFunctions
 import dev.rotalex.lutter.interpreter.env.Navigator
 import dev.rotalex.lutter.model.ids.NodeId
+import dev.rotalex.lutter.model.ids.ResourceId
 
-/** Where resources load from. Empty until resource loading has a reader. */
+/**
+ * Where resources load from. Empty until resource loading has a reader.
+ *
+ * The readers are the plan's two (§20:1598): a load for the bytes-shaped kinds and
+ * `stringFor` for locale-resolved strings. Variant selection is the engine's, not the
+ * host's — [ResourceSelector] is the one implementation every host shares, so a JVM
+ * host and a Wasm host answer the same document with the same variant.
+ */
 public interface ResourceProvider {
+
+    /**
+     * Loads the resource [id] names, decoded.
+     *
+     * Not composable and not cached: a renderer decides how to hold the result while
+     * composition subscribes it. A load may be slow — a URL fetch, a disk read — and
+     * the caller owns the coroutine that awaits it.
+     */
+    public suspend fun load(id: ResourceId): LoadedResource
+
+    /**
+     * The string [id] names, resolved for [locale] (a BCP-47 tag).
+     *
+     * Locale is `stringFor`'s argument because a document can render the same string
+     * resource under two locales in one screen — a language picker does exactly that —
+     * so the environment's locale cannot be the only answer.
+     */
+    public suspend fun stringFor(id: ResourceId, locale: String): String?
+
     public companion object {
         /** No resources. Every lookup is the loader's problem, not the renderer's. */
         public val Empty: ResourceProvider = EmptyResources
     }
 }
 
-private object EmptyResources : ResourceProvider
+private object EmptyResources : ResourceProvider {
+    override suspend fun load(id: ResourceId): LoadedResource = LoadedResource.Missing
+
+    override suspend fun stringFor(id: ResourceId, locale: String): String? = null
+}
 
 /**
  * The editor's neutral hook into rendering. The runtime's only editor concept.
@@ -57,4 +88,12 @@ public class RuntimeEnvironment(
     public val appState: StateStore = SnapshotStateStore.Empty,
     public val diagnostics: (RuntimeDiagnostic) -> Unit = {},
     public val hooks: RenderHooks = RenderHooks.None,
+    /**
+     * §12.1's persistent-state hook, or null when this host keeps nothing across restarts.
+     *
+     * Null is the default because it is what a preview, a test and an editor want: a host that
+     * does persist writes its own [PersistentStore] and every page's `Saveable` declarations
+     * start from what it holds.
+     */
+    public val persistent: PersistentStore? = null,
 )

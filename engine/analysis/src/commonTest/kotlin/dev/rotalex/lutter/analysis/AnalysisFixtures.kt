@@ -25,6 +25,8 @@ import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.Schema
 import dev.rotalex.lutter.schema.SchemaBuilder
+import dev.rotalex.lutter.schema.plugin.PluginDescriptor
+import dev.rotalex.lutter.schema.plugin.SchemaContribution
 import dev.rotalex.lutter.schema.action.ActionEmit
 import dev.rotalex.lutter.schema.action.ActionMetadata
 import dev.rotalex.lutter.schema.action.ActionSpec
@@ -36,6 +38,7 @@ import dev.rotalex.lutter.schema.component.Cardinality
 import dev.rotalex.lutter.schema.component.Category
 import dev.rotalex.lutter.schema.component.ChildFilter
 import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.component.IterationSpec
 import dev.rotalex.lutter.schema.component.EventArgSpec
 import dev.rotalex.lutter.schema.component.EventSpec
 import dev.rotalex.lutter.schema.component.KotlinSymbol
@@ -63,6 +66,7 @@ internal val ColumnType: ComponentType = ComponentType("core.Column")
 internal val TextType: ComponentType = ComponentType("m3.Text")
 internal val LinkType: ComponentType = ComponentType("core.Link")
 internal val CardType: ComponentType = ComponentType("m3.Card")
+internal val LazyListType: ComponentType = ComponentType("core.LazyList")
 
 /**
  * Not part of the walking skeleton: it exists because §10.4's nullability rules need a
@@ -94,6 +98,32 @@ internal fun testSchema(): Schema<ComponentSpec, ModifierSpec, String, String, S
     Schema.build<ComponentSpec, ModifierSpec, String, String, String> { walkingSkeleton() }
 
 /**
+ * [testSchema] plus the given plugins, installed in the order given.
+ *
+ * The contributions register nothing: §27.2's rule is about identity and version, and a plugin
+ * that added specs would make the vocabulary under test depend on the fixture. Order matters to
+ * `install` and is preserved, so a test may hand over a dependency before its dependent.
+ */
+internal fun pluginSchema(
+    vararg plugins: PluginDescriptor,
+): Schema<ComponentSpec, ModifierSpec, String, String, String> =
+    Schema.build<ComponentSpec, ModifierSpec, String, String, String> {
+        walkingSkeleton()
+        for (descriptor in plugins) install(silentContribution(descriptor))
+    }
+
+private fun silentContribution(
+    descriptor: PluginDescriptor,
+): SchemaContribution<ComponentSpec, ModifierSpec, String, String, String> =
+    object : SchemaContribution<ComponentSpec, ModifierSpec, String, String, String> {
+        override val descriptor: PluginDescriptor = descriptor
+
+        override fun contribute(
+            builder: SchemaBuilder<ComponentSpec, ModifierSpec, String, String, String>,
+        ): Unit = Unit
+    }
+
+/**
  * The same vocabulary with the types slot bound to [TypeSpec], so a registered `EnumTypeSpec`
  * is readable. A schema binding a stub there cannot answer an enum question at all.
  */
@@ -116,6 +146,29 @@ internal fun nullableSchema(): Schema<ComponentSpec, ModifierSpec, String, Strin
                 property(prop<String>("label", TypeRef.Str, required = true))
                 property(prop<String>("caption", TypeRef.Nullable(TypeRef.Str)))
                 composeCall(KotlinSymbol("androidx.compose.material3", "Text"))
+            },
+        )
+    }
+
+/**
+ * The same vocabulary with one iterating component, so the item binding is reachable: a lazy
+ * list whose `children` slot names `item` over a string list, the shape the engine's own
+ * `LazyColumn` carries. Nothing else here binds an item read, which is what the refusal rows
+ * need the rest of the vocabulary for.
+ */
+internal fun iterationSchema(): Schema<ComponentSpec, ModifierSpec, String, String, String> =
+    Schema.build<ComponentSpec, ModifierSpec, String, String, String> {
+        walkingSkeleton()
+        component(
+            componentSpec(LazyListType, 1) {
+                metadata("LazyList", Category.Basic)
+                property(prop<String>("elements", TypeRef.ListOf(TypeRef.Str)))
+                slot(
+                    "children",
+                    Cardinality.Many,
+                    iteration = IterationSpec("item", TypeRef.Str, PropertyKey("elements")),
+                )
+                composeCall(KotlinSymbol("androidx.compose.foundation.lazy", "LazyColumn"))
             },
         )
     }
@@ -174,6 +227,39 @@ internal fun actionSchema(): Schema<ComponentSpec, ModifierSpec, ActionSpec, Str
         action(ActionSpec(ActionId("nav.back"), ActionMetadata("Back"), emptyList(), emit = ActionEmit.Intrinsic))
         action(writeState)
         action(ActionSpec(ActionId("ui.showSnackbar"), ActionMetadata("Snackbar"), emptyList(), emit = ActionEmit.Intrinsic))
+        action(
+            ActionSpec(
+                ActionId("state.toggle"),
+                ActionMetadata("Toggle"),
+                emptyList(),
+                argRules = listOf(ArgRule(PropertyKey("target"), ArgShape.StateRef, required = true)),
+                emit = ActionEmit.Intrinsic,
+            ),
+        )
+        action(
+            ActionSpec(
+                ActionId("list.append"),
+                ActionMetadata("Append"),
+                emptyList(),
+                argRules = listOf(
+                    ArgRule(PropertyKey("target"), ArgShape.StateRef, required = true),
+                    ArgRule(PropertyKey("value"), ArgShape.ElementValue, required = true),
+                ),
+                emit = ActionEmit.Intrinsic,
+            ),
+        )
+        action(
+            ActionSpec(
+                ActionId("list.remove"),
+                ActionMetadata("Remove"),
+                emptyList(),
+                argRules = listOf(
+                    ArgRule(PropertyKey("target"), ArgShape.StateRef, required = true),
+                    ArgRule(PropertyKey("value"), ArgShape.ElementValue, required = true),
+                ),
+                emit = ActionEmit.Intrinsic,
+            ),
+        )
         action(branching)
         action(callHost)
     }

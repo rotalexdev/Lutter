@@ -18,6 +18,7 @@ import dev.rotalex.lutter.model.expr.Expr
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.expr.RefTarget
 import dev.rotalex.lutter.model.ids.EventKey
+import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.StateId
 import dev.rotalex.lutter.model.index.DocumentIndex
@@ -52,15 +53,18 @@ import dev.rotalex.lutter.schema.modifier.ModifierSpec
  */
 internal class ActionPass(
     private val schema: SchemaView<ComponentSpec, ModifierSpec, *, *, *>,
+    private val precomputedIndex: DocumentIndex? = null,
+    private val visit: ((NodeId) -> Boolean)? = null,
 ) : AnalysisPass {
     override val name: String = "action"
     override val blocking: Boolean = false
 
     override fun run(document: UiDocument): List<Diagnostic> {
         val found = mutableListOf<Diagnostic>()
-        val index = DocumentIndex(document)
+        val index = precomputedIndex ?: DocumentIndex(document)
         val checker = TypeChecker(schema, document.dataModels)
         for (id in document.nodes.ids()) {
+            if (visit != null && !visit(id)) continue
             val node = document.nodes[id] ?: continue
             val owned = ownerDeclsOf(document, index, id) ?: continue
             val base = scopeOf(document, owned)
@@ -329,6 +333,8 @@ private class Walk(
 
             ArgShape.TargetValue -> checkWrittenValue(rule.key, actual, target, at, event, scope)
 
+            ArgShape.ElementValue -> checkElementValue(step, rule.key, actual, target, at, event, scope)
+
             is ArgShape.Positional -> checkPositional(step, rule.key, actual, host, at, event, scope)
         }
     }
@@ -451,7 +457,62 @@ private class Walk(
                 mapOf("property" to key.value, "state" to decl.id.value),
             )
         }
+        // §12.1's external row is the host's to produce: the generated property is a getter, so a
+        // write that reached the emitter would be a file that does not compile.
+        if (decl.external != null) {
+            found += refusal(
+                at, event, DiagnosticCodes.ActionStateNotWritable,
+                "State '${decl.id.value}' arrives from a host adapter and cannot be written",
+                mapOf("property" to key.value, "state" to decl.id.value),
+            )
+        }
         checkArgument(key, actual, decl.type, at, event, scope)
+    }
+
+    /**
+     * One element of the list the step's target names, against that list's own element type.
+     *
+     * The same derived refusal [checkWrittenValue] makes, because appending to or removing from
+     * a derived list writes it just the same. The shape's contract is the target being a list,
+     * so a target that is not one is refused before any element type exists — a Str state named
+     * by a `list.append` step is a document fault, not a value mismatch.
+     */
+    private fun checkElementValue(
+        step: ActionStep,
+        key: PropertyKey,
+        actual: PropertyValue,
+        target: StateDecl?,
+        at: DiagnosticLocation,
+        event: EventKey,
+        scope: ExprScope,
+    ) {
+        val decl = target ?: return
+        if (decl.derived != null) {
+            found += refusal(
+                at, event, DiagnosticCodes.ActionStateNotWritable,
+                "State '${decl.id.value}' is derived and cannot be written",
+                mapOf("property" to key.value, "state" to decl.id.value),
+            )
+        }
+        // §12.1's external row is the host's to produce: the generated property is a getter, so a
+        // write that reached the emitter would be a file that does not compile.
+        if (decl.external != null) {
+            found += refusal(
+                at, event, DiagnosticCodes.ActionStateNotWritable,
+                "State '${decl.id.value}' arrives from a host adapter and cannot be written",
+                mapOf("property" to key.value, "state" to decl.id.value),
+            )
+        }
+        val element = (decl.type as? TypeRef.ListOf)?.element
+        if (element == null) {
+            found += refusal(
+                at, event, DiagnosticCodes.ActionStateNotList,
+                "State '${decl.id.value}' is not a list, and action '${step.action}' takes one of its elements",
+                mapOf("action" to step.action.value, "property" to key.value, "state" to decl.id.value),
+            )
+            return
+        }
+        checkArgument(key, actual, element, at, event, scope)
     }
 
     /**

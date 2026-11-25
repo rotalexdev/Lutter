@@ -5,10 +5,12 @@ import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.ids.ModifierType
 import dev.rotalex.lutter.model.ids.TypeId
+import dev.rotalex.lutter.schema.plugin.PluginDescriptor
 import dev.rotalex.lutter.schema.registry.Registry
+import dev.rotalex.lutter.schema.types.IconSet
 
 /**
- * What consumers read: five registries, nothing mutable.
+ * What consumers read: six registries, nothing mutable.
  *
  * Analysis, runtime and codegen take this rather than [Schema] so document components can
  * later resolve through an overlay without touching the static schema (§8.4, S4).
@@ -19,14 +21,29 @@ public interface SchemaView<C : Any, M : Any, A : Any, F : Any, T : Any> {
     public val actions: Registry<ActionId, A>
     public val functions: Registry<FunctionId, F>
     public val types: Registry<TypeId, T>
+
+    /** The icon sets, keyed by name. §20:1599's "backed by an `IconSet` in the `TypeRegistry`". */
+    public val icons: Registry<String, IconSet>
+
+    /**
+     * The plugins whose [dev.rotalex.lutter.schema.plugin.SchemaContribution] was installed, in
+     * installation order (§27.1; D35's missing field).
+     *
+     * Read-only and ordered on purpose: a document's `meta.plugins` is checked against this list,
+     * and a host that reported what it loaded in a different order than it installed it would make
+     * the two reports disagree for no reason. An overlay keeps its base schema's list — a document
+     * adds components, never plugins.
+     */
+    public val contributors: List<PluginDescriptor>
 }
 
 /**
- * The immutable schema: five registries built once through [SchemaBuilder].
+ * The immutable schema: six registries built once through [SchemaBuilder].
  *
  * Generic over the spec types because they arrive in later units (S2–S4); binding them
  * here would drag those units into this one. The keys and the read-only shape are the
- * contract and do not move when the values do.
+ * contract and do not move when the values do. The icon registry is concrete, not generic:
+ * icon sets are data-defined extension points (D3), never spec-shaped.
  */
 public class Schema<C : Any, M : Any, A : Any, F : Any, T : Any> internal constructor(
     override public val components: Registry<ComponentType, C>,
@@ -34,6 +51,8 @@ public class Schema<C : Any, M : Any, A : Any, F : Any, T : Any> internal constr
     override public val actions: Registry<ActionId, A>,
     override public val functions: Registry<FunctionId, F>,
     override public val types: Registry<TypeId, T>,
+    override public val icons: Registry<String, IconSet>,
+    override public val contributors: List<PluginDescriptor>,
 ) : SchemaView<C, M, A, F, T> {
     public companion object {
         /** Builds a schema. Duplicates fail as [SchemaBuildException], never silently. */

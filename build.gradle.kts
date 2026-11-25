@@ -7,7 +7,7 @@
 //
 // Build settings — jvmTarget, compileSdk, minSdk — are not here and not in
 // gradle.properties either. They come from the shared catalog, read by key through
-// forge/catalogs.kt's catalogVersion(...), so that every Rotalex project resolves the same
+// lutter/Catalogs.kt's catalogVersion(...), so that every Rotalex project resolves the same
 // numbers. This file used to say gradle.properties, which was wrong: nothing there defines
 // them, and a reader chasing that comment finds nothing at all.
 plugins {
@@ -17,12 +17,16 @@ plugins {
     alias(rootLibs.plugins.compose.compiler) apply false
     alias(rootLibs.plugins.compose) apply false
     alias(rootLibs.plugins.android.kotlin.multiplatform.library) apply false
+    // Phase 17 P6: `androidApp/` is the one module in this build that is an Android application
+    // rather than a library. AGP 9 refuses `com.android.application` beside
+    // `kotlin.multiplatform` in one module, which is why the app modules are per platform.
+    alias(rootLibs.plugins.android.application) apply false
 
     // Gives the root a `check` / `build` / `assemble` lifecycle for the graph guardrail to
     // hook into. Without it, `gradle check` would only ever match the subprojects.
     base
 
-    id("forge.moduleGraph")
+    id("lutter.moduleGraph")
 }
 
 allprojects {

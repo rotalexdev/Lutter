@@ -15,7 +15,9 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
+import dev.rotalex.lutter.builtins.compose.ImageLoadingTag
 import dev.rotalex.lutter.codegen.CodegenOptions
+import dev.rotalex.lutter.codegen.ComposeResourceStrategy
 import dev.rotalex.lutter.codegen.KotlinGenerator
 import dev.rotalex.lutter.generated.button_navigate.AppNavigator
 import dev.rotalex.lutter.generated.button_navigate.AppRoot
@@ -72,6 +74,7 @@ class ConformanceTest {
             setContent {
                 UiScreen(ConformanceHarness.runtime(ConformanceHarness.schema()), resolved, HOME, ConformanceHarness.environment())
             }
+            awaitSettled(resolved)
             val runtimeDump = dumpSemantics()
 
             setContent { GeneratedFixtures.all.getValue(id)(Modifier) }
@@ -86,6 +89,7 @@ class ConformanceTest {
             setContent {
                 UiScreen(ConformanceHarness.runtime(ConformanceHarness.schema()), resolved, HOME, ConformanceHarness.environment())
             }
+            awaitSettled(resolved)
             val runtimePixels = pixelBytes()
 
             setContent { GeneratedFixtures.all.getValue(id)(Modifier) }
@@ -355,7 +359,15 @@ class ConformanceTest {
             "fixture '$id': ${result.diagnostics}"
         }
         val resolved = checkNotNull(result.resolved) { "fixture '$id' resolved nothing" }
-        val generated = KotlinGenerator(schema, CodegenOptions(PACKAGE + id))
+        // The package is the build script's ResPkgs.PACKAGE spelled here: a fixture that uses
+        // a resource refuses generation without one, which is the strategy's own contract.
+        val generated = KotlinGenerator(
+            schema,
+            CodegenOptions(
+                PACKAGE + id,
+                resources = ComposeResourceStrategy("dev.rotalex.lutter.generated.resources"),
+            ),
+        )
             .generate(resolved, result.diagnostics)
         check(generated.diagnostics.none { it.severity == Severity.Error }) {
             "fixture '$id': ${generated.diagnostics}"
@@ -366,6 +378,25 @@ class ConformanceTest {
 
     private fun ComposeUiTest.dumpSemantics(): String =
         buildString { render(firstContent(onRoot().fetchSemanticsNode())) }
+
+    /**
+     * Waits for the runtime's async resource load to land, for fixtures that have resources.
+     *
+     * The runtime path's resource provider is suspend by design (§20:1598), so an image-bearing
+     * fixture composes a placeholder first and swaps the loaded content in a frame of its own —
+     * the generated path's painterResource never has that gap, and waitForIdle cannot promise
+     * the swap landed: the load completes on a dispatcher the frame clock does not drive. The
+     * renderer says what is loading, though: its placeholders carry a tag the dump prints, so
+     * "no node carries the tag" is a settled tree no frame-timing guess can fake.
+     */
+    private fun ComposeUiTest.awaitSettled(resolved: ResolvedDocument) {
+        if (resolved.resources.isEmpty()) return
+        // The runtime marks its not-yet-loaded placeholders with the tag, and the dump
+        // prints tags; when no node carries it, every load has landed and the tree is the
+        // settled one. No frame-timing guess can mistake a placeholder for the result.
+        waitUntil { !dumpSemantics().contains(ImageLoadingTag) }
+        waitForIdle()
+    }
 
     private fun ComposeUiTest.pixelBytes(): Pair<Pair<Int, Int>, IntArray> {
         val image = onRoot().captureToImage()

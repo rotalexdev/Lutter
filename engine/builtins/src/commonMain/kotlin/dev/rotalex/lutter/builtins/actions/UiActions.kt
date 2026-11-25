@@ -32,6 +32,40 @@ public object UiActions {
         emit = ActionEmit.Intrinsic,
     )
 
+    /**
+     * `ui.showDialog`: a modal with a title and a message.
+     *
+     * Two `Str` parameters rather than shapes, because both spell text a type can name — the
+     * same reading `showSnackbar` made of a snackbar's message. The content slot, the buttons
+     * and the dismissal are wave-3's to add: a v1 dialog a step can address is text shown
+     * somewhere modal, and the `DialogHost` contract says exactly that.
+     */
+    public val showDialog: ActionSpec = ActionSpec(
+        id = ActionId("ui.showDialog"),
+        metadata = ActionMetadata("Show dialog"),
+        params = listOf(
+            prop<Nothing>("title", TypeRef.Str, required = true),
+            prop<Nothing>("message", TypeRef.Str, required = true),
+        ),
+        emit = ActionEmit.Intrinsic,
+    )
+
+    /**
+     * `ui.showBottomSheet`: the sheet form of `ui.showDialog`.
+     *
+     * The same two parameters, because the presentation differs and the payload does not: a
+     * sheet is where the host draws it, which is the host's business and not the document's.
+     */
+    public val showBottomSheet: ActionSpec = ActionSpec(
+        id = ActionId("ui.showBottomSheet"),
+        metadata = ActionMetadata("Show bottom sheet"),
+        params = listOf(
+            prop<Nothing>("title", TypeRef.Str, required = true),
+            prop<Nothing>("message", TypeRef.Str, required = true),
+        ),
+        emit = ActionEmit.Intrinsic,
+    )
+
     /** Every spec here, in §11.4's order. */
-    public val all: List<ActionSpec> = listOf(showSnackbar)
+    public val all: List<ActionSpec> = listOf(showSnackbar, showDialog, showBottomSheet)
 }

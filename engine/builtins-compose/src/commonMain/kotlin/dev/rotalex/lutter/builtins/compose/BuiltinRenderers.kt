@@ -1,12 +1,33 @@
 package dev.rotalex.lutter.builtins.compose
 
+import dev.rotalex.lutter.builtins.BottomSheetSpec
 import dev.rotalex.lutter.builtins.BoxSpec
+import dev.rotalex.lutter.builtins.BoxWithConstraintsSpec
 import dev.rotalex.lutter.builtins.ButtonSpec
 import dev.rotalex.lutter.builtins.CardSpec
+import dev.rotalex.lutter.builtins.CheckboxSpec
 import dev.rotalex.lutter.builtins.ColumnSpec
+import dev.rotalex.lutter.builtins.DialogSpec
+import dev.rotalex.lutter.builtins.RadioButtonSpec
 import dev.rotalex.lutter.builtins.RowSpec
+import dev.rotalex.lutter.builtins.ScaffoldSpec
 import dev.rotalex.lutter.builtins.SlotOutletSpec
+import dev.rotalex.lutter.builtins.SurfaceSpec
+import dev.rotalex.lutter.builtins.DividerSpec
+import dev.rotalex.lutter.builtins.FlowColumnSpec
+import dev.rotalex.lutter.builtins.FlowRowSpec
+import dev.rotalex.lutter.builtins.IconSpec
+import dev.rotalex.lutter.builtins.ImageSpec
+import dev.rotalex.lutter.builtins.LazyColumnSpec
+import dev.rotalex.lutter.builtins.LazyRowSpec
+import dev.rotalex.lutter.builtins.NavigationBarSpec
+import dev.rotalex.lutter.builtins.NavigationDrawerSpec
+import dev.rotalex.lutter.builtins.NavigationItemSpec
+import dev.rotalex.lutter.builtins.NavigationRailSpec
+import dev.rotalex.lutter.builtins.ProgressIndicatorSpec
+import dev.rotalex.lutter.builtins.SliderSpec
 import dev.rotalex.lutter.builtins.SpacerSpec
+import dev.rotalex.lutter.builtins.SwitchSpec
 import dev.rotalex.lutter.builtins.TextFieldSpec
 import dev.rotalex.lutter.builtins.TextSpec
 import dev.rotalex.lutter.runtime.RendererRegistryBuilder
@@ -24,9 +45,30 @@ public fun RendererRegistryBuilder.registerBuiltinRenderers(): Unit {
     register(RowSpec.spec.type, RowRenderer)
     register(BoxSpec.spec.type, BoxRenderer)
     register(SpacerSpec.spec.type, SpacerRenderer)
+    register(DividerSpec.spec.type, DividerRenderer)
+    register(ProgressIndicatorSpec.spec.type, ProgressIndicatorRenderer)
+    register(IconSpec.spec.type, IconRenderer)
+    register(ImageSpec.spec.type, ImageRenderer)
     register(TextSpec.spec.type, TextRenderer)
     register(ButtonSpec.spec.type, ButtonRenderer)
     register(TextFieldSpec.spec.type, TextFieldRenderer)
+    register(CheckboxSpec.spec.type, CheckboxRenderer)
+    register(SwitchSpec.spec.type, SwitchRenderer)
+    register(RadioButtonSpec.spec.type, RadioButtonRenderer)
+    register(SliderSpec.spec.type, SliderRenderer)
+    register(FlowRowSpec.spec.type, FlowRowRenderer)
+    register(FlowColumnSpec.spec.type, FlowColumnRenderer)
+    register(LazyColumnSpec.spec.type, LazyColumnRenderer)
+    register(LazyRowSpec.spec.type, LazyRowRenderer)
     register(CardSpec.spec.type, CardRenderer)
     register(SlotOutletSpec.spec.type, SlotOutletRenderer)
+    register(SurfaceSpec.spec.type, SurfaceRenderer)
+    register(BoxWithConstraintsSpec.spec.type, BoxWithConstraintsRenderer)
+    register(DialogSpec.spec.type, DialogRenderer)
+    register(BottomSheetSpec.spec.type, BottomSheetRenderer)
+    register(ScaffoldSpec.spec.type, ScaffoldRenderer)
+    register(NavigationBarSpec.spec.type, NavigationBarRenderer)
+    register(NavigationRailSpec.spec.type, NavigationRailRenderer)
+    register(NavigationDrawerSpec.spec.type, NavigationDrawerRenderer)
+    register(NavigationItemSpec.spec.type, NavigationItemRenderer)
 }

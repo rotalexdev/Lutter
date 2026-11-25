@@ -1,6 +1,7 @@
 package dev.rotalex.lutter.schema.component
 
 import dev.rotalex.lutter.model.ids.ComponentType
+import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.type.TypeRef
 import kotlin.jvm.JvmInline
@@ -48,11 +49,15 @@ public value class ScopeId(public val value: String) {
 }
 
 /**
- * The item template of an iterating slot (`LazyColumn`, wave 2): the loop variable and its type.
+ * The item template of an iterating slot (`LazyColumn`): the loop variable, its type, and the
+ * list that drives it.
  *
- * Post-MVP and declared anyway, so a document naming one fails validation rather than decoding.
+ * [source] is the node property the slot iterates; the generator reads its computed expression
+ * as the `items(...)` argument the renderer evaluates per frame. The type is the element type
+ * that list carries — [LazyColumnSpec]'s string list is the wave's own shape.
  */
 public data class IterationSpec(
     public val itemName: String,
     public val itemType: TypeRef,
+    public val source: PropertyKey,
 )

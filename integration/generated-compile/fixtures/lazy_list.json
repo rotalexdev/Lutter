@@ -1,0 +1,46 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "LazyList"},
+    "nodes": {
+      "n_a": {
+        "id": "n_a",
+        "props": {"text": {"type": "expr", "expr": {"type": "ref", "target": {"type": "item", "name": "item"}}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "props": {"items": {"type": "expr", "expr": {"type": "ref", "target": {"type": "state", "id": "s_teams"}}}},
+        "slots": {"children": ["n_a"]},
+        "type": "core.LazyColumn"
+      }
+    },
+    "pages": {
+      "p_home": {
+        "id": "p_home",
+        "name": "Home",
+        "root": "n_root",
+        "route": "home",
+        "state": [
+          {
+            "id": "s_teams",
+            "name": "teams",
+            "type": {"type": "list", "element": {"type": "str"}},
+            "initial": {
+              "type": "list",
+              "items": [
+                {"type": "str", "v": "Alpha"},
+                {"type": "str", "v": "Beta"},
+                {"type": "str", "v": "Gamma"}
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

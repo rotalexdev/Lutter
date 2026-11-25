@@ -14,7 +14,10 @@ import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.DiagnosticCode
 import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
 import dev.rotalex.lutter.model.diagnostic.Severity
+import dev.rotalex.lutter.model.doc.ExternalStateDecl
 import dev.rotalex.lutter.model.doc.HostFunctionDecl
+import dev.rotalex.lutter.model.doc.ResourceDecl
+import dev.rotalex.lutter.model.doc.ResourceKind
 import dev.rotalex.lutter.model.doc.ThemeDecl
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.expr.TypedExpr
@@ -22,9 +25,11 @@ import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.ResourceId
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.ids.StateId
 import dev.rotalex.lutter.model.ids.TypeId
+import dev.rotalex.lutter.model.type.RefKind
 import dev.rotalex.lutter.model.type.TokenKind
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
@@ -108,9 +113,16 @@ public class KotlinGenerator<A : Any, T : Any>(
     // are written and read at every instantiation site. A call has to know the callee's signature
     // before it is written, which is why `generate` orders component files ahead of their callers.
     private val componentReceivers: MutableMap<ComponentDeclId, List<ActionReceiver>> = mutableMapOf()
+    // The document's resource declarations, per run beside the others above: a resource reference
+    // resolves to the declaration its id names, and one generator serves many documents, so a
+    // leftover map would emit the previous document's names.
+    private var resources: Map<ResourceId, ResourceDecl> = emptyMap()
 
     private val rememberCoroutineScope: KotlinSymbol =
         KotlinSymbol("androidx.compose.runtime", "rememberCoroutineScope")
+
+    private val LazyItems: KotlinSymbol =
+        KotlinSymbol("androidx.compose.foundation.lazy", "items")
 
     // Fail fast on missing bindings, like UiRuntime does on missing renderers.
     init {
@@ -128,9 +140,22 @@ public class KotlinGenerator<A : Any, T : Any>(
         appStateHoist = null
         componentSpecs = document.componentSpecs
         theme = document.theme.theme
+        resources = document.resources
         // Before the plan and before any emitter: §16.7 asks for a located finding rather than a
         // red compile harness, and the reserved set is the one thing a document cannot know.
         diagnostics += ReservedCodegenNames.findings(document, options)
+        // A container that cannot build this state strategy's holder is a refusal about the pair of
+        // options, not about anything the document declares: there is no node to point at, and the
+        // fix is a different selection rather than an edit.
+        val refused: String? = options.injection.refusal(options.state, options.targetPlatforms)
+        if (refused != null) {
+            diagnostics += Diagnostic(
+                Severity.Error,
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                DiagnosticLocation(),
+                refused,
+            )
+        }
         state = StateEmitter(document, options, schema.functions)
         val reader: ExprEmitter = ExprEmitter(schema.functions, StateRead { id -> state?.readInScreen(id) })
         expressions = reader
@@ -147,7 +172,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             options,
             diagnostics,
         )
-        val plan: GenPlan = planDocument(document, options.basePackage)
+        val plan: GenPlan = planDocument(document, options.basePackage, options.injection)
         refuseCollisions(plan)
         val files: MutableList<GeneratedFile> = mutableListOf()
         if (diagnostics.none { it.severity == Severity.Error }) {
@@ -207,6 +232,8 @@ public class KotlinGenerator<A : Any, T : Any>(
             PlannedFileKind.Navigation -> emitNavigation(planned, document)
             PlannedFileKind.AppHost -> emitAppHost(planned, document)
             PlannedFileKind.AppState -> emitAppState(planned, document)
+            PlannedFileKind.Store -> emitStore(planned)
+            PlannedFileKind.Injection -> emitInjection(planned, document)
             PlannedFileKind.Screen -> {
                 val pageId = checkNotNull(planned.pageId) { "Plan marked '${planned.path}' with no page" }
                 val page: ResolvedPage = checkNotNull(document.pages[pageId]) {
@@ -236,12 +263,66 @@ public class KotlinGenerator<A : Any, T : Any>(
      * offered to all of them because §12.1's provider belongs to whichever file declares it, and a
      * document with no app state makes the wrapper the identity.
      */
-    private fun fileContext(): FileContext = FileContext(
-        pkg = options.basePackage,
-        header = headerText(),
-        receivers = screenReceivers.mapValues { (_, held) -> held.sortedBy(ActionReceiver::member) },
-        appState = { content -> stateEmitter()?.appProvider(content) ?: listOf(content) },
+    private fun fileContext(): FileContext {
+        val store: KtExpr? = if (stateEmitter()?.savesAnything() == true) KtExpr.Name("store") else null
+        return FileContext(
+            pkg = options.basePackage,
+            header = headerText(),
+            receivers = screenReceivers.mapValues { (_, held) -> held.sortedBy(ActionReceiver::member) },
+            appState = { content -> stateEmitter()?.appProvider(content, store) ?: listOf(content) },
+            injected = { body -> options.injection.appRoot(body, injectionPackage(options.basePackage)) },
+            receiverType = ::receiverType,
+            storeParameter = store?.let { storeParameter() },
+        )
+    }
+
+    /**
+     * `store: PersistentStore? = null`: what `AppRoot` is handed when the document saves
+     * anything, and the one place a host application wires its own file or database in.
+     */
+    private fun storeParameter(): KtParam = KtParam(
+        "store",
+        KtExpr.Nullable(
+            KtExpr.Ref(KtSymbolRef(KotlinSymbol(options.basePackage + ".state", StateEmitter.PersistentStoreName))),
+        ),
+        KtExpr.Literal("null"),
     )
+
+    /**
+     * `di/Injection.kt`: the container's bindings, one per page holder this document generated.
+     *
+     * The holders are read off the state strategy's own parameter rather than named here, so a
+     * container never spells a class the state strategy owns: what it declares is exactly what a
+     * screen asks for.
+     */
+    private fun emitInjection(planned: PlannedFile, document: ResolvedDocument): KtFile? {
+        val emitter: StateEmitter = stateEmitter() ?: return null
+        // Only pages the run actually declared a holder for: a stateless page names no holder,
+        // and registering one would reference a class no screen file contains.
+        val holders: List<KotlinSymbol> = document.pages.entries
+            .sortedBy { it.key.value }
+            .mapNotNull { (_, page) ->
+                if (emitter.hasHolder(page)) holderSymbol(emitter.pageParameter(page).type) else null
+            }
+        val declarations: List<KtDeclaration> = options.injection.module(holders)
+        if (declarations.isEmpty()) return null
+        return KtFile(planned.packageName, headerText(), declarations)
+    }
+
+    /**
+     * The symbol a holder's type names, or null when the strategy spelled it as something other
+     * than a generated class — a strategy whose parameter is not a class has no holder to declare.
+     */
+    private fun holderSymbol(type: KtExpr): KotlinSymbol? {
+        val ref: KtSymbolRef = (type as? KtExpr.Ref)?.symbol ?: return null
+        return ref.symbol
+    }
+
+    /** §16.5's `state/PersistentStore.kt`: the hook and the local the state classes read. */
+    private fun emitStore(planned: PlannedFile): KtFile? {
+        val emitter: StateEmitter = stateEmitter() ?: return null
+        return KtFile(planned.packageName, headerText(), emitter.persistentStore())
+    }
 
     /**
      * §16.5's `Navigation.kt`, the strategy's own declarations.
@@ -285,6 +366,9 @@ public class KotlinGenerator<A : Any, T : Any>(
         for (declaration in declarations) {
             members += hostMember(declaration) ?: return null
         }
+        for (adapter in externalAdapters(document)) {
+            members += adapter ?: return null
+        }
         return KtFile(
             planned.packageName,
             headerText(),
@@ -295,6 +379,12 @@ public class KotlinGenerator<A : Any, T : Any>(
                     emptyList(),
                     false,
                     listOf(snackbarShow()),
+                ),
+                KtDeclaration.Interface(
+                    ReservedCodegenNames.DialogHostName,
+                    emptyList(),
+                    false,
+                    listOf(dialogShow(), dialogShowSheet()),
                 ),
             ),
         )
@@ -327,12 +417,86 @@ public class KotlinGenerator<A : Any, T : Any>(
         )
     }
 
+    /**
+     * One `fun <adapter>(): Flow<T>` per external declaration, on the interface the app implements.
+     *
+     * The adapter is the whole of what §12.1's external row asks of a host: not a call the
+     * generated code makes, but a stream it is handed. Declared here rather than beside the
+     * functions because the position is the same one and the reader should find both kinds of
+     * "what the application must supply" in one place.
+     *
+     * A repeated name is a finding and not two members with one name: `AppHost` is one interface,
+     * and two declarations asking for one adapter would leave the second screen reading the
+     * first's stream with no way to say so.
+     */
+    private fun externalAdapters(document: ResolvedDocument): List<KtDeclaration.Function?> {
+        val seen: MutableMap<String, String> = mutableMapOf()
+        val members: MutableList<KtDeclaration.Function?> = mutableListOf()
+        for (page in document.pages.entries.sortedBy { it.key.value }.map { it.value }) {
+            for (state in page.state) {
+                val external: ExternalStateDecl = state.decl.external ?: continue
+                val owner: String? = seen.put(external.adapter, state.decl.name)
+                if (owner != null) {
+                    refuse(
+                        DiagnosticCodes.CodegenStrategyUnsupported,
+                        DiagnosticLocation(),
+                        "Host adapter '" + external.adapter + "' is asked for by '" +
+                            state.decl.name + "' and by '" + owner + "', and one member cannot hold both",
+                    )
+                    members += null
+                    continue
+                }
+                val element: KtExpr = spelledType(
+                    "Host adapter '" + external.adapter + "'",
+                    state.decl.type,
+                ) ?: return members + null
+                members += KtDeclaration.Function(
+                    name = external.adapter,
+                    annotations = emptyList(),
+                    type = KtExpr.TypeApplication(KtExpr.Ref(KtSymbolRef(flowSymbol)), listOf(element)),
+                    params = emptyList(),
+                    body = emptyList(),
+                )
+            }
+        }
+        return members
+    }
+
+    /** `kotlinx.coroutines.flow.Flow`: what an external declaration's adapter returns. */
+    private val flowSymbol: KotlinSymbol = KotlinSymbol("kotlinx.coroutines.flow", "Flow")
+
     /** The interpreter's own one operation, so the two sides of a snackbar are the same call. */
     private fun snackbarShow(): KtDeclaration.Function = KtDeclaration.Function(
         name = "show",
         annotations = emptyList(),
         type = null,
         params = listOf(KtParam("message", KtExpr.Name("String"), null)),
+        body = emptyList(),
+    )
+
+    /**
+     * The two members the two dialog actions reach, spelled the same way `snackbarShow` is:
+     * one operation per action family, and a title-plus-message payload the v1 contract fixed.
+     */
+    private fun dialogShow(): KtDeclaration.Function = KtDeclaration.Function(
+        name = "show",
+        annotations = emptyList(),
+        type = null,
+        params = listOf(
+            KtParam("title", KtExpr.Name("String"), null),
+            KtParam("message", KtExpr.Name("String"), null),
+        ),
+        body = emptyList(),
+    )
+
+    private fun dialogShowSheet(): KtDeclaration.Function = KtDeclaration.Function(
+        name = "showSheet",
+        annotations = emptyList(),
+        type = null,
+        params = listOf(
+            KtParam("title", KtExpr.Name("String"), null),
+            KtParam("message", KtExpr.Name("String"), null),
+        ),
         body = emptyList(),
     )
 
@@ -374,8 +538,13 @@ public class KotlinGenerator<A : Any, T : Any>(
         // Per this function, before the tree is emitted: the hoist is read once the root is built,
         // so a leftover from a previous file cannot claim this one.
         appStateHoist = null
+        fileOptIns.clear()
         val root: KtExpr = emitNode(page.root, true, emptyList()) ?: return null
-        val reads: Set<ActionReceiver> = drainReads()
+        // An external declaration makes the screen's default read `host`, which is a receiver the
+        // actions never mentioned: the demand is the declaration's, so it is recorded here rather
+        // than discovered from a call site that does not exist.
+        val reads: Set<ActionReceiver> = drainReads() +
+            if (page.state.any { it.decl.external != null }) setOf(ActionReceiver.Host) else emptySet()
         recordDemand(page.id, reads)
         val declarations: MutableList<KtDeclaration> = mutableListOf()
         val params: MutableList<KtParam> = mutableListOf()
@@ -388,12 +557,13 @@ public class KotlinGenerator<A : Any, T : Any>(
         }
         declarations += KtDeclaration.Function(
             page.name + ReservedCodegenNames.ScreenSuffix,
-            listOf(composable),
+            listOf(composable.toAnnotation()),
             null,
             params,
             // First: reading the accessor is composable work, and the composable must own it
             // before any lambda it hands to a component runs — including `scope`'s launches.
             hoistAppState() + actionLocals(reads) + listOf(KtStmt.Expr(root)),
+            optIns = fileOptIns.sortedWith(compareBy({ it.packageName }, { it.name })),
         )
         return KtFile(planned.packageName, headerText(), declarations)
     }
@@ -411,23 +581,25 @@ public class KotlinGenerator<A : Any, T : Any>(
         if (refuseState(held, at)) return null
         // Per this function, for the same reason [emitScreen] clears before its tree is emitted.
         appStateHoist = null
+        fileOptIns.clear()
         val body: KtExpr = emitNode(root, true, emptyList()) ?: return null
         // Recorded rather than drained away: a component function now has a caller — §5.5 makes an
         // instance a call, and every instantiation site has to pass the receivers this body closed
         // over. The set is written before the caller is emitted, which is what `generate`'s file
         // order exists for.
         val reads: Set<ActionReceiver> = drainReads()
-        componentReceivers[componentId] = reads.filter { it.type != null }.sortedBy { it.member }
+        componentReceivers[componentId] = reads.filter { receiverType(it) != null }.sortedBy { it.member }
         val declared: List<KtParam> = componentParams(componentId, document) ?: return null
         val statements: List<KtStmt> = hoistAppState() +
             emitter.componentLocals(held).orEmpty() +
             actionLocals(reads) + listOf(KtStmt.Expr(body))
         val function: KtDeclaration.Function = KtDeclaration.Function(
             componentId.value,
-            listOf(composable),
+            listOf(composable.toAnnotation()),
             null,
             declared + environmentParams(reads) + modifierParam() + slotParams(document, componentId),
             statements,
+            optIns = fileOptIns.sortedWith(compareBy({ it.packageName }, { it.name })),
         )
         return KtFile(planned.packageName, headerText(), listOf(function))
     }
@@ -577,7 +749,31 @@ public class KotlinGenerator<A : Any, T : Any>(
     // `val` is exactly one per function that needs it, and a file that needs none emits none.
     private var appStateHoist: KtStmt.LocalProperty? = null
 
+    // The opt-in markers the file being emitted composes behind, collected as calls are built
+    // and spelled on the function the tree lands in — the screen or component function, the
+    // same function that already carries `@Composable` — and cleared at the top of both, the
+    // same one-file lifetime the hoist has. A `@RequiresOptIn` callee refuses under
+    // warnings-as-errors without it, and applying the marker itself is the opt-in, so the bare
+    // annotation is all the generated function needs.
+    private val fileOptIns: MutableSet<KotlinSymbol> = mutableSetOf()
+
     private fun actionEmitter(): ActionEmitter? = actions
+
+    /**
+     * The declared type of [receiver]'s parameter, or null when the composition owns it.
+     *
+     * The one place the mapping lives: a screen's signature, a component's signature, and the
+     * navigation strategy's `AppRoot` all ask this, so none of them can name a receiver's class
+     * the others do not. The navigator's is the strategy's answer; the rest are declarations this
+     * generator emits into [CodegenOptions.basePackage]; §11.5's scope is a composition local.
+     */
+    private fun receiverType(receiver: ActionReceiver): KotlinSymbol? = when (receiver) {
+        ActionReceiver.Navigator -> options.navigation.navigatorType
+        ActionReceiver.Scope -> null
+        ActionReceiver.Snackbars -> KotlinSymbol(options.basePackage, ReservedCodegenNames.SnackbarHostName)
+        ActionReceiver.Dialogs -> KotlinSymbol(options.basePackage, ReservedCodegenNames.DialogHostName)
+        ActionReceiver.Host -> KotlinSymbol(options.basePackage, ReservedCodegenNames.AppHostName)
+    }
 
     /**
      * One parameter per environment receiver the file's handlers used, sorted by name.
@@ -587,12 +783,11 @@ public class KotlinGenerator<A : Any, T : Any>(
      * screen its own `AppRoot` cannot call. Sorted so two runs over one document agree.
      */
     private fun environmentParams(reads: Set<ActionReceiver>): List<KtParam> =
-        reads.filter { it.type != null }
-            .sortedBy { it.member }
-            .map { receiver ->
-                val type: KtExpr =
-                    KtExpr.Ref(KtSymbolRef(KotlinSymbol(options.basePackage, checkNotNull(receiver.type))))
-                KtParam(receiver.member, type, null)
+        reads.sortedBy { it.member }
+            .mapNotNull { receiver ->
+                receiverType(receiver)?.let { type ->
+                    KtParam(receiver.member, KtExpr.Ref(KtSymbolRef(type)), null)
+                }
             }
 
     /**
@@ -728,6 +923,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             collapseAppStateRead(statement.target),
             collapseAppStateRead(statement.value),
         )
+        is KtStmt.Return -> KtStmt.Return(statement.value?.let { collapseAppStateRead(it) })
         is KtStmt.When -> KtStmt.When(
             subject = collapseAppStateRead(statement.subject),
             branches = statement.branches.map { branch ->
@@ -737,6 +933,10 @@ public class KotlinGenerator<A : Any, T : Any>(
                 )
             },
             otherwise = statement.otherwise?.let { collapseAppStateRead(it) },
+        )
+        is KtStmt.If -> KtStmt.If(
+            cond = collapseAppStateRead(statement.cond),
+            then = statement.then.map { collapseAppStateRead(it) },
         )
     }
 
@@ -882,6 +1082,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             refuse(DiagnosticCodes.CodegenNoBinding, node, "No compose call for '${node.type}'")
             return null
         }
+        binding.requiresOptIn?.let { fileOptIns += it }
         val args: MutableList<KtArg> = mutableListOf()
         val kept: List<KeptParam> = keptParams(binding, node)
         for (keptParam in kept) {
@@ -1087,7 +1288,13 @@ public class KotlinGenerator<A : Any, T : Any>(
         val kept: MutableList<KeptParam> = mutableListOf()
         for (param in binding.params) {
             val present: List<PropertyKey> = param.from.filter { key -> valueful(node, key) }
-            if (present.isEmpty()) continue
+            if (present.isEmpty()) {
+                // A literal has nothing to be valueful about: it exists to name a required
+                // argument the spec declares no property for, so absence of sources is its
+                // normal shape and the parameter stays.
+                if (param.emit is ValueEmit.Literal) kept += KeptParam(param, present)
+                continue
+            }
             if (param.omitWhenDefault && present.all { isDefault(node, it) }) continue
             kept += KeptParam(param, present)
         }
@@ -1144,7 +1351,148 @@ public class KotlinGenerator<A : Any, T : Any>(
             val filled = fillPattern(match.pattern, node.props, spec.properties, node) ?: return null
             return KtExpr.Snippet(filled.first, match.imports + filled.second)
         }
+        if (emit is ValueEmit.Icon) {
+            // §10:796's row: the pair resolves through the set, and the case transformation
+            // lives in the registry rather than in a text pattern — "home" is nobody's literal.
+            val symbol: KotlinSymbol? = iconSymbol(emit, node)
+            if (symbol == null) return null
+            // Material's icon families expose each glyph as an extension property on a receiver
+            // the package tail names: `...icons.filled` hangs `Home` off `Icons.Filled`. A bare
+            // extension name does not resolve, so the call reads the receiver chain and imports
+            // both the receiver and the extension. That convention belongs to the icon registry
+            // the symbol comes from; MaterialIconSet is the only family registered.
+            val family = symbol.packageName.substringAfterLast('.').replaceFirstChar { it.uppercaseChar() }
+            val receiver = KotlinSymbol(
+                symbol.packageName.substringBeforeLast('.', missingDelimiterValue = symbol.packageName),
+                "Icons",
+            )
+            return KtExpr.Literal("Icons." + family + "." + symbol.name, listOf(receiver, symbol))
+        }
+        if (emit is ValueEmit.Literal) {
+            return KtExpr.Snippet(emit.text, emptyList())
+        }
+        if (emit is ValueEmit.Resource) {
+            // §20:1598's row: the reference resolves through the document's declarations, and
+            // the vocabulary the kind names is compose-resources' own — drawable for images,
+            // string for strings. The Res package is the scaffold's (§33), carried by the
+            // strategy; without one the generator refuses rather than spell against nothing.
+            val resPackage = options.resources.resPackage
+            if (resPackage == null) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Param '" + binding.param + "' emits a resource reference and no resources " +
+                        "package is configured",
+                )
+                return null
+            }
+            if (kept.present.size > 1) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Param '" + binding.param + "' has several present sources",
+                )
+                return null
+            }
+            val key: PropertyKey = kept.present.singleOrNull()
+                ?: throw CodegenBug("Param '${binding.param}' binds no present property")
+            val prop: ResolvedProp = checkNotNull(node.props[key]) {
+                "Present property '${key.value}' left the node"
+            }
+            val ref = ((prop.value as? PropertyValue.Const)?.value as? Value.Ref)
+            if (ref == null || ref.kind != RefKind.Resource) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Param '" + binding.param + "' emits a resource reference and the property " +
+                        "holds something else",
+                )
+                return null
+            }
+            val decl = resources[ResourceId(ref.id)]
+            if (decl == null) {
+                // `ReferencePass` reports the unknown id; a resolve here would be a second
+                // answer to the same fact, so the generator refuses quietly instead.
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Param '" + binding.param + "' references resource '" + ref.id + "', which the " +
+                        "document does not declare",
+                )
+                return null
+            }
+            val name = decl.name
+            if (!name.matches(Regex("[A-Za-z][A-Za-z0-9_]*"))) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Resource '" + ref.id + "' has a name that is not a Kotlin identifier: '" + name + "'",
+                )
+                return null
+            }
+            // Two imports are load-bearing: the plugin's accessors are TOP-LEVEL extensions
+            // on the empty Res.drawable / Res.string objects, and an extension resolves only
+            // through a package import of its own name — `import …Res` alone leaves
+            // `Res.drawable.<name>` unresolved. The printer forbids the wildcard that would
+            // cover every accessor at once, so each spelling imports the one name it uses.
+            if (resources.values.count { it.name == name } > 1) {
+                refuse(
+                    DiagnosticCodes.CodegenStrategyUnsupported,
+                    node,
+                    "Resource name '" + name + "' is declared by more than one resource, so the " +
+                        "accessor import would be ambiguous",
+                )
+                return null
+            }
+            val res = KotlinSymbol(resPackage, "Res")
+            val accessor = KotlinSymbol(resPackage, name)
+            return when (decl.kind) {
+                ResourceKind.Image -> KtExpr.Snippet(
+                    "painterResource(Res.drawable." + name + ")",
+                    listOf(res, accessor, KotlinSymbol("org.jetbrains.compose.resources", "painterResource")),
+                )
+                ResourceKind.String -> KtExpr.Snippet(
+                    "stringResource(Res.string." + name + ")",
+                    listOf(res, accessor, KotlinSymbol("androidx.compose.ui.res", "stringResource")),
+                )
+                else -> {
+                    refuse(
+                        DiagnosticCodes.CodegenStrategyUnsupported,
+                        node,
+                        "Resource '" + ref.id + "' is a " + decl.kind.name + " resource, which has no " +
+                            "property-position spelling",
+                    )
+                    null
+                }
+            }
+        }
         throw CodegenBug("Unknown ValueEmit: " + emit)
+    }
+
+    // The icon emission's resolver: the (set, name) the node carries becomes the symbol the
+    // schema's icon registry holds. Constant strings only — a computed name would need a
+    // runtime read the printer cannot splice, the same reason a pattern refuses one.
+    private fun iconSymbol(emit: ValueEmit.Icon, node: ResolvedNode): KotlinSymbol? {
+        val setValue: String? = (node.props[emit.setKey]?.value as? PropertyValue.Const)?.let { it.value as? Value.Str }?.v
+        val nameValue: String? = (node.props[emit.nameKey]?.value as? PropertyValue.Const)?.let { it.value as? Value.Str }?.v
+        if (setValue == null || nameValue == null) {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                node,
+                "Icon emission needs constant 'set' and 'name' strings",
+            )
+            return null
+        }
+        val symbol: KotlinSymbol? = schema.icons[setValue]?.get(nameValue)
+        if (symbol == null) {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                node,
+                "Icon '" + setValue + "/" + nameValue + "' is not in a registered set",
+            )
+            return null
+        }
+        return symbol
     }
 
     // Every `{key}` becomes the property's literal, spliced into text: an unknown key and a
@@ -1367,6 +1715,22 @@ public class KotlinGenerator<A : Any, T : Any>(
         return KtExpr.Lambda(binding.lambdaParams, collapseAppStateRead(body))
     }
 
+    /**
+     * One `SlotBinding` as the lambda its Compose parameter receives.
+     *
+     * The slot's own scopes go in front: a row inside a box is aligned by the row. Children
+     * emit in document order, one statement each, and a refusal anywhere in the list keeps the
+     * whole slot null.
+     *
+     * An iterating slot wraps that body once: the source property emits as the `items(...)`
+     * argument and the children become the content lambda's body, whose parameter is the slot's
+     * [dev.rotalex.lutter.schema.component.IterationSpec.itemName] — the name [ExprEmitter]
+     * spells for an item read. The source emits through [valueOf], so a computed list binds
+     * exactly like any other computed property and a constant list spells as the literal its
+     * elements answer. A source the node never wrote refuses rather than emitting an empty
+     * frame, because the renderer would draw no children and codegen must not turn a silent
+     * document into silent output.
+     */
     private fun slotLambda(
         binding: SlotBinding,
         node: ResolvedNode,
@@ -1377,16 +1741,56 @@ public class KotlinGenerator<A : Any, T : Any>(
             refuse(DiagnosticCodes.CodegenStrategyUnsupported, node, "Scoped slots emit nothing yet")
             return null
         }
+        val slot = spec.slots.firstOrNull { it.name == binding.slot }
         val children: List<ResolvedNode> = node.slots[binding.slot] ?: emptyList()
         // The slot's own scopes go in front: a row inside a box is aligned by the row.
-        val provided: Set<ScopeId> =
-            spec.slots.firstOrNull { it.name == binding.slot }?.provides ?: emptySet()
+        val provided: Set<ScopeId> = slot?.provides ?: emptySet()
         val inner: List<ScopeId> = provided.toList() + scopes
         val body: MutableList<KtStmt> = mutableListOf()
         for (child in children) {
-            body += KtStmt.Expr(emitNode(child, false, inner) ?: return null)
+            val call: KtExpr = emitNode(child, false, inner) ?: return null
+            body += guardedStatement(child, call) ?: KtStmt.Expr(call)
         }
-        return KtExpr.Lambda(emptyList(), body)
+        val iteration = slot?.iteration ?: return KtExpr.Lambda(emptyList(), body)
+        val written: ResolvedProp = node.props[iteration.source] ?: run {
+            refuse(
+                DiagnosticCodes.CodegenStrategyUnsupported,
+                node,
+                "Slot '" + binding.slot.value + "' iterates '" + iteration.source.value +
+                    "', which the node never wrote",
+            )
+            return null
+        }
+        val source: KtExpr = valueOf(written, spec.properties, node) ?: return null
+        // `items(list)` is an extension, not the `items(count)` member, so the callee is a
+        // library reference: the import is what makes the extension the applicable candidate.
+        val frame: KtExpr.Call = KtExpr.Call(
+            callee = KtExpr.Ref(KtSymbolRef(LazyItems)),
+            args = listOf(KtArg(null, source)),
+            trailing = KtExpr.Lambda(listOf(iteration.itemName), body),
+        )
+        return KtExpr.Lambda(emptyList(), listOf(KtStmt.Expr(frame)))
+    }
+
+    /**
+     * A guarded call becomes an `if` statement, not a parameter: Compose's windows (`Dialog`,
+     * `ModalBottomSheet`) render by conditional composition, so the emitted screen composes the
+     * call only while the guard's read holds. The guard names a property, not a call source:
+     * the valueful rule applies first — a `Value.Null` arrival renders nothing, the same
+     * reading the kept parameters make — and the condition is the value itself, whatever kind
+     * it is. A node whose spec binds no guard answers `null`, and so does everything else the
+     * wrap does not apply to: the caller falls through to the plain statement.
+     */
+    private fun guardedStatement(node: ResolvedNode, call: KtExpr): KtStmt? {
+        val spec: ComponentSpec = schema.components[node.type] ?: return null
+        val binding: CodegenBinding.ComposeCall = spec.codegen as? CodegenBinding.ComposeCall ?: return null
+        val guard: PropertyKey = binding.guard ?: return null
+        if (!valueful(node, guard)) return null
+        val prop: ResolvedProp = checkNotNull(node.props[guard]) {
+            "Valueful guard '${guard.value}' left the node"
+        }
+        val cond: KtExpr = valueOf(prop, spec.properties, node) ?: return null
+        return KtStmt.If(cond, listOf(KtStmt.Expr(call)))
     }
 
     // Roots thread the caller's modifier; leaves start from `Modifier`. A chain that answers

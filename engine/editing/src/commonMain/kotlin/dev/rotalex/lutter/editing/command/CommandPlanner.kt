@@ -3,6 +3,7 @@ package dev.rotalex.lutter.editing.command
 import dev.rotalex.lutter.editing.command.planners.planAddPage
 import dev.rotalex.lutter.editing.command.planners.planApplyPatch
 import dev.rotalex.lutter.editing.command.planners.planDuplicateNode
+import dev.rotalex.lutter.editing.command.planners.planExtractComponent
 import dev.rotalex.lutter.editing.command.planners.planInsertNode
 import dev.rotalex.lutter.editing.command.planners.planMoveNode
 import dev.rotalex.lutter.editing.command.planners.planRemoveNode
@@ -15,6 +16,7 @@ import dev.rotalex.lutter.editing.command.planners.planWrapNode
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.IdGenerator
+import dev.rotalex.lutter.model.index.DocumentIndex
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
@@ -65,7 +67,7 @@ import dev.rotalex.lutter.schema.registry.Registry
  *
  * ### Nothing is applied here, and nothing is stored
  *
- * A planner is a pure function of its four arguments. The document it is handed is the
+ * A planner is a pure function of its five arguments. The document it is handed is the
  * document as it is now; the patch it returns names positions in *that* document, which is
  * why [PatchApplier] is the only writer and why the two must be applied in that order.
  */
@@ -97,6 +99,7 @@ public object CommandPlanner {
         document: UiDocument,
         schema: SchemaView<ComponentSpec, ModifierSpec, A, F, T>,
         ids: IdGenerator,
+        indexOf: (UiDocument) -> DocumentIndex = { DocumentIndex(it) },
     ): CommandResult {
         val components: Registry<ComponentType, ComponentSpec> = componentRegistry(document, schema)
 
@@ -105,16 +108,17 @@ public object CommandPlanner {
         // the variant has to mean something.
         return when (command) {
             is Command.InsertNode -> planInsertNode(command, document, components, ids)
-            is Command.RemoveNode -> planRemoveNode(command, document, components, ids)
-            is Command.MoveNode -> planMoveNode(command, document, components, ids)
-            is Command.DuplicateNode -> planDuplicateNode(command, document, components, ids)
-            is Command.WrapNode -> planWrapNode(command, document, components, ids)
-            is Command.UnwrapNode -> planUnwrapNode(command, document, components, ids)
+            is Command.RemoveNode -> planRemoveNode(command, document, components, ids, indexOf)
+            is Command.MoveNode -> planMoveNode(command, document, components, ids, indexOf)
+            is Command.DuplicateNode -> planDuplicateNode(command, document, components, ids, indexOf)
+            is Command.WrapNode -> planWrapNode(command, document, components, ids, indexOf)
+            is Command.UnwrapNode -> planUnwrapNode(command, document, components, ids, indexOf)
             is Command.SetProperty -> planSetProperty(command, document, components, ids)
             is Command.SetModifiers -> planSetModifiers(command, document, components, ids)
             is Command.SetEventHandler -> planSetEventHandler(command, document, components, ids)
             is Command.RenameNode -> planRenameNode(command, document, components, ids)
             is Command.AddPage -> planAddPage(command, document, components, ids)
+            is Command.ExtractComponent -> planExtractComponent(command, document, components, ids, indexOf)
             is Command.ApplyPatch -> planApplyPatch(command, document, components, ids)
         }
     }

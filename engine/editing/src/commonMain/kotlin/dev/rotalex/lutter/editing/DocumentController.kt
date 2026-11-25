@@ -138,6 +138,15 @@ public class DocumentController<A : Any, F : Any, T : Any>(
         MutableSharedFlow(replay = 0, extraBufferCapacity = CHANGE_BUFFER, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
     /**
+     * §29.1's cached [dev.rotalex.lutter.model.index.DocumentIndex], one per revision.
+     *
+     * [DocumentIndexCache] keys on the document instance and a revision advances only by
+     * applying a patch, so this answers every question about one revision with one build —
+     * the legal drop targets and then the plan for that drop are the same index.
+     */
+    private val indices: DocumentIndexCache = DocumentIndexCache()
+
+    /**
      * The engine's position, as a flow.
      *
      * Always holds a current value: a collector that arrives after the last edit is immediately
@@ -193,7 +202,7 @@ public class DocumentController<A : Any, F : Any, T : Any>(
                 "building rather than against the one it has not published yet"
         }
 
-        val planned: CommandResult = CommandPlanner.plan(command, stateFlow.value.document, schema, ids)
+        val planned: CommandResult = CommandPlanner.plan(command, stateFlow.value.document, schema, ids, indices::of)
         val patch: Patch = when (planned) {
             is CommandResult.Ok -> planned.patch
             is CommandResult.Rejected -> return planned
@@ -317,7 +326,7 @@ public class DocumentController<A : Any, F : Any, T : Any>(
         val ops: MutableList<PatchOp> = mutableListOf()
 
         override fun dispatch(command: Command): CommandResult {
-            val planned: CommandResult = CommandPlanner.plan(command, document, schema, ids)
+            val planned: CommandResult = CommandPlanner.plan(command, document, schema, ids, indices::of)
             val patch: Patch = when (planned) {
                 is CommandResult.Ok -> planned.patch
                 is CommandResult.Rejected -> return planned

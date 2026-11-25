@@ -1,5 +1,5 @@
 plugins {
-    id("forge.kmp.library")
+    id("lutter.kmp.library")
 }
 
 // The `rootLibs` accessor generated for this project has no `findLibrary`; the catalog

@@ -3,11 +3,37 @@ package dev.rotalex.lutter.analysis
 import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCodes
 import dev.rotalex.lutter.model.doc.EnumEntryDecl
 import dev.rotalex.lutter.model.doc.EnumTypeDecl
+import dev.rotalex.lutter.model.doc.ResourceDecl
+import dev.rotalex.lutter.model.doc.ResourceKind
+import dev.rotalex.lutter.model.doc.ResourceSource
+import dev.rotalex.lutter.model.doc.ResourceVariant
+import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.dsl.PageScope
+import dev.rotalex.lutter.model.dsl.ThemeScope
+import dev.rotalex.lutter.model.dsl.buildDocument
 import dev.rotalex.lutter.model.expr.Expr
+import dev.rotalex.lutter.model.expr.PropertyValue
+import dev.rotalex.lutter.model.expr.RefTarget
+import dev.rotalex.lutter.model.ids.ComponentType
+import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.ResourceId
 import dev.rotalex.lutter.model.ids.TypeId
+import dev.rotalex.lutter.model.type.RefKind
+import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
+import dev.rotalex.lutter.schema.Schema
+import dev.rotalex.lutter.schema.action.ActionSpec
+import dev.rotalex.lutter.schema.component.Category
+import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.component.KotlinSymbol
+import dev.rotalex.lutter.schema.component.ValueEmit
+import dev.rotalex.lutter.schema.component.component
+import dev.rotalex.lutter.schema.component.componentSpec
+import dev.rotalex.lutter.schema.component.prop as schemaProp
+import dev.rotalex.lutter.schema.function.FunctionSpec
+import dev.rotalex.lutter.schema.modifier.ModifierSpec
+import dev.rotalex.lutter.schema.types.IconSet
 import dev.rotalex.lutter.schema.types.TypeSpec
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -360,5 +386,218 @@ class SchemaPassTest {
         assertTrue(codes.none { it == DiagnosticCodes.ModifierUnknown.value }, "got $codes")
         assertTrue(codes.none { it == DiagnosticCodes.ModifierScopeMissing.value }, "got $codes")
         assertTrue(codes.none { it == DiagnosticCodes.ModifierArgInvalid.value }, "got $codes")
+    }
+
+    @Test
+    fun `an icon in the registered set is accepted and a stranger is refused`() {
+        // §10:796: the (set, name) pair resolves through the schema's icon registry — the
+        // case-shaped lookup no text pattern can spell, so the registry is the whole check.
+        val setProp = schemaProp<String>("set", TypeRef.Str, required = true)
+        val nameProp = schemaProp<String>("name", TypeRef.Str, required = true)
+        val iconType = ComponentType("test.Icon")
+        val iconSchema =
+            Schema.build<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec> {
+                iconSet(
+                    IconSet(
+                        "material",
+                        mapOf("Home" to KotlinSymbol("androidx.compose.material.icons.filled", "Home")),
+                    ),
+                )
+                component(
+                    componentSpec(iconType, 1) {
+                    metadata("Icon", Category.Basic)
+                    property(setProp)
+                    property(nameProp)
+                    composeCall(KotlinSymbol("test", "Icon")) {
+                        param(
+                            "imageVector",
+                            from = listOf(setProp.key, nameProp.key),
+                            emit = ValueEmit.Icon(setProp.key, nameProp.key),
+                        )
+                    }
+                },
+            )
+        }
+        val iconAnalyzer = Analyzer(iconSchema)
+
+        fun iconCodesOf(name: String): List<String> =
+            iconAnalyzer.analyze(
+                homeDocument {
+                    node(iconType) {
+                        prop("set", Value.Str("material"))
+                        prop("name", Value.Str(name))
+                    }
+                },
+            ).diagnostics.map { it.code.value }
+
+        assertTrue(
+            iconCodesOf("Home").none { it == DiagnosticCodes.PropIconUnregistered.value },
+            "a registered icon was refused: got ${iconCodesOf("Home")}",
+        )
+        assertTrue(
+            iconCodesOf("Ghost").contains(DiagnosticCodes.PropIconUnregistered.value),
+            "got ${iconCodesOf("Ghost")}",
+        )
+    }
+
+    @Test
+    fun `a resource reference whose kind disagrees with its property is refused`() {
+        // §10:795's resource row: a resource-typed property takes a resource reference only
+        // when the reference's kind is the one the spec declared; a matching one just passes.
+        val titleProp = schemaProp<String>("title", TypeRef.Str, required = true, resourceKind = ResourceKind.String)
+        val bannerType = ComponentType("test.Banner")
+        val bannerSchema =
+            Schema.build<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec> {
+                component(
+                    componentSpec(bannerType, 1) {
+                        metadata("Banner", Category.Basic)
+                        property(titleProp)
+                        composeCall(KotlinSymbol("test", "Banner")) {
+                            param("title", from = titleProp)
+                        }
+                    },
+                )
+            }
+        val bannerAnalyzer = Analyzer(bannerSchema)
+
+        fun bannerCodesOf(declKind: ResourceKind): List<String> {
+            val resources = mapOf(
+                ResourceId("r_welcome") to ResourceDecl(
+                    ResourceId("r_welcome"),
+                    "Welcome",
+                    declKind,
+                    listOf(ResourceVariant(emptySet(), ResourceSource.Text("Hello"))),
+                ),
+            )
+            return bannerAnalyzer.analyze(
+                homeDocument {
+                    node(bannerType) {
+                        prop("title", Value.Ref(RefKind.Resource, "r_welcome"))
+                    }
+                }.copy(resources = resources),
+            ).diagnostics.map { it.code.value }
+        }
+
+        assertTrue(
+            bannerCodesOf(ResourceKind.String).none { it == DiagnosticCodes.ResourceKindMismatch.value },
+            "a matching resource was refused: got ${bannerCodesOf(ResourceKind.String)}",
+        )
+        assertTrue(
+            bannerCodesOf(ResourceKind.Image).contains(DiagnosticCodes.ResourceKindMismatch.value),
+            "got ${bannerCodesOf(ResourceKind.Image)}",
+        )
+    }
+
+    // ---------------------------------------------------------------------------------
+    // theme.component_unknown / theme.default_unknown / theme.default_type_mismatch /
+    // theme.default_not_const / prop.default_shadowed — §14.2's defaults against the schema
+    // ---------------------------------------------------------------------------------
+
+    /** A document whose single theme carries [themeBlock] and whose page carries [pageBlock]. */
+    private fun themedDocument(
+        themeBlock: ThemeScope.() -> Unit,
+        pageBlock: PageScope.() -> Unit = { node(ColumnType) { slot("children", emptyList()) } },
+    ): UiDocument = buildDocument("demo") {
+        theme("t", "Light", block = themeBlock)
+        page(name = "Home", route = "home", id = PageId("p_home"), block = pageBlock)
+    }
+
+    private fun themeCodesOf(
+        themeBlock: ThemeScope.() -> Unit,
+        pageBlock: PageScope.() -> Unit = { node(ColumnType) { slot("children", emptyList()) } },
+    ): List<String> =
+        analyzer.analyze(themedDocument(themeBlock, pageBlock)).diagnostics.map { it.code.value }
+
+    @Test
+    fun `a default naming an unregistered component reports theme component unknown`() {
+        val codes = themeCodesOf(themeBlock = {
+            componentDefaults("m3.Ghost") {
+                prop("spacing", Value.Dp(4f))
+            }
+        })
+
+        assertTrue(codes.contains(DiagnosticCodes.ThemeComponentUnknown.value), "got $codes")
+    }
+
+    @Test
+    fun `a default naming an undeclared property reports theme default unknown`() {
+        val codes = themeCodesOf(themeBlock = {
+            componentDefaults("core.Column") {
+                prop("nope", Value.Dp(4f))
+            }
+        })
+
+        assertTrue(codes.contains(DiagnosticCodes.ThemeDefaultUnknown.value), "got $codes")
+    }
+
+    @Test
+    fun `a default of the wrong type reports theme default type mismatch`() {
+        val codes = themeCodesOf(themeBlock = {
+            componentDefaults("core.Column") {
+                prop("spacing", Value.Str("big"))
+            }
+        })
+
+        assertTrue(codes.contains(DiagnosticCodes.ThemeDefaultTypeMismatch.value), "got $codes")
+    }
+
+    @Test
+    fun `a default whose value is not a constant reports theme default not const`() {
+        val computed = PropertyValue.Computed(Expr.Ref(RefTarget.State(dev.rotalex.lutter.model.ids.StateId("s_x"))))
+        val document = themedDocument(themeBlock = {
+            componentDefaults("core.Column") {
+                prop("spacing", Value.Dp(4f))
+            }
+        })
+        val withComputed = document.copy(
+            themes = document.themes.mapValues { (_, theme) ->
+                theme.copy(
+                    componentDefaults = mapOf(
+                        ComponentType("core.Column") to mapOf(
+                            PropertyKey("spacing") to computed,
+                        ),
+                    ),
+                )
+            },
+        )
+
+        val codes = analyzer.analyze(withComputed).diagnostics.map { it.code.value }
+
+        assertTrue(codes.contains(DiagnosticCodes.ThemeDefaultNotConst.value), "got $codes")
+    }
+
+    @Test
+    fun `a default the document shadows reports prop default shadowed`() {
+        val codes = themeCodesOf(
+            themeBlock = {
+                componentDefaults("core.Column") {
+                    prop("spacing", Value.Dp(12f))
+                }
+            },
+            pageBlock = {
+                node(ColumnType) {
+                    prop("spacing", Value.Dp(4f))
+                    slot("children", emptyList())
+                }
+            },
+        )
+
+        assertTrue(codes.contains(DiagnosticCodes.PropDefaultShadowed.value), "got $codes")
+    }
+
+    @Test
+    fun `a theme default the document accepts reports nothing`() {
+        val codes = themeCodesOf(themeBlock = {
+            componentDefaults("core.Column") {
+                prop("spacing", Value.Dp(12f))
+                prop("axis", Value.Str("vertical"))
+            }
+        })
+
+        assertTrue(codes.none { it == DiagnosticCodes.ThemeComponentUnknown.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ThemeDefaultUnknown.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ThemeDefaultTypeMismatch.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.ThemeDefaultNotConst.value }, "got $codes")
+        assertTrue(codes.none { it == DiagnosticCodes.PropDefaultShadowed.value }, "got $codes")
     }
 }

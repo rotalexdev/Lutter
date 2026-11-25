@@ -128,7 +128,7 @@ internal object BenchmarkBaseline {
      */
     fun render(machine: String, entries: Map<String, String>, recordings: Map<Scenario, Long>): String {
         val header = buildString {
-            append("# Forge benchmark baseline — PLAN §29's five rows, on a document of at least ")
+            append("# Forge benchmark baseline — PLAN §29's six rows, on a document of at least ")
             append(BENCHMARK_TARGET_NODES).append(" nodes.\n")
             append("#\n")
             append("# Recorded by the harness; BenchmarkBaseline.kt is the reader and the argument.\n")

@@ -17,6 +17,7 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedProp
 import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
 import dev.rotalex.lutter.analysis.resolved.materialRoleOf
 import dev.rotalex.lutter.interpreter.EvalScope
+import dev.rotalex.lutter.interpreter.ItemScope
 import dev.rotalex.lutter.interpreter.RuntimeDiagnostic
 import dev.rotalex.lutter.interpreter.action.ActionEnv
 import dev.rotalex.lutter.interpreter.constantOrNull
@@ -87,7 +88,7 @@ public fun UiScreen(
         environment.diagnostics(RuntimeDiagnostic("Unknown page '$page'", null))
         return
     }
-    val pageState = rememberPageStateStore(resolved)
+    val pageState = rememberPageStateStore(resolved, environment.persistent)
     // App state first and the page's last: the owner-last order pass 5 resolves a `Ref` in.
     val screen = ScreenEvalScope(
         document.appState + resolved.state,
@@ -178,6 +179,17 @@ internal class ExpressionSource(
     /** The same evaluator with [params] bound on top — one component instance's inputs. */
     fun withParams(params: Map<ParamName, Value>): ExpressionSource =
         ExpressionSource(evaluator, InstanceScope(scope, params))
+
+    /**
+     * The same evaluator inside one item frame — an iterating slot's children for one element.
+     *
+     * The frame is the wrap, not a rebuild: state, params and event arguments are the screen's
+     * own answer and only the frame's variable is bound here, which is why [ItemScope] wraps
+     * rather than carrying one more map. A render per element costs one wrap, so a list of
+     * strings reuses the same [Evaluator] and the reads it already answers.
+     */
+    fun withItem(name: String, item: Value): ExpressionSource =
+        ExpressionSource(evaluator, ItemScope(scope, name, item))
 }
 
 /**
@@ -353,7 +365,7 @@ internal class DefaultRenderScope(
     override val environment: RuntimeEnvironment,
     override val theme: ThemeHandle,
     private val runtime: UiRuntime,
-    private val handle: ScopeHandle?,
+    override val handle: ScopeHandle?,
     private val expressions: ExpressionSource,
     private val coroutines: CoroutineScope,
     private val actionEnv: (Map<String, Value>) -> ActionEnv,
@@ -411,6 +423,10 @@ internal class DefaultRenderScope(
     @Composable
     override fun withScope(handle: ScopeHandle, content: @Composable RenderScope.() -> Unit): Unit =
         content(copy(handle = handle))
+
+    @Composable
+    override fun withItem(itemName: String, item: Value, content: @Composable RenderScope.() -> Unit): Unit =
+        content(copy(expressions = expressions.withItem(itemName, item)))
 
     @Composable
     override fun RenderInstance(node: ResolvedNode): Unit {

@@ -12,7 +12,26 @@ import org.gradle.api.tasks.TaskAction
 import org.gradle.process.ExecOperations
 
 plugins {
-    id("forge.kmp.compose")
+    id("lutter.kmp.compose")
+    // §15.5's `metro` row: the generated graph is an interface Metro's plugin implements, so the
+    // variant cannot compile without it. Every other fixture is unaffected — a module with no
+    // `@DependencyGraph` in it is a module the plugin has nothing to do in.
+    alias(libs.plugins.metro)
+}
+
+// The resources package the fixtures' generated code imports `Res` from (§20:1598): the
+// compose-resources plugin generates the class here, and every generator run — fixtures and
+// goldens — spells the same import, so the wiring and the emission cannot disagree. A script
+// constant, not a task reference: a task class that reads a script-level val compiles as a
+// non-static inner class, which Gradle refuses.
+private object ResPkgs {
+    const val PACKAGE = "dev.rotalex.lutter.generated.resources"
+}
+
+compose {
+    resources {
+        packageOfResClass = ResPkgs.PACKAGE
+    }
 }
 
 dependencies {
@@ -27,10 +46,37 @@ dependencies {
     commonMainApi(project(":engine:builtins"))
     commonMainApi(project(":engine:builtins-compose"))
     // Generated screens call Column/Text directly, so the module compiling them needs more
-    // than the compiler plugin's runtime: the same three artifacts builtins-compose uses.
+    // than the compiler plugin's runtime: the same artifacts builtins-compose uses. The icons
+    // one joined when the generator started emitting `Icons.Filled.*` for `m3.Icon`.
     commonMainImplementation(rootLibs.jetbrains.compose.ui)
     commonMainImplementation(rootLibs.jetbrains.compose.foundation)
     commonMainImplementation(rootLibs.jetbrains.compose.material3)
+    commonMainImplementation(rootLibs.jetbrains.compose.material.icons.extended)
+    // The resources half of §20:1598: generated screens spell painterResource(Res.drawable.*),
+    // and this module is the scaffold that generates the `Res` class the import names. The
+    // shorthand is the deprecated spelling, but the catalog carries no resources alias and the
+    // coordinate is the plugin's own.
+    commonMainImplementation(compose.components.resources)
+    // §15's strategy emissions, and `api` rather than `implementation` because they reach the
+    // generated code's *public* surface: a screen takes the `NavHostController` or the page's
+    // `ViewModel`, and `AppRoot` a `NavHostController` or a `SnapshotStateList`-backed navigator,
+    // so a consumer of this module resolves these types too. Absent, the strategy variants do not
+    // compile — which is the check this module exists to perform, so the dependency and the proof
+    // are the same line.
+    commonMainApi(libs.navigation.compose)
+    commonMainApi(libs.navigation3.ui)
+    commonMainApi(libs.lifecycle.viewmodel.compose)
+    // §12.1's external row reads a `Flow`: a generated `AppHost` declares `fun clock(): Flow<String>`
+    // and its `ViewModel` collects it, so the module compiling those files needs the stream's own
+    // artifact. `api` for the same reason as the row above — it is on a public interface.
+    commonMainApi(libs.kotlinx.coroutines.core)
+    // §15.5's container: a `koin` row's generated screen calls `koinViewModel()`, its `AppRoot`
+    // starts a `KoinApplication`, and `di/Injection.kt` declares a `module`. Same reasoning as the
+    // three above — the variants' compilation is the proof that the emission resolves.
+    commonMainApi(libs.koin.core)
+    commonMainApi(libs.koin.compose.viewmodel)
+    commonMainApi(libs.metro.runtime)
+    commonMainApi(libs.metrox.viewmodel.compose)
     // Desktop-only UI test runner; commonTest stays pure so Android host tests keep running.
     desktopTestImplementation(compose.desktop.uiTestJUnit4)
     // Plan §36.1 bullet 7's Android half: `RuntimeSemanticsTest` composes under Robolectric on
@@ -122,7 +168,7 @@ abstract class GenerateFixtures : DefaultTask() {
             exec.javaexec {
                 classpath = cliClasspath
                 mainClass.set("dev.rotalex.lutter.cli.MainKt")
-                args("generate", file.absolutePath, "--out", File(out, id).absolutePath, "--package", pkg)
+                args("generate", file.absolutePath, "--out", File(out, id).absolutePath, "--package", pkg, "--resources-package", ResPkgs.PACKAGE)
             }
             val text = file.readText()
             require(!text.contains("\"\"\"")) { "Fixture '$id' holds a triple quote, which raw strings cannot carry" }
@@ -190,6 +236,167 @@ val generateNavigatingFixtures by tasks.register<GenerateFixtures>("generateNavi
     emitsRegistry.set(false)
 }
 
+// §15's strategies, compiled rather than asserted.
+//
+// A codegen test can read the bytes a strategy emits; only a compiler can say whether they are
+// Kotlin that resolves. `gradle check` on this module is that verdict, which is what makes the
+// conformance claim real: `NavDisplay`'s generic signature, `NavHostController`'s API and
+// `viewModel()`'s artifact are checked against the versions the catalog pins rather than against a
+// test's idea of them.
+//
+// One fixture per variant, not the whole corpus: the claim is "each strategy compiles", and a
+// hundred documents per variant would multiply CI time to say the same sentence. The two chosen
+// cover what the strategies disagree about — one navigates (a `nav.navigate` handler, so the
+// emitted `Route`/navigator pair is used) and one owns page state (so the emitted holder exists) —
+// and `navigation3` + `viewmodel` is compiled too, because that pair is where both strategies
+// change `AppRoot`'s receivers at once.
+//
+// Each variant lands in its own subpackage, because the same fixture generated twice yields the
+// same class names: two variants in one package would collide rather than compile.
+abstract class GenerateStrategyFixtures : DefaultTask() {
+
+    /** The fixtures to compile, by file name — both directories' documents are read. */
+    @get:InputDirectory
+    abstract val fixtures: DirectoryProperty
+
+    @get:InputDirectory
+    abstract val navigatingFixtures: DirectoryProperty
+
+    /**
+     * The fixtures whose screens take a parameter the shared registry cannot supply.
+     *
+     * An external declaration's screen reads `host` for its default, exactly as a navigating
+     * screen reads the navigator its handler closed over, so this directory is generated for the
+     * strategy task alone and never reaches the registry.
+     */
+    @get:InputDirectory
+    abstract val hostedFixtures: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val generated: DirectoryProperty
+
+    @get:Classpath
+    abstract val cliClasspath: ConfigurableFileCollection
+
+    /** What each variant's package hangs off; the variant's name is appended to it. */
+    @get:Input
+    abstract val basePackage: Property<String>
+
+    @get:Inject
+    abstract val exec: ExecOperations
+
+    @TaskAction
+    fun run() {
+        val out = generated.get().asFile
+        out.deleteRecursively()
+        out.mkdirs()
+        val documents = documents()
+        check(documents.isNotEmpty()) { "No fixture to compile under any strategy" }
+        for (variant in VARIANTS) {
+            val chosen: List<Pair<String, File>> = variant.fixtures?.let { names ->
+                names.map { name -> name to documentNamed(name) }
+            } ?: documents
+            for ((id, document) in chosen) {
+                val pkg = "${basePackage.get()}.${variant.packageSegment}.${id.replace(Regex("[^A-Za-z0-9_]"), "_")}"
+                val target = File(out, "${variant.packageSegment}/$id")
+                exec.javaexec {
+                    classpath = cliClasspath
+                    mainClass.set("dev.rotalex.lutter.cli.MainKt")
+                    args(
+                        "generate", document.absolutePath,
+                        "--out", target.absolutePath,
+                        "--package", pkg,
+                        "--resources-package", ResPkgs.PACKAGE,
+                        "--navigation", variant.navigation,
+                        "--state", variant.state,
+                        "--injection", variant.injection,
+                    )
+                }
+                check(target.listFiles()?.isNotEmpty() == true) {
+                    "Fixture '$id' generated nothing under ${variant.packageSegment}"
+                }
+            }
+        }
+    }
+
+    /**
+     * The two documents this task compiles, by file name.
+     *
+     * Read from both directories with the same non-recursive rule the other tasks use, and looked
+     * up by name so a renamed fixture fails here with the name it asked for rather than silently
+     * compiling a different one.
+     */
+    private fun documents(): List<Pair<String, File>> =
+        FIXTURE_NAMES.map { name -> name to documentNamed(name) }
+
+    /** One fixture by name, in any of the three directories this task reads. */
+    private fun documentNamed(name: String): File =
+        (
+            jsonIn(fixtures.get().asFile) +
+                jsonIn(navigatingFixtures.get().asFile) +
+                jsonIn(hostedFixtures.get().asFile)
+            )
+            .firstOrNull { (id, _) -> id == name }
+            ?.second
+            ?: error("Fixture '$name' is not in any fixture directory")
+
+    private fun jsonIn(directory: File): List<Pair<String, File>> =
+        (directory.listFiles { file -> file.extension == "json" }?.sortedBy { it.name } ?: emptyList())
+            .map { it.nameWithoutExtension to it }
+
+    /** One row of the matrix: a package segment and the two flags that select it. */
+    private data class Variant(
+        val packageSegment: String,
+        val navigation: String,
+        val state: String,
+        val injection: String = "none",
+        /** The fixtures this row compiles, by name. Null means the two every row shares. */
+        val fixtures: List<String>? = null,
+    )
+
+    private companion object {
+        /**
+         * What is compiled, and why not the full 3×2 matrix: `simple` + `snapshot` is the default
+         * pair every other build in this repository already compiles, and the two remaining
+         * combinations (`navigation-compose` + `viewmodel`, `navigation3` + `snapshot`) differ from
+         * a row below only in a substitution each of those rows already proves.
+         *
+         * One injection row and not the matrix: `koin` is refused for a remembered holder, so
+         * `viewmodel` is the only state strategy it pairs with, and the pair is worth compiling
+         * because the container's Kotlin is the one thing here no unit test can resolve.
+         */
+        val VARIANTS: List<Variant> = listOf(
+            Variant("navigationcompose", "navigation-compose", "snapshot"),
+            Variant("navigation3", "navigation3", "snapshot"),
+            Variant("viewmodel", "simple", "viewmodel"),
+            Variant("navigation3viewmodel", "navigation3", "viewmodel"),
+            Variant("viewmodelkoin", "simple", "viewmodel", injection = "koin"),
+            Variant("viewmodelmetro", "simple", "viewmodel", injection = "metro"),
+            // §15.5's T4: an external declaration only the ViewModel row can hold, so the cell is
+            // its own fixture rather than a seventh combination of the two shared ones.
+            // One row, not a matrix: the external row is `viewmodel` + `none` and nothing else
+            // compiles (see the refusals in `StateEmitter`), so this proves the overload the
+            // default initializer calls and the `AppHost` member it reads.
+            Variant("externalstate", "simple", "viewmodel", fixtures = listOf("external_state")),
+        )
+
+        /** A navigating fixture and a stateful one; see the comment above the task. */
+        val FIXTURE_NAMES: List<String> = listOf("button_navigate", "text_field_state")
+    }
+}
+
+val generateStrategyFixtures by tasks.register<GenerateStrategyFixtures>("generateStrategyFixtures") {
+    group = "build"
+    description = "Generates the conformance fixtures under each navigation, state and injection " +
+        "strategy, so compiling this module proves each strategy's emission resolves."
+    fixtures.set(layout.projectDirectory.dir("fixtures"))
+    navigatingFixtures.set(layout.projectDirectory.dir("fixtures-navigating"))
+    hostedFixtures.set(layout.projectDirectory.dir("fixtures-hosted"))
+    generated.set(layout.buildDirectory.dir("generated/forge-strategies"))
+    cliClasspath.from(cliRuntime)
+    basePackage.set("dev.rotalex.lutter.strategies")
+}
+
 // PLAN §36.1's `CodegenGoldenTest`, and the only thing that can write its goldens: this module
 // compiles what the generator emits, which proves the output is valid Kotlin and nothing about
 // whether it is the output anybody agreed to. A golden needs a writer, and the writer is a task —
@@ -211,6 +418,7 @@ abstract class GenerateCodegenGoldens : DefaultTask() {
 
     @get:InputDirectory
     abstract val navigatingFixtures: DirectoryProperty
+
 
     @get:OutputDirectory
     abstract val goldens: DirectoryProperty
@@ -246,7 +454,7 @@ abstract class GenerateCodegenGoldens : DefaultTask() {
             exec.javaexec {
                 classpath = cliClasspath
                 mainClass.set("dev.rotalex.lutter.cli.MainKt")
-                args("generate", document.absolutePath, "--out", out.absolutePath, "--package", packageName(id))
+                args("generate", document.absolutePath, "--out", out.absolutePath, "--package", packageName(id), "--resources-package", ResPkgs.PACKAGE)
             }
             val files = generatedIn(out)
             check(files.isNotEmpty()) { "Fixture '$id' generated no files, so there is nothing to pin" }
@@ -426,7 +634,7 @@ abstract class GenerateFuzzBatch : DefaultTask() {
         exec.javaexec {
             classpath = batchClasspath
             mainClass.set("dev.rotalex.lutter.testsupport.generator.FuzzBatchKt")
-            args(out.absolutePath, documentCount.get().toString(), basePackage.get())
+            args(out.absolutePath, documentCount.get().toString(), basePackage.get(), ResPkgs.PACKAGE)
         }
     }
 }
@@ -440,20 +648,22 @@ val generateFuzzBatch by tasks.register<GenerateFuzzBatch>("generateFuzzBatch") 
     // A starting point the first nightly run measures: nobody can time this from the repository,
     // so the count is tuned from the elapsed time that run reports rather than guessed at here.
     documentCount.set(
-        providers.gradleProperty("forge.fuzzCount").orElse("200").map { it.toInt() },
+        providers.gradleProperty("lutter.fuzzCount").orElse("200").map { it.toInt() },
     )
 }
 
-// `-Pforge.fuzzBatch=true` is the whole of the wiring, and it is read at configuration time
+// `-Plutter.fuzzBatch=true` is the whole of the wiring, and it is read at configuration time
 // because a source directory is a configuration-time fact. Configuration-cache safe for the reason
-// `forge.warningsAsErrors` is: the property read is recorded as a build input and replayed.
-val fuzzBatchRequested = providers.gradleProperty("forge.fuzzBatch").orNull.toBoolean()
+// `lutter.warningsAsErrors` is: the property read is recorded as a build input and replayed.
+val fuzzBatchRequested = providers.gradleProperty("lutter.fuzzBatch").orNull.toBoolean()
 
 kotlin {
     // Passing the task wires both the directory and the dependency: compilation waits for it.
     sourceSets.named("commonMain") {
         kotlin.srcDir(generateFixtures)
         kotlin.srcDir(generateNavigatingFixtures)
+        // Each strategy's emission, compiled: the conformance half of §15's selection point.
+        kotlin.srcDir(generateStrategyFixtures)
         // On request only. Every document would otherwise land in
         // `api/desktop/generated-compile.api` and make a pull request's `checkKotlinAbi` a
         // function of the nightly's document count.

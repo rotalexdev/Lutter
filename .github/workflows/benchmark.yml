@@ -28,7 +28,7 @@ permissions:
 
 jobs:
   benchmark:
-    name: Benchmark §29's five rows
+    name: Benchmark §29's six rows
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -70,17 +70,17 @@ jobs:
           key: bench-previous-${{ github.run_number }}
           restore-keys: bench-previous-
 
-      - name: Measure the five rows
+      - name: Measure the six rows
         id: measure
         run: |
           start=$(date +%s)
           # `record` over `measure` only because its extra output is the paste-block
           # whose `.baselineNs` lines the comparison below consumes; the measured
           # table itself is identical in both modes.
-          if gradle -Pforge.benchmark=record :engine:test-support:desktopTest \
+          if gradle -Plutter.benchmark=record :engine:test-support:desktopTest \
                --tests "dev.rotalex.lutter.testsupport.benchmark.PerformanceHarnessTest" \
                > "$RUNNER_TEMP/benchmark.txt" 2>&1; then status=0; else status=$?; fi
-          echo "benchmark: rows=5 elapsed=$(( $(date +%s) - start ))s exit=$status"
+          echo "benchmark: rows=6 elapsed=$(( $(date +%s) - start ))s exit=$status"
           exit $status
 
       - name: Compare run to run

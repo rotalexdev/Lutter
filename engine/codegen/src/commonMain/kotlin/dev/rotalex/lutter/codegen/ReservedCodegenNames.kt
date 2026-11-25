@@ -33,14 +33,14 @@ public object ReservedCodegenNames {
     /** §16.5's `SnackbarHost`, the one presentation operation `ui.showSnackbar` reaches. */
     public const val SnackbarHostName: String = "SnackbarHost"
 
+    /** The dialog presentation host, the one the two dialog actions reach beside `SnackbarHost`. */
+    public const val DialogHostName: String = "DialogHost"
+
     /** `Route.Home -> HomeScreen(…)`: what the screen of a page is called. */
     public const val ScreenSuffix: String = "Screen"
 
     /** `class HomeScreenState`: §12.1's page holder, spelled onto a page's name. */
     public const val PageStateSuffix: String = "ScreenState"
-
-    /** `rememberHomeScreenState`: the same holder's constructor, spelled in front of that name. */
-    public const val RememberPrefix: String = "remember"
 
     /**
      * `val lutterAppState = LocalAppState.current`: the hoisted local a handler's lambda reads
@@ -66,17 +66,18 @@ public object ReservedCodegenNames {
             options.state.reservedTopLevelNames
 
     /**
-     * The three top-level names a page called [pageName] has generated for it.
+     * The top-level names a page called [pageName] has generated for it: its screen, plus every
+     * one the selected strategy emits for its row — `HomeScreenState` and
+     * `rememberHomeScreenState` under the default, `HomeScreenState` and `HomeViewModel` under
+     * the viewmodel one.
      *
      * Derived rather than listed, because none of them exists until a page does — a literal
      * list of per-page forms is a list whoever adds the next emitted declaration has to
-     * remember, which is the drift this object exists to remove.
+     * remember, which is the drift this object exists to remove. The row is the strategy's to
+     * spell, so asking it is the only way one strategy's names cannot be reserved under another.
      */
-    public fun derivedFor(pageName: String): Set<String> = setOf(
-        pageName + ScreenSuffix,
-        pageName + PageStateSuffix,
-        RememberPrefix + pageName + PageStateSuffix,
-    )
+    public fun derivedFor(pageName: String, state: StateStrategy): Set<String> =
+        setOf(pageName + ScreenSuffix) + state.pageReservedNames(pageName)
 
     /**
      * One `name.reserved` per declared name this generator also emits: pages in id order, then
@@ -90,7 +91,7 @@ public object ReservedCodegenNames {
         val reserved: Set<String> = literals(options)
         val owners: MutableMap<String, String> = LinkedHashMap<String, String>()
         for (page in pages) {
-            for (name in derivedFor(page.name)) owners.getOrPut(name) { page.name }
+            for (name in derivedFor(page.name, options.state)) owners.getOrPut(name) { page.name }
         }
 
         val found: MutableList<Diagnostic> = mutableListOf()

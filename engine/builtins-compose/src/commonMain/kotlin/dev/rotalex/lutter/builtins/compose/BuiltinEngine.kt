@@ -6,6 +6,7 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.builtins.builtinFunctionImpls
 import dev.rotalex.lutter.builtins.registerBuiltinActions
 import dev.rotalex.lutter.builtins.registerBuiltinEnums
+import dev.rotalex.lutter.builtins.registerBuiltinIconSets
 import dev.rotalex.lutter.builtins.registerBuiltinFunctions
 import dev.rotalex.lutter.builtins.registerBuiltinModifiers
 import dev.rotalex.lutter.builtins.registerBuiltinSpecs
@@ -37,6 +38,7 @@ public object BuiltinEngine {
             registerBuiltinSpecs()
             registerBuiltinModifiers()
             registerBuiltinEnums()
+            registerBuiltinIconSets()
             registerBuiltinFunctions()
             registerBuiltinActions()
         }

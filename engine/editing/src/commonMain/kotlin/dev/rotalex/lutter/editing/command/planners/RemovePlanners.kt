@@ -41,6 +41,7 @@ internal fun planRemoveNode(
     document: UiDocument,
     components: Registry<ComponentType, ComponentSpec>,
     ids: IdGenerator,
+    indexOf: (UiDocument) -> DocumentIndex,
 ): CommandResult {
     val reasons = Rejections()
 
@@ -50,7 +51,7 @@ internal fun planRemoveNode(
         return reasons.result(emptyList())
     }
 
-    val from = DocumentIndex(document).parentOf(command.id)
+    val from = indexOf(document).parentOf(command.id)
     if (from == null) {
         reasons.add(
             EditCodes.NoParent,

@@ -16,12 +16,13 @@ import dev.rotalex.lutter.model.ids.SlotName
  * What the user asked for, before the engine has worked out how to do it.
  *
  * PLAN §25.3 declares a closed set and this is that set with the plan's names and the plan's
- * fields, in the plan's order. Twelve variants, not thirteen: [ExtractComponent] is deferred,
- * and the reason is in its own paragraph below rather than in a commit message.
+ * fields, in the plan's order. Thirteen variants: [ExtractComponent] arrived last, in wave 2
+ * where §25.3's own line deferred it, and the story of the four decisions that had to wait
+ * for that wave is on the variant's KDoc.
  *
- * Every one of the twelve now plans. [AddPage] did not until D30 added the op that made it
- * expressible, and the refusal that stood in its place carried a code — `edit.unrepresentable` —
- * that no longer exists, because there is nothing left for it to be true of.
+ * Every one of the thirteen now plans. [AddPage] did not until D30 added the op that made it
+ * expressible, and the refusal that stood in its place carried a code — `edit.unrepresentable`
+ * — that no longer exists, because there is nothing left for it to be true of.
  *
  * ### Intent and mechanism are two types on purpose
  *
@@ -53,20 +54,18 @@ import dev.rotalex.lutter.model.ids.SlotName
  * once where the thing is produced and once where it is consumed, and an addition only one of
  * them remembered is a silently wrong half.
  *
- * ### The one variant that is absent, and why
+ * ### The variant that was absent, and what settled it
  *
- * **§25.3's `ExtractComponent(root, name)` is deferred, and the plan says so twice.** Its own
- * line in §25.3 ends *"(subtree → ComponentDecl (wave 2))"*, and §32 files "Component wave 2"
- * as post-MVP Phase 11 — the roadmap table, not Phase 9's task list, which names "command
- * planners with schema policy checks" and nothing about extraction.
- *
- * Declaring it without a planner would mean inventing the semantics, and they are not
- * obvious: which `ComponentDeclId` the new declaration gets, how its `params` are derived
- * from the subtree, what happens to a `Page.root` that named one of the extracted nodes, and
- * whether the extracted body's root keeps its id. Each of those is a document-shape decision
- * the plan has not made, and guessing four of them to fill a `when` arm is worse than an
- * absent variant that is documented. It belongs to the wave-2 work unit, where the extraction
- * rules and the lazy `doc.*` synthesis have the same author.
+ * **§25.3's `ExtractComponent(root, name)` sat out Phase 9** — its own line ends "(wave 2)",
+ * and declaring it without a planner would have meant inventing the semantics: which
+ * `ComponentDeclId` the declaration gets, how its `params` are derived, what a `Page.root`
+ * naming an extracted node does, and whether the body's root keeps its id. Wave 2 settled
+ * all four, and the answers live on the variant's KDoc — the id *is* the name, the params
+ * start empty and a dangling item read is refused, an unparented or body-owned subtree is
+ * refused, and the body's root keeps its id while the instance takes a fresh one. The
+ * plan's hint that extraction and the lazy `doc.*` synthesis share an author turned out to
+ * be the design: the overlay §8.4 already builds was what made the instance resolvable the
+ * moment the command landed.
  *
  * @see CommandResult for what planning one of these returns.
  * @see CommandPlanner for where legality is decided.
@@ -272,6 +271,47 @@ public sealed interface Command {
 
         /** The rows the screen's tree starts at, root first. */
         public val subtree: NodeTemplate,
+    ) : Command
+
+    /**
+     * A subtree lifted into a document-declared component, its place taken by an instance.
+     *
+     * §25.3's own line — "subtree → ComponentDecl (wave 2)" — deferred this variant to this
+     * phase, and its four undecided document-shape questions were settled here rather than in
+     * a commit message, because the command is the contract and the planner the mechanism:
+     *
+     * **The declaration's id is [name].** A `ComponentDecl.name` is "a Kotlin identifier,
+     * emitted as the composable's name", and the id is the tail of the `doc.` type its
+     * instances carry (§5.7) — one string doing one job twice, and a planner that derived a
+     * second name from it would own a rule nobody asked for. A [name] that is not already a
+     * Kotlin identifier is refused (`edit.component_name`), and an id the document's
+     * components already hold is refused (`edit.component_exists`).
+     *
+     * **The params are empty.** A component body reads its params with `RefTarget.Param`
+     * (§5.7), so a subtree that reads an iteration item bound outside itself would dangle the
+     * moment it became a body — and promoting the item to a param needs the item's type,
+     * which is §17's knowledge and §23.3's module boundary keeps out of `:engine:editing`. The
+     * planner refuses (`edit.dangling_item`) rather than guess a type it cannot know. App
+     * state is document-level and survives; a `RefTarget.Param` read cannot appear, because
+     * the next rule keeps page-owned subtrees the only extraction surface.
+     *
+     * **Extraction from inside a component body is refused** (`edit.in_component_body`): the
+     * outer body's param reads would dangle differently, and its slots raise the same overlay
+     * questions from the other side. One scope per work unit.
+     *
+     * **The body's root keeps its id.** The rows stay in the document's table — a
+     * `ComponentDecl.root` points into `nodes` exactly as `Page.root` does — and the fresh id
+     * the generator mints belongs to the instance row that takes the subtree's place. The
+     * declaration's slots are the `core.SlotOutlet` nodes the body already carries, named by
+     * their `slot` property in first-occurrence order; an outlet whose name is not a constant
+     * string cannot be carried statically and is refused (`edit.outlet_name`).
+     */
+    public data class ExtractComponent(
+        /** The root of the subtree to lift into the component's body. */
+        public val root: NodeId,
+
+        /** The declaration's name, its id, and the `doc.` type tail — one string. */
+        public val name: String,
     ) : Command
 
     /**

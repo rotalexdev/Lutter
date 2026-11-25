@@ -208,6 +208,41 @@ class CodegenGoldenTest {
         fixture("text_state_ref")
     }
 
+    @Test
+    fun `lazy_list generates the committed golden`() {
+        fixture("lazy_list")
+    }
+
+    @Test
+    fun `dialog_basic generates the committed golden`() {
+        fixture("dialog_basic")
+    }
+
+    @Test
+    fun `bottom_sheet_basic generates the committed golden`() {
+        fixture("bottom_sheet_basic")
+    }
+
+    @Test
+    fun `scaffold_basic generates the committed golden`() {
+        fixture("scaffold_basic")
+    }
+
+    @Test
+    fun `navigation_bar_basic generates the committed golden`() {
+        fixture("navigation_bar_basic")
+    }
+
+    @Test
+    fun `navigation_drawer_basic generates the committed golden`() {
+        fixture("navigation_drawer_basic")
+    }
+
+    @Test
+    fun `navigation_rail_basic generates the committed golden`() {
+        fixture("navigation_rail_basic")
+    }
+
     /**
      * The harness covers what is on disk, and says the count when it does not.
      *
@@ -425,8 +460,16 @@ class CodegenGoldenTest {
             "column_color",
             "column_text",
             "component_param_slot",
+            "divider_height",
             "expression_corpus",
+            "flow_basic",
+            "icon_basic",
+            "image_basic",
+            "lazy_list",
             "material_token",
+            "progress_indicator",
+            "selection_basic",
+            "slider_basic",
             "row_weight",
             "spacer_size",
             "text_field_state",
@@ -447,6 +490,14 @@ class CodegenGoldenTest {
             "text_alpha",
             "text_multi_fixed",
             "text_state_ref",
+            "surface_basic",
+            "box_with_constraints_basic",
+            "dialog_basic",
+            "bottom_sheet_basic",
+            "scaffold_basic",
+            "navigation_bar_basic",
+            "navigation_drawer_basic",
+            "navigation_rail_basic",
         )
     }
 }

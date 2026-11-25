@@ -164,7 +164,7 @@ val schema = Schema.build<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec,
     registerBuiltinEnums()
     registerBuiltinFunctions()
     registerBuiltinActions()
-    StatusBadgeContribution.contribute(this)   // the line
+    install(StatusBadgeContribution)           // the line
 }
 
 val renderers = RendererRegistryBuilder().apply {
@@ -177,6 +177,11 @@ val modifiers = ModifierApplierRegistryBuilder()
 val runtime = UiRuntime(renderers, modifiers, Implementations(builtinFunctionImpls()), schema)
 ```
 
+`install` rather than `contribute(this)`, because `install` is what makes the plugin's identity
+real: it contributes the specs, records the descriptor in `Schema.contributors`, and refuses a
+duplicate `id` or a `dependsOn` no earlier plugin satisfies — before your `contribute` runs.
+`contribute` is still the method you implement; `install` is the call your host makes.
+
 `ThirdPartyEngine.kt` builds the exact assembly above in two forms — with and without the
 plugin's line — and its tests assert that the plugin's addition changes nothing else and
 that coverage, codegen, and rendering all still hold. The host's total cost is two lines.
@@ -184,6 +189,10 @@ that coverage, codegen, and rendering all still hold. The host's total cost is t
 Once the schema is composed, everything downstream is plugin-agnostic: the CLI (`forge
 check`, `forge generate`) and the codegen run over any schema the same way, and generated
 code for your component emits calls exactly as the `composeCall` binding spelled them.
+
+**To ship it as a file**, see [Packaging and shipping a plugin](plugin-publishing.md): the
+`*.lutterplugin` container, the packaging Gradle plugin, what a host verifies before it loads your
+code, and the two ways the CLI takes one (`--plugin`, repeatable, in the order given).
 
 ## Plugins for the other four kinds
 
@@ -196,12 +205,64 @@ side. Contributing a modifier, enum, function or action follows its built-in sib
 your namespace; the builder call (`builder.modifier(...)`, `builder.action(...)`, and so
 on) is the only thing that changes.
 
+## Adding a container: the injection seam
+
+A container is not a component plugin, but it is the same shape of extension: one interface, four
+questions, and a built-in per answer. `InjectionStrategy` (`engine:codegen`) asks who builds a
+page's state holder, and everything else about the emission stays the state strategy's.
+
+| Question | Default | What it answers |
+|---|---|---|
+| `holderParameter(page, state, pkg)` | required | The default expression a screen's parameter carries — `hiltViewModel()`, `koinViewModel()`, or the state strategy's own lookup |
+| `libraries` | empty | The artifacts the lookup needs. The scaffold turns these into catalog entries, so a container never writes coordinates |
+| `module(pages)` | empty | The bindings in `di/Injection.kt`, when the container needs a file of its own |
+| `appRoot(body, modulePackage)` | identity | What wraps the app's content, when the container must start above it |
+| `refusal(state)` and `refusal(state, targets)` | null | Why this container cannot serve a holder, or a document's platforms |
+| `scaffoldRefusal` | null | Why a `forge scaffold` project cannot host this container, when its Kotlin is still emittable |
+| `decorate(declarations)` | identity | What the container needs written on the holder — Hilt's `@HiltViewModel` and `@Inject` constructor |
+| `emitsModule` / `plugins` | false / empty | What the plan and the scaffold must know before anything is emitted |
+
+The three built-ins are the worked examples, and each exists because it answered a different
+question: `Koin` needs a module and a composition root; `Metro` needs a compiler plugin and a graph
+the plugin implements; `Hilt` needs a constructor annotation and a refusal about platforms. Reading
+them in that order is reading the seam's history.
+
+**The matrix, as it stands in v1:**
+
+| state \ injection | `none` | `koin` | `metro` | `hilt` |
+|---|---|---|---|---|
+| `snapshot` | emitted | refused | refused | refused |
+| `viewmodel` | emitted | emitted | emitted | emitted (Android-only) |
+
+The `hilt` cell is emitted by `forge generate` and refused by `forge scaffold`: the generated Kotlin
+is sound (holder annotated `@HiltViewModel`, constructor `@Inject`, screens defaulting to
+`hiltViewModel()`), and the scaffolded project has nowhere to put Hilt's compiler, because every
+generated file lands in `shared/src/commonMain` and Hilt has no Kotlin Multiplatform story. The two
+refusal axes are separate on purpose — `refusal` is about the document, `scaffoldRefusal` is about
+the project — because a container can be perfectly emittable and still have no place in a project
+whose layout this generator does not write.
+
+**External state** — a declaration whose values arrive from a host `Flow` — is orthogonal to the
+table and has one cell: the `viewmodel` row under `none` injection. It is refused under `snapshot`
+(there is no holder to fold a stream into), under every container (a container constructs the holder
+with no arguments, and the adapter would have nowhere to come from until dependencies are declared
+in the document — DI v2), and alongside `derived` or a persistence (`ActionStateNotWritable` covers
+writes, since the generated property is a getter).
+
+Every emitted cell is compiled by `integration:generated-compile`, which is the only proof that
+matters: a refusal is unit-tested, but a cell that is supposed to emit is compiled by a real Kotlin
+build. A refused cell names its fix in the diagnostic instead of failing in a compile harness.
+
 ## Today's edges, stated plainly
 
-- **Distribution is an ordinary library dependency.** A plugin ships as a Kotlin module on
-  the host's classpath; there is no plugin discovery and no dynamic loading today.
-- **The descriptor is declared, not yet enforced.** `PluginDescriptor` (id, version, API
-  version, dependencies) is part of the surface, but nothing currently reads it — a host
-  composes explicitly, which is why the recipe is four functions instead of an installer.
+- **Distribution is a file, or an ordinary library dependency.** A plugin can ship as a
+  `*.lutterplugin` container that a host installs with `--plugin`, or as a Kotlin module on the
+  host's classpath that the host composes itself. The container is the only route that records the
+  descriptor; the classpath route still works and is still what the integration tests do.
+- **The descriptor is enforced at install.** `PluginDescriptor` (id, version, API version,
+  dependencies) is read by `SchemaBuilder.install`, which refuses a duplicate id or an unsatisfied
+  `dependsOn`, and by analysis, which compares a document's `meta.plugins` against the contributors
+  it finds — `plugin.missing` and `plugin.version_mismatch`. What is not enforced is *discovery*:
+  nothing scans a directory for containers, so a host still names each `--plugin`.
 - **Configurable registration stays with your library.** The extension function is what a
   host calls; if your plugin needs parameters, your extension function takes them.

@@ -27,6 +27,14 @@ public object DiagnosticCodes {
     public val PropEnumEntryInvalid: DiagnosticCode = DiagnosticCode("prop.enum_entry_invalid")
     public val PropRange: DiagnosticCode = DiagnosticCode("prop.range")
     public val PropNotBindable: DiagnosticCode = DiagnosticCode("prop.not_bindable")
+    public val PropIconUnregistered: DiagnosticCode = DiagnosticCode("prop.icon_unregistered")
+
+    /**
+     * A theme default shadowed by an explicit value. A warning, not an error: the document is
+     * legal, and what it loses is the theme's default — the kind of thing a person reading the
+     * theme wants told, not blocked by.
+     */
+    public val PropDefaultShadowed: DiagnosticCode = DiagnosticCode("prop.default_shadowed")
     public val ValueNonFinite: DiagnosticCode = DiagnosticCode("value.non_finite")
     public val ModifierUnknown: DiagnosticCode = DiagnosticCode("modifier.unknown")
     public val ModifierScopeMissing: DiagnosticCode = DiagnosticCode("modifier.scope_missing")
@@ -35,6 +43,26 @@ public object DiagnosticCodes {
     public val RefKindMismatch: DiagnosticCode = DiagnosticCode("ref.kind_mismatch")
     public val TokenUnknown: DiagnosticCode = DiagnosticCode("token.unknown")
     public val ResourceUnknown: DiagnosticCode = DiagnosticCode("resource.unknown")
+    public val ResourceKindMismatch: DiagnosticCode = DiagnosticCode("resource.kind_mismatch")
+
+    /**
+     * The theme's `componentDefaults` rows (§14.2), where the pass that owns a theme's shape
+     * is the schema: a default names a component type, a property key and a value, and all
+     * three are checked against the schema rather than against any node.
+     */
+    public val ThemeComponentUnknown: DiagnosticCode = DiagnosticCode("theme.component_unknown")
+    public val ThemeDefaultUnknown: DiagnosticCode = DiagnosticCode("theme.default_unknown")
+    public val ThemeDefaultTypeMismatch: DiagnosticCode = DiagnosticCode("theme.default_type_mismatch")
+    public val ThemeDefaultNotConst: DiagnosticCode = DiagnosticCode("theme.default_not_const")
+
+    /**
+     * §27.2's load-time rows, emitted by pass 3 because that is the pass holding both the document
+     * and the schema: a document records the plugins it was authored against, and analysis is the
+     * first layer that knows which plugins the host actually installed. Versions compare by exact
+     * string equality (ADR-018). The document-level counterpart of the container's own refusals.
+     */
+    public val PluginMissing: DiagnosticCode = DiagnosticCode("plugin.missing")
+    public val PluginVersionMismatch: DiagnosticCode = DiagnosticCode("plugin.version_mismatch")
 
     /**
      * The expression rows (§17.3), emitted by pass 5. A fourth member of the same family —
@@ -60,6 +88,7 @@ public object DiagnosticCodes {
      * argument is present and correctly shaped, and what is refused is the state it names.
      */
     public val ActionStateNotWritable: DiagnosticCode = DiagnosticCode("action.state_not_writable")
+    public val ActionStateNotList: DiagnosticCode = DiagnosticCode("action.state_not_list")
     public val NavArgsMismatch: DiagnosticCode = DiagnosticCode("nav.args_mismatch")
 
     /**

@@ -1,0 +1,152 @@
+name: editor-artifacts
+
+# Downloadable, installable builds of `:desktopApp` — and proof that they launch.
+#
+# Separate from `check`, for the reason `preview-artifacts.yml` is: `check` answers "is this
+# branch sound?" and throws away everything it builds. This answers "can somebody install this and
+# open a window?", which a green tick cannot.
+#
+# Separate from `preview-artifacts.yml` too, and not for tidiness: that workflow packages the
+# read-only *sample*, and a missing editor build must not be reported as a broken sample. Both
+# call `scripts/probe-desktop-package.sh`, so the launcher probe exists once.
+#
+# NOT a required check, and not intended to become one. A flaky Windows leg would then block
+# every merge.
+on:
+  # Pull requests only. An installable build belongs to a line somebody decided to ship, and that
+  # is `main` — `.github/workflows/nightly.yml` owns it. A build per branch push was two answers
+  # to "where do I download the editor?" and neither was the one to give anyone.
+  pull_request:
+    branches: [ dev, main ]
+    paths:
+      - 'desktopApp/**'
+      - 'app/editor/**'
+      - 'engine/**'
+      - 'integration/generated-compile/fixtures-navigating/**'
+      - 'build-logic/**'
+      - 'gradle.properties'
+      - 'scripts/probe-desktop-package.sh'
+      - '.github/workflows/editor-artifacts.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: editor-artifacts-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  artifacts:
+    name: Editor on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+
+    # A matrix is a requirement, not a preference: JetBrains' packaging documentation says the
+    # distribution tasks "must be run from each OS you target". jpackage cannot cross-build an
+    # `.msi` on Linux or a `.deb` on Windows, so each runner produces its own installer and the
+    # other format is simply absent there.
+    #
+    # `fail-fast: false` so a red leg still leaves the other one's artifacts downloadable.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+
+    # The properties copy below is bash, and the default shell on a Windows runner is PowerShell.
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Apply the CI-only Gradle properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          # The same JDK `check` uses: no Gradle toolchain anywhere in this build, so there is
+          # only ever one JVM number in play, and jpackage is part of that JDK.
+          java-version: '21'
+
+      # No wrapper JAR is committed (see README.md), so this is the action's documented
+      # "project doesn't use Gradle wrapper" path, exactly as in `check` and `preview-artifacts`.
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.5.0'
+
+      # WiX 3.14 ships preinstalled on the Windows image, but its `bin` is not on PATH
+      # (actions/runner-images#9551). jpackage looks for `candle.exe` and `light.exe`, and the JDK
+      # 21 in this build understands WiX v3 only — WiX v4 support landed in JDK 24, and having
+      # only v4 installed makes jpackage fail exactly the way a missing one does.
+      #
+      # Before the packaging step, and not after: the sample's workflow gets away with the other
+      # order on an image whose PATH already carries WiX, which is not a property worth relying on.
+      #
+      # `shell: pwsh` overrides the job's `bash` default on purpose; this is Windows-only work.
+      # A miss is a warning rather than a failure, because the packaging step is the real judge.
+      - name: Put WiX on the PATH for jpackage
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $wix = Get-ChildItem 'C:\Program Files (x86)\WiX Toolset v3.*\bin' -Directory -ErrorAction SilentlyContinue |
+            Where-Object { Test-Path (Join-Path $_.FullName 'candle.exe') } |
+            Select-Object -First 1
+          if ($wix) {
+            "$($wix.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+            Write-Host "WiX found at $($wix.FullName)"
+          } else {
+            Write-Host "::warning::WiX v3 not found under Program Files; the MSI step decides"
+          }
+
+      # `createDistributable` is the app-image (a folder with the launcher, a jlink'd runtime and
+      # the jars); `packageDistributionForCurrentOS` consumes it and writes the `.msi` or `.deb`.
+      # Running both is not redundant: the app-image task guarantees the folder exists even when
+      # the installer format fails to build on that runner, which is the difference between a red
+      # leg with a usable download and a red leg with nothing.
+      - name: Package the editor for this operating system
+        run: gradle :desktopApp:createDistributable :desktopApp:packageDistributionForCurrentOS
+
+      # The gate that matters: the launcher is a native binary nothing else here executes. It
+      # calls `JNI_CreateJavaVM` before any application code, so an incomplete jlink image is
+      # reported as a packaging defect rather than as a headless runner.
+      - name: Probe the packaged editor
+        run: scripts/probe-desktop-package.sh LutterEditor desktopApp editor-probe
+
+      # The installer alone. `binaries/main` also holds `app/`, and uploading the directory would
+      # deliver the `.msi` wrapped around the app-image. Each runner has exactly one of the two
+      # formats and uploads the other path as empty, so `if-no-files-found` is `ignore` here —
+      # the app-image step below is the one that fails when nothing was built.
+      - name: Upload the installer
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-installer-${{ matrix.os }}
+          path: |
+            desktopApp/build/compose/binaries/main/msi/
+            desktopApp/build/compose/binaries/main/deb/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      # The app-image alone, for a maintainer who would rather not install anything.
+      - name: Upload the app image
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-app-image-${{ matrix.os }}
+          path: 'desktopApp/build/compose/binaries/main/app/'
+          if-no-files-found: error
+          retention-days: 30
+
+      # So a "it does not run" report is answered by a download rather than another round of
+      # speculation. Same directory the probe wrote, by name.
+      - name: Upload the probe log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-launch-log-${{ matrix.os }}
+          path: 'editor-probe/'
+          if-no-files-found: ignore
+          retention-days: 30

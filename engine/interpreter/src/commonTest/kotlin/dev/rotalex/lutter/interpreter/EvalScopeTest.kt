@@ -72,14 +72,67 @@ class EvalScopeTest {
         assertTrue(failure.message?.contains("Phase 7") == true)
     }
 
+    /**
+     * The one item read no frame resolves against. It is this refusal, not a scope bug:
+     * pass 5 resolves an item only where an iterating slot's children read through one.
+     */
     @Test
-    fun `an iteration variable refuses as post-MVP`() {
+    fun `an item ref refuses outside any frame`() {
         val scope: EvalScope = MapEvalScope(MapStateStore())
 
         val failure = assertFailsWith<IllegalStateException> {
             scope.read(RefTarget.Item("item"))
         }
-        assertTrue(failure.message?.contains("post-MVP") == true)
+        assertTrue(failure.message?.contains("Iteration variable 'item'") == true)
+    }
+
+    @Test
+    fun `an item ref through a handler's scope still refuses`() {
+        val scope = handlerScope(mapOf("item" to Value.Int32(1)))
+
+        val failure = assertFailsWith<IllegalStateException> {
+            scope.read(RefTarget.Item("item"))
+        }
+        assertTrue(failure.message?.contains("Iteration variable 'item'") == true)
+    }
+
+    /**
+     * The frame the runtime wraps: the variable its slot's iteration declared, bound over the
+     * scope everything else still reads through.
+     */
+    @Test
+    fun `the frame binds the item name and nothing else`() {
+        val scope = ItemScope(MapEvalScope(MapStateStore(mapOf(stateId to Value.Int32(3)))), "item", Value.Str("a"))
+
+        assertEquals(Value.Str("a"), scope.read(RefTarget.Item("item")))
+        assertEquals(Value.Int32(3), scope.read(RefTarget.State(stateId)))
+    }
+
+    @Test
+    fun `the frame answers only its own variable`() {
+        val scope = ItemScope(MapEvalScope(MapStateStore()), "row", Value.Str("a"))
+
+        val failure = assertFailsWith<IllegalStateException> {
+            scope.read(RefTarget.Item("item"))
+        }
+        assertTrue(failure.message?.contains("Iteration variable 'item'") == true)
+    }
+
+    @Test
+    fun `a nested frame's variable shadows the outer one`() {
+        val inner = ItemScope(MapEvalScope(MapStateStore()), "item", Value.Str("inner"))
+        val outer = ItemScope(inner, "item", Value.Str("outer"))
+
+        assertEquals(Value.Str("outer"), outer.read(RefTarget.Item("item")))
+    }
+
+    @Test
+    fun `two frames at different names both resolve`() {
+        val silent =
+            ItemScope(ItemScope(MapEvalScope(MapStateStore()), "row", Value.Str("row")), "item", Value.Str("a"))
+
+        assertEquals(Value.Str("a"), silent.read(RefTarget.Item("item")))
+        assertEquals(Value.Str("row"), silent.read(RefTarget.Item("row")))
     }
 
     @Test
@@ -108,13 +161,16 @@ class EvalScopeTest {
 
     /** The binding the wrapper must not add: it answers an event's arguments and nothing else. */
     @Test
-    fun `an iteration variable refuses through a handler's scope too`() {
-        val scope = handlerScope(mapOf("item" to Value.Int32(1)))
+    fun `the event-arg wrapper does not adjust the item binding its inner frame carries`() {
+        val scope = ItemScope(
+            handlerScope(mapOf("value" to Value.Str("typed"))),
+            "item",
+            Value.Str("a"),
+        )
 
-        val failure = assertFailsWith<IllegalStateException> {
-            scope.read(RefTarget.Item("item"))
-        }
-        assertTrue(failure.message?.contains("post-MVP") == true)
+        assertEquals(Value.Str("a"), scope.read(RefTarget.Item("item")))
+        assertEquals(Value.Str("typed"), scope.read(RefTarget.EventArg("value")))
+        assertEquals(Value.Int32(3), scope.read(RefTarget.State(stateId)))
     }
 
     private fun handlerScope(args: Map<String, Value>): EvalScope =

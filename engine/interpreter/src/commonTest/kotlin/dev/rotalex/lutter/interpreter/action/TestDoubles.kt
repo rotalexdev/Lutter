@@ -90,6 +90,19 @@ internal class RecordingSnackbars : SnackbarHost {
     }
 }
 
+/** Records both dialog forms, with the member they reached named in each entry. */
+internal class RecordingDialogs : DialogHost {
+    val shown: MutableList<String> = mutableListOf()
+
+    override fun show(title: String, message: String) {
+        shown += "dialog:$title|$message"
+    }
+
+    override fun showSheet(title: String, message: String) {
+        shown += "sheet:$title|$message"
+    }
+}
+
 /** Resolves a host function by name, calls it, and keeps whatever came back. */
 internal class CallingHost(private val results: MutableList<Value?>) : ActionHandler {
     override suspend fun execute(step: ActionStep, env: ActionEnv, run: SequenceRunner): ActionOutcome {

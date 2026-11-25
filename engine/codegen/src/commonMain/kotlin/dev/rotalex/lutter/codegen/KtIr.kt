@@ -108,6 +108,32 @@ public sealed interface KtExpr {
      */
     public data class TypeApplication(public val base: KtExpr, public val args: List<KtExpr>) : KtExpr
 
+    /**
+     * `() -> HomeViewModel`: a function spelled as a type, which is what a container's map is
+     * keyed by rather than something it calls.
+     *
+     * A type and not a lambda: Metro's ViewModel map holds `() -> ViewModel` builders, so the
+     * declaration that fills it names that type in its return position. [params] exists even
+     * though nothing emitted so far takes one — a builder that needed an argument would be a
+     * different declaration, and an empty list says that instead of a comment claiming it.
+     */
+    public data class FunctionType(
+        public val params: List<KtExpr>,
+        public val returns: KtExpr,
+    ) : KtExpr
+
+    /**
+     * `out ViewModel`: one type argument carrying its own variance.
+     *
+     * A node rather than a prefix inside [TypeApplication] because the variance belongs to the
+     * argument, not to the application: `Map<KClass<out ViewModel>, () -> ViewModel>` is two
+     * arguments, one projected and one not, and a list of expressions could not say which.
+     */
+    public data class TypeProjection(
+        public val variance: TypeVariance,
+        public val inner: KtExpr,
+    ) : KtExpr
+
     /** `inner?`, postfix. Two nodes rather than one `nullable` flag — [TypeApplication] says why. */
     public data class Nullable(public val inner: KtExpr) : KtExpr
 }
@@ -123,6 +149,37 @@ public sealed interface KtExpr {
  * An elvis beside a comparison therefore needs no parentheses, and reading the other way puts
  * `a ?: b == c` where Kotlin reads `(a ?: b) == c`.
  */
+/**
+ * One annotation occurrence: the symbol it names, and the arguments it is given.
+ *
+ * Separate from [KotlinSymbol] because a symbol is a *name* and an annotation is a *use* of it:
+ * `@Composable` and `@ViewModelKey(HomeViewModel::class)` name different things and one of them
+ * carries a class the compiler must resolve. [args] is a list rather than a map because Kotlin
+ * annotations have at most one positional argument and no positional-and-named mix, and a list
+ * says the order the printer writes.
+ */
+public data class KtAnnotation(
+    public val symbol: KotlinSymbol,
+    public val args: List<KtExpr> = emptyList(),
+)
+
+/** The common case: an annotation with nothing to say, spelled once instead of at every use. */
+public fun KotlinSymbol.toAnnotation(): KtAnnotation = KtAnnotation(this)
+
+/**
+ * Kotlin's two declaration-site variance markers, spelled where a type argument is projected.
+ *
+ * Only the two Kotlin has: a class's own declaration-site variance is a property of a type this
+ * module does not declare, so it never needs a node.
+ */
+public enum class TypeVariance {
+    /** `in T`. */
+    In,
+
+    /** `out T`. */
+    Out,
+}
+
 internal object KtBinding {
     const val Conditional: Int = 0
     const val Disjunction: Int = 1
@@ -220,6 +277,15 @@ public sealed interface KtStmt {
     public data class Assign(public val target: KtExpr, public val value: KtExpr) : KtStmt
 
     /**
+     * `return value`.
+     *
+     * A container's contribution is a function with a body and a type (`fun provideX(): X`), not an
+     * expression-bodied `val`, so the value it binds has to be returned explicitly — the IR had no
+     * statement for that until §15.5's Metro graph needed one.
+     */
+    public data class Return(public val value: KtExpr?) : KtStmt
+
+    /**
      * `when (subject) { value -> … }`, the statement shape.
      *
      * A statement rather than an expression because an arm this generator writes holds screen
@@ -237,6 +303,15 @@ public sealed interface KtStmt {
         /** One `value ->` arm. The subject is compared by equality, so the value is an operand. */
         public data class Branch(public val value: KtExpr, public val body: List<KtStmt>)
     }
+
+    /**
+     * `if (cond) { … }`, the statement shape: a call that renders only while a condition holds.
+     *
+     * A statement, not the [KtExpr.IfElse] expression, because a guarded call has no else to
+     * answer with — the node simply does not render. Kotlin accepts the missing branch in
+     * statement position, which is exactly where a slot child sits.
+     */
+    public data class If(public val cond: KtExpr, public val then: List<KtStmt>) : KtStmt
 }
 
 /**
@@ -252,11 +327,18 @@ public sealed interface KtDeclaration {
      */
     public data class Function(
         public val name: String,
-        public val annotations: List<KotlinSymbol>,
+        public val annotations: List<KtAnnotation>,
         public val type: KtExpr?,
         public val params: List<KtParam>,
         public val body: List<KtStmt>,
         public val suspending: Boolean = false,
+        /**
+         * The opt-in markers the body composes behind, spelled `@OptIn(marker::class)` rather
+         * than as the marker itself: an annotation this file applies propagates the
+         * requirement to every caller of this function, while `@OptIn` keeps the opt-in local
+         * to the body and leaves the callers' requirements untouched.
+         */
+        public val optIns: List<KotlinSymbol> = emptyList(),
     ) : KtDeclaration
 
     /**
@@ -266,17 +348,19 @@ public sealed interface KtDeclaration {
      * is an invariant breach the printer refuses rather than one it silently drops. [visibility]
      * is the modifier written in front of the keyword, null for the explicit `public` every
      * generated declaration carries but one: a constructor property the navigator keeps to
-     * itself.
+     * itself. [setter] is the body `set(value) { … }` a stored property answers with, null for
+     * the delegate and getter shapes, which have no setter written out.
      */
     public data class Property(
         public val name: String,
-        public val annotations: List<KotlinSymbol>,
+        public val annotations: List<KtAnnotation>,
         public val type: KtExpr?,
         public val mutable: Boolean,
         public val initializer: KtExpr?,
         public val delegate: KtExpr?,
         public val getter: KtExpr?,
         public val visibility: String? = null,
+        public val setter: List<KtStmt>? = null,
     ) : KtDeclaration
 
     /**
@@ -288,9 +372,24 @@ public sealed interface KtDeclaration {
      */
     public data class Class(
         public val name: String,
-        public val annotations: List<KotlinSymbol>,
+        public val annotations: List<KtAnnotation>,
         public val members: List<KtDeclaration>,
         public val constructorProperties: List<Property> = emptyList(),
+        /**
+         * The one supertype the class extends, constructed with no arguments, or null for a
+         * plain class. A single symbol rather than a list because it is the whole reason the
+         * field exists: a state holder that a platform type owns declares which type owns it,
+         * and nothing this module emits implements more than one.
+         */
+        public val supertype: KotlinSymbol? = null,
+        /**
+         * The one annotation on the constructor, written `@Inject constructor(…)`.
+         *
+         * A symbol rather than an annotation because the annotation position has no arguments to
+         * carry — `@Inject` is the only one a generated class needs — and a list would let a caller
+         * write a constructor annotation the printer cannot place.
+         */
+        public val constructorAnnotation: KotlinSymbol? = null,
     ) : KtDeclaration
 
     /**
@@ -302,9 +401,17 @@ public sealed interface KtDeclaration {
      */
     public data class Interface(
         public val name: String,
-        public val annotations: List<KotlinSymbol>,
+        public val annotations: List<KtAnnotation>,
         public val sealed: Boolean,
         public val members: List<KtDeclaration>,
+        /**
+         * The interfaces this one extends, written after its name.
+         *
+         * A list rather than one supertype, unlike [Class]'s: an interface is what a caller
+         * reads a capability off, and Navigation 3's route hierarchy is a `sealed interface`
+         * that has to be a `NavKey` as well as the document's route set.
+         */
+        public val supertypes: List<KtExpr> = emptyList(),
     ) : KtDeclaration
 
     /**
@@ -315,9 +422,17 @@ public sealed interface KtDeclaration {
      */
     public data class Object(
         public val name: String,
-        public val annotations: List<KotlinSymbol>,
+        public val annotations: List<KtAnnotation>,
         public val data: Boolean,
         public val supertypes: List<KtExpr>,
+        /**
+         * What the object declares in its body, empty for a marker.
+         *
+         * A marker object needs no braces, which is what every object this module emitted until a
+         * navigation strategy wanted named constants: a route a `NavHost` takes is a `String`, and
+         * a `const val` per page is the one shape that keeps the call sites reading like names.
+         */
+        public val members: List<KtDeclaration> = emptyList(),
     ) : KtDeclaration
 }
 

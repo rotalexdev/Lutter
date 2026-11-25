@@ -1,5 +1,5 @@
 plugins {
-    id("forge.kmp.library")
+    id("lutter.kmp.library")
 }
 
 // Test support is allowed to see every engine module, which is the point of it: a fake
@@ -21,16 +21,16 @@ dependencies {
 
 // The §29 harness is opt-in by design (`PerformanceHarnessTest`'s KDoc): an unset
 // property is the harness's own `Off` spelling, so no check build pays the five-row
-// budget. `-Pforge.benchmark=measure|record|assert` is the whole of the wiring, which
+// budget. `-Plutter.benchmark=measure|record|assert` is the whole of the wiring, which
 // is what the nightly job and a developer's own machine both drive it through.
 //
 // `showStandardStreams` belongs to the same opt-in tier: the harness's table and
 // its `.baselineNs` lines are the test's stdout, which Gradle swallows by default -
 // the first benchmark run measured all five rows green and its report contained
 // none of them, so whenever the property is set, stdout is echoed and readable.
-val forgeBenchmark = providers.gradleProperty("forge.benchmark").orNull
+val forgeBenchmark = providers.gradleProperty("lutter.benchmark").orNull
 tasks.withType<Test>().configureEach {
-    systemProperty("forge.benchmark", forgeBenchmark.orEmpty())
+    systemProperty("lutter.benchmark", forgeBenchmark.orEmpty())
     if (forgeBenchmark != null) {
         testLogging { showStandardStreams = true }
     }

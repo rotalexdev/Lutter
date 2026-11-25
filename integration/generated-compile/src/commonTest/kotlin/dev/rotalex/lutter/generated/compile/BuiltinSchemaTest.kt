@@ -2,6 +2,9 @@ package dev.rotalex.lutter.generated.compile
 
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.model.diagnostic.Severity
+import dev.rotalex.lutter.model.doc.UiDocument
+import dev.rotalex.lutter.model.ids.ComponentType
+import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.testsupport.generator.DocumentGenerator
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -41,9 +44,57 @@ class BuiltinSchemaTest {
         )
     }
 
+    @Test
+    fun `every navigation item the batch draws nests under a navigation bar`() {
+        val schema = ConformanceHarness.schema()
+        val strays = mutableListOf<String>()
+        for (seed in 1L..SEEDS) {
+            val document = DocumentGenerator(schema, seed).generate().document
+            strays += strays(document, seed)
+        }
+        assertTrue(
+            strays.isEmpty(),
+            "${strays.size} stray navigation item(s) the codegen cannot compile.\n" +
+                strays.joinToString("\n"),
+        )
+    }
+
+    /**
+     * The nodes of type [NAVIGATION_ITEM] whose parent is not [NAVIGATION_BAR].
+     *
+     * `m3.NavigationItem`'s binding is Compose's `RowScope.NavigationBarItem` extension, so the
+     * generated call needs the row scope its bar opens — a stray item compiles into nothing
+     * (PR #144's CI settled the shape). The generator's draw rule keeps the pair together; this
+     * walk is the assertion that the rule holds across the seed range, read off the finished
+     * trees rather than off the draw's internals.
+     */
+    private fun strays(document: UiDocument, seed: Long): List<String> {
+        val parents = mutableMapOf<NodeId, NodeId>()
+        fun walk(id: NodeId, parent: NodeId?) {
+            if (parent != null) parents[id] = parent
+            for (children in document.nodes.require(id).slots.values) {
+                for (child in children) walk(child, id)
+            }
+        }
+        for (page in document.pages.values) walk(page.root, null)
+        return parents.mapNotNull { (id, parent) ->
+            val type = document.nodes.require(id).type
+            if (type == NAVIGATION_ITEM &&
+                document.nodes.require(parent).type != NAVIGATION_BAR
+            ) {
+                "seed $seed: ${id.value} is a $type under ${document.nodes.require(parent).type}"
+            } else {
+                null
+            }
+        }
+    }
+
     private companion object {
 
         /** A fraction of the nightly's range: twenty seeds here, two hundred there. */
         const val SEEDS: Long = 20
+
+        val NAVIGATION_BAR: ComponentType = ComponentType("m3.NavigationBar")
+        val NAVIGATION_ITEM: ComponentType = ComponentType("m3.NavigationItem")
     }
 }

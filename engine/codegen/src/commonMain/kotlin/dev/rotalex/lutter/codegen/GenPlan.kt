@@ -30,6 +30,12 @@ public data class CodegenOptions(
     // it from, and a navigator that cannot say where `Route` lives cannot name it in a screen.
     public val navigation: NavigationStrategy = SimpleBackStack(basePackage),
     public val state: StateStrategy = ComposeSnapshotState,
+    /**
+     * Who builds a page's state holder. Defaults to [NoInjection], which is whatever [state] says
+     * — so a run that selects nothing emits the bytes it emitted before this option existed.
+     */
+    public val injection: InjectionStrategy = NoInjection,
+    public val resources: ResourceStrategy = ResourceStrategy.None,
     public val header: HeaderPolicy = HeaderPolicy.Minimal,
     public val formatting: FormattingOptions = FormattingOptions(),
     public val targetPlatforms: Set<PlatformTag> = PlatformTag.ALL,
@@ -66,8 +72,12 @@ public enum class PlannedFileKind {
     Navigation,
     AppHost,
     AppState,
+    Store,
     Screen,
     Component,
+
+    /** `di/Injection.kt`: what a container needs declared before a screen's lookup finds it. */
+    Injection,
 }
 
 /** One file the generator will emit: its path, package and source page or component. */
@@ -78,6 +88,12 @@ public data class PlannedFile(
     public val pageId: PageId?,
     public val componentId: ComponentDeclId?,
 )
+
+/**
+ * The package `di/Injection.kt` lands in, named once because two files need it: the plan places
+ * the file, and `App.kt` names the module the file declares.
+ */
+public fun injectionPackage(basePackage: String): String = basePackage + ".di"
 
 /** The file list: every page becomes a screen, every component a function file. */
 public data class GenPlan(
@@ -93,7 +109,11 @@ public data class GenPlan(
  * what a handler's call needs to exist: a `nav.navigate` names `Route`, a `ui.showSnackbar` names
  * `SnackbarHost`, and an empty interface is the cheapest of the three that compiles.
  */
-public fun planDocument(document: ResolvedDocument, basePackage: String): GenPlan {
+public fun planDocument(
+    document: ResolvedDocument,
+    basePackage: String,
+    injection: InjectionStrategy = NoInjection,
+): GenPlan {
     val files: MutableList<PlannedFile> = mutableListOf()
     files += PlannedFile("App.kt", basePackage, PlannedFileKind.App, null, null)
     files += PlannedFile("Navigation.kt", basePackage, PlannedFileKind.Navigation, null, null)
@@ -105,6 +125,28 @@ public fun planDocument(document: ResolvedDocument, basePackage: String): GenPla
             "state/" + StateEmitter.AppStateName + ".kt",
             basePackage + ".state",
             PlannedFileKind.AppState,
+            null,
+            null,
+        )
+    }
+    // A container's bindings are a file of their own, and only a container has any: the plan asks
+    // the strategy rather than guessing, so a run that selected nothing plans nothing new.
+    if (injection.emitsModule && document.pages.isNotEmpty()) {
+        files += PlannedFile(
+            "di/Injection.kt",
+            injectionPackage(basePackage),
+            PlannedFileKind.Injection,
+            null,
+            null,
+        )
+    }
+    // §12.1's persistent row is the only document fact that asks for a store, so a document
+    // without one plans no file and emits no local.
+    if (StateEmitter.savesAnything(document)) {
+        files += PlannedFile(
+            "state/" + StateEmitter.PersistentStoreName + ".kt",
+            basePackage + ".state",
+            PlannedFileKind.Store,
             null,
             null,
         )

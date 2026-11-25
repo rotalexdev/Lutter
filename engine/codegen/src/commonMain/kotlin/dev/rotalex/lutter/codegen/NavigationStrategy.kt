@@ -24,6 +24,28 @@ public interface NavigationStrategy {
      */
     public val reservedTopLevelNames: Set<String>
 
+    /**
+     * The class a screen receives as its navigator, declared by [emitRoutes] under this name.
+     *
+     * A property because the parameter's *type* is what a screen's signature and its caller have
+     * to agree on, and a second strategy names it differently — and, for one that wraps a host
+     * library's controller, does not declare it in the document's package at all. A constant here
+     * would type every screen with the first strategy's class.
+     */
+    public val navigatorType: KotlinSymbol
+
+    /**
+     * The libraries the generated project needs to compile this strategy's emission.
+     *
+     * Empty by default, which is the honest answer for a strategy that emits self-contained
+     * Kotlin: [SimpleBackStack] is one. A strategy that calls a host library names it here, and
+     * `:engine:scaffold` turns each key into a catalog entry and a `shared` dependency — so the
+     * documented default of "a generated app with no dependencies" is a fact this interface
+     * states rather than a scaffold that forgot a row.
+     */
+    public val libraries: Set<GeneratedLibrary>
+        get() = emptySet()
+
     /** The sealed `Route` and the navigator over it, as the declarations of `Navigation.kt`. */
     public fun emitRoutes(pages: List<ResolvedPage>, ctx: FileContext): List<KtDeclaration>
 
@@ -71,7 +93,76 @@ public class FileContext(
      * §12.1, and identity is the whole of it for a document that declares no app state.
      */
     public val appState: (KtStmt) -> List<KtStmt>,
-)
+
+    /**
+     * The declared type of [receiver]'s parameter, or null when the composition owns it.
+     *
+     * A function on the context because the answer is a property of the run, not of the receiver:
+     * the navigator's class is the navigation strategy's, while the others name declarations the
+     * generator emits into the base package. Handing it here keeps a strategy from having to know
+     * another one's types, and keeps `ActionReceiver` from naming any of them.
+     */
+    public val receiverType: (ActionReceiver) -> KotlinSymbol?,
+
+    /**
+     * `AppRoot`'s `store` parameter, or null when nothing in the document asks to be saved.
+     *
+     * A parameter of the root rather than a later setter because the store is what a screen's
+     * state class reads at construction, and the construction happens inside the composition the
+     * root opens. Null keeps a document without a `Saveable` declaration byte-identical.
+     */
+    public val storeParameter: KtParam? = null,
+
+    /**
+     * Wraps the app's content in whatever the selected container needs around it.
+     *
+     * Beside [appState] and applied *outside* it: a container is started above every composable
+     * that looks anything up, so the app-state provider — which a screen may itself read — has to
+     * be inside. Identity is the default, which is every run that selected no container.
+     */
+    public val injected: (List<KtStmt>) -> List<KtStmt> = { body -> body },
+) {
+
+    /**
+     * `AppRoot`'s body: [content] under §12.1's app-state provider and inside the container.
+     *
+     * One call rather than three at each strategy's root, so the order (provider inside, container
+     * outside) is written once. A document with no pages has no content to wrap and gets none.
+     */
+    public fun rootBody(content: KtStmt): List<KtStmt> = injected(appState(content))
+
+    /**
+     * The receivers `AppRoot` declares as parameters.
+     *
+     * The navigator is one of them whether or not any handler reached for it: a root dispatches
+     * on the navigator it was given, so a root declaring none names a subject it holds nothing
+     * for. What the screens asked for beside it, sorted so two runs over one document agree.
+     *
+     * §11.5's `scope` is the odd one out and falls out with the rest: the composition owns it, so
+     * a screen reads it out of itself and `AppRoot` never declares it.
+     */
+    public fun appRootReceivers(): List<ActionReceiver> =
+        (listOf(ActionReceiver.Navigator) + receivers.values.flatten())
+            .distinct()
+            .filter { receiverType(it) != null }
+            .sortedBy { it.member }
+
+    /** The receivers [page]'s own screen declares, which are the only ones its caller may hand down. */
+    public fun receiversOf(page: ResolvedPage): List<ActionReceiver> =
+        receivers[page.id].orEmpty().filter { receiverType(it) != null }.sortedBy { it.member }
+
+    /**
+     * Everything `AppRoot` declares: the receivers it reads, the store it may be handed, and the
+     * modifier it always takes last.
+     *
+     * One list because a second navigation strategy that ordered the same parameters differently
+     * would still compile — and would still be a root whose callers cannot rely on one shape.
+     */
+    public fun appRootParameters(): List<KtParam> =
+        appRootReceivers().mapNotNull { receiver ->
+            receiverType(receiver)?.let { type -> KtParam(receiver.member, KtExpr.Ref(KtSymbolRef(type)), null) }
+        } + listOfNotNull(storeParameter) + listOf(modifierParameter())
+}
 
 /**
  * The one strategy that exists: a back stack in a snapshot list, and no dependency at all.
@@ -86,6 +177,8 @@ public class FileContext(
 public data class SimpleBackStack(public val basePackage: String) : NavigationStrategy {
 
     override val reservedTopLevelNames: Set<String> = setOf(RouteName, NavigatorName, RootName)
+
+    override val navigatorType: KotlinSymbol = KotlinSymbol(basePackage, NavigatorName)
 
     /**
      * `sealed interface Route` then `class AppNavigator`.
@@ -122,7 +215,7 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
         val body: List<KtStmt> = if (pages.isEmpty()) {
             emptyList()
         } else {
-            ctx.appState(
+            ctx.rootBody(
                 KtStmt.When(
                     subject = KtExpr.Member(KtExpr.Name(ActionReceiver.Navigator.member), "current"),
                     branches = pages.map { page -> screenArm(page, ctx) },
@@ -130,20 +223,14 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
                 ),
             )
         }
-        val parameters: List<KtParam> = signature(ctx).map { receiver ->
-            KtParam(
-                receiver.member,
-                KtExpr.Ref(KtSymbolRef(KotlinSymbol(ctx.pkg, checkNotNull(receiver.type)))),
-                null,
-            )
-        } + listOf(modifierParam())
+        val parameters: List<KtParam> = ctx.appRootParameters()
         return KtFile(
             ctx.pkg,
             ctx.header,
             listOf(
                 KtDeclaration.Function(
                     name = RootName,
-                    annotations = listOf(composable),
+                    annotations = listOf(composable.toAnnotation()),
                     type = null,
                     params = parameters,
                     body = body,
@@ -163,7 +250,7 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
             basePackage + ".screens",
             page.name + ReservedCodegenNames.ScreenSuffix,
         )
-        val forwarded: List<KtArg> = declaredBy(page, ctx).map { KtArg(it.member, KtExpr.Name(it.member)) }
+        val forwarded: List<KtArg> = ctx.receiversOf(page).map { KtArg(it.member, KtExpr.Name(it.member)) }
         return KtStmt.When.Branch(
             KtExpr.Ref(KtSymbolRef(KotlinSymbol(basePackage, RouteName), page.name)),
             listOf(
@@ -176,26 +263,6 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
             ),
         )
     }
-
-    /**
-     * The receivers `AppRoot` declares as parameters.
-     *
-     * The navigator is one of them whether or not any handler reached for it: the root dispatches
-     * on `navigator.current`, so a root declaring none names a subject it holds nothing for. What
-     * the screens asked for beside it, sorted so two runs over one document agree.
-     *
-     * §11.5's `scope` is the odd one out and is filtered out with the rest: the composition owns
-     * it, so a screen reads it out of itself and `AppRoot` never declares it.
-     */
-    private fun signature(ctx: FileContext): List<ActionReceiver> =
-        (listOf(ActionReceiver.Navigator) + ctx.receivers.values.flatten())
-            .distinct()
-            .filter { it.type != null }
-            .sortedBy { it.member }
-
-    /** The receivers [page]'s own screen declares, which are the only ones its call may hand down. */
-    private fun declaredBy(page: ResolvedPage, ctx: FileContext): List<ActionReceiver> =
-        ctx.receivers[page.id].orEmpty().filter { it.type != null }.sortedBy { it.member }
 
     /**
      * One `data object` per page, named by the page's own name so a handler can spell it.
@@ -319,9 +386,6 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
     private fun returned(value: KtExpr): KtStmt =
         KtStmt.Expr(KtExpr.Call(KtExpr.Name("return"), listOf(KtArg(null, value))))
 
-    private fun modifierParam(): KtParam =
-        KtParam("modifier", KtExpr.Ref(KtSymbolRef(modifierType)), KtExpr.Ref(KtSymbolRef(modifierType)))
-
     /**
      * §30.6's three names, which the plan, this strategy and a handler's call all agree on.
      *
@@ -334,8 +398,13 @@ public data class SimpleBackStack(public val basePackage: String) : NavigationSt
         public const val RootName: String = "AppRoot"
 
         private val composable: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "Composable")
-        private val modifierType: KotlinSymbol = KotlinSymbol("androidx.compose.ui", "Modifier")
         private val stateList: KotlinSymbol =
             KotlinSymbol("androidx.compose.runtime", "mutableStateListOf")
     }
 }
+
+/** The `modifier: Modifier = Modifier` every generated root and screen ends with. */
+internal fun modifierParameter(): KtParam =
+    KtParam("modifier", KtExpr.Ref(KtSymbolRef(modifierClass)), KtExpr.Ref(KtSymbolRef(modifierClass)))
+
+private val modifierClass: KotlinSymbol = KotlinSymbol("androidx.compose.ui", "Modifier")

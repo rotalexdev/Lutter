@@ -55,6 +55,7 @@ import dev.rotalex.lutter.schema.component.Category
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.component.EmitCase
 import dev.rotalex.lutter.schema.component.EventArgSpec
+import dev.rotalex.lutter.schema.component.IterationSpec
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.LambdaTarget
 import dev.rotalex.lutter.schema.component.Positional
@@ -91,6 +92,7 @@ class CodegenTest {
     private val iconButtonType: ComponentType = ComponentType("test.IconButton")
     private val buttonType: ComponentType = ComponentType("test.Button")
     private val spacerType: ComponentType = ComponentType("test.Spacer")
+    private val lazyType: ComponentType = ComponentType("test.LazyList")
     private val paddingType: ModifierType = ModifierType("test.padding")
     private val casedPaddingType: ModifierType = ModifierType("test.casedPadding")
     private val weightType: ModifierType = ModifierType("test.weight")
@@ -104,6 +106,7 @@ class CodegenTest {
     private val horizontalKey: PropertyKey = PropertyKey("horizontal")
     private val verticalKey: PropertyKey = PropertyKey("vertical")
     private val weightKey: PropertyKey = PropertyKey("weight")
+    private val maxKey: PropertyKey = PropertyKey("maxLines")
     private val alignKey: PropertyKey = PropertyKey("alignment")
     private val arrangementKey: PropertyKey = PropertyKey("horizontalArrangement")
     private val childrenSlot: SlotName = SlotName("children")
@@ -191,6 +194,145 @@ class CodegenTest {
     }
 
     @Test
+    fun `a screen's navigator parameter is typed by the strategy that emits it`() {
+        // The receiver's declared type is the navigation strategy's answer, never a constant:
+        // a second strategy names its navigator differently, and a screen typed with this one's
+        // name is a screen that strategy's `AppRoot` cannot call.
+        val result = eventResult(
+            iconButtonNode(navigateStep()),
+            navigation = RenamedNavigator("com.example.app"),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = homeScreenOf(result)
+        assertTrue(screen.contains("navigator: RenamedNavigator"), screen)
+        assertTrue(!screen.contains("navigator: AppNavigator"), screen)
+    }
+
+    @Test
+    fun `Navigation Compose types a screen with its controller and navigates by route`() {
+        val result = eventResult(
+            iconButtonNode(navigateStep()),
+            navigation = NavigationCompose("com.example.app"),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = homeScreenOf(result)
+        assertTrue(screen.contains("import androidx.navigation.NavHostController"), screen)
+        assertTrue(screen.contains("navigator: NavHostController"), screen)
+        assertTrue(screen.contains("navigator.navigate(Route.Profile)"), screen)
+    }
+
+    @Test
+    fun `Navigation Compose declares one route constant per page`() {
+        val result = eventResult(
+            iconButtonNode(navigateStep()),
+            navigation = NavigationCompose("com.example.app"),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val navigation = contentOf(result, "Navigation.kt")
+        assertTrue(navigation.contains("object Route {"), navigation)
+        assertTrue(navigation.contains("Home: String = \"home\""), navigation)
+        assertTrue(navigation.contains("Profile: String = \"profile\""), navigation)
+    }
+
+    @Test
+    fun `Navigation Compose builds a NavHost with one destination per page`() {
+        val result = eventResult(
+            iconButtonNode(navigateStep()),
+            navigation = NavigationCompose("com.example.app"),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val app = contentOf(result, "App.kt")
+        assertTrue(app.contains("import androidx.navigation.compose.NavHost"), app)
+        assertTrue(app.contains("startDestination = Route.Home"), app)
+        assertTrue(app.contains("composable("), app)
+        assertTrue(app.contains("Route.Home,"), app)
+        assertTrue(app.contains("Route.Profile,"), app)
+        assertTrue(app.contains("HomeScreen("), app)
+        assertTrue(app.contains("navigator = navigator,"), app)
+    }
+
+    @Test
+    fun `Navigation3 types a screen with the generated stack and navigates by route`() {
+        val result = eventResult(
+            iconButtonNode(navigateStep()),
+            navigation = Navigation3("com.example.app"),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = homeScreenOf(result)
+        // Screens learn nothing new: the stack is still a generated class with `navigate`, and
+        // only the root sees which library renders it.
+        assertTrue(screen.contains("navigator: AppNavigator"), screen)
+        assertTrue(screen.contains("navigator.navigate(Route.Profile)"), screen)
+        assertTrue(!screen.contains("androidx.navigation3"), screen)
+    }
+
+    @Test
+    fun `Navigation3 declares a sealed route hierarchy of keys`() {
+        val result = eventResult(
+            iconButtonNode(navigateStep()),
+            navigation = Navigation3("com.example.app"),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val navigation = contentOf(result, "Navigation.kt")
+        // `NavKey` is what the library keys an entry by, and `sealed` is what makes the root's
+        // dispatch exhaustive: a page added to the document cannot fall through an `else`.
+        assertTrue(navigation.contains("import androidx.navigation3.runtime.NavKey"), navigation)
+        assertTrue(navigation.contains("public sealed interface Route : NavKey {"), navigation)
+        assertTrue(navigation.contains("public data object Home : Route"), navigation)
+        assertTrue(navigation.contains("public data object Profile : Route"), navigation)
+    }
+
+    @Test
+    fun `Navigation3 navigator owns a snapshot list the display observes`() {
+        val result = eventResult(
+            iconButtonNode(navigateStep()),
+            navigation = Navigation3("com.example.app"),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val navigation = contentOf(result, "Navigation.kt")
+        // Nav3's whole premise is that the app owns the back stack, so the list is the
+        // navigator's and it is public: `NavDisplay` has to observe that same instance.
+        assertTrue(navigation.contains("import androidx.compose.runtime.snapshots.SnapshotStateList"), navigation)
+        assertTrue(
+            navigation.contains("public val backStack: SnapshotStateList<Route> = mutableStateListOf(Route.Home)"),
+            navigation,
+        )
+        assertTrue(navigation.contains("public fun navigate(route: Route)"), navigation)
+        assertTrue(navigation.contains("public fun back(): Boolean"), navigation)
+    }
+
+    @Test
+    fun `Navigation3 builds a NavDisplay with one entry per page`() {
+        val result = eventResult(
+            iconButtonNode(navigateStep()),
+            navigation = Navigation3("com.example.app"),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val app = contentOf(result, "App.kt")
+        assertTrue(app.contains("import androidx.navigation3.ui.NavDisplay"), app)
+        assertTrue(app.contains("import androidx.navigation3.runtime.NavEntry"), app)
+        assertTrue(app.contains("backStack = navigator.backStack,"), app)
+        // A lambda renders expanded, so the factory's shape is two lines with the call inside.
+        assertTrue(app.contains("onBack = {"), app)
+        assertTrue(app.contains("navigator.back()"), app)
+        assertTrue(app.contains("NavEntry("), app)
+        assertTrue(app.contains("Route.Home ->"), app)
+        assertTrue(app.contains("Route.Profile ->"), app)
+        assertTrue(app.contains("HomeScreen("), app)
+        // No `else`: the subject is the sealed hierarchy, so a gap is a compile error here
+        // rather than a screen that renders nothing at runtime.
+        assertTrue(!app.contains("else ->"), app)
+    }
+
+    @Test
     fun `a handler lambda declares the parameters its binding names`() {
         val content = eventScreen(iconButtonNode(navigateStep()), iconButtonStub(listOf("pressed")))
 
@@ -239,6 +381,108 @@ class CodegenTest {
             """.trimIndent(),
             homeScreenOf(result),
         )
+    }
+
+    @Test
+    fun `an iterating slot wraps its children in the items call the list drives`() {
+        // §11.1: the source emits as the `items(...)` argument, the children become the content
+        // lambda's body, and the child's item read spells the loop variable itself.
+        val elementsKey = PropertyKey("elements")
+        val lazyStub: ComponentSpec = componentSpec(lazyType, 1) {
+            metadata("LazyList", Category.Basic)
+            property(prop<String>("elements", TypeRef.ListOf(TypeRef.Str)))
+            slot(
+                "children",
+                Cardinality.Many,
+                iteration = IterationSpec("item", TypeRef.Str, elementsKey),
+            )
+            composeCall(KotlinSymbol("androidx.compose.foundation.lazy", "LazyColumn")) {
+                slot("children", LambdaTarget.Trailing)
+            }
+        }
+        // The row's Text needs its own stub: the shared one binds only the positional text, and a
+        // second parameter there would flip `Positional.WhenSole` for every sibling test.
+        val rowStub: ComponentSpec = componentSpec(textType, 1) {
+            val text = prop<String>("text", TypeRef.Str, required = true)
+            val maxLines = prop<Int>("maxLines", TypeRef.Int32)
+            metadata("Text", Category.Basic)
+            property(text)
+            property(maxLines)
+            composeCall(KotlinSymbol("androidx.compose.material3", "Text")) {
+                param("text", from = text, positional = Positional.WhenSole)
+                param("maxLines", from = maxLines)
+            }
+        }
+        val row = ResolvedNode(
+            NodeId("n_9"),
+            textType,
+            mapOf(
+                textKey to ResolvedProp(
+                    textKey,
+                    PropertyValue.Const(Value.Str("Hi")),
+                    PropOrigin.Specified,
+                    null,
+                ),
+                maxKey to ResolvedProp(
+                    maxKey,
+                    PropertyValue.Computed(Expr.Ref(RefTarget.Item("item"))),
+                    PropOrigin.Specified,
+                    null,
+                    TypedExpr(Expr.Ref(RefTarget.Item("item")), ExprType.Of(TypeRef.Str), emptySet()),
+                ),
+            ),
+            emptyList(),
+            emptyMap(),
+            emptySet(),
+        )
+        val listNode = ResolvedNode(
+            NodeId("n_1"),
+             lazyType,
+             mapOf(
+                 elementsKey to ResolvedProp(
+                     elementsKey,
+                     PropertyValue.Computed(Expr.Ref(RefTarget.State(count))),
+                     PropOrigin.Specified,
+                     null,
+                     TypedExpr(
+                         Expr.Ref(RefTarget.State(count)),
+                         ExprType.Of(TypeRef.ListOf(TypeRef.Str)),
+                         emptySet(),
+                     ),
+                 ),
+             ),
+             emptyList(),
+             mapOf(SlotName("children") to listOf(row)),
+             emptySet(),
+         )
+        val schema: Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> =
+            Schema.build {
+                component(lazyStub)
+                component(rowStub)
+            }
+        val pages = mapOf(
+            PageId("p_home") to ResolvedPage(
+                PageId("p_home"),
+                "Home",
+                "home",
+                listNode,
+                listOf(
+                    ResolvedState(
+                        StateDecl(count, "count", TypeRef.ListOf(TypeRef.Str), Value.Null),
+                        null,
+                    ),
+                ),
+            ),
+        )
+        val result = KotlinGenerator(schema, CodegenOptions("com.example.app")).generate(
+            ResolvedDocument(pages, emptyMap(), indexOf(pages), ResolvedTheme(null)),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = homeScreenOf(result)
+        assertTrue(screen.contains("state.count"), screen)
+        assertTrue(screen.contains(") { item ->"), screen)
+        assertTrue(screen.contains("maxLines = item"), screen)
     }
 
     @Test
@@ -462,6 +706,136 @@ class CodegenTest {
         )
     }
 
+    // `Text` with a second parameter, in its own schema: the shared one binds only the
+    // positional text, and a sibling parameter there would flip `Positional.WhenSole` for
+    // every other test — the omit rule needs a parameter the call actually binds.
+    private fun maxLinesSchema(): Schema<ComponentSpec, ModifierSpec, String, FunctionSpec, String> {
+        val maxLines = prop<Int>("maxLines", TypeRef.Int32)
+        val stub: ComponentSpec = componentSpec(textType, 1) {
+            val text = prop<String>("text", TypeRef.Str, required = true)
+            metadata("Text", Category.Basic)
+            property(text)
+            property(maxLines)
+            composeCall(KotlinSymbol("androidx.compose.material3", "Text")) {
+                param("text", from = text, positional = Positional.WhenSole)
+                param("maxLines", from = maxLines)
+            }
+        }
+        return Schema.build { component(stub) }
+    }
+
+    private fun maxLinesNode(origin: PropOrigin): ResolvedNode {
+        val maxLines = PropertyKey("maxLines")
+        return ResolvedNode(
+            NodeId("n_1"),
+            textType,
+            mapOf(
+                textKey to ResolvedProp(textKey, PropertyValue.Const(Value.Str("Hi")), PropOrigin.Specified, null),
+                maxLines to ResolvedProp(maxLines, PropertyValue.Const(Value.Int32(3)), origin, null),
+            ),
+            emptyList(),
+            emptyMap(),
+            emptySet(),
+        )
+    }
+
+    @Test
+    fun `a theme default emits its parameter, which Compose does not carry`() {
+        // The omit rule keys off the spec default only: the generated app holds Compose's
+        // defaults, not the theme's, so a §14.2 default must reach the call.
+        val node = maxLinesNode(PropOrigin.Theme)
+        val pages = mapOf(PageId("p_home") to ResolvedPage(PageId("p_home"), "Home", "home", node, emptyList()))
+        val result = KotlinGenerator(maxLinesSchema(), CodegenOptions("com.example.app")).generate(
+            ResolvedDocument(pages, emptyMap(), indexOf(pages), ResolvedTheme(null)),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        assertTrue(homeScreenOf(result).contains("maxLines = 3"), homeScreenOf(result))
+    }
+
+    @Test
+    fun `a spec default still omits its parameter, which Compose carries`() {
+        val node = maxLinesNode(PropOrigin.Default)
+        val pages = mapOf(PageId("p_home") to ResolvedPage(PageId("p_home"), "Home", "home", node, emptyList()))
+        val result = KotlinGenerator(maxLinesSchema(), CodegenOptions("com.example.app")).generate(
+            ResolvedDocument(pages, emptyMap(), indexOf(pages), ResolvedTheme(null)),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        assertTrue(!homeScreenOf(result).contains("maxLines"), homeScreenOf(result))
+    }
+
+    @Test
+    fun `a guarded call renders only when the guard holds`() {
+        val visible = prop<Boolean>("visible", TypeRef.Bool)
+        val open = StateId("s_open")
+        val stub: ComponentSpec = componentSpec(textType, 1) {
+            val text = prop<String>("text", TypeRef.Str, required = true)
+            metadata("Text", Category.Basic)
+            property(text)
+            property(visible)
+            composeCall(KotlinSymbol("androidx.compose.material3", "Text")) {
+                param("text", from = text, positional = Positional.WhenSole)
+                guard(visible.key)
+            }
+        }
+        // A root composes unconditionally — a document never makes its window the screen — so
+        // the guarded call sits as a slot child, which is the position the guard applies in.
+        val container: ComponentSpec = componentSpec(ComponentType("test.Column"), 1) {
+            metadata("Column", Category.Layout)
+            slot("children", Cardinality.Many)
+            composeCall(KotlinSymbol("test", "Column")) {
+                slot("children", LambdaTarget.Trailing)
+            }
+        }
+        val node = ResolvedNode(
+            NodeId("n_1"),
+            textType,
+            mapOf(
+                textKey to ResolvedProp(textKey, PropertyValue.Const(Value.Str("Hi")), PropOrigin.Specified, null),
+                visible.key to ResolvedProp(
+                    visible.key,
+                    PropertyValue.Computed(Expr.Ref(RefTarget.State(open))),
+                    PropOrigin.Specified,
+                    null,
+                    TypedExpr(Expr.Ref(RefTarget.State(open)), ExprType.Of(TypeRef.Bool), emptySet()),
+                ),
+            ),
+            emptyList(),
+            emptyMap(),
+            emptySet(),
+        )
+        val root = ResolvedNode(
+            NodeId("n_root"),
+            container.type,
+            emptyMap(),
+            emptyList(),
+            mapOf(SlotName("children") to listOf(node)),
+            emptySet(),
+        )
+        val pages = mapOf(
+            PageId("p_home") to ResolvedPage(
+                PageId("p_home"),
+                "Home",
+                "home",
+                root,
+                listOf(ResolvedState(StateDecl(open, "open", TypeRef.Bool, Value.Bool(false)), null)),
+            ),
+        )
+        val result = KotlinGenerator(
+            Schema.build<ComponentSpec, ModifierSpec, String, FunctionSpec, String> {
+                component(stub)
+                component(container)
+            },
+            CodegenOptions("com.example.app"),
+        ).generate(ResolvedDocument(pages, emptyMap(), indexOf(pages), ResolvedTheme(null)))
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val screen = homeScreenOf(result)
+        assertTrue(screen.contains("if (state.open)"), screen)
+        assertTrue(screen.contains("Text(\"Hi\")"), screen)
+    }
+
     @Test
     fun `every page becomes a route of its own`() {
         val nav = contentOf(
@@ -628,6 +1002,12 @@ class CodegenTest {
 
             public interface SnackbarHost {
                 public fun show(message: String)
+            }
+
+            public interface DialogHost {
+                public fun show(title: String, message: String)
+
+                public fun showSheet(title: String, message: String)
             }
 
             """.trimIndent(),
@@ -855,9 +1235,21 @@ class CodegenTest {
         root: ResolvedNode,
         clicked: ComponentSpec = iconButtonStub(),
         hostFunctions: List<HostFunctionDecl> = emptyList(),
+        navigation: NavigationStrategy = SimpleBackStack("com.example.app"),
     ): CodegenResult =
-        KotlinGenerator(eventSchema(clicked), CodegenOptions("com.example.app"))
+        KotlinGenerator(eventSchema(clicked), CodegenOptions("com.example.app", navigation = navigation))
             .generate(eventDocument(root, hostFunctions))
+
+    /**
+     * A strategy that declares its navigator under another name, and nothing else.
+     *
+     * Every emission is the default's, because the question this answers is not what a second
+     * navigation strategy *does* — it is which strategy a screen's parameter type comes from.
+     * A strategy that reused the default's class name could not tell those apart.
+     */
+    private class RenamedNavigator(basePackage: String) : NavigationStrategy by SimpleBackStack(basePackage) {
+        override val navigatorType: KotlinSymbol = KotlinSymbol("com.example.app", "RenamedNavigator")
+    }
 
     private fun eventSchema(
         clicked: ComponentSpec = iconButtonStub(),

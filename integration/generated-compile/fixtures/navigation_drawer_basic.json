@@ -1,0 +1,40 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "NavigationDrawerBasic"},
+    "nodes": {
+      "n_drawer": {
+        "id": "n_drawer",
+        "slots": {"drawerContent": ["n_drawer_col"], "content": ["n_main_col"]},
+        "type": "m3.NavigationDrawer"
+      },
+      "n_drawer_col": {
+        "id": "n_drawer_col",
+        "slots": {"children": ["n_drawer_text"]},
+        "type": "core.Column"
+      },
+      "n_drawer_text": {
+        "id": "n_drawer_text",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Drawer"}}},
+        "type": "m3.Text"
+      },
+      "n_main_col": {
+        "id": "n_main_col",
+        "slots": {"children": ["n_main_text"]},
+        "type": "core.Column"
+      },
+      "n_main_text": {
+        "id": "n_main_text",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Main"}}},
+        "type": "m3.Text"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_drawer", "route": "home"}
+    }
+  }
+}

@@ -24,6 +24,10 @@ the scripts do not hot-reload.
 
 ```
 forge generate <document.json> [--out <dir>] [--package <package>]
+                [--platforms <android,desktop>]
+                [--navigation <simple|navigation-compose|navigation3>]
+                [--state <snapshot|viewmodel>] [--injection <none|koin|metro|hilt>]
+                [--plugin <file.lutterplugin>]...
 ```
 
 Generates Kotlin source from a valid document.
@@ -32,6 +36,11 @@ Generates Kotlin source from a valid document.
 |---|---|---|
 | `--out` | Output directory for generated files | `generated` (relative to the working directory) |
 | `--package` | Root package of the generated code | The document's own `app.packageName` |
+| `--platforms` | The target set the code is generated for. Read by the container refusal, which is the only thing in codegen that depends on the project rather than the document — `hilt` is Android-only, so `--platforms android` is what satisfies it | every platform |
+| `--navigation` | Which navigation the emitted code runs (see below) | `simple` |
+| `--state` | Which state model the emitted code uses (see below) | `snapshot` |
+| `--injection` | Who builds a screen's state holder (see below) | `none` |
+| `--plugin` | A plugin container to install before analysis and generation. Repeatable; see [Loading plugins](#loading-plugins) | none |
 
 Success output, on stdout, is one line that tells you exactly where everything went:
 
@@ -43,10 +52,70 @@ If the document fails validation, nothing is generated: the diagnostics are prin
 stderr and the process exits `1` (the rejected-exit code). `generate` never leaves a
 half-written tree behind.
 
+#### Choosing the strategies
+
+A document says *what* an app has; the two flags say *how* the code for it is built. Every
+pair works with every document — that is the point of the seam — and the default pair emits
+a generated app that depends on nothing beyond Compose Multiplatform itself.
+
+| `--navigation` | Emits | Generated app needs |
+|---|---|---|
+| `simple` | A generated `Route` hierarchy and `AppNavigator`; `AppRoot` dispatches with a `when` | nothing |
+| `navigation-compose` | `Route` keys and a `NavHost`; screens receive the `NavHostController` | `navigation-compose` |
+| `navigation3` | `NavKey` routes and a `SnapshotStateList` stack, rendered by `NavDisplay` | `navigation3-ui` |
+
+| `--state` | Emits | Generated app needs |
+|---|---|---|
+| `snapshot` | `@Stable` state classes held with `remember` and `mutableStateOf` | nothing |
+| `viewmodel` | A `ViewModel` per page owns its state; screens read `viewModel()` | `lifecycle-viewmodel-compose` |
+
+| `--injection` | Emits | Generated app needs |
+|---|---|---|
+| `none` | The state strategy's own lookup: `rememberHomeScreenState()` or `viewModel()` | nothing |
+| `koin` | `di/Injection.kt` with one binding per page holder, `AppRoot` wrapped in `KoinApplication`, screens defaulting to `koinViewModel()` | `koin-core`, `koin-compose-viewmodel` |
+| `hilt` | Screens defaulting to `hiltViewModel()`, and holders decorated `@HiltViewModel` with an `@Inject` constructor. **Android-only**: a document that targets any other platform is refused, because Hilt has no Kotlin Multiplatform ViewModel integration | `hilt-android`, `hilt-navigation-compose`, plus Hilt's compiler — and a project whose source set is Android-only, which `forge scaffold` does not emit yet (see below) |
+| `metro` | `di/Injection.kt` with a `@DependencyGraph` interface contributing every holder and binding its `MetroViewModelFactory`, `AppRoot` creating the graph and providing the factory, screens defaulting to `metroViewModel()` | `dev.zacsweers.metro:runtime`, `dev.zacsweers.metro:metrox-viewmodel-compose`, and the `dev.zacsweers.metro` compiler plugin |
+
+Hilt cannot be scaffolded yet, and `forge scaffold --injection hilt` says so instead of writing a
+tree that does not build. `forge generate --injection hilt --platforms android` emits the lookup and
+the holder decorations correctly, but `forge scaffold` emits a Kotlin Multiplatform project: its
+shared module compiles `commonMain` for every target, and Hilt's compiler only runs on an Android
+compilation. Until the scaffold can emit an Android-only layout, a Hilt project's Android module is
+written by hand and takes the generated Kotlin.
+
+`--platforms` exists on `generate` for exactly that sentence: the target-set refusal tells a caller
+to select an Android-only target set, and a refusal a command cannot answer is a dead end.
+
+Metro is the one strategy that also brings a compiler plugin: its graph is an interface the
+plugin implements, so `metro-runtime` on the classpath without `dev.zacsweers.metro` applied
+compiles nothing. A scaffolded project declares the plugin for you.
+
+The two flags compose, and one pair is refused rather than emitted. `koin` and `metro` resolve a
+`ViewModel`, whose lifetime a `ViewModelStore` owns; a `snapshot` holder is remembered inside
+the page's composition, and handing it to the container would move a page's state out of the
+page's lifetime — a different policy, not a different lookup. So `--state snapshot --injection
+koin` and `--state snapshot --injection metro` fail with a diagnostic naming the fix, and
+`--state viewmodel --injection koin` and `--state viewmodel --injection metro` are the pairs
+that emit.
+
+A strategy's library is a fact the strategy states, not something a caller wires: `forge
+scaffold` accepts the same three flags and emits the matching `gradle/libs.versions.toml`
+entries and `shared` dependencies, so a generated project built under `navigation3` resolves
+`navigation3-ui` without anyone editing its build files. Passing a library-needing strategy to
+`forge generate` alone gives you Kotlin and no Gradle project — the dependency is then yours
+to declare.
+
+An unknown name is refused with the accepted ones listed, and nothing is generated: a typo
+must not quietly produce the default strategy's project.
+
 ### `forge check`
 
 ```
 forge check <document.json>
+```
+
+```
+forge check <document.json> [--plugin <file.lutterplugin>]...
 ```
 
 Validates a document without generating anything — the CI-friendly and editor-hook-friendly
@@ -66,6 +135,32 @@ Error component.unknown at nodes[3]: unknown component type 'TextCreativity'
 
 Each finding line names its severity, machine-readable code, source location, and message —
 the same catalog of codes the engine produces, [documented in the format specification](format-spec.md).
+
+## Loading plugins
+
+A document can name the plugins it was authored against in `meta.plugins`, and a component a
+plugin contributes is unknown until that plugin is installed. `--plugin` is how a container
+reaches the schema, and both commands take it:
+
+```
+forge check todo-list.json --plugin ../plugins/com.acme.charts.lutterplugin
+forge generate todo-list.json --plugin charts.lutterplugin --plugin inline.lutterplugin
+```
+
+`--plugin` is **repeatable** and order is preserved: plugins are installed in the order given,
+because that is the only order a `dependsOn` between two of them can mean. Each loaded container
+reports its identity on stdout before the usual summary:
+
+```
+forge check: loaded plugin com.acme.charts 2.1.0 (api 1, full)
+```
+
+A plugin set the engine refuses — the same id twice, a `dependsOn` no earlier plugin satisfies,
+or a component key two plugins both register — exits `2` and names the reason. So does a
+container this host cannot execute: the CLI runs on the JVM, so it loads a jar and refuses an
+`android-only` container by naming the build it declares. A container whose manifest does not
+match its payloads, or whose `apiVersion` this engine does not implement, is refused the same
+way, before any class is loaded.
 
 ## Exit codes
 
@@ -96,7 +191,8 @@ rules, all verified in tests:
 
 - Flags are the documented ones only. An unknown flag exits `2`, and the error names the
   flags the command accepts (no silent swallowing of typos like `--ouptut`).
-- A flag repeated twice exits `2` (duplicates are mistakes, not overrides).
+- A flag repeated twice exits `2` (duplicates are mistakes, not overrides) — except a repeatable
+  flag, which today is `--plugin` alone.
 - A flag's value may not look like a flag — `--out --package foo` exits `2`.
 - `--` ends flag parsing, letting you pass values that start with `-`.
 - A lone `-` is a legitimate value (for an actual file literally named `-`).

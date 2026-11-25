@@ -13,6 +13,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.robolectric.annotation.GraphicsMode
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.ids.PageId
@@ -51,6 +52,11 @@ import org.robolectric.annotation.Config
  */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [36])
+// Native graphics is load-bearing for the render-all row: the stub resource provider hands the
+// renderer a 1x1 bitmap, and in the legacy shadow mode `Bitmap.createBitmap` answers null, so
+// the runtime's `Image` call dies inside the wrapper's own init. Under the native simulation
+// the decode is real, which is the behavior this runner exists to exercise.
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class RuntimeSemanticsTest {
 
     @get:Rule

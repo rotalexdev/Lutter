@@ -92,11 +92,10 @@ public class ExprEmitter(
         is RefTarget.State -> state.read(target.id) ?: throw CodegenBug(
             "State '" + target.id.value + "' left the binding table; pass 5 refused an unresolved one",
         )
-        // §10.2 has no iteration, so nothing binds this name; [RefTarget]'s own KDoc defers the
-        // scope check for it to the wave that introduces one.
-        is RefTarget.Item -> throw CodegenBug(
-            "No Kotlin spelling for item '" + target.name + "': §10.2 has no iteration to bind it",
-        )
+        // §11.1 binds the loop variable inside the items lambda the slot emits, so the spelling
+        // is the identifier itself; pass 5 refuses an item read outside a frame, and the
+        // generator's children emission happens only inside one.
+        is RefTarget.Item -> KtExpr.Name(target.name)
     }
 
     /**

@@ -50,6 +50,16 @@ public data class StateDecl(
 
     /** How long the value outlives a composition. §12.1's six scopes, reduced to a tag. */
     public val persistence: Persistence = Persistence.None,
+
+    /**
+     * The host adapter this declaration's values arrive from, when it has one.
+     *
+     * A fourth source of value beside [initial], [derived] and nothing, and the only one the
+     * engine cannot compute: see [ExternalStateDecl]. A declaration with this set carries
+     * [initial] too, because a stream has to have a value before it emits its first, and refuses
+     * [derived] because two producers for one property is a document that has not decided.
+     */
+    public val external: ExternalStateDecl? = null,
 )
 
 /**

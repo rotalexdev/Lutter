@@ -2,7 +2,9 @@ public final class dev/rotalex/lutter/schema/Schema : dev/rotalex/lutter/schema/
 	public static final field Companion Ldev/rotalex/lutter/schema/Schema$Companion;
 	public fun getActions ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public fun getComponents ()Ldev/rotalex/lutter/schema/registry/Registry;
+	public fun getContributors ()Ljava/util/List;
 	public fun getFunctions ()Ldev/rotalex/lutter/schema/registry/Registry;
+	public fun getIcons ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public fun getModifiers ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public fun getTypes ()Ldev/rotalex/lutter/schema/registry/Registry;
 }
@@ -22,6 +24,8 @@ public final class dev/rotalex/lutter/schema/SchemaBuilder {
 	public final fun build ()Ldev/rotalex/lutter/schema/Schema;
 	public final fun component-blZ4y4I (Ljava/lang/String;Ljava/lang/Object;)V
 	public final fun function-THcHRMQ (Ljava/lang/String;Ljava/lang/Object;)V
+	public final fun iconSet (Ldev/rotalex/lutter/schema/types/IconSet;)V
+	public final fun install (Ldev/rotalex/lutter/schema/plugin/SchemaContribution;)V
 	public final fun modifier-oGUz0Hw (Ljava/lang/String;Ljava/lang/Object;)V
 	public final fun type-4Re_6Ho (Ljava/lang/String;Ljava/lang/Object;)V
 }
@@ -29,7 +33,9 @@ public final class dev/rotalex/lutter/schema/SchemaBuilder {
 public abstract interface class dev/rotalex/lutter/schema/SchemaView {
 	public abstract fun getActions ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public abstract fun getComponents ()Ldev/rotalex/lutter/schema/registry/Registry;
+	public abstract fun getContributors ()Ljava/util/List;
 	public abstract fun getFunctions ()Ldev/rotalex/lutter/schema/registry/Registry;
+	public abstract fun getIcons ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public abstract fun getModifiers ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public abstract fun getTypes ()Ldev/rotalex/lutter/schema/registry/Registry;
 }
@@ -99,6 +105,13 @@ public final class dev/rotalex/lutter/schema/action/ArgRule {
 }
 
 public abstract interface class dev/rotalex/lutter/schema/action/ArgShape {
+}
+
+public final class dev/rotalex/lutter/schema/action/ArgShape$ElementValue : dev/rotalex/lutter/schema/action/ArgShape {
+	public static final field INSTANCE Ldev/rotalex/lutter/schema/action/ArgShape$ElementValue;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class dev/rotalex/lutter/schema/action/ArgShape$Positional : dev/rotalex/lutter/schema/action/ArgShape {
@@ -202,22 +215,26 @@ public final class dev/rotalex/lutter/schema/component/CodegenBinding$Companion 
 
 public final class dev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall : dev/rotalex/lutter/schema/component/CodegenBinding {
 	public static final field Companion Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall$Companion;
-	public fun <init> (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Z)V
-	public synthetic fun <init> (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/lang/String;Ldev/rotalex/lutter/schema/component/KotlinSymbol;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/lang/String;Ldev/rotalex/lutter/schema/component/KotlinSymbol;ZLkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
 	public final fun component2 ()Ljava/lang/String;
 	public final fun component3 ()Ljava/util/List;
 	public final fun component4 ()Ljava/util/List;
 	public final fun component5 ()Ljava/util/List;
-	public final fun component6 ()Z
-	public final fun copy (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Z)Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall;
-	public static synthetic fun copy$default (Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ZILjava/lang/Object;)Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall;
+	public final fun component6-rE79kGE ()Ljava/lang/String;
+	public final fun component7 ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
+	public final fun component8 ()Z
+	public final fun copy-WRdbVwY (Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/lang/String;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Z)Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall;
+	public static synthetic fun copy-WRdbVwY$default (Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/lang/String;Ldev/rotalex/lutter/schema/component/KotlinSymbol;ZILjava/lang/Object;)Ldev/rotalex/lutter/schema/component/CodegenBinding$ComposeCall;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getEvents ()Ljava/util/List;
 	public final fun getFunction ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
+	public final fun getGuard-rE79kGE ()Ljava/lang/String;
 	public final fun getModifierParam ()Ljava/lang/String;
 	public final fun getModifierRequired ()Z
 	public final fun getParams ()Ljava/util/List;
+	public final fun getRequiresOptIn ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
 	public final fun getSlots ()Ljava/util/List;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
@@ -332,8 +349,8 @@ public final class dev/rotalex/lutter/schema/component/ComponentSpecBuilder {
 
 public final class dev/rotalex/lutter/schema/component/ComponentSpecDslKt {
 	public static final fun componentSpec-4sAO-_g (Ljava/lang/String;ILkotlin/jvm/functions/Function1;)Ldev/rotalex/lutter/schema/component/ComponentSpec;
-	public static final fun prop (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;ZZLdev/rotalex/lutter/schema/component/EditorHints;Ljava/lang/String;)Ldev/rotalex/lutter/schema/component/PropertySpec;
-	public static synthetic fun prop$default (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;ZZLdev/rotalex/lutter/schema/component/EditorHints;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public static final fun prop (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;ZZLdev/rotalex/lutter/schema/component/EditorHints;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ResourceKind;)Ldev/rotalex/lutter/schema/component/PropertySpec;
+	public static synthetic fun prop$default (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;ZZLdev/rotalex/lutter/schema/component/EditorHints;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ResourceKind;ILjava/lang/Object;)Ldev/rotalex/lutter/schema/component/PropertySpec;
 }
 
 public final class dev/rotalex/lutter/schema/component/ComponentSpecKt {
@@ -345,10 +362,12 @@ public final class dev/rotalex/lutter/schema/component/ComposeCallBuilder {
 	public static synthetic fun event$default (Ldev/rotalex/lutter/schema/component/ComposeCallBuilder;Ldev/rotalex/lutter/schema/component/EventSpec;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)V
 	public final fun event-eaOwGTo (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)V
 	public static synthetic fun event-eaOwGTo$default (Ldev/rotalex/lutter/schema/component/ComposeCallBuilder;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)V
+	public final fun guard-24dJZws (Ljava/lang/String;)V
 	public final fun param (Ljava/lang/String;Ldev/rotalex/lutter/schema/component/PropertySpec;Ldev/rotalex/lutter/schema/component/ValueEmit;Ldev/rotalex/lutter/schema/component/Positional;Z)V
 	public final fun param (Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/schema/component/ValueEmit;Ldev/rotalex/lutter/schema/component/Positional;Z)V
 	public static synthetic fun param$default (Ldev/rotalex/lutter/schema/component/ComposeCallBuilder;Ljava/lang/String;Ldev/rotalex/lutter/schema/component/PropertySpec;Ldev/rotalex/lutter/schema/component/ValueEmit;Ldev/rotalex/lutter/schema/component/Positional;ZILjava/lang/Object;)V
 	public static synthetic fun param$default (Ldev/rotalex/lutter/schema/component/ComposeCallBuilder;Ljava/lang/String;Ljava/util/List;Ldev/rotalex/lutter/schema/component/ValueEmit;Ldev/rotalex/lutter/schema/component/Positional;ZILjava/lang/Object;)V
+	public final fun requiresOptIn (Ldev/rotalex/lutter/schema/component/KotlinSymbol;)V
 	public final fun slot (Ldev/rotalex/lutter/schema/component/SlotSpec;Ldev/rotalex/lutter/schema/component/LambdaTarget;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)V
 	public final fun slot (Ljava/lang/String;Ldev/rotalex/lutter/schema/component/LambdaTarget;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)V
 	public static synthetic fun slot$default (Ldev/rotalex/lutter/schema/component/ComposeCallBuilder;Ldev/rotalex/lutter/schema/component/SlotSpec;Ldev/rotalex/lutter/schema/component/LambdaTarget;Ldev/rotalex/lutter/schema/component/KotlinSymbol;ILjava/lang/Object;)V
@@ -482,14 +501,16 @@ public final class dev/rotalex/lutter/schema/component/EventSpec {
 }
 
 public final class dev/rotalex/lutter/schema/component/IterationSpec {
-	public fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;)V
+	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ldev/rotalex/lutter/model/type/TypeRef;
-	public final fun copy (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;)Ldev/rotalex/lutter/schema/component/IterationSpec;
-	public static synthetic fun copy$default (Ldev/rotalex/lutter/schema/component/IterationSpec;Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;ILjava/lang/Object;)Ldev/rotalex/lutter/schema/component/IterationSpec;
+	public final fun component3-ciGozWU ()Ljava/lang/String;
+	public final fun copy-a79b2go (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ljava/lang/String;)Ldev/rotalex/lutter/schema/component/IterationSpec;
+	public static synthetic fun copy-a79b2go$default (Ldev/rotalex/lutter/schema/component/IterationSpec;Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/schema/component/IterationSpec;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getItemName ()Ljava/lang/String;
 	public final fun getItemType ()Ldev/rotalex/lutter/model/type/TypeRef;
+	public final fun getSource-ciGozWU ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -724,14 +745,15 @@ public final class dev/rotalex/lutter/schema/component/PropertyRule$SlotRequires
 }
 
 public final class dev/rotalex/lutter/schema/component/PropertySpec {
-	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;ZZLdev/rotalex/lutter/schema/component/EditorHints;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;ZZLdev/rotalex/lutter/schema/component/EditorHints;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;ZZLdev/rotalex/lutter/schema/component/EditorHints;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ResourceKind;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;ZZLdev/rotalex/lutter/schema/component/EditorHints;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ResourceKind;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun getBindable ()Z
 	public final fun getDefault ()Ldev/rotalex/lutter/model/value/Value;
 	public final fun getDoc ()Ljava/lang/String;
 	public final fun getEditor ()Ldev/rotalex/lutter/schema/component/EditorHints;
 	public final fun getKey-ciGozWU ()Ljava/lang/String;
 	public final fun getRequired ()Z
+	public final fun getResourceKind ()Ldev/rotalex/lutter/model/doc/ResourceKind;
 	public final fun getType ()Ldev/rotalex/lutter/model/type/TypeRef;
 }
 
@@ -849,6 +871,70 @@ public final class dev/rotalex/lutter/schema/component/ValueEmit$Companion {
 
 public final class dev/rotalex/lutter/schema/component/ValueEmit$Direct : dev/rotalex/lutter/schema/component/ValueEmit {
 	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/ValueEmit$Direct;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/schema/component/ValueEmit$Icon : dev/rotalex/lutter/schema/component/ValueEmit {
+	public static final field Companion Ldev/rotalex/lutter/schema/component/ValueEmit$Icon$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-ciGozWU ()Ljava/lang/String;
+	public final fun component2-ciGozWU ()Ljava/lang/String;
+	public final fun copy-cBiTOvA (Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/schema/component/ValueEmit$Icon;
+	public static synthetic fun copy-cBiTOvA$default (Ldev/rotalex/lutter/schema/component/ValueEmit$Icon;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/schema/component/ValueEmit$Icon;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNameKey-ciGozWU ()Ljava/lang/String;
+	public final fun getSetKey-ciGozWU ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/schema/component/ValueEmit$Icon$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/ValueEmit$Icon$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/schema/component/ValueEmit$Icon;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/schema/component/ValueEmit$Icon;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/schema/component/ValueEmit$Icon$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/schema/component/ValueEmit$Literal : dev/rotalex/lutter/schema/component/ValueEmit {
+	public static final field Companion Ldev/rotalex/lutter/schema/component/ValueEmit$Literal$Companion;
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ldev/rotalex/lutter/schema/component/ValueEmit$Literal;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/schema/component/ValueEmit$Literal;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/schema/component/ValueEmit$Literal;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getText ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/schema/component/ValueEmit$Literal$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/ValueEmit$Literal$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/schema/component/ValueEmit$Literal;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/schema/component/ValueEmit$Literal;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/schema/component/ValueEmit$Literal$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/schema/component/ValueEmit$Resource : dev/rotalex/lutter/schema/component/ValueEmit {
+	public static final field INSTANCE Ldev/rotalex/lutter/schema/component/ValueEmit$Resource;
 	public fun equals (Ljava/lang/Object;)Z
 	public fun hashCode ()I
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
@@ -1100,7 +1186,9 @@ public final class dev/rotalex/lutter/schema/overlay/SchemaOverlay : dev/rotalex
 	public fun <init> (Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/model/doc/UiDocument;)V
 	public fun getActions ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public fun getComponents ()Ldev/rotalex/lutter/schema/registry/Registry;
+	public fun getContributors ()Ljava/util/List;
 	public fun getFunctions ()Ldev/rotalex/lutter/schema/registry/Registry;
+	public fun getIcons ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public fun getModifiers ()Ldev/rotalex/lutter/schema/registry/Registry;
 	public fun getTypes ()Ldev/rotalex/lutter/schema/registry/Registry;
 }

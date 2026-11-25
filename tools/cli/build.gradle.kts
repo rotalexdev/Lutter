@@ -18,14 +18,14 @@ plugins {
 //
 // Both sides now read the catalog's single `jvmTarget`. One number, two compilers.
 kotlin {
-    // Explicit API mode. The engine modules turn it on through `forge.kmp.library`; the
+    // Explicit API mode. The engine modules turn it on through `lutter.kmp.library`; the
     // external `convention.jvm.library` of the shared catalog does not, and PLAN §36 asks
     // for `explicitApi` everywhere, so it is switched on module-locally. Strict mode, not
     // a warning ratchet: the checks in this row read the same discipline in both the
     // engine and the tools, and a softer half would be a skew worth an argument.
     explicitApi()
 
-    // ABI tracking. The engine modules get theirs from `forge.kmp.library`; the external
+    // ABI tracking. The engine modules get theirs from `lutter.kmp.library`; the external
     // `convention.jvm.library` of the shared catalog does not wire it, so the two tools opt
     // in module-locally — PLAN §36's row stays red while they carry no ABI dumps. The
     // `@OptIn` plus the no-arg call is the shape the convention plugin itself uses.
@@ -58,6 +58,14 @@ dependencies {
     implementation(project(":engine:analysis"))
     implementation(project(":engine:codegen"))
     implementation(project(":engine:builtins"))
+    // `forge scaffold` is §32 Phase 14's CLI clause, and the scaffold is an engine module
+    // with its own row in `ALLOWED`. The CLI composing the two halves of generation is the
+    // whole reason that row lists `:engine:scaffold`.
+    implementation(project(":engine:scaffold"))
+
+    // ADR-018: `--plugin` is a host concern, so the CLI reads containers itself. The reader is
+    // the only thing between a `.lutterplugin` file and the classloader this module opens.
+    implementation(project(":tools:plugin-container"))
 
     // PLAN §36.3 is a claim about exit codes as much as about diagnostics, and a claim a test
     // cannot make is a claim nothing checks: `main` calls `exitProcess`, which would take the

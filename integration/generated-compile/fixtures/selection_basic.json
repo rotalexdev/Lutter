@@ -1,0 +1,55 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "SelectionBasic"},
+    "nodes": {
+      "n_label": {
+        "id": "n_label",
+        "props": {
+          "text": {"type": "const", "value": {"type": "str", "v": "Settings"}}
+        },
+        "type": "m3.Text"
+      },
+      "n_check": {
+        "id": "n_check",
+        "props": {
+          "checked": {"type": "const", "value": {"type": "bool", "v": true}}
+        },
+        "type": "m3.Checkbox"
+      },
+      "n_switch": {
+        "id": "n_switch",
+        "props": {
+          "checked": {"type": "const", "value": {"type": "bool", "v": false}}
+        },
+        "type": "m3.Switch"
+      },
+      "n_radio_on": {
+        "id": "n_radio_on",
+        "props": {
+          "selected": {"type": "const", "value": {"type": "bool", "v": true}}
+        },
+        "type": "m3.RadioButton"
+      },
+      "n_radio_off": {
+        "id": "n_radio_off",
+        "props": {
+          "selected": {"type": "const", "value": {"type": "bool", "v": false}}
+        },
+        "type": "m3.RadioButton"
+      },
+      "n_root": {
+        "id": "n_root",
+        "slots": {"children": ["n_label", "n_check", "n_switch", "n_radio_on", "n_radio_off"]},
+        "type": "core.Column"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

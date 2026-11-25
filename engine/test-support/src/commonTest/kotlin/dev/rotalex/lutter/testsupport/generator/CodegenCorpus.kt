@@ -2,6 +2,7 @@ package dev.rotalex.lutter.testsupport.generator
 
 import dev.rotalex.lutter.analysis.Analyzer
 import dev.rotalex.lutter.codegen.CodegenOptions
+import dev.rotalex.lutter.codegen.ComposeResourceStrategy
 import dev.rotalex.lutter.codegen.ImportPolicy
 import dev.rotalex.lutter.codegen.KotlinGenerator
 import dev.rotalex.lutter.codegen.PlannedFile
@@ -20,8 +21,10 @@ import dev.rotalex.lutter.schema.component.CodegenBinding
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
+import dev.rotalex.lutter.schema.plugin.PluginDescriptor
 import dev.rotalex.lutter.schema.registry.Registry
 import dev.rotalex.lutter.schema.registry.RegistryBuilder
+import dev.rotalex.lutter.schema.types.IconSet
 import dev.rotalex.lutter.schema.types.TypeSpec
 
 // The codegen corpus: a schema the generator can emit from, one run's worth of output, and
@@ -323,7 +326,13 @@ internal fun outcomeOf(seed: Long, document: UiDocument): CorpusOutcome {
         )
 
     val plan = planDocument(resolved, CORPUS_BASE_PACKAGE)
-    val result = KotlinGenerator(codegenCorpusView, CodegenOptions(CORPUS_BASE_PACKAGE))
+    val result = KotlinGenerator(
+        codegenCorpusView,
+        CodegenOptions(
+            CORPUS_BASE_PACKAGE,
+            resources = ComposeResourceStrategy("dev.rotalex.lutter.testsupport.resources"),
+        ),
+    )
         .generate(resolved, analysis.diagnostics)
 
     return CorpusOutcome(
@@ -602,6 +611,8 @@ internal class EmittableView(
     override val actions: Registry<ActionId, ActionSpec> = delegate.actions
     override val functions: Registry<FunctionId, FunctionSpec> = delegate.functions
     override val types: Registry<TypeId, TypeSpec> = delegate.types
+    override val icons: Registry<String, IconSet> = delegate.icons
+    override val contributors: List<PluginDescriptor> = delegate.contributors
 }
 
 /** Stands in for a diagnostic location field that is not set. */

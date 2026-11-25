@@ -15,6 +15,8 @@ import dev.rotalex.lutter.codegen.KotlinGenerator
 import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.expr.Expr
+import dev.rotalex.lutter.model.expr.ExprParser
+import dev.rotalex.lutter.model.expr.ExprPrinter
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.ids.PageId
@@ -523,6 +525,26 @@ class ExpressionCorpusTest {
         val seed = ConformanceHarness.schema().functions.all().map { it.id.value }
 
         assertEquals(seed.sorted(), called.sorted(), "§10.2's seed set, covered")
+    }
+
+    @Test
+    fun `every corpus expression reads back through the text view`() {
+        val document = document(FIXTURE)
+        var visited = 0
+        for (id in document.nodes.ids()) {
+            val node = document.nodes[id] ?: continue
+            for (property in node.props.values) {
+                val computed = property as? PropertyValue.Computed ?: continue
+                val expr = computed.expr
+                assertEquals(
+                    expr,
+                    ExprParser.parse(ExprPrinter.print(expr)),
+                    "node '$id' re-spelled its expression",
+                )
+                visited++
+            }
+        }
+        assertTrue(visited > 0, "the corpus carries computed expressions to re-express")
     }
 
     @Test

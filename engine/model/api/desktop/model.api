@@ -398,6 +398,33 @@ public final class dev/rotalex/lutter/model/doc/EnumTypeDecl$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class dev/rotalex/lutter/model/doc/ExternalStateDecl {
+	public static final field Companion Ldev/rotalex/lutter/model/doc/ExternalStateDecl$Companion;
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ldev/rotalex/lutter/model/doc/ExternalStateDecl;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/model/doc/ExternalStateDecl;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/model/doc/ExternalStateDecl;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAdapter ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/model/doc/ExternalStateDecl$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/model/doc/ExternalStateDecl$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/model/doc/ExternalStateDecl;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/model/doc/ExternalStateDecl;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/model/doc/ExternalStateDecl$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class dev/rotalex/lutter/model/doc/FieldDecl {
 	public static final field Companion Ldev/rotalex/lutter/model/doc/FieldDecl$Companion;
 	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -1046,18 +1073,20 @@ public final class dev/rotalex/lutter/model/doc/SlotDecl$Companion {
 
 public final class dev/rotalex/lutter/model/doc/StateDecl {
 	public static final field Companion Ldev/rotalex/lutter/model/doc/StateDecl$Companion;
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;Ldev/rotalex/lutter/model/expr/Expr;Ldev/rotalex/lutter/model/doc/Persistence;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;Ldev/rotalex/lutter/model/expr/Expr;Ldev/rotalex/lutter/model/doc/Persistence;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;Ldev/rotalex/lutter/model/expr/Expr;Ldev/rotalex/lutter/model/doc/Persistence;Ldev/rotalex/lutter/model/doc/ExternalStateDecl;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;Ldev/rotalex/lutter/model/expr/Expr;Ldev/rotalex/lutter/model/doc/Persistence;Ldev/rotalex/lutter/model/doc/ExternalStateDecl;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1-mPR_jfw ()Ljava/lang/String;
 	public final fun component2 ()Ljava/lang/String;
 	public final fun component3 ()Ldev/rotalex/lutter/model/type/TypeRef;
 	public final fun component4 ()Ldev/rotalex/lutter/model/value/Value;
 	public final fun component5 ()Ldev/rotalex/lutter/model/expr/Expr;
 	public final fun component6 ()Ldev/rotalex/lutter/model/doc/Persistence;
-	public final fun copy-bXoecE0 (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;Ldev/rotalex/lutter/model/expr/Expr;Ldev/rotalex/lutter/model/doc/Persistence;)Ldev/rotalex/lutter/model/doc/StateDecl;
-	public static synthetic fun copy-bXoecE0$default (Ldev/rotalex/lutter/model/doc/StateDecl;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;Ldev/rotalex/lutter/model/expr/Expr;Ldev/rotalex/lutter/model/doc/Persistence;ILjava/lang/Object;)Ldev/rotalex/lutter/model/doc/StateDecl;
+	public final fun component7 ()Ldev/rotalex/lutter/model/doc/ExternalStateDecl;
+	public final fun copy-h8K2xoY (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;Ldev/rotalex/lutter/model/expr/Expr;Ldev/rotalex/lutter/model/doc/Persistence;Ldev/rotalex/lutter/model/doc/ExternalStateDecl;)Ldev/rotalex/lutter/model/doc/StateDecl;
+	public static synthetic fun copy-h8K2xoY$default (Ldev/rotalex/lutter/model/doc/StateDecl;Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;Ldev/rotalex/lutter/model/value/Value;Ldev/rotalex/lutter/model/expr/Expr;Ldev/rotalex/lutter/model/doc/Persistence;Ldev/rotalex/lutter/model/doc/ExternalStateDecl;ILjava/lang/Object;)Ldev/rotalex/lutter/model/doc/StateDecl;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getDerived ()Ldev/rotalex/lutter/model/expr/Expr;
+	public final fun getExternal ()Ldev/rotalex/lutter/model/doc/ExternalStateDecl;
 	public final fun getId-mPR_jfw ()Ljava/lang/String;
 	public final fun getInitial ()Ldev/rotalex/lutter/model/value/Value;
 	public final fun getName ()Ljava/lang/String;
@@ -1248,6 +1277,11 @@ public final class dev/rotalex/lutter/model/doc/UiDocument$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class dev/rotalex/lutter/model/dsl/ComponentDefaultScope {
+	public final fun prop (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value;)V
+	public final fun prop-GGxHel8 (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value;)V
+}
+
 public final class dev/rotalex/lutter/model/dsl/DataModelScope {
 	public final fun field (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;)V
 	public final fun field-GGxHel8 (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;)V
@@ -1330,6 +1364,8 @@ public final class dev/rotalex/lutter/model/dsl/ThemeScope {
 	public final fun color-HHGRWCg (Ljava/lang/String;ILdev/rotalex/lutter/model/value/ColorArgb;)V
 	public static synthetic fun color-HHGRWCg$default (Ldev/rotalex/lutter/model/dsl/ThemeScope;Ljava/lang/String;ILdev/rotalex/lutter/model/value/ColorArgb;ILjava/lang/Object;)V
 	public final fun color-MjRyPNE (Ljava/lang/String;Ldev/rotalex/lutter/model/doc/ColorSpec;)V
+	public final fun componentDefaults (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+	public final fun componentDefaults-blZ4y4I (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
 	public final fun custom (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value;)V
 	public final fun custom-7q2ymmk (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value;)V
 	public final fun dimension (Ljava/lang/String;Ldev/rotalex/lutter/model/value/Value$Dp;)V
@@ -1628,6 +1664,16 @@ public final synthetic class dev/rotalex/lutter/model/expr/Expr$Unary$$serialize
 
 public final class dev/rotalex/lutter/model/expr/Expr$Unary$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/model/expr/ExprParser {
+	public static final field INSTANCE Ldev/rotalex/lutter/model/expr/ExprParser;
+	public final fun parse (Ljava/lang/String;)Ldev/rotalex/lutter/model/expr/Expr;
+}
+
+public final class dev/rotalex/lutter/model/expr/ExprPrinter {
+	public static final field INSTANCE Ldev/rotalex/lutter/model/expr/ExprPrinter;
+	public final fun print (Ldev/rotalex/lutter/model/expr/Expr;)Ljava/lang/String;
 }
 
 public abstract interface class dev/rotalex/lutter/model/expr/ExprType {
@@ -2416,6 +2462,18 @@ public final class dev/rotalex/lutter/model/ids/TypeId$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class dev/rotalex/lutter/model/index/DirtyNodes {
+	public static final field Companion Ldev/rotalex/lutter/model/index/DirtyNodes$Companion;
+	public final fun contains-D9n_bC4 (Ljava/lang/String;)Z
+	public final fun isEverything ()Z
+}
+
+public final class dev/rotalex/lutter/model/index/DirtyNodes$Companion {
+	public final fun getALL ()Ldev/rotalex/lutter/model/index/DirtyNodes;
+	public final fun of (Ljava/util/Set;Ldev/rotalex/lutter/model/index/DocumentIndex;Z)Ldev/rotalex/lutter/model/index/DirtyNodes;
+	public static synthetic fun of$default (Ldev/rotalex/lutter/model/index/DirtyNodes$Companion;Ljava/util/Set;Ldev/rotalex/lutter/model/index/DocumentIndex;ZILjava/lang/Object;)Ldev/rotalex/lutter/model/index/DirtyNodes;
+}
+
 public final class dev/rotalex/lutter/model/index/DocumentIndex {
 	public fun <init> (Ldev/rotalex/lutter/model/doc/UiDocument;)V
 	public final fun ancestorsOf (Ljava/util/Collection;)Ljava/util/Set;
@@ -2508,6 +2566,124 @@ public final class dev/rotalex/lutter/model/index/ReferenceIndex {
 	public final fun pageReferrers-jEiJveE (Ljava/lang/String;)Ljava/util/Set;
 	public final fun resourceReferrers-wqpkics (Ljava/lang/String;)Ljava/util/Set;
 	public final fun stateReferrers-P6upbFI (Ljava/lang/String;)Ljava/util/Set;
+}
+
+public final class dev/rotalex/lutter/model/plugin/PluginApiVersion {
+	public static final field INSTANCE Ldev/rotalex/lutter/model/plugin/PluginApiVersion;
+	public static final field Supported I
+}
+
+public final class dev/rotalex/lutter/model/plugin/PluginBuild : java/lang/Enum {
+	public static final field AndroidOnly Ldev/rotalex/lutter/model/plugin/PluginBuild;
+	public static final field Companion Ldev/rotalex/lutter/model/plugin/PluginBuild$Companion;
+	public static final field DesktopOnly Ldev/rotalex/lutter/model/plugin/PluginBuild;
+	public static final field Full Ldev/rotalex/lutter/model/plugin/PluginBuild;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun requiredPayloads ()Ljava/util/Set;
+	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/model/plugin/PluginBuild;
+	public static fun values ()[Ldev/rotalex/lutter/model/plugin/PluginBuild;
+}
+
+public final class dev/rotalex/lutter/model/plugin/PluginBuild$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/model/plugin/PluginContainerLayout {
+	public static final field AndroidPayloadPrefix Ljava/lang/String;
+	public static final field INSTANCE Ldev/rotalex/lutter/model/plugin/PluginContainerLayout;
+	public static final field JvmPayloadPrefix Ljava/lang/String;
+	public static final field ManifestPath Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/model/plugin/PluginEntryPoints {
+	public static final field Companion Ldev/rotalex/lutter/model/plugin/PluginEntryPoints$Companion;
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/model/plugin/PluginEntryPoints;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/model/plugin/PluginEntryPoints;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/model/plugin/PluginEntryPoints;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getRuntime ()Ljava/lang/String;
+	public final fun getSchema ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/model/plugin/PluginEntryPoints$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/model/plugin/PluginEntryPoints$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/model/plugin/PluginEntryPoints;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/model/plugin/PluginEntryPoints;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/model/plugin/PluginEntryPoints$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/model/plugin/PluginManifest {
+	public static final field Companion Ldev/rotalex/lutter/model/plugin/PluginManifest$Companion;
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILdev/rotalex/lutter/model/plugin/PluginBuild;Ljava/util/List;Ldev/rotalex/lutter/model/plugin/PluginEntryPoints;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILdev/rotalex/lutter/model/plugin/PluginBuild;Ljava/util/List;Ldev/rotalex/lutter/model/plugin/PluginEntryPoints;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-Y2Mxo44 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()I
+	public final fun component4 ()Ldev/rotalex/lutter/model/plugin/PluginBuild;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Ldev/rotalex/lutter/model/plugin/PluginEntryPoints;
+	public final fun copy-tyPS6uc (Ljava/lang/String;Ljava/lang/String;ILdev/rotalex/lutter/model/plugin/PluginBuild;Ljava/util/List;Ldev/rotalex/lutter/model/plugin/PluginEntryPoints;)Ldev/rotalex/lutter/model/plugin/PluginManifest;
+	public static synthetic fun copy-tyPS6uc$default (Ldev/rotalex/lutter/model/plugin/PluginManifest;Ljava/lang/String;Ljava/lang/String;ILdev/rotalex/lutter/model/plugin/PluginBuild;Ljava/util/List;Ldev/rotalex/lutter/model/plugin/PluginEntryPoints;ILjava/lang/Object;)Ldev/rotalex/lutter/model/plugin/PluginManifest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getApiVersion ()I
+	public final fun getBuild ()Ldev/rotalex/lutter/model/plugin/PluginBuild;
+	public final fun getDependsOn ()Ljava/util/List;
+	public final fun getEntryPoints ()Ldev/rotalex/lutter/model/plugin/PluginEntryPoints;
+	public final fun getId-Y2Mxo44 ()Ljava/lang/String;
+	public final fun getVersion ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/model/plugin/PluginManifest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/rotalex/lutter/model/plugin/PluginManifest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/model/plugin/PluginManifest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/model/plugin/PluginManifest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/model/plugin/PluginManifest$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/model/plugin/PluginManifestKt {
+	public static final fun problems (Ldev/rotalex/lutter/model/plugin/PluginManifest;Ljava/util/Set;)Ljava/util/List;
+}
+
+public final class dev/rotalex/lutter/model/plugin/PluginManifestProblem : java/lang/Enum {
+	public static final field ApiVersionMismatch Ldev/rotalex/lutter/model/plugin/PluginManifestProblem;
+	public static final field EntryPointMissing Ldev/rotalex/lutter/model/plugin/PluginManifestProblem;
+	public static final field PayloadMissing Ldev/rotalex/lutter/model/plugin/PluginManifestProblem;
+	public final fun getCode ()Ljava/lang/String;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/model/plugin/PluginManifestProblem;
+	public static fun values ()[Ldev/rotalex/lutter/model/plugin/PluginManifestProblem;
+}
+
+public final class dev/rotalex/lutter/model/plugin/PluginPayload : java/lang/Enum {
+	public static final field AndroidDex Ldev/rotalex/lutter/model/plugin/PluginPayload;
+	public static final field JvmJar Ldev/rotalex/lutter/model/plugin/PluginPayload;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/model/plugin/PluginPayload;
+	public static fun values ()[Ldev/rotalex/lutter/model/plugin/PluginPayload;
 }
 
 public final class dev/rotalex/lutter/model/type/RefKind : java/lang/Enum {

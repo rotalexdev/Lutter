@@ -6,7 +6,7 @@ import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.fail
 
-// PLAN §29's five rows, measured, on the JVM.
+// PLAN §29's six rows, measured, on the JVM.
 //
 // ### Why this file is `desktopTest` and the scenarios are `commonTest`
 //
@@ -15,7 +15,7 @@ import kotlin.test.fail
 // and was declined: the clock is four lines and it belongs on the JVM side, while the *work*
 // being clocked is engine code that is identical on every target and has a definition all of
 // them share (`BenchmarkScenarios.kt`). The split is what lets `LargeDocumentTest` execute all
-// five bodies on the Android host test as well as on Desktop — not the timing, but the work
+// six bodies on the Android host test as well as on Desktop — not the timing, but the work
 // the timing is a claim about, which is the part that is the same on both.
 //
 // §29's own header scopes the table to "JVM Desktop on a typical developer laptop", so a
@@ -28,7 +28,7 @@ import kotlin.test.fail
 // ### Why nothing here runs unless it is asked for
 //
 // A benchmark that runs in `check` is a benchmark that eventually blocks a build, gets a
-// threshold raised to unblock it, and then asserts nothing. `-Dforge.benchmark=<mode>` makes
+// threshold raised to unblock it, and then asserts nothing. `-Dlutter.benchmark=<mode>` makes
 // the cost opt-in:
 //
 //   * unset          — print one line saying nothing was measured, and return. The default.
@@ -79,9 +79,9 @@ private const val MIN_REPEATS: Int = 20
 private const val MAX_REPEATS: Int = 200
 
 /** The system property naming the mode. */
-private const val MODE_PROPERTY: String = "forge.benchmark"  // a system property, not a PropertyKey
+private const val MODE_PROPERTY: String = "lutter.benchmark"  // a system property, not a PropertyKey
 
-/** What `-Dforge.benchmark=` asked for. */
+/** What `-Dlutter.benchmark=` asked for. */
 private enum class Mode { Off, Measure, Record, Assert }
 
 /** One row's samples, and what this run concluded from them. */
@@ -121,17 +121,17 @@ private class Measurement(
  * The suite, and the one test in it.
  *
  * A single test rather than one per row because the rows share a ten-thousand-node document
- * and building it is the expensive part; five tests would build it five times to report five
+ * and building it is the expensive part; six tests would build it six times to report six
  * lines that belong together anyway.
  */
 class PerformanceHarnessTest {
 
     @Test
-    fun `the five performance rows, measured on a ten thousand node document`() {
+    fun `the six performance rows, measured on a ten thousand node document`() {
         val mode = readMode()
         if (mode == Mode.Off) {
             println(
-                "[forge.benchmark] $MODE_PROPERTY is not set, so §29's five rows were not measured. " +
+                "[lutter.benchmark] $MODE_PROPERTY is not set, so §29's six rows were not measured. " +
                     "Set -D$MODE_PROPERTY=measure, =record or =assert to run them.",
             )
             return
@@ -142,9 +142,9 @@ class PerformanceHarnessTest {
         val bodies = scenarioBodies(workload)
         val entries = BenchmarkBaseline.parse(Golden.read(BenchmarkBaseline.RESOURCE, classpathGoldenSource()))
 
-        println("[forge.benchmark] ${machine()} (JVM Desktop; §29 scopes the table to this target)")
+        println("[lutter.benchmark] ${machine()} (JVM Desktop; §29 scopes the table to this target)")
         println(
-            "[forge.benchmark] workload: ${composed.describe()}, " +
+            "[lutter.benchmark] workload: ${composed.describe()}, " +
                 "${workload.bytes.size} canonical bytes; baseline machine '${entries["machine"]}'",
         )
 
@@ -158,7 +158,7 @@ class PerformanceHarnessTest {
         }
 
         if (mode == Mode.Record) {
-            println("[forge.benchmark] baseline to commit:\n")
+            println("[lutter.benchmark] baseline to commit:\n")
             print(BenchmarkBaseline.render(machine(), entries, measurements.mapValues { it.value.medianNanos }))
             return
         }

@@ -1,0 +1,494 @@
+public final class dev/rotalex/lutter/editor/EditorPreview {
+	public static final field $stable I
+	public fun <init> (Ldev/rotalex/lutter/editor/EditorSession;Lkotlin/jvm/functions/Function1;Ldev/rotalex/lutter/serialization/DocumentCodec;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/editor/EditorSession;Lkotlin/jvm/functions/Function1;Ldev/rotalex/lutter/serialization/DocumentCodec;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun follow (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun getState ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun refresh ()Ldev/rotalex/lutter/editor/PreviewState;
+	public final fun watch-exY8QGI (Ldev/rotalex/lutter/serialization/storage/DocumentStorage;Ljava/lang/String;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun watch-exY8QGI$default (Ldev/rotalex/lutter/editor/EditorPreview;Ldev/rotalex/lutter/serialization/storage/DocumentStorage;Ljava/lang/String;JLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public abstract interface class dev/rotalex/lutter/editor/EditorSelection {
+}
+
+public final class dev/rotalex/lutter/editor/EditorSelection$Node : dev/rotalex/lutter/editor/EditorSelection {
+	public static final field $stable I
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun copy-D9n_bC4 (Ljava/lang/String;)Ldev/rotalex/lutter/editor/EditorSelection$Node;
+	public static synthetic fun copy-D9n_bC4$default (Ldev/rotalex/lutter/editor/EditorSelection$Node;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/EditorSelection$Node;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-qw1I0Vk ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/EditorSelection$None : dev/rotalex/lutter/editor/EditorSelection {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/editor/EditorSelection$None;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/EditorSelection$Page : dev/rotalex/lutter/editor/EditorSelection {
+	public static final field $stable I
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-rrQF154 ()Ljava/lang/String;
+	public final fun copy-jEiJveE (Ljava/lang/String;)Ldev/rotalex/lutter/editor/EditorSelection$Page;
+	public static synthetic fun copy-jEiJveE$default (Ldev/rotalex/lutter/editor/EditorSelection$Page;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/EditorSelection$Page;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId-rrQF154 ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/EditorSession {
+	public static final field $stable I
+	public static final field Companion Ldev/rotalex/lutter/editor/EditorSession$Companion;
+	public fun <init> (Ldev/rotalex/lutter/editing/DocumentController;Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/model/ids/IdGenerator;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/editing/DocumentController;Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/model/ids/IdGenerator;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun dispatch (Ldev/rotalex/lutter/editing/command/Command;Ljava/lang/String;)Ldev/rotalex/lutter/editing/command/CommandResult;
+	public static synthetic fun dispatch$default (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/editing/command/Command;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/CommandResult;
+	public final fun dropTargets-4IcfEaE (Ljava/lang/String;)Ljava/util/List;
+	public final fun duplicate-D9n_bC4 (Ljava/lang/String;)Ldev/rotalex/lutter/editing/command/CommandResult;
+	public final fun getController ()Ldev/rotalex/lutter/editing/DocumentController;
+	public final fun getDocument ()Ldev/rotalex/lutter/model/doc/UiDocument;
+	public final fun getSchema ()Ldev/rotalex/lutter/schema/SchemaView;
+	public final fun getSelection ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun insert-blZ4y4I (Ljava/lang/String;Ldev/rotalex/lutter/editing/policy/DropTarget;)Ldev/rotalex/lutter/editing/command/CommandResult;
+	public final fun inspector ()Ldev/rotalex/lutter/editor/InspectorModel;
+	public final fun move-owchrTU (Ljava/lang/String;Ldev/rotalex/lutter/editing/policy/DropTarget;)Ldev/rotalex/lutter/editing/command/CommandResult;
+	public final fun palette ()Ljava/util/List;
+	public final fun remove-D9n_bC4 (Ljava/lang/String;)Ldev/rotalex/lutter/editing/command/CommandResult;
+	public final fun select (Ldev/rotalex/lutter/editor/EditorSelection;)V
+	public final fun setProperty-P1mFJUc (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/editor/PropertyWrite;
+}
+
+public final class dev/rotalex/lutter/editor/EditorSession$Companion {
+	public final fun open (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/model/ids/IdGenerator;)Ldev/rotalex/lutter/editor/EditorSession;
+	public static synthetic fun open$default (Ldev/rotalex/lutter/editor/EditorSession$Companion;Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/model/ids/IdGenerator;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/EditorSession;
+}
+
+public final class dev/rotalex/lutter/editor/EditorSessionRecord {
+	public static final field $stable I
+	public static final field Companion Ldev/rotalex/lutter/editor/EditorSessionRecord$Companion;
+	public fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord;Ldev/rotalex/lutter/editor/EditorSessionRecord$PanelRecord;)V
+	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord;Ldev/rotalex/lutter/editor/EditorSessionRecord$PanelRecord;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord;
+	public final fun component3 ()Ldev/rotalex/lutter/editor/EditorSessionRecord$PanelRecord;
+	public final fun copy (Ljava/lang/String;Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord;Ldev/rotalex/lutter/editor/EditorSessionRecord$PanelRecord;)Ldev/rotalex/lutter/editor/EditorSessionRecord;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editor/EditorSessionRecord;Ljava/lang/String;Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord;Ldev/rotalex/lutter/editor/EditorSessionRecord$PanelRecord;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/EditorSessionRecord;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDocumentLocation ()Ljava/lang/String;
+	public final fun getPanels ()Ldev/rotalex/lutter/editor/EditorSessionRecord$PanelRecord;
+	public final fun getSelection ()Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editor/EditorSessionRecord$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/editor/EditorSessionRecord$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editor/EditorSessionRecord;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editor/EditorSessionRecord;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editor/EditorSessionRecord$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editor/EditorSessionRecord$PanelRecord {
+	public static final field $stable I
+	public static final field Companion Ldev/rotalex/lutter/editor/EditorSessionRecord$PanelRecord$Companion;
+	public fun <init> ()V
+	public fun <init> (ZZ)V
+	public synthetic fun <init> (ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Z
+	public final fun copy (ZZ)Ldev/rotalex/lutter/editor/EditorSessionRecord$PanelRecord;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editor/EditorSessionRecord$PanelRecord;ZZILjava/lang/Object;)Ldev/rotalex/lutter/editor/EditorSessionRecord$PanelRecord;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getInspector ()Z
+	public final fun getPalette ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editor/EditorSessionRecord$PanelRecord$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/editor/EditorSessionRecord$PanelRecord$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editor/EditorSessionRecord$PanelRecord;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editor/EditorSessionRecord$PanelRecord;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editor/EditorSessionRecord$PanelRecord$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public abstract interface class dev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord {
+	public static final field Companion Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Companion;
+}
+
+public final class dev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Node : dev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord {
+	public static final field $stable I
+	public static final field Companion Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Node$Companion;
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Node;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Node;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Node;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Node$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Node$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Node;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Node;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Node$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$None : dev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$None;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Page : dev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord {
+	public static final field $stable I
+	public static final field Companion Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Page$Companion;
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Page;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Page;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Page;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Page$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Page$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Page;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Page;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord$Page$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/rotalex/lutter/editor/EditorSessionStore {
+	public static final field $stable I
+	public fun <init> (Ldev/rotalex/lutter/serialization/storage/DocumentStorage;Lkotlinx/serialization/json/Json;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/serialization/storage/DocumentStorage;Lkotlinx/serialization/json/Json;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun load (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun save (Ljava/lang/String;Ldev/rotalex/lutter/editor/EditorSessionRecord;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/rotalex/lutter/editor/EditorSessionStoreKt {
+	public static final fun backedSelection (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/editor/EditorSelection;)Ldev/rotalex/lutter/editor/EditorSelection;
+	public static final fun open (Ldev/rotalex/lutter/editor/EditorSession$Companion;Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/schema/SchemaView;Ldev/rotalex/lutter/editor/EditorSessionRecord;)Ldev/rotalex/lutter/editor/EditorSession;
+	public static final fun toRecord (Ldev/rotalex/lutter/editor/EditorSelection;)Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord;
+	public static final fun toSelection (Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord;)Ldev/rotalex/lutter/editor/EditorSelection;
+}
+
+public final class dev/rotalex/lutter/editor/EditorWorkspace {
+	public static final field $stable I
+	public static final field Companion Ldev/rotalex/lutter/editor/EditorWorkspace$Companion;
+	public final fun getDocumentLocation ()Ljava/lang/String;
+	public final fun save (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/editor/EditorSessionRecord;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/rotalex/lutter/editor/EditorWorkspace$Companion {
+	public final fun open (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/serialization/storage/DocumentStorage;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/rotalex/lutter/editor/Inspector {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/editor/Inspector;
+	public final fun of-Wyu-AzA (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/schema/SchemaView;Ljava/lang/String;)Ldev/rotalex/lutter/editor/InspectorModel;
+}
+
+public final class dev/rotalex/lutter/editor/InspectorModel {
+	public static final field $stable I
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getDisplayName ()Ljava/lang/String;
+	public final fun getNode-qw1I0Vk ()Ljava/lang/String;
+	public final fun getProperties ()Ljava/util/List;
+	public final fun getType-RCZ7MqM ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/Opened {
+	public static final field $stable I
+	public fun <init> (Ldev/rotalex/lutter/editor/EditorWorkspace;Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/editor/EditorSessionRecord;Ljava/lang/String;)V
+	public final fun getDocument ()Ldev/rotalex/lutter/model/doc/UiDocument;
+	public final fun getNotice ()Ljava/lang/String;
+	public final fun getRecord ()Ldev/rotalex/lutter/editor/EditorSessionRecord;
+	public final fun getWorkspace ()Ldev/rotalex/lutter/editor/EditorWorkspace;
+}
+
+public final class dev/rotalex/lutter/editor/Palette {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/editor/Palette;
+	public final fun of (Ldev/rotalex/lutter/schema/SchemaView;)Ljava/util/List;
+}
+
+public final class dev/rotalex/lutter/editor/PaletteEntry {
+	public static final field $stable I
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ldev/rotalex/lutter/schema/component/Category;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getCategory ()Ldev/rotalex/lutter/schema/component/Category;
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getDisplayName ()Ljava/lang/String;
+	public final fun getIcon ()Ljava/lang/String;
+	public final fun getKeywords ()Ljava/util/List;
+	public final fun getType-RCZ7MqM ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/PaletteSection {
+	public static final field $stable I
+	public fun <init> (Ldev/rotalex/lutter/schema/component/Category;Ljava/util/List;)V
+	public final fun getCategory ()Ldev/rotalex/lutter/schema/component/Category;
+	public final fun getEntries ()Ljava/util/List;
+}
+
+public final class dev/rotalex/lutter/editor/PreviewOrigin : java/lang/Enum {
+	public static final field External Ldev/rotalex/lutter/editor/PreviewOrigin;
+	public static final field Session Ldev/rotalex/lutter/editor/PreviewOrigin;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/editor/PreviewOrigin;
+	public static fun values ()[Ldev/rotalex/lutter/editor/PreviewOrigin;
+}
+
+public abstract interface class dev/rotalex/lutter/editor/PreviewState {
+}
+
+public final class dev/rotalex/lutter/editor/PreviewState$Empty : dev/rotalex/lutter/editor/PreviewState {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/editor/PreviewState$Empty;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/PreviewState$Refused : dev/rotalex/lutter/editor/PreviewState {
+	public static final field $stable I
+	public fun <init> (Ldev/rotalex/lutter/editor/PreviewOrigin;Ljava/util/List;Ldev/rotalex/lutter/editor/PreviewState$Rendered;Ljava/lang/String;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/editor/PreviewOrigin;Ljava/util/List;Ldev/rotalex/lutter/editor/PreviewState$Rendered;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ldev/rotalex/lutter/editor/PreviewOrigin;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ldev/rotalex/lutter/editor/PreviewState$Rendered;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Ldev/rotalex/lutter/editor/PreviewOrigin;Ljava/util/List;Ldev/rotalex/lutter/editor/PreviewState$Rendered;Ljava/lang/String;)Ldev/rotalex/lutter/editor/PreviewState$Refused;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editor/PreviewState$Refused;Ldev/rotalex/lutter/editor/PreviewOrigin;Ljava/util/List;Ldev/rotalex/lutter/editor/PreviewState$Rendered;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/PreviewState$Refused;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDiagnostics ()Ljava/util/List;
+	public final fun getLastRendered ()Ldev/rotalex/lutter/editor/PreviewState$Rendered;
+	public final fun getOrigin ()Ldev/rotalex/lutter/editor/PreviewOrigin;
+	public final fun getReason ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/PreviewState$Rendered : dev/rotalex/lutter/editor/PreviewState {
+	public static final field $stable I
+	public fun <init> (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ldev/rotalex/lutter/editor/PreviewOrigin;Ljava/lang/Long;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ldev/rotalex/lutter/editor/PreviewOrigin;Ljava/lang/Long;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ldev/rotalex/lutter/model/doc/UiDocument;
+	public final fun component2 ()Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;
+	public final fun component3 ()Ldev/rotalex/lutter/editor/PreviewOrigin;
+	public final fun component4 ()Ljava/lang/Long;
+	public final fun copy (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ldev/rotalex/lutter/editor/PreviewOrigin;Ljava/lang/Long;)Ldev/rotalex/lutter/editor/PreviewState$Rendered;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editor/PreviewState$Rendered;Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;Ldev/rotalex/lutter/editor/PreviewOrigin;Ljava/lang/Long;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/PreviewState$Rendered;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDocument ()Ldev/rotalex/lutter/model/doc/UiDocument;
+	public final fun getOrigin ()Ldev/rotalex/lutter/editor/PreviewOrigin;
+	public final fun getResolved ()Ldev/rotalex/lutter/analysis/resolved/ResolvedDocument;
+	public final fun getRevision ()Ljava/lang/Long;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/rotalex/lutter/editor/PropertyEdit {
+}
+
+public final class dev/rotalex/lutter/editor/PropertyEdit$Unparseable : dev/rotalex/lutter/editor/PropertyEdit {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ldev/rotalex/lutter/editor/PropertyEdit$Unparseable;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editor/PropertyEdit$Unparseable;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/PropertyEdit$Unparseable;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMessage ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/PropertyEdit$Value : dev/rotalex/lutter/editor/PropertyEdit {
+	public static final field $stable I
+	public fun <init> (Ldev/rotalex/lutter/model/expr/PropertyValue;)V
+	public final fun component1 ()Ldev/rotalex/lutter/model/expr/PropertyValue;
+	public final fun copy (Ldev/rotalex/lutter/model/expr/PropertyValue;)Ldev/rotalex/lutter/editor/PropertyEdit$Value;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editor/PropertyEdit$Value;Ldev/rotalex/lutter/model/expr/PropertyValue;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/PropertyEdit$Value;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getValue ()Ldev/rotalex/lutter/model/expr/PropertyValue;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/PropertyRow {
+	public static final field $stable I
+	public synthetic fun <init> (Ljava/lang/String;Ldev/rotalex/lutter/model/type/TypeRef;ZLjava/lang/String;Ljava/lang/String;ZLdev/rotalex/lutter/schema/component/EditorHints;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getDoc ()Ljava/lang/String;
+	public final fun getEditor ()Ldev/rotalex/lutter/schema/component/EditorHints;
+	public final fun getKey-ciGozWU ()Ljava/lang/String;
+	public final fun getRequired ()Z
+	public final fun getText ()Ljava/lang/String;
+	public final fun getType ()Ldev/rotalex/lutter/model/type/TypeRef;
+	public final fun isExpression ()Z
+}
+
+public final class dev/rotalex/lutter/editor/PropertyText {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/editor/PropertyText;
+	public final fun apply (Ljava/lang/String;)Ldev/rotalex/lutter/editor/PropertyEdit;
+	public final fun of (Ldev/rotalex/lutter/model/expr/PropertyValue;)Ljava/lang/String;
+}
+
+public abstract interface class dev/rotalex/lutter/editor/PropertyWrite {
+}
+
+public final class dev/rotalex/lutter/editor/PropertyWrite$Applied : dev/rotalex/lutter/editor/PropertyWrite {
+	public static final field $stable I
+	public fun <init> (Ldev/rotalex/lutter/editing/patch/Patch;)V
+	public final fun component1 ()Ldev/rotalex/lutter/editing/patch/Patch;
+	public final fun copy (Ldev/rotalex/lutter/editing/patch/Patch;)Ldev/rotalex/lutter/editor/PropertyWrite$Applied;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editor/PropertyWrite$Applied;Ldev/rotalex/lutter/editing/patch/Patch;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/PropertyWrite$Applied;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPatch ()Ldev/rotalex/lutter/editing/patch/Patch;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/PropertyWrite$Refused : dev/rotalex/lutter/editor/PropertyWrite {
+	public static final field $stable I
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Ldev/rotalex/lutter/editor/PropertyWrite$Refused;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editor/PropertyWrite$Refused;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/PropertyWrite$Refused;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getReasons ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/PropertyWrite$Unparseable : dev/rotalex/lutter/editor/PropertyWrite {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ldev/rotalex/lutter/editor/PropertyWrite$Unparseable;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editor/PropertyWrite$Unparseable;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/PropertyWrite$Unparseable;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMessage ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class dev/rotalex/lutter/editor/SaveState {
+}
+
+public final class dev/rotalex/lutter/editor/SaveState$Failed : dev/rotalex/lutter/editor/SaveState {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/editor/SaveState$Failed;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editor/SaveState$Failed;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/SaveState$Failed;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAt ()Ljava/lang/String;
+	public final fun getReason ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/SaveState$Idle : dev/rotalex/lutter/editor/SaveState {
+	public static final field $stable I
+	public static final field INSTANCE Ldev/rotalex/lutter/editor/SaveState$Idle;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/SaveState$Saved : dev/rotalex/lutter/editor/SaveState {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ldev/rotalex/lutter/editor/SaveState$Saved;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editor/SaveState$Saved;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/SaveState$Saved;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAt ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/SaveStatusKt {
+	public static final fun Autosave (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/editor/WorkspaceSaver;Landroidx/compose/runtime/Composer;I)V
+	public static final fun SaveStatusBar (Ljava/lang/String;Ldev/rotalex/lutter/editor/SaveState;Ljava/lang/String;Landroidx/compose/runtime/Composer;I)V
+}
+
+public final class dev/rotalex/lutter/editor/WorkspaceSaver {
+	public static final field $stable I
+	public fun <init> (Ldev/rotalex/lutter/editor/EditorWorkspace;Lkotlin/jvm/functions/Function0;)V
+	public final fun getState ()Ldev/rotalex/lutter/editor/SaveState;
+	public final fun save (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/editor/EditorSelection;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/rotalex/lutter/editor/ui/ComposableSingletons$EditorPanesKt {
+	public static final field INSTANCE Ldev/rotalex/lutter/editor/ui/ComposableSingletons$EditorPanesKt;
+	public fun <init> ()V
+	public final fun getLambda$2015368023$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
+}
+
+public final class dev/rotalex/lutter/editor/ui/EditorPanesKt {
+	public static final fun CanvasPane (Ldev/rotalex/lutter/runtime/UiRuntime;Ldev/rotalex/lutter/editor/PreviewState;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+	public static final fun FollowPreview (Ldev/rotalex/lutter/editor/EditorPreview;Landroidx/compose/runtime/Composer;I)V
+	public static final fun InspectorPane (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/editor/EditorSelection;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+	public static final fun PalettePane (Ljava/util/List;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+

@@ -5,6 +5,7 @@ import dev.rotalex.lutter.builtins.actions.HostActions
 import dev.rotalex.lutter.builtins.actions.NavActions
 import dev.rotalex.lutter.builtins.actions.StateActions
 import dev.rotalex.lutter.builtins.actions.UiActions
+import dev.rotalex.lutter.builtins.enums.ContentScaleSpec
 import dev.rotalex.lutter.builtins.enums.HorizontalArrangementSpec
 import dev.rotalex.lutter.builtins.enums.VerticalArrangementSpec
 import dev.rotalex.lutter.builtins.functions.CoreFunctions
@@ -40,11 +41,32 @@ public fun <M : Any, A : Any, F : Any, T : Any> SchemaBuilder<ComponentSpec, M, 
     component(RowSpec.spec)
     component(BoxSpec.spec)
     component(SpacerSpec.spec)
+    component(DividerSpec.spec)
+    component(ProgressIndicatorSpec.spec)
+    component(IconSpec.spec)
+    component(ImageSpec.spec)
     component(TextSpec.spec)
     component(ButtonSpec.spec)
     component(TextFieldSpec.spec)
+    component(CheckboxSpec.spec)
+    component(SwitchSpec.spec)
+    component(RadioButtonSpec.spec)
+    component(SliderSpec.spec)
+    component(FlowRowSpec.spec)
+    component(FlowColumnSpec.spec)
+    component(LazyColumnSpec.spec)
+    component(LazyRowSpec.spec)
     component(CardSpec.spec)
     component(SlotOutletSpec.spec)
+    component(SurfaceSpec.spec)
+    component(BoxWithConstraintsSpec.spec)
+    component(DialogSpec.spec)
+    component(BottomSheetSpec.spec)
+    component(ScaffoldSpec.spec)
+    component(NavigationBarSpec.spec)
+    component(NavigationRailSpec.spec)
+    component(NavigationDrawerSpec.spec)
+    component(NavigationItemSpec.spec)
 }
 
 /** Registers every builtin modifier. The applier half is `registerBuiltinModifierAppliers`. */
@@ -60,6 +82,12 @@ public fun <C : Any, M : Any, A : Any, F : Any> SchemaBuilder<C, M, A, F, TypeSp
     type(ShapeSpec.spec)
     type(VerticalArrangementSpec.spec)
     type(HorizontalArrangementSpec.spec)
+    type(ContentScaleSpec.spec)
+}
+
+/** Registers §20:1599's builtin icon set. The runtime resolver half is `MaterialIconImages`. */
+public fun <C : Any, M : Any, A : Any, F : Any, T : Any> SchemaBuilder<C, M, A, F, T>.registerBuiltinIconSets(): Unit {
+    iconSet(MaterialIconSet.set)
 }
 
 /**

@@ -317,13 +317,10 @@ class ExprEmitterTest {
     }
 
     @Test
-    fun `an item reference is refused while no iteration can bind it`() {
-        val failure = assertFailsWith<CodegenBug> { emit(Expr.Ref(RefTarget.Item("row"))) }
-
-        assertEquals(
-            "No Kotlin spelling for item 'row': §10.2 has no iteration to bind it",
-            failure.message,
-        )
+    fun `an item reference spells the loop variable the frame bound`() {
+        // Pass 5 owns the frame check — an item read outside an iteration is `expr.unresolved_ref`
+        // upstream — so the emitter holds no refusal of its own and spells §11.1's identifier.
+        assertEquals("row", body(emitter.emit(checked(Expr.Ref(RefTarget.Item("row"))))))
     }
 
     @Test

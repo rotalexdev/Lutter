@@ -1,0 +1,67 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {
+      "packageName": "com.example.conformance",
+      "startPage": "p_home"
+    },
+    "appState": [],
+    "components": {},
+    "meta": {
+      "name": "ExternalState"
+    },
+    "nodes": {
+      "n_root": {
+        "id": "n_root",
+        "slots": {
+          "children": [
+            "n_now"
+          ]
+        },
+        "type": "core.Column"
+      },
+      "n_ticks": {
+        "id": "n_now",
+        "props": {
+          "text": {
+            "type": "expr",
+            "expr": {
+              "type": "ref",
+              "target": {
+                "type": "state",
+                "id": "s_now"
+              }
+            }
+          }
+        },
+        "type": "m3.Text"
+      }
+    },
+    "pages": {
+      "p_home": {
+        "id": "p_home",
+        "name": "Home",
+        "root": "n_root",
+        "route": "home",
+        "state": [
+          {
+            "id": "s_now",
+            "name": "now",
+            "type": {
+              "type": "str"
+            },
+            "initial": {
+              "type": "str",
+              "v": ""
+            },
+            "external": {
+              "adapter": "clock"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

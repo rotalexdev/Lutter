@@ -77,6 +77,7 @@ internal fun planWrapNode(
     document: UiDocument,
     components: Registry<ComponentType, ComponentSpec>,
     ids: IdGenerator,
+    indexOf: (UiDocument) -> DocumentIndex,
 ): CommandResult {
     val reasons = Rejections()
 
@@ -86,7 +87,7 @@ internal fun planWrapNode(
         return reasons.result(emptyList())
     }
 
-    val from = DocumentIndex(document).parentOf(command.id)
+    val from = indexOf(document).parentOf(command.id)
     if (from == null) {
         reasons.add(
             EditCodes.NoParent,
@@ -190,6 +191,7 @@ internal fun planUnwrapNode(
     document: UiDocument,
     components: Registry<ComponentType, ComponentSpec>,
     ids: IdGenerator,
+    indexOf: (UiDocument) -> DocumentIndex,
 ): CommandResult {
     val reasons = Rejections()
 
@@ -199,7 +201,7 @@ internal fun planUnwrapNode(
         return reasons.result(emptyList())
     }
 
-    val from = DocumentIndex(document).parentOf(command.id)
+    val from = indexOf(document).parentOf(command.id)
     if (from == null) {
         reasons.add(
             EditCodes.NoParent,
