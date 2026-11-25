@@ -10,7 +10,6 @@ import dev.rotalex.lutter.editing.policy.DropTargets
 import dev.rotalex.lutter.editing.template.IdRemapper
 import dev.rotalex.lutter.editing.template.NodeTemplate
 import dev.rotalex.lutter.model.diagnostic.Diagnostic
-import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.IdGenerator
@@ -126,21 +125,27 @@ public class EditorSession(
         DropTargets.forNode(document, schema, type)
 
     /**
-     * A new, empty node of [type] placed at [into], selected once it lands.
+     * [type]'s palette template placed at [into], selected once it lands.
      *
-     * The node carries nothing but its id and its type: defaults are `analysis`'s to apply and
-     * a required property is `analysis`'s to complain about, so an insertion that pre-filled
-     * one would be the editor inventing document content.
+     * The subtree is [paletteSubtree]'s: the component plus the placeholder without which it draws
+     * nothing, derived from the schema. Properties are still `analysis`'s to default and a required
+     * property is still `analysis`'s to complain about — what the template adds is *structure*, the
+     * child a button needs to say anything, and the one string a text needs to be a text.
+     *
+     * It used to insert one bare node, and on a phone that read as a broken app: seven taps, seven
+     * empty buttons, no words. The doc-comment that defended it was right about values and wrong
+     * about children.
      */
     public fun insert(type: ComponentType, into: DropTarget): CommandResult {
         val remapper = IdRemapper(document, ids)
         val fresh: NodeId = remapper.fresh()
+        val subtree: NodeTemplate = paletteSubtree(schema.components, type, fresh, remapper::fresh)
         val result = dispatch(
             Command.InsertNode(
                 parent = into.parent,
                 slot = into.slot,
                 index = into.index,
-                subtree = NodeTemplate(listOf(Node(id = fresh, type = type))),
+                subtree = subtree,
             ),
         )
         if (result is CommandResult.Ok) selectionFlow.value = EditorSelection.Node(fresh)
