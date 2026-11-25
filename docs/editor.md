@@ -141,6 +141,11 @@ with it. It follows the preview while it is shown, for the same reason: the pane
 composition on that screen, and a preview that stopped following would show the code for a
 document the author has already edited.
 
+A document the generator cannot handle is a message, not a crash. Refusals arrive as
+diagnostics with a location; a *throw* is the generator's own bug, and `generatedCode` catches it
+and reports it as one — the screen is a view of a pure function, and a bug in that function must
+cost the author a sentence, not the composition they were in.
+
 Read-only is the design, not a missing feature. The document is the source and Kotlin is a
 projection of it (ADR-011), so an edit made here would be lost at the next regeneration. When the
 generator refuses a document it returns no files *and* its diagnostics; the screen shows the

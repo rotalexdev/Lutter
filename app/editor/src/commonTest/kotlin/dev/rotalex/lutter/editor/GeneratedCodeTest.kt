@@ -16,7 +16,11 @@ import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.schema.Schema
 import dev.rotalex.lutter.schema.action.ActionSpec
+import dev.rotalex.lutter.schema.component.Cardinality
+import dev.rotalex.lutter.schema.component.Category
 import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.component.SlotSpec
+import dev.rotalex.lutter.schema.component.componentSpec
 import dev.rotalex.lutter.schema.function.FunctionSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
 import dev.rotalex.lutter.schema.types.TypeSpec
@@ -24,6 +28,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -94,10 +99,64 @@ class GeneratedCodeTest {
         assertEquals(first.files, second.files, "the screen is a projection, not a source of drift")
     }
 
+    @Test
+    fun `a node the old palette left bare still generates`() {
+        // Build 555's palette inserted a bare node: no props, no children. Those documents are on
+        // real devices and open on every launch, so "the editor refuses to show code for a
+        // document it used to produce" is a regression, not an edge case.
+        val bare = NodeTable.EMPTY
+            .with(
+                Node(
+                    id = ROOT,
+                    type = ComponentType("core.Column"),
+                    slots = mapOf(CHILDREN to listOf(BARE)),
+                ),
+            )
+            .with(Node(id = BARE, type = ComponentType("m3.Text")))
+        val document = document().copy(nodes = bare)
+
+        val view = generatedCode(schema, resolved(document), PACKAGE)
+
+        assertNull(view.failure, "a bare text node must not throw: ${view.failure}")
+        assertTrue(view.files.isNotEmpty(), "the rest of the document still emits")
+    }
+
+    @Test
+    fun `a generator bug is reported, not thrown`() {
+        // `CodegenCoverage.check` throws for a component whose slot emits nothing. That is a bug in
+        // a generator (or a schema), never something the author can fix, and the screen has to say
+        // so instead of taking the composition down with it.
+        val broken = Schema.build<ComponentSpec, ModifierSpec, ActionSpec, FunctionSpec, TypeSpec> {
+            component(
+                componentSpec(ComponentType("test.Broken"), 1) {
+                    metadata("Broken", Category.Basic)
+                    slot(SlotSpec(CHILDREN, Cardinality.Many))
+                    intrinsic()
+                },
+            )
+        }
+        val result = Analyzer(broken).analyze(
+            UiDocument(
+                meta = DocumentMeta("Broken"),
+                app = AppSpec(PACKAGE, HOME),
+                pages = mapOf(HOME to Page(id = HOME, name = "Home", route = "/home", root = ROOT)),
+                components = emptyMap(),
+                nodes = NodeTable.EMPTY.with(Node(id = ROOT, type = ComponentType("test.Broken"))),
+            ),
+        )
+        val resolved = assertNotNull(result.resolved, "the document itself is well formed: ${result.diagnostics}")
+
+        val view = generatedCode(broken, resolved, PACKAGE)
+
+        assertNotNull(view.failure, "the throw must arrive as a message")
+        assertTrue(view.files.isEmpty(), "a failed generation shows no half-written files")
+    }
+
     private companion object {
         const val PACKAGE: String = "com.example.codegen"
         val HOME: PageId = PageId("p_home")
         val ROOT: NodeId = NodeId("n_root")
+        val BARE: NodeId = NodeId("n_bare")
         val CHILDREN: SlotName = SlotName("children")
     }
 }
