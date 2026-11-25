@@ -45,12 +45,28 @@ document the engine accepts, and `BundledDocumentTest` resolves the bundled copy
 `BuiltinEngine` the window builds — a present but unrunnable default would otherwise be found by
 a user rather than by CI.
 
-The installers are built by `.github/workflows/editor-artifacts.yml` and are not a required
-check. Each runner packages its own OS and cannot build the other's: `ubuntu-latest` produces a
-`.deb` and an app-image, `windows-latest` an `.msi` and an app-image. Every leg then runs
-`scripts/probe-desktop-package.sh`, which launches the packaged binary and distinguishes a
-broken package ("Failed to launch JVM") from a runner with no display — the difference a green
-build had not been able to make.
+### Where to download a build
+
+| | Built by | When |
+| --- | --- | --- |
+| `.msi`, `.deb`, `.apk` | `.github/workflows/nightly.yml` | every push to `main` (a promotion), or a manual dispatch |
+| a pull request's `.msi`, `.deb` | `.github/workflows/editor-artifacts.yml` | that pull request, as proof it packages and launches |
+
+`nightly` publishes one rolling pre-release with all three installable builds of that commit,
+named after the commit count (`LutterEditor-431.msi`, `lutter-editor_431_amd64.deb`,
+`lutter-editor-431-debug.apk`). If any of the three legs fails, nothing is published: a "nightly"
+missing the installer somebody came for is worse than a red run. There is no schedule — the
+version *is* the commit, so rebuilding an unchanged tree would only invent a new number for the
+same program.
+
+Nothing is signed: Windows SmartScreen warns about the `.msi`, the `.deb` has no gpg signature, and
+the APK is debug-signed because the repository holds no release keystore.
+
+jpackage cannot cross-build, so each runner packages its own OS: `ubuntu-latest` produces a `.deb`
+and an app-image, `windows-latest` an `.msi` and an app-image. Every leg then runs
+`scripts/probe-desktop-package.sh`, which launches the packaged binary and distinguishes a broken
+package ("Failed to launch JVM") from a runner with no display — the difference a green build had
+not been able to make.
 
 ## The three panes
 

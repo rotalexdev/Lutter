@@ -51,7 +51,11 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.AppImage, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "LutterEditor"
-            packageVersion = "1.0.0"
+            // jpackage refuses anything but a strict `x.y.z` here — no `-alpha.` — so the
+            // pre-release suffix lives in the release name and the file name, never in the
+            // installer metadata. `1.0.0` was a placeholder that disagreed with the Android
+            // host's `0.1.0`; both now say the same thing, and CI may override the number.
+            packageVersion = (findProperty("packageVersion") as String?) ?: "0.1.0"
             description = "Lutter desktop editor"
             vendor = "Lutter"
             modules(

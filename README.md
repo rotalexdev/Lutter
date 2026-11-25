@@ -415,7 +415,7 @@ convention, and those modules are not KMP libraries.
 
 ## CI
 
-Three required checks on `dev` and `main`, plus two workflows that are deliberately not ones.
+Three required checks on `dev` and `main`, plus four workflows that are deliberately not ones.
 
 | Workflow | Required | Triggers | What it actually runs |
 |---|---|---|---|
@@ -424,8 +424,10 @@ Three required checks on `dev` and `main`, plus two workflows that are deliberat
 | `branch-policy` | yes | any PR into `dev` or `main` | That the branch name is `<type>/<slug>` with no version in it, and that the PR title is a strict conventional commit, at most 100 characters, not ending in a period. |
 | `fuzz-batch` | **no** | push to `dev`, on demand once `main` catches up | PLAN §28.5's batch: 200 seeded documents generated with `DocumentGenerator` against the real builtin schema, written one directory and one package each, and compiled for real by `:integration:generated-compile:compileKotlinDesktop`. It is red at 41 of 200 and that is the report — the 159 are three `:engine:codegen` gaps that predate the job, not regressions. It runs on push rather than on a schedule because GitHub fires `schedule:` only from the default branch, and this repository's default branch is `main`, which holds no build. |
 | `preview-artifacts` | **no** | only when a path that can change a pixel or a binary changes, on a PR into `dev` or `main`, on push to `dev`, or on demand | `:samples:desktop-preview:desktopTest` and `:samples:desktop-preview:packageDistributionForCurrentOS`, on both `ubuntu-latest` and `windows-latest`. It uploads the rendered screenshots and the packaged binary per OS. |
+| `editor-artifacts` | **no** | any PR into `dev` or `main` that touches a path which can change the editor binary, or on demand | Packages `:desktopApp` on both runners, runs `scripts/probe-desktop-package.sh` against the result, and uploads that pull request's `.msi`/`.deb`, app-image and launch log. Proof that the branch packages and starts, not a download link. |
+| `nightly` | **no** | push to `main`, or on demand | The installers and the APK of the promoted commit: `windows-latest` builds the `.msi`, `ubuntu-latest` the `.deb` (probing both), `ubuntu-latest` the universal debug APK. A `release` job waits on all three and publishes them as one rolling `nightly` pre-release, or publishes nothing. There is no schedule: the version is the commit count, so rebuilding an unchanged tree would only invent a new number for the same program. |
 
-`preview-artifacts` and `fuzz-batch` are not gates and should not be made one. `check` answers "is this branch
+`preview-artifacts`, `fuzz-batch`, `editor-artifacts` and `nightly` are not gates and should not be made one. `check` answers "is this branch
 sound?", and discards everything it builds; those two answer questions a green tick cannot, and
 neither answers them by blocking — one leaves a downloadable artifact, the other a count.
 Required status checks are branch-protection settings on GitHub's side rather than anything the

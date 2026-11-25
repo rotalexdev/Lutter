@@ -1,0 +1,234 @@
+name: nightly
+
+# Installable builds of the editor, published together — and only from `main`.
+#
+# ### Why `main`, and why no cron
+#
+# `main` is the promoted line: what `dev` integrated and somebody decided to ship. The installers
+# are built here and nowhere else, so a version in a file name always corresponds to a commit
+# somebody chose. `editor-artifacts.yml` still builds a pull request's installers and throws them
+# away; that answers "does this branch package and launch?", which is a review question, not a
+# release.
+#
+# There is deliberately **no schedule**. The version is the commit count, so a nightly rebuild of an
+# unchanged tree would publish a new number for the same program — a release history that lies.
+# A promotion is the event that changes the artifacts; `workflow_dispatch` is how one is re-run by
+# hand after a failure.
+#
+# ### Three formats, three runners, one release
+#
+# jpackage cannot cross-build: the `.msi` needs Windows and WiX, the `.deb` needs Linux and dpkg.
+# So the release waits on all three legs (`needs`), because a "nightly" without the installer
+# somebody came for is worse than no nightly at all: it looks like a successful run.
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: nightly
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  version:
+    name: The version this commit is
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      # Underscored on purpose: `outputs.commit-count` would read as a subtraction in an
+      # expression, and it is not worth finding out how the parser feels about that.
+      commit_count: ${{ steps.count.outputs.commit_count }}
+      alpha: ${{ steps.count.outputs.alpha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The count is over the whole history, so a shallow clone would answer a different
+          # question every run.
+          fetch-depth: 0
+
+      # The commit count and not a date: `main` only grows, so the number only grows, and an
+      # Android `versionCode` that moves forward is what lets an install replace the previous one.
+      - name: Count the commits
+        id: count
+        run: |
+          count=$(git rev-list --count HEAD)
+          echo "commit_count=$count" >> "$GITHUB_OUTPUT"
+          echo "alpha=0.1.0-alpha.$count" >> "$GITHUB_OUTPUT"
+          echo "this commit reports as 0.1.0-alpha.$count"
+
+  desktop:
+    name: Editor on ${{ matrix.os }}
+    needs: version
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      # One leg's failure still publishes the other's files? No — the release job waits on both.
+      # `fail-fast: false` only means both legs get to report, which is how a Windows-only defect
+      # is told apart from a packaging change.
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Apply the CI-only Gradle properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.5.0'
+
+      # WiX 3.14 ships on the Windows image without its `bin` on PATH, and the JDK 21 here knows
+      # WiX v3 only. Same step as `editor-artifacts.yml`, same reason: before packaging, never
+      # after.
+      - name: Put WiX on the PATH for jpackage
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $wix = Get-ChildItem 'C:\Program Files (x86)\WiX Toolset v3.*\bin' -Directory -ErrorAction SilentlyContinue |
+            Where-Object { Test-Path (Join-Path $_.FullName 'candle.exe') } |
+            Select-Object -First 1
+          if ($wix) {
+            "$($wix.FullName)" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+            Write-Host "WiX found at $($wix.FullName)"
+          } else {
+            Write-Host "::warning::WiX v3 not found under Program Files; the MSI step decides"
+          }
+
+      - name: Package the editor for this operating system
+        run: |
+          gradle :desktopApp:createDistributable :desktopApp:packageDistributionForCurrentOS \
+            -PpackageVersion=0.1.0
+
+      # The only step that executes the launcher. An incomplete jlink image fails here rather than
+      # in somebody's hands.
+      - name: Probe the packaged editor
+        run: scripts/probe-desktop-package.sh LutterEditor desktopApp editor-probe
+
+      - name: Upload the installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.os }}
+          path: |
+            desktopApp/build/compose/binaries/main/msi/
+            desktopApp/build/compose/binaries/main/deb/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload the launch log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: launch-log-${{ matrix.os }}
+          path: 'editor-probe/'
+          if-no-files-found: ignore
+          retention-days: 7
+
+  android:
+    name: Android APK
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Apply the CI-only Gradle properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.5.0'
+
+      # Debug, and universal on purpose: there is no keystore in this repository, so a "release"
+      # APK would be unsigned and uninstallable, and an arm64-only split fails with "app not
+      # compatible" on the emulator somebody checks it on. A nightly is handed to a person to
+      # install; this is the build that installs.
+      - name: Assemble the debug APK
+        run: |
+          gradle :androidApp:assembleDebug \
+            -PversionCode=${{ needs.version.outputs.commit_count }} \
+            -PversionName=${{ needs.version.outputs.alpha }}
+
+      - name: Upload the APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: androidApp/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish the nightly
+    needs: [ version, desktop, android ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      # The names carry the counter so two promotions never overwrite each other in somebody's
+      # Downloads folder, and the extensions are predictable enough to link.
+      - name: Name the files
+        run: |
+          set -euo pipefail
+          n='${{ needs.version.outputs.commit_count }}'
+          mkdir -p publish
+
+          msi=$(find dist -name '*.msi' | head -1)
+          deb=$(find dist -name '*.deb' | head -1)
+          apk=$(find dist -name '*.apk' | head -1)
+          test -n "$msi" || { echo '::error::no .msi in the windows leg'; exit 1; }
+          test -n "$deb" || { echo '::error::no .deb in the linux leg'; exit 1; }
+          test -n "$apk" || { echo '::error::no .apk in the android leg'; exit 1; }
+
+          cp "$msi" "publish/LutterEditor-$n.msi"
+          cp "$deb" "publish/lutter-editor_${n}_amd64.deb"
+          cp "$apk" "publish/lutter-editor-$n-debug.apk"
+          ls -l publish
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          # One rolling release rather than one per promotion: the download link is the same
+          # tomorrow, and `prerelease` keeps it out of "latest" so a future alpha can be the one
+          # people are pointed at.
+          tag_name: nightly
+          name: 'Lutter Editor nightly — ${{ needs.version.outputs.alpha }}'
+          prerelease: true
+          make_latest: 'false'
+          files: publish/*
+          body: |
+            Built from `main` at ${{ github.sha }}, reporting as `${{ needs.version.outputs.alpha }}`.
+
+            | What | File |
+            | --- | --- |
+            | Windows installer | `LutterEditor-${{ needs.version.outputs.commit_count }}.msi` |
+            | Debian/Ubuntu installer | `lutter-editor_${{ needs.version.outputs.commit_count }}_amd64.deb` |
+            | Android | `lutter-editor-${{ needs.version.outputs.commit_count }}-debug.apk` |
+
+            ### What to expect from a build that is not a release yet
+
+            - The `.msi` is **unsigned**: Windows SmartScreen will warn, and "More info → Run
+              anyway" is the intended path.
+            - The `.deb` is **unsigned**: install it with `dpkg -i` or `apt install ./<file>`, not
+              from a repository.
+            - The APK is **debug-signed** — there is no release keystore in this repository — so it
+              installs beside a release build only if that one is uninstalled first.
+            - The editor is a work in progress: see `docs/editor.md` for what it does not do yet.
