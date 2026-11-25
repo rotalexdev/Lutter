@@ -44,8 +44,8 @@ import dev.rotalex.lutter.editor.PropertyEdit
 import dev.rotalex.lutter.editor.PropertyRow
 import dev.rotalex.lutter.editor.PropertyText
 import dev.rotalex.lutter.editor.PropertyWrite
-import dev.rotalex.lutter.model.doc.NodeId
 import dev.rotalex.lutter.model.doc.UiDocument
+import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.runtime.BackStackNavigator
 import dev.rotalex.lutter.runtime.RuntimeEnvironment
 import dev.rotalex.lutter.runtime.UiApp
