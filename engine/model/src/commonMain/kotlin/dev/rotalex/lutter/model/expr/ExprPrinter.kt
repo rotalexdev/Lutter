@@ -266,7 +266,8 @@ public object ExprPrinter {
     }
 
     private val Value.isNumeric: Boolean
-        get() = this is Value.Int32 || this is Value.Int64 || this is Value.Float32 || this is Value.Float64
+        get() = this is Value.Int32 || this is Value.Int64 || this is Value.Float32 ||
+            this is Value.Float64 || this is Value.Dp || this is Value.Sp
 
     private fun String.isIdentifier(): Boolean =
         isNotEmpty() &&
