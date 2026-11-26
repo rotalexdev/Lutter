@@ -52,14 +52,23 @@ import dev.rotalex.lutter.editor.generatedCode
  * `FollowPreview` is called here too, not only by the panes: while this screen is shown the
  * panes are out of the composition, and a preview that stopped following would show code for a
  * document the author has already edited.
+ *
+ * [textScale] is the settings screen's code size, applied to the size *and* the line height so the
+ * block keeps its rhythm instead of collapsing into a wall as it grows.
  */
 @Composable
 public fun CodeScreen(
     session: EditorSession,
     preview: EditorPreview,
     modifier: Modifier = Modifier,
+    textScale: Float = 1f,
 ) {
     val theme = MaterialTheme.colorScheme
+    val body = MaterialTheme.typography.bodySmall
+    val codeStyle = body.copy(
+        fontSize = body.fontSize * textScale,
+        lineHeight = body.lineHeight * textScale,
+    )
     val state: PreviewState by preview.state.collectAsState()
 
     FollowPreview(preview)
@@ -141,7 +150,7 @@ public fun CodeScreen(
                                 SelectionContainer {
                                     Text(
                                         text = file.content,
-                                        style = MaterialTheme.typography.bodySmall,
+                                        style = codeStyle,
                                         fontFamily = FontFamily.Monospace,
                                     )
                                 }

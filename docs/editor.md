@@ -225,6 +225,27 @@ inspector showing a node that is gone.
 says where to look and what was selected, never how the document got there. An undo stack in
 a session file would be a second, unverified history competing with the document's own.
 
+## Settings
+
+Three values describe how the editor is *shown* rather than what the document *is*, and they live
+in a DataStore Preferences file (`settings.preferences_pb`) inside the host's private directory:
+
+| Setting | Default | What it changes |
+|---|---|---|
+| Theme | `System` | The colour scheme at the root of the window, on both hosts |
+| Code text size | `1.0×` | The size of the generated Kotlin on the Code screen |
+| Autosave | on | With it off, the frame offers `Save` and writes only when it is pressed |
+
+`SettingsStore` is the seam: `app/editor` owns the interface and an in-memory implementation, and
+each host owns the one instance per process, because DataStore refuses a second instance over the
+same file and an activity is rebuilt on every rotation. The `-core` artifact carries no Android
+dependency, so the desktop window and the activity read the same file format.
+
+The defaults are the behaviour the editor had before the screen existed, which is what makes the
+screen additive: nobody who never opens it sees a different editor. A file that cannot be read is
+replaced by the defaults instead of stopping the launch — a wrong theme is a bad minute, a lost
+document is not.
+
 ## What the preview guarantees
 
 `EditorPreview` re-resolves on the controller's revision and keeps the last good render when

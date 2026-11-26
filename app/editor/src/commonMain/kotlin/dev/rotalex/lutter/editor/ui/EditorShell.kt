@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -55,6 +56,9 @@ import dev.rotalex.lutter.editor.InspectorModel
 import dev.rotalex.lutter.editor.PreviewState
 import dev.rotalex.lutter.editor.SaveStatusBar
 import dev.rotalex.lutter.editor.WorkspaceSaver
+import dev.rotalex.lutter.editor.settings.EditorSettings
+import dev.rotalex.lutter.editor.settings.InMemorySettingsStore
+import dev.rotalex.lutter.editor.settings.SettingsStore
 import dev.rotalex.lutter.editor.ui.theme.LutterSpacing
 import dev.rotalex.lutter.runtime.UiRuntime
 import kotlinx.coroutines.launch
@@ -94,6 +98,12 @@ public class EditorShellSave(
  * `Autosave` is started here for the same reason: a shell that showed the save line but left
  * the writing to its host would let a host forget it, which is what the desktop window's
  * close handler already had to work around.
+ *
+ * ### Settings
+ *
+ * The gear — a `Settings` action while this frame has no icon set — opens [SettingsScreen] in the
+ * place of the tabs, with a back action instead of them. [settings] has an in-memory default so a
+ * test or a host without a directory gets the same frame with the defaults and nothing to write.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,8 +113,12 @@ public fun EditorShell(
     runtime: UiRuntime,
     save: EditorShellSave?,
     modifier: Modifier = Modifier,
+    settings: SettingsStore = InMemorySettingsStore(),
 ) {
-    if (save != null) Autosave(session = session, saver = save.saver)
+    val preferences: EditorSettings by settings.settings.collectAsState()
+    // Off means the frame writes nothing on its own, so it must offer the write: an editor that
+    // silently stopped saving would be losing work with a switch's worth of ceremony.
+    if (save != null && preferences.autosave) Autosave(session = session, saver = save.saver)
     FollowPreview(preview)
 
     val selection: EditorSelection by session.selection.collectAsState()
@@ -115,6 +129,7 @@ public fun EditorShell(
     // it. The symptom is a dock that keeps acting on the node before the one on screen.
     val selected: InspectorModel? = remember(selection, history.document) { session.inspector() }
     var destination: EditorDestination by rememberSaveable { mutableStateOf(EditorDestination.Editor) }
+    var settingsOpen: Boolean by rememberSaveable { mutableStateOf(false) }
     var paletteOpen: Boolean by remember { mutableStateOf(false) }
     var inspectorOpen: Boolean by remember { mutableStateOf(false) }
     // What the inspector sheet is showing. Held separately from `selected` on purpose: when the
@@ -154,6 +169,19 @@ public fun EditorShell(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
                 Column {
+                    if (settingsOpen) {
+                        TopAppBar(
+                            windowInsets = WindowInsets(0, 0, 0, 0),
+                            navigationIcon = {
+                                IconButton(
+                                    onClick = { settingsOpen = false },
+                                    modifier = Modifier.testTag("settings-back"),
+                                ) { Icon(BackGlyph, contentDescription = "Back") }
+                            },
+                            title = { Text("Settings", style = MaterialTheme.typography.titleLarge) },
+                        )
+                        return@Column
+                    }
                     TopAppBar(
                         windowInsets = WindowInsets(0, 0, 0, 0),
                         title = {
@@ -184,6 +212,23 @@ public fun EditorShell(
                                     enabled = history.canRedo,
                                 ) { Text("Redo") }
                             }
+                            if (!preferences.autosave && save != null) {
+                                TextButton(
+                                    onClick = {
+                                        // The same call `Autosave` makes, because it is the same
+                                        // write: one document, one location, no second path to
+                                        // keep correct.
+                                        val document = session.document
+                                        val where = session.selection.value
+                                        scope.launch { save.saver.save(document, where) }
+                                    },
+                                    modifier = Modifier.testTag("save-now"),
+                                ) { Text("Save") }
+                            }
+                            TextButton(
+                                onClick = { settingsOpen = true },
+                                modifier = Modifier.testTag("settings-open"),
+                            ) { Text("Settings") }
                         },
                     )
                     TabRow(selectedTabIndex = EditorDestination.entries.indexOf(destination)) {
@@ -200,7 +245,7 @@ public fun EditorShell(
             floatingActionButton = {
                 // The palette is already on screen when the window is wide, so a button that
                 // opened the same list twice would be the only redundant thing in the frame.
-                if (compact && destination == EditorDestination.Editor) {
+                if (compact && !settingsOpen && destination == EditorDestination.Editor) {
                     FloatingActionButton(
                         onClick = { paletteOpen = true },
                         modifier = Modifier.testTag("palette-open"),
@@ -213,7 +258,7 @@ public fun EditorShell(
                 Column {
                     // The selection's actions, where a thumb already is. Wide windows put the
                     // same actions in the inspector that is already open.
-                    if (compact && destination == EditorDestination.Editor && selected != null) {
+                    if (compact && !settingsOpen && destination == EditorDestination.Editor && selected != null) {
                         SelectionActions(
                             onProperties = {
                                 sheetModel = selected
@@ -234,6 +279,14 @@ public fun EditorShell(
             },
         ) { padding ->
             Box(Modifier.fillMaxSize().padding(padding)) {
+                if (settingsOpen) {
+                    SettingsScreen(
+                        settings = preferences,
+                        onChange = { next -> scope.launch { settings.update { next } } },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    return@Box
+                }
                 when (destination) {
                     EditorDestination.Editor -> if (compact) {
                         CanvasArea(
@@ -253,6 +306,7 @@ public fun EditorShell(
                     EditorDestination.Code -> CodeScreen(
                         session = session,
                         preview = preview,
+                        textScale = preferences.codeTextScale,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -434,6 +488,27 @@ private fun selectionCaption(selected: InspectorModel?): String =
  * multiplatform `material3` artifact's public surface, and a theme module that pulled in the
  * extended set for one glyph would be a megabyte of vectors for a cross. Four lines of path.
  */
+private val BackGlyph: ImageVector = ImageVector.Builder(
+    name = "ArrowBack",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f,
+).apply {
+    path(fill = SolidColor(Color.Black)) {
+        moveTo(20f, 11f)
+        horizontalLineTo(7.83f)
+        lineTo(13.42f, 5.41f)
+        lineTo(12f, 4f)
+        lineTo(4f, 12f)
+        lineTo(12f, 20f)
+        lineTo(13.41f, 18.59f)
+        lineTo(7.83f, 13f)
+        horizontalLineTo(20f)
+        close()
+    }
+}.build()
+
 private val AddGlyph: ImageVector = ImageVector.Builder(
     name = "Add",
     defaultWidth = 24.dp,

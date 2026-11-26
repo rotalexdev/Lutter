@@ -38,6 +38,12 @@ dependencies {
     commonMainImplementation(rootLibs.jetbrains.compose.foundation)
     commonMainImplementation(rootLibs.jetbrains.compose.material3)
 
+    // The settings the editor remembers — theme, code size, autosave — live in a DataStore
+    // Preferences file both hosts read. The `-core` artifact carries no Android dependency, so
+    // the desktop window and the activity share one format and one implementation, and a bug in
+    // the way a value is written is one bug rather than two.
+    commonMainImplementation(libs.datastore.preferences.core)
+
     // No `:engine:test-support` edge, and that stays true: this module's tests build the
     // documents they need, the way `:engine:editing`'s planner fixtures do, because a harness
     // that generated documents would make each assertion a statement about the harness.
