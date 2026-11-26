@@ -1,8 +1,11 @@
 package dev.rotalex.lutter.androidapp
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -166,6 +169,43 @@ class AndroidEditorScreenTest {
         // Still one frame, still drawing: the sheet left instead of taking the screen with it.
         compose.onNodeWithTag("canvas").assertExists()
         assertEquals(EditorSelection.None, session.selection.value)
+    }
+
+    /**
+     * A tap outside an open sheet dismisses it and leaves the frame standing.
+     *
+     * The scrim covers the canvas while a sheet is up, so the "empty space" a person taps is the
+     * scrim, and the callback it runs is the sheet's `onDismissRequest` — not the canvas's own
+     * tap. That path used to remove the `ModalBottomSheet` from the composition without hiding
+     * it, which tears the sheet, its scrim and its dialog state down mid-animation: the same
+     * teardown that closed the app when a tap on the margin cleared the selection.
+     */
+    @Test
+    fun a_tap_outside_the_sheet_dismisses_it_and_keeps_the_frame() {
+        val session = session()
+        val editorPreview = preview(session)
+        session.select(EditorSelection.Node(NodeId("n_title")))
+        compose.setContent {
+            LutterTheme { EditorShell(session, editorPreview, BuiltinEngine.runtime(schema), save = null) }
+        }
+
+        compose.onNodeWithText("Properties").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag("inspector").assertExists()
+
+        // Above the sheet, where the dimmed canvas is. The sheet composes in its own window on
+        // this platform, so the scrim is the dialog's node; a build that put it in the main root
+        // would still have it under the same coordinates, which is why the fallback is the root.
+        val outside: SemanticsNodeInteraction = compose.onAllNodes(isDialog())
+            .fetchSemanticsNodes()
+            .takeIf { it.isNotEmpty() }
+            ?.let { compose.onAllNodes(isDialog())[0] }
+            ?: compose.onRoot()
+        outside.performTouchInput { click(Offset(centerX, 24f)) }
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("inspector").assertDoesNotExist()
+        compose.onNodeWithTag("canvas").assertExists()
     }
 
     @Test
