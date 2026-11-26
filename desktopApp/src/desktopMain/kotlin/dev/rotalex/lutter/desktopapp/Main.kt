@@ -1,6 +1,8 @@
 package dev.rotalex.lutter.desktopapp
 
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -18,6 +20,8 @@ import dev.rotalex.lutter.editor.EditorWorkspace
 import dev.rotalex.lutter.editor.Opened
 import dev.rotalex.lutter.editor.WorkspaceSaver
 import dev.rotalex.lutter.editor.open
+import dev.rotalex.lutter.editor.settings.EditorSettings
+import dev.rotalex.lutter.editor.settings.PreferencesSettingsStore
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.serialization.JsonDocumentCodec
 import java.io.File
@@ -146,7 +150,11 @@ public fun main(args: Array<String>): Unit = application {
         title = "Lutter Editor — ${File(location).name}",
         state = rememberWindowState(size = DpSize(1_280.dp, 800.dp)),
     ) {
-        LutterTheme {
+        // Read here, at the root, because the theme wraps the whole window: the settings screen
+        // is inside it, so a theme that only reached the editor would leave the screen that
+        // changes it in the old scheme.
+        val preferences: EditorSettings by Settings.settings.collectAsState()
+        LutterTheme(theme = preferences.theme) {
             Surface {
                 // The frame is the same composable the Android activity draws: the app bar, the
                 // two screens as tabs, and the three panes a 1280dp window has room for. The
@@ -160,10 +168,22 @@ public fun main(args: Array<String>): Unit = application {
                         location = opened.workspace.documentLocation,
                         notice = opened.notice,
                     ),
+                    settings = Settings,
                 )
             }
         }
     }
+}
+
+/**
+ * The process's settings file, beside the working copy and the session record.
+ *
+ * A top-level `val` and not a `remember`: DataStore allows one instance per file per process, and
+ * the window is torn down and rebuilt by the toolkit on a theme change — the second store would be
+ * the one that throws.
+ */
+private val Settings: PreferencesSettingsStore by lazy {
+    PreferencesSettingsStore(File(workspaceDirectory(), SETTINGS_FILE).path)
 }
 
 /** The file name of the working copy the editor owns inside [workspaceDirectory]. */
@@ -171,3 +191,6 @@ private const val WORKING_COPY: String = "document.json"
 
 /** Where the session record lives, beside the working copy and never beside a named document. */
 private const val SESSION_FILE: String = "session.json"
+
+/** Where the settings live, beside the working copy. */
+private const val SETTINGS_FILE: String = "settings.preferences_pb"

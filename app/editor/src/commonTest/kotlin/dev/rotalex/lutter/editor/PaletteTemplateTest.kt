@@ -11,6 +11,7 @@ import dev.rotalex.lutter.model.doc.Page
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.ComponentType
+import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.SlotName
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.Schema
@@ -109,6 +110,43 @@ class PaletteTemplateTest {
     }
 
     @Test
+    fun `a switch arrives switched off instead of missing the value it needs`() {
+        val session = EditorSession.open(columnDocument(), schema)
+
+        val switch = insertedOnto(session, SWITCH)
+
+        assertEquals(PropertyValue.Const(Value.Bool(false)), switch.props[CHECKED])
+    }
+
+    @Test
+    fun `an icon arrives with a pair the schema actually registers`() {
+        val session = EditorSession.open(columnDocument(), schema)
+
+        val icon = insertedOnto(session, ICON)
+
+        val set = icon.props[ICON_SET]
+        val name = icon.props[ICON_NAME]
+        assertIs<PropertyValue.Const>(set)
+        assertIs<PropertyValue.Const>(name)
+        val registered = assertNotNull(schema.icons[(set.value as Value.Str).v], "the set must be registered")
+        assertNotNull(registered[(name.value as Value.Str).v], "the name must be in that set")
+    }
+
+    @Test
+    fun `the palette offers only what the editor can fill`() {
+        val session = EditorSession.open(columnDocument(), schema)
+        val offered = session.palette().flatMap { it.entries }.map { it.type }.toSet()
+
+        // `m3.Image`'s required source is a resource reference and no resources ship with the
+        // editor; `core.SlotOutlet` renders a component's slot parameter, which a page has none of.
+        // Both were offered, and both produced a Code tab that reported errors about them.
+        assertEquals(false, IMAGE in offered, "an image with no resource package is a wall")
+        assertEquals(false, SLOT_OUTLET in offered, "a slot outlet has nothing to point at on a page")
+        // The control for the rule: a switch is fillable, so the filter is not simply "no leaves".
+        assertTrue(SWITCH in offered, "a switch has a legal default and must stay in the palette")
+    }
+
+    @Test
     fun `a schema without the label type inserts the bare node rather than guessing`() {
         val session = EditorSession.open(editorDocument(), editorSchema())
         val before = session.document.nodes.size
@@ -116,5 +154,15 @@ class PaletteTemplateTest {
         assertIs<CommandResult.Ok>(session.insert(LABEL, DropTarget(parent = ROOT, slot = CHILDREN, index = 1)))
 
         assertEquals(before + 1, session.document.nodes.size)
+    }
+
+    private companion object {
+        val SWITCH: ComponentType = ComponentType("m3.Switch")
+        val ICON: ComponentType = ComponentType("m3.Icon")
+        val IMAGE: ComponentType = ComponentType("m3.Image")
+        val SLOT_OUTLET: ComponentType = ComponentType("core.SlotOutlet")
+        val CHECKED: PropertyKey = PropertyKey("checked")
+        val ICON_SET: PropertyKey = PropertyKey("set")
+        val ICON_NAME: PropertyKey = PropertyKey("name")
     }
 }

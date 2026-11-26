@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.rotalex.lutter.editor.settings.ThemeChoice
 
 /**
  * The editor's one theme.
@@ -40,11 +41,19 @@ import androidx.compose.ui.unit.sp
  */
 @Composable
 public fun LutterTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    theme: ThemeChoice = ThemeChoice.System,
     content: @Composable () -> Unit,
 ) {
+    // `System` asks the platform, which is the only thing that knows: `isSystemInDarkTheme` is a
+    // composable read, so a device that flips at sunset flips this window with it. The other two
+    // answers are the reader overruling the device, which is why they are not "dark: Boolean".
+    val dark: Boolean = when (theme) {
+        ThemeChoice.System -> isSystemInDarkTheme()
+        ThemeChoice.Light -> false
+        ThemeChoice.Dark -> true
+    }
     MaterialTheme(
-        colorScheme = if (darkTheme) DarkColors else LightColors,
+        colorScheme = if (dark) DarkColors else LightColors,
         typography = LutterTypography,
         shapes = LutterShapes,
         content = content,

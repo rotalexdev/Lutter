@@ -2,8 +2,8 @@ package dev.rotalex.lutter.desktopapp
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextClearance
@@ -87,7 +87,7 @@ class EditorScreenTest {
 
         // The button, not the session: a frame that drew an undo that did nothing would pass a
         // session-level test and fail the person.
-        onNodeWithText("Undo").performClick()
+        onNodeWithContentDescription("Undo").performClick()
         waitForIdle()
 
         assertEquals(before, session.document.nodes.size)

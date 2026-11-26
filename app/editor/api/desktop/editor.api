@@ -481,28 +481,81 @@ public final class dev/rotalex/lutter/editor/WorkspaceSaver {
 	public final fun save (Ldev/rotalex/lutter/model/doc/UiDocument;Ldev/rotalex/lutter/editor/EditorSelection;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class dev/rotalex/lutter/editor/settings/EditorSettings {
+	public static final field $stable I
+	public static final field Companion Ldev/rotalex/lutter/editor/settings/EditorSettings$Companion;
+	public fun <init> ()V
+	public fun <init> (Ldev/rotalex/lutter/editor/settings/ThemeChoice;FZ)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/editor/settings/ThemeChoice;FZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ldev/rotalex/lutter/editor/settings/ThemeChoice;
+	public final fun component2 ()F
+	public final fun component3 ()Z
+	public final fun copy (Ldev/rotalex/lutter/editor/settings/ThemeChoice;FZ)Ldev/rotalex/lutter/editor/settings/EditorSettings;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/editor/settings/EditorSettings;Ldev/rotalex/lutter/editor/settings/ThemeChoice;FZILjava/lang/Object;)Ldev/rotalex/lutter/editor/settings/EditorSettings;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAutosave ()Z
+	public final fun getCodeTextScale ()F
+	public final fun getTheme ()Ldev/rotalex/lutter/editor/settings/ThemeChoice;
+	public fun hashCode ()I
+	public final fun normalised ()Ldev/rotalex/lutter/editor/settings/EditorSettings;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/editor/settings/EditorSettings$Companion {
+	public final fun getCODE_SCALE_RANGE ()Lkotlin/ranges/ClosedFloatingPointRange;
+	public final fun getDefault ()Ldev/rotalex/lutter/editor/settings/EditorSettings;
+}
+
+public final class dev/rotalex/lutter/editor/settings/InMemorySettingsStore : dev/rotalex/lutter/editor/settings/SettingsStore {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun <init> (Ldev/rotalex/lutter/editor/settings/EditorSettings;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/editor/settings/EditorSettings;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getSettings ()Lkotlinx/coroutines/flow/StateFlow;
+	public fun update (Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/rotalex/lutter/editor/settings/PreferencesSettingsStore : dev/rotalex/lutter/editor/settings/SettingsStore {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/String;Lkotlinx/coroutines/CoroutineScope;)V
+	public synthetic fun <init> (Ljava/lang/String;Lkotlinx/coroutines/CoroutineScope;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getSettings ()Lkotlinx/coroutines/flow/StateFlow;
+	public fun update (Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class dev/rotalex/lutter/editor/settings/SettingsStore {
+	public abstract fun getSettings ()Lkotlinx/coroutines/flow/StateFlow;
+	public abstract fun update (Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class dev/rotalex/lutter/editor/settings/ThemeChoice : java/lang/Enum {
+	public static final field Dark Ldev/rotalex/lutter/editor/settings/ThemeChoice;
+	public static final field Light Ldev/rotalex/lutter/editor/settings/ThemeChoice;
+	public static final field System Ldev/rotalex/lutter/editor/settings/ThemeChoice;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/editor/settings/ThemeChoice;
+	public static fun values ()[Ldev/rotalex/lutter/editor/settings/ThemeChoice;
+}
+
 public final class dev/rotalex/lutter/editor/ui/CodeScreenKt {
-	public static final fun CodeScreen (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/editor/EditorPreview;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+	public static final fun CodeScreen (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/editor/EditorPreview;Landroidx/compose/ui/Modifier;FLandroidx/compose/runtime/Composer;II)V
 }
 
 public final class dev/rotalex/lutter/editor/ui/ComposableSingletons$EditorShellKt {
 	public static final field INSTANCE Ldev/rotalex/lutter/editor/ui/ComposableSingletons$EditorShellKt;
 	public fun <init> ()V
 	public final fun getLambda$-1218441939$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-1733867670$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-482675840$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-1702345026$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-1744355989$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-1858442825$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-76950005$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-805600985$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$1353800323$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$1493020427$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$1791462828$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$662336193$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$1896768494$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$2028920782$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$682800373$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
-}
-
-public final class dev/rotalex/lutter/editor/ui/EditorDestination : java/lang/Enum {
-	public static final field Code Ldev/rotalex/lutter/editor/ui/EditorDestination;
-	public static final field Editor Ldev/rotalex/lutter/editor/ui/EditorDestination;
-	public static fun getEntries ()Lkotlin/enums/EnumEntries;
-	public final fun getLabel ()Ljava/lang/String;
-	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/editor/ui/EditorDestination;
-	public static fun values ()[Ldev/rotalex/lutter/editor/ui/EditorDestination;
 }
 
 public final class dev/rotalex/lutter/editor/ui/EditorPanesKt {
@@ -513,7 +566,7 @@ public final class dev/rotalex/lutter/editor/ui/EditorPanesKt {
 }
 
 public final class dev/rotalex/lutter/editor/ui/EditorShellKt {
-	public static final fun EditorShell (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/editor/EditorPreview;Ldev/rotalex/lutter/runtime/UiRuntime;Ldev/rotalex/lutter/editor/ui/EditorShellSave;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+	public static final fun EditorShell (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/editor/EditorPreview;Ldev/rotalex/lutter/runtime/UiRuntime;Ldev/rotalex/lutter/editor/ui/EditorShellSave;Landroidx/compose/ui/Modifier;Ldev/rotalex/lutter/editor/settings/SettingsStore;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class dev/rotalex/lutter/editor/ui/EditorShellSave {
@@ -522,6 +575,10 @@ public final class dev/rotalex/lutter/editor/ui/EditorShellSave {
 	public final fun getLocation ()Ljava/lang/String;
 	public final fun getNotice ()Ljava/lang/String;
 	public final fun getSaver ()Ldev/rotalex/lutter/editor/WorkspaceSaver;
+}
+
+public final class dev/rotalex/lutter/editor/ui/SettingsScreenKt {
+	public static final fun SettingsScreen (Ldev/rotalex/lutter/editor/settings/EditorSettings;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class dev/rotalex/lutter/editor/ui/theme/LutterSpacing {
@@ -535,6 +592,6 @@ public final class dev/rotalex/lutter/editor/ui/theme/LutterSpacing {
 }
 
 public final class dev/rotalex/lutter/editor/ui/theme/LutterThemeKt {
-	public static final fun LutterTheme (ZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final fun LutterTheme (Ldev/rotalex/lutter/editor/settings/ThemeChoice;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 }
 
