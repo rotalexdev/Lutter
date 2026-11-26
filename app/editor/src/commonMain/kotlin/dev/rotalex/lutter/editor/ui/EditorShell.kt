@@ -403,9 +403,19 @@ private val CompactWidth = 600.dp
 @OptIn(ExperimentalMaterial3Api::class)
 private fun dismiss(sheet: SheetState, scope: CoroutineScope, onHidden: () -> Unit) {
     scope.launch { sheet.hide() }.invokeOnCompletion { cause ->
-        if (cause == null && !sheet.isVisible) onHidden()
+        if (removesHostAfter(cause, sheet.isVisible)) onHidden()
     }
 }
+
+/**
+ * Whether a dismissal that finished with [cause] leaves the sheet off screen.
+ *
+ * Two facts, both required: the hide ran to the end ([cause] is null — a cancelled animation is
+ * not a dismissal) and the sheet is no longer visible. Either alone would remove a
+ * `ModalBottomSheet` that is still on screen, which is the teardown this rule exists to prevent.
+ */
+internal fun removesHostAfter(cause: Throwable?, visible: Boolean): Boolean =
+    cause == null && !visible
 
 /** The leading-edge navigation a window with a desk under it shows. */
 @Composable
