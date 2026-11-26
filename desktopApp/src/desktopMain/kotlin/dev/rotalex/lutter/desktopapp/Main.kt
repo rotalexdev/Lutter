@@ -1,36 +1,23 @@
 package dev.rotalex.lutter.desktopapp
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Text
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
-import dev.rotalex.lutter.editor.Autosave
 import dev.rotalex.lutter.editor.EditorPreview
 import dev.rotalex.lutter.editor.EditorSession
+import dev.rotalex.lutter.editor.ui.EditorShell
+import dev.rotalex.lutter.editor.ui.EditorShellSave
 import dev.rotalex.lutter.editor.ui.theme.LutterTheme
 import dev.rotalex.lutter.editor.EditorSessionRecord
 import dev.rotalex.lutter.editor.EditorWorkspace
 import dev.rotalex.lutter.editor.Opened
-import dev.rotalex.lutter.editor.SaveStatusBar
 import dev.rotalex.lutter.editor.WorkspaceSaver
 import dev.rotalex.lutter.editor.open
-import dev.rotalex.lutter.editor.ui.CodeScreen
-import dev.rotalex.lutter.editor.ui.EditorDestination
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.serialization.JsonDocumentCodec
 import java.io.File
@@ -161,42 +148,19 @@ public fun main(args: Array<String>): Unit = application {
     ) {
         LutterTheme {
             Surface {
-                var destination: EditorDestination by remember { mutableStateOf(EditorDestination.Editor) }
-                Column(modifier = Modifier.fillMaxSize()) {
-                    Autosave(session = session, saver = saver)
-                    // Tabs rather than a menu: two screens, and a window wide enough to show both
-                    // names. The bottom line stays visible either way, because it answers a
-                    // question the code screen raises too — is my edit on disk?
-                    TabRow(selectedTabIndex = EditorDestination.entries.indexOf(destination)) {
-                        EditorDestination.entries.forEach { tab ->
-                            Tab(
-                                selected = destination == tab,
-                                onClick = { destination = tab },
-                                text = { Text(tab.label) },
-                            )
-                        }
-                    }
-                    Box(Modifier.fillMaxWidth().weight(1f)) {
-                        when (destination) {
-                            EditorDestination.Editor -> EditorScreen(
-                                session = session,
-                                preview = preview,
-                                runtime = runtime,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                            EditorDestination.Code -> CodeScreen(
-                                session = session,
-                                preview = preview,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
-                    }
-                    SaveStatusBar(
+                // The frame is the same composable the Android activity draws: the app bar, the
+                // two screens as tabs, and the three panes a 1280dp window has room for. The
+                // window adds the close handler and nothing else.
+                EditorShell(
+                    session = session,
+                    preview = preview,
+                    runtime = runtime,
+                    save = EditorShellSave(
+                        saver = saver,
                         location = opened.workspace.documentLocation,
-                        state = saver.state,
                         notice = opened.notice,
-                    )
-                }
+                    ),
+                )
             }
         }
     }

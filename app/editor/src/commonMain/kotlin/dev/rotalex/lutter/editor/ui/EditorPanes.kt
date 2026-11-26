@@ -302,7 +302,12 @@ private fun EditorCanvas(
                 .pointerInput(document) {
                     detectTapGestures { position ->
                         val hit = deepestNodeAt(document, bounds, position + originInRoot)
-                        if (hit != null) session.select(EditorSelection.Node(hit))
+                        // A tap on the page's margin clears the selection, the way every layout
+                        // editor does it: the alternative is a dock that keeps acting on a node
+                        // the person has stopped looking at.
+                        session.select(
+                            if (hit == null) EditorSelection.None else EditorSelection.Node(hit),
+                        )
                     }
                 }
                 .pointerInput(document) {
