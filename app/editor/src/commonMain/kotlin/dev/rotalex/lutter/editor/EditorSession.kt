@@ -139,7 +139,7 @@ public class EditorSession(
     public fun insert(type: ComponentType, into: DropTarget): CommandResult {
         val remapper = IdRemapper(document, ids)
         val fresh: NodeId = remapper.fresh()
-        val subtree: NodeTemplate = paletteSubtree(schema.components, type, fresh, remapper::fresh)
+        val subtree: NodeTemplate = paletteSubtree(schema, type, fresh, remapper::fresh)
         val result = dispatch(
             Command.InsertNode(
                 parent = into.parent,
