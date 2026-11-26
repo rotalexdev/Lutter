@@ -75,7 +75,9 @@ class PreferencesSettingsStoreTest {
      * system, made explicit.
      */
     @Test
-    fun `the settings survive a restart`() = runBlocking {
+    // `runBlocking<Unit>`: the block's last expression is `file.delete()`, and a test method that
+    // returns Boolean is not a test method as far as JUnit4 is concerned.
+    fun `the settings survive a restart`() = runBlocking<Unit> {
         val file: File = File.createTempFile("lutter-settings", ".preferences_pb").apply { delete() }
         file.parentFile?.mkdirs()
 
