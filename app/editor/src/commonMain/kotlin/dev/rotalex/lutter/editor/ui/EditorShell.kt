@@ -256,7 +256,9 @@ public fun EditorShell(
                         // A fixed height, not `heightIn`: a sheet measures its content against
                         // the window, and a lazily-sized list that took its height from the items
                         // it had composed would answer the next measure with a different one.
-                        modifier = Modifier.fillMaxWidth().height(360.dp),
+                        // The tag is the same one the wide arrangement carries, so a host's test
+                        // finds one pane whether it arrived as a column or as a sheet.
+                        modifier = Modifier.fillMaxWidth().height(360.dp).testTag("palette"),
                     )
                 }
             }
@@ -275,7 +277,7 @@ public fun EditorShell(
                         selection = selection,
                         // Bounded and scrollable, so a node with twenty properties stays inside
                         // the sheet instead of pushing its own heading off the top.
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp),
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp).testTag("inspector"),
                     )
                 }
             }
