@@ -21,7 +21,7 @@ class CrashReportScreenTest {
 
     private val trace: String = buildString {
         appendLine("java.lang.IllegalStateException: the sheet was removed mid-animation")
-        appendLine("\tat dev.rotalex.lutter.editor.ui.EditorShellKt$EditorShell$1.invoke(EditorShell.kt:190)")
+        appendLine("\tat dev.rotalex.lutter.editor.ui.EditorShellKt.invoke(EditorShell.kt:190)")
         appendLine("\tat androidx.compose.runtime.Recomposer.applyChanges(Recomposer.kt:1)")
     }
 
