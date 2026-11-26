@@ -8,8 +8,10 @@ import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
+import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.component.ChildFilter
 import dev.rotalex.lutter.schema.component.ComponentSpec
+import dev.rotalex.lutter.schema.component.PropertySpec
 import dev.rotalex.lutter.schema.component.SlotSpec
 import dev.rotalex.lutter.schema.registry.Registry
 
@@ -36,11 +38,20 @@ import dev.rotalex.lutter.schema.registry.Registry
  * From the schema, never from a list of type names:
  *
  * - a component with slots gets one [label] child, in the first slot that admits it;
- * - a component with a required `Str` property gets that property set to the entry's name.
+ * - every *required* property gets the smallest value its type admits.
  *
  * So `core.Column` gets a `Text` child, `m3.Button` gets a `Text` child in `content`, and
- * `m3.Text` — which has no slot and a required `text` — gets its `text`. A component that wants
- * neither is inserted bare, exactly as before.
+ * `m3.Text` — which has no slot and a required `text` — gets its `text`.
+ *
+ * ### Required properties are not optional
+ *
+ * Filling only the required `Str` ones was the bug behind "the Code tab is full of errors": a
+ * `m3.Switch` needs `checked`, a `core.LazyColumn` needs `items`, a `m3.Dialog` needs `visible` —
+ * and the insert left each of them empty, so the document the palette produced did not analyze.
+ * The author saw a component that rendered nothing, and a Code tab reporting a missing property
+ * for a node they had just added with one tap. The rule is therefore structural: a palette entry
+ * either inserts a node the analyzer accepts, or it is not in the palette (`Palette.of` asks this
+ * function's property half before listing anything).
  *
  * The slot's cardinality is not consulted, deliberately: `Cardinality.Many` takes the placeholder
  * as readily as `ExactlyOne`, and `core.Column` — the container an author reaches for first —
@@ -55,15 +66,16 @@ import dev.rotalex.lutter.schema.registry.Registry
  * degrades to the bare node rather than guessing at some other type to put in a button.
  */
 internal fun paletteSubtree(
-    components: Registry<ComponentType, ComponentSpec>,
+    schema: SchemaView<ComponentSpec, *, *, *, *>,
     type: ComponentType,
     root: NodeId,
     fresh: () -> NodeId,
 ): NodeTemplate {
+    val components: Registry<ComponentType, ComponentSpec> = schema.components
     val spec: ComponentSpec = components[type]
         ?: return NodeTemplate(listOf(Node(id = root, type = type)))
 
-    val label: String = spec.metadata.displayName
+    val label: String = labelOf(spec)
     val child: Node? = labelChild(components, spec, label, fresh)
     val slot: SlotSpec? = if (child == null) {
         null
@@ -71,19 +83,96 @@ internal fun paletteSubtree(
         spec.slots.firstOrNull { admits(it, LABEL_TYPE) }
     }
 
-    val props: Map<PropertyKey, PropertyValue> = spec.properties
-        .asSequence()
-        .filter { it.required && it.type == TypeRef.Str }
-        .associate { it.key to PropertyValue.Const(Value.Str(label)) }
-
     val node: Node = Node(
         id = root,
         type = spec.type,
-        props = props,
+        props = templateProps(schema, spec).orEmpty(),
         slots = if (slot != null && child != null) mapOf(slot.name to listOf(child.id)) else emptyMap(),
     )
     return NodeTemplate(if (child == null) listOf(node) else listOf(node, child))
 }
+
+/**
+ * The properties a fresh instance of [spec] carries, or `null` when one of them cannot be filled.
+ *
+ * `null` is the palette's answer to "is this component placeable": no value this editor can invent
+ * makes the node legal, so offering it would be offering a door into a wall. The refusal is per
+ * property type, not per component name, which is what keeps a plugin's component out of the
+ * palette for the right reason — its required `source` is a resource reference, and this editor
+ * ships no resources to point at.
+ *
+ * A resource-typed property is the other wall: its value is a `Value.Ref` into a resource package,
+ * and filling it with the entry's name would analyze clean and then fail in the generator, which
+ * is the Code tab's problem rather than the palette's. So it is refused here, before any node
+ * exists — `m3.Image` ships as a palette row the day this editor carries resources.
+ *
+ * A spec's own `default` wins over all of this: an author who wrote down what the value should be
+ * outranks a rule about what an empty one could be.
+ */
+internal fun templateProps(
+    schema: SchemaView<ComponentSpec, *, *, *, *>,
+    spec: ComponentSpec,
+): Map<PropertyKey, PropertyValue>? {
+    if (spec.type == ICON_TYPE) return iconProps(schema, spec)
+
+    val props = mutableMapOf<PropertyKey, PropertyValue>()
+    for (property: PropertySpec<*> in spec.properties) {
+        if (!property.required) continue
+        if (property.resourceKind != null) return null
+        val value: Value = property.default
+            // A visible: false dialog is a node the author cannot see, select, or delete without
+            // undo — which is not a component in a palette, it is a landmine.
+            ?: if (property.key == VISIBLE) Value.Bool(true) else fill(property.type, labelOf(spec)) ?: return null
+        props[property.key] = PropertyValue.Const(value)
+    }
+    return props
+}
+
+/** The smallest value [type] admits, or `null` when nothing smaller than the author's choice exists. */
+private fun fill(type: TypeRef, label: String): Value? = when (type) {
+    TypeRef.Str -> Value.Str(label)
+    TypeRef.Bool -> Value.Bool(false)
+    TypeRef.Int32 -> Value.Int32(0)
+    TypeRef.Int64 -> Value.Int64(0)
+    TypeRef.Float32 -> Value.Float32(0f)
+    TypeRef.Float64 -> Value.Float64(0.0)
+    TypeRef.Dp -> Value.Dp(0f)
+    TypeRef.Sp -> Value.Sp(0f)
+    is TypeRef.ListOf -> Value.ListOf(emptyList())
+    is TypeRef.Nullable -> fill(type.inner, label)
+    else -> null
+}
+
+/**
+ * `m3.Icon`'s two required strings are a lookup, not a label.
+ *
+ * Writing the entry's name into both produced `Icon/Icon`, which analysis refuses because no set
+ * has an icon by that name — so an icon was the one palette row that could never be placed. The
+ * first registered set and its first name are the only pair this editor can pick without a picker.
+ */
+private fun iconProps(
+    schema: SchemaView<ComponentSpec, *, *, *, *>,
+    spec: ComponentSpec,
+): Map<PropertyKey, PropertyValue>? {
+    val set = schema.icons.all().firstOrNull() ?: return null
+    val name = set.icons.keys.firstOrNull() ?: return null
+    val props = mutableMapOf<PropertyKey, PropertyValue>()
+    for (property: PropertySpec<*> in spec.properties) {
+        if (!property.required) continue
+        if (property.resourceKind != null) return null
+        val value: Value = when (property.key) {
+            ICON_SET -> Value.Str(set.name)
+            ICON_NAME -> Value.Str(name)
+            else -> property.default ?: fill(property.type, labelOf(spec)) ?: return null
+        }
+        props[property.key] = PropertyValue.Const(value)
+    }
+    return props
+}
+
+/** What the palette calls [spec], and the word its placeholder child reads. */
+internal fun labelOf(spec: ComponentSpec): String =
+    spec.metadata.displayName.ifBlank { spec.type.value }
 
 /**
  * The placeholder child, or `null` when this type is the placeholder or there is none to make.
@@ -116,3 +205,11 @@ private fun admits(slot: SlotSpec, type: ComponentType): Boolean = when (val fil
 /** The builtin vocabulary's text leaf, and the property that makes it visible. */
 private val LABEL_TYPE: ComponentType = ComponentType("m3.Text")
 private val LABEL_KEY: PropertyKey = PropertyKey("text")
+
+/** The two required strings of the one component whose values are a registered lookup. */
+private val ICON_TYPE: ComponentType = ComponentType("m3.Icon")
+private val ICON_SET: PropertyKey = PropertyKey("set")
+private val ICON_NAME: PropertyKey = PropertyKey("name")
+
+/** A dialog, a sheet or a drawer that opens invisible cannot be found again. */
+private val VISIBLE: PropertyKey = PropertyKey("visible")

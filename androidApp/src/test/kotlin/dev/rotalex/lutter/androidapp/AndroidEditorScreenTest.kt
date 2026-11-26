@@ -131,6 +131,43 @@ class AndroidEditorScreenTest {
         assertTrue(editorPreview.state.value is PreviewState.Rendered)
     }
 
+    /**
+     * Editing a value and then leaving the sheet keeps the edit and the composition.
+     *
+     * This is the sequence that closed the app on a phone: a field with the keyboard up, and a
+     * sheet removed from the composition in the same frame the selection cleared. The assertion
+     * is not "the sheet is gone" — that was true of the broken build too — but that the typed
+     * text survives the sheet and the canvas is still there to receive the next tap.
+     */
+    @Test
+    fun leaving_the_sheet_commits_the_draft_and_keeps_the_frame() {
+        val session = session()
+        val editorPreview = preview(session)
+        val node = NodeId("n_title")
+        val text = PropertyKey("text")
+        session.select(EditorSelection.Node(node))
+        compose.setContent {
+            LutterTheme { EditorShell(session, editorPreview, BuiltinEngine.runtime(schema), save = null) }
+        }
+
+        compose.onNodeWithText("Properties").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag("inspector:text").performTextClearance()
+        compose.onNodeWithTag("inspector:text").performTextInput("\"Outside\"")
+        compose.waitForIdle()
+
+        // Nothing pressed Done: the draft is live inside the field when the selection goes away,
+        // which is what tapping the page's margin does.
+        session.select(EditorSelection.None)
+        compose.waitForIdle()
+
+        assertEquals(PropertyValue.Const(Value.Str("Outside")), session.document.nodes.require(node).props[text])
+        compose.onNodeWithTag("inspector").assertDoesNotExist()
+        // Still one frame, still drawing: the sheet left instead of taking the screen with it.
+        compose.onNodeWithTag("canvas").assertExists()
+        assertEquals(EditorSelection.None, session.selection.value)
+    }
+
     @Test
     fun the_selection_dock_deletes_the_selected_node() {
         val session = session()
