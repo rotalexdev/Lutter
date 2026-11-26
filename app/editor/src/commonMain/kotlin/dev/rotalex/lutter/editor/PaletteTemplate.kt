@@ -101,6 +101,11 @@ internal fun paletteSubtree(
  * palette for the right reason — its required `source` is a resource reference, and this editor
  * ships no resources to point at.
  *
+ * A resource-typed property is the other wall: its value is a `Value.Ref` into a resource package,
+ * and filling it with the entry's name would analyze clean and then fail in the generator, which
+ * is the Code tab's problem rather than the palette's. So it is refused here, before any node
+ * exists — `m3.Image` ships as a palette row the day this editor carries resources.
+ *
  * A spec's own `default` wins over all of this: an author who wrote down what the value should be
  * outranks a rule about what an empty one could be.
  */
@@ -113,6 +118,7 @@ internal fun templateProps(
     val props = mutableMapOf<PropertyKey, PropertyValue>()
     for (property: PropertySpec<*> in spec.properties) {
         if (!property.required) continue
+        if (property.resourceKind != null) return null
         val value: Value = property.default
             // A visible: false dialog is a node the author cannot see, select, or delete without
             // undo — which is not a component in a palette, it is a landmine.
@@ -153,6 +159,7 @@ private fun iconProps(
     val props = mutableMapOf<PropertyKey, PropertyValue>()
     for (property: PropertySpec<*> in spec.properties) {
         if (!property.required) continue
+        if (property.resourceKind != null) return null
         val value: Value = when (property.key) {
             ICON_SET -> Value.Str(set.name)
             ICON_NAME -> Value.Str(name)
