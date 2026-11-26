@@ -163,6 +163,9 @@ class ExprTextRoundTripTest {
         assertEquals("1.5f", ExprPrinter.print(Expr.Const(Value.Float32(1.5f))))
         assertEquals("true", ExprPrinter.print(Expr.Const(Value.Bool(true))))
         assertEquals("null", ExprPrinter.print(Expr.Const(Value.Null)))
+        assertEquals("16.0.dp", ExprPrinter.print(Expr.Const(Value.Dp(16f))))
+        assertEquals("12.5.sp", ExprPrinter.print(Expr.Const(Value.Sp(12.5f))))
+        assertEquals("-4.0.dp", ExprPrinter.print(Expr.Const(Value.Dp(-4f))))
         assertEquals("\"hello\"", ExprPrinter.print(Expr.Const(Value.Str("hello"))))
         assertEquals(
             "\"a\\\"b\\\\c\\n\"",
@@ -252,9 +255,34 @@ class ExprTextRoundTripTest {
     }
 
     @Test
+    fun `a unit-suffixed number reads back as the same value`() {
+        val values: List<Value> = listOf(
+            Value.Dp(0f),
+            Value.Dp(16f),
+            Value.Dp(16.5f),
+            Value.Dp(-4f),
+            Value.Dp(0.1f),
+            Value.Sp(0f),
+            Value.Sp(12f),
+            Value.Sp(14.5f),
+        )
+        for (value in values) {
+            val printed = ExprPrinter.print(Expr.Const(value))
+            assertEquals(Expr.Const(value), ExprParser.parse(printed), "printed '$printed'")
+        }
+    }
+
+    @Test
+    fun `a unit binds to an integral number and not to a longer name`() {
+        assertEquals(Expr.Const(Value.Dp(16f)), ExprParser.parse("16.dp"))
+        assertEquals(Expr.Const(Value.Sp(12f)), ExprParser.parse("12.sp"))
+        assertFailsWith<IllegalArgumentException> { ExprParser.parse("16.dpx") }
+    }
+
+    @Test
     fun `unspellable values refuse rather than guess`() {
         assertFailsWith<IllegalArgumentException> {
-            ExprPrinter.print(Expr.Const(Value.Dp(8.0f)))
+            ExprPrinter.print(Expr.Const(Value.Icon(set = "Filled", name = "Home")))
         }
     }
 
@@ -273,12 +301,14 @@ class ExprTextRoundTripTest {
                     },
                 )
                 1 -> Expr.Const(
-                    when (random.nextInt(5)) {
+                    when (random.nextInt(7)) {
                         0 -> Value.Int32(random.nextInt(21) - 5)
                         1 -> Value.Int64(random.nextLong(21) - 5)
                         2 -> Value.Float64(0.5 * random.nextInt(-9, 10))
                         3 -> Value.Str(pickString(random))
-                        else -> Value.Bool(random.nextBoolean())
+                        4 -> Value.Bool(random.nextBoolean())
+                        5 -> Value.Dp(0.5f * random.nextInt(-9, 40))
+                        else -> Value.Sp(0.5f * random.nextInt(-9, 40))
                     },
                 )
                 2 -> Expr.Call(

@@ -334,24 +334,50 @@ private class Parser(private val source: String) {
     // ---------------------------------------------------------------------------------------
 
     /**
-     * A non-negative literal at [pos]: `42`, `42L`, `1.5`, `1.5f`. The digits decide the
-     * variant the same way the printer's suffixes do, and anything outside a variant's range
-     * is refused rather than silently widened.
+     * A non-negative literal at [pos]: `42`, `42L`, `1.5`, `1.5f`, `16.0.dp`, `12.0.sp`. The
+     * digits and the unit decide the variant the same way the printer's suffixes do, and
+     * anything outside a variant's range is refused rather than silently widened.
      */
     private fun readNumber(): Value = readNumberText(positive = true)
 
     private fun readNegativeNumber(): Value = readNumberText(positive = false)
 
+    /**
+     * The unit a number carries, if it carries one: `.dp` or `.sp`, with no space between the
+     * number and the dot.
+     *
+     * A unit has to be read before the fraction, because `16.dp`'s dot is not a decimal point,
+     * and again after it, because the printer spells a `Dp` as `16.0.dp`. A name that keeps
+     * going after the unit (`16.dpx`) is not a unit at all: the number stops at the dot and the
+     * rest is left for the caller to reject.
+     */
+    private fun readUnitSuffix(): String? {
+        if (peek() != '.') return null
+        val unit = when {
+            peekAt(1) == 'd' && peekAt(2) == 'p' -> "dp"
+            peekAt(1) == 's' && peekAt(2) == 'p' -> "sp"
+            else -> return null
+        }
+        val after = peekAt(3)
+        if (after != null && (after.isLetterOrDigit() || after == '_')) return null
+        pos += 3
+        return unit
+    }
+
     private fun readNumberText(positive: Boolean): Value {
         val start = pos
         while (peek()?.isDigit() == true) pos++
+        var end = pos
+        var unit = readUnitSuffix()
         var fractional = false
-        if (peek() == '.') {
+        if (unit == null && peek() == '.') {
             fractional = true
             pos++
             while (peek()?.isDigit() == true) pos++
+            end = pos
+            unit = readUnitSuffix()
         }
-        val digits = source.substring(start, pos)
+        val digits = source.substring(start, end)
         val suffix = when (peek()) {
             'f' -> {
                 pos++
@@ -365,6 +391,8 @@ private class Parser(private val source: String) {
         }
         val signedText = if (positive) digits else "-$digits"
         return when {
+            unit == "dp" -> Value.Dp(signedText.toFloat())
+            unit == "sp" -> Value.Sp(signedText.toFloat())
             suffix == "f" -> {
                 require(fractional) { "a Float32 literal carries a decimal point (at position $start in '$source')" }
                 Value.Float32(signedText.toFloat())

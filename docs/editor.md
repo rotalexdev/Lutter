@@ -186,6 +186,13 @@ form of a value, and a commit that parses to a literal becomes a `PropertyValue.
 than an expression that happens to evaluate to one. `parse(print(expr)) == expr` is
 `ExprParser`'s own guarantee, and the editor relies on it instead of re-implementing it.
 
+Literals spell the way the language spells them: `42`, `42L`, `1.5`, `1.5f`, `true`, `null`,
+`"text"`, and the unit-suffixed numbers `16.0.dp` and `12.0.sp`. The units are not decoration: a
+palette row fills every required `Dp` or `Sp` property with zero, so the first tap on a `Row`
+with spacing asks this field to spell one. A value whose kind the grammar has no literal for — a
+colour, an icon, a token — shows an empty field rather than taking the editor down with it;
+typing a new value replaces the stored one.
+
 A node the schema cannot describe — a document that outlived the plugin that authored it —
 gets no inspector rows rather than an empty panel. The canvas is where that diagnostic is
 already visible, so the panel says nothing instead of claiming the component has no

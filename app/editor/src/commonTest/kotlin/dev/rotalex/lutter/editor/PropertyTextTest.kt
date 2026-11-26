@@ -17,6 +17,10 @@ class PropertyTextTest {
             PropertyValue.Const(Value.Str("Hello")),
             PropertyValue.Const(Value.Int32(8)),
             PropertyValue.Const(Value.Bool(true)),
+            // A palette row fills every required Dp/Sp property with zero, so these two reach the
+            // inspector on the first tap and must spell like any other literal.
+            PropertyValue.Const(Value.Dp(0f)),
+            PropertyValue.Const(Value.Sp(14.5f)),
         )
 
         for (value in values) {
