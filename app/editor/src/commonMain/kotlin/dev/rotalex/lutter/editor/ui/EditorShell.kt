@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,15 +15,30 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -35,18 +51,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.ui.NavDisplay
 import dev.rotalex.lutter.editor.Autosave
 import dev.rotalex.lutter.editor.EditorPreview
 import dev.rotalex.lutter.editor.EditorSelection
@@ -55,8 +71,12 @@ import dev.rotalex.lutter.editor.InspectorModel
 import dev.rotalex.lutter.editor.PreviewState
 import dev.rotalex.lutter.editor.SaveStatusBar
 import dev.rotalex.lutter.editor.WorkspaceSaver
+import dev.rotalex.lutter.editor.settings.EditorSettings
+import dev.rotalex.lutter.editor.settings.InMemorySettingsStore
+import dev.rotalex.lutter.editor.settings.SettingsStore
 import dev.rotalex.lutter.editor.ui.theme.LutterSpacing
 import dev.rotalex.lutter.runtime.UiRuntime
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
@@ -73,27 +93,45 @@ public class EditorShellSave(
 )
 
 /**
- * The editor's frame, drawn by both hosts: the app bar, the two screens as tabs, and each
- * screen's body arranged for the width it was given.
+ * The editor's frame, drawn by both hosts: the app bar, the primary navigation, and the
+ * destination the back stack is showing.
  *
- * ### Two arrangements, one screen
+ * ### Where the app is, is a stack
  *
- * Under [CompactWidth] there is room for one pane at a time, so the canvas gets the whole
- * window and the palette and the inspector arrive as bottom sheets — the platform's own
- * sheet, not a hand-rolled overlay, which is what makes dismissal, back navigation and the
- * drag handle work without this file doing anything (§32 Phase 17 P6). At or above it the
- * three panes sit side by side, the arrangement a desktop window has the desk for.
+ * The frame owns one back stack of [NavKey]s and renders it with `NavDisplay`. Editor and Code
+ * are the two destinations the navigation suite offers; Settings is *pushed* on top of whichever
+ * one opened it, so leaving it is a pop, the platform's back gesture performs that pop, and a
+ * configuration change restores the whole stack instead of the last flag that was set.
+ *
+ * The alternative — a boolean that means "the settings are showing" — is what this replaces: two
+ * screens fit in a flag, a third turns it into a stack, and the stack is the thing that also
+ * makes back mean something.
+ *
+ * ### Two arrangements, one frame
+ *
+ * Under [CompactWidth] a `NavigationBar` sits at the bottom, the canvas gets the whole window and
+ * the palette and the inspector arrive as bottom sheets — the platform's own sheet, not a
+ * hand-rolled overlay, which is what makes dismissal, back navigation and the drag handle work
+ * without this file doing anything (§32 Phase 17 P6). At or above it a `NavigationRail` takes the
+ * leading edge and the three panes sit side by side, the arrangement a desktop window has the
+ * desk for.
  *
  * ### Why the shell and not the hosts
  *
- * The hosts used to repeat this: an `EditorScaffold` in the activity, a `Column` in the
- * window, the same tabs twice, and two different places that forgot the theme. One frame
- * means one place where the tabs, the save line and the selection's actions are decided, and
- * a new host (a tablet build, a browser) is a window around this composable.
+ * The hosts used to repeat this: an `EditorScaffold` in the activity, a `Column` in the window,
+ * the same tabs twice, and two different places that forgot the theme. One frame means one place
+ * where the navigation, the save line and the selection's actions are decided, and a new host (a
+ * tablet build, a browser) is a window around this composable.
  *
- * `Autosave` is started here for the same reason: a shell that showed the save line but left
- * the writing to its host would let a host forget it, which is what the desktop window's
- * close handler already had to work around.
+ * `Autosave` is started here for the same reason: a shell that showed the save line but left the
+ * writing to its host would let a host forget it, which is what the desktop window's close
+ * handler already had to work around.
+ *
+ * ### Settings
+ *
+ * Reached from the app bar's "more options" menu, and drawn by [SettingsScreen] in the frame's
+ * body with a back action in the bar. [settings] has an in-memory default so a test or a host
+ * without a directory gets the same frame with the defaults and nothing to write.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,8 +141,12 @@ public fun EditorShell(
     runtime: UiRuntime,
     save: EditorShellSave?,
     modifier: Modifier = Modifier,
+    settings: SettingsStore = InMemorySettingsStore(),
 ) {
-    if (save != null) Autosave(session = session, saver = save.saver)
+    val preferences: EditorSettings by settings.settings.collectAsState()
+    // Off means the frame writes nothing on its own, so it must offer the write: an editor that
+    // silently stopped saving would be losing work with a switch's worth of ceremony.
+    if (save != null && preferences.autosave) Autosave(session = session, saver = save.saver)
     FollowPreview(preview)
 
     val selection: EditorSelection by session.selection.collectAsState()
@@ -114,7 +156,13 @@ public fun EditorShell(
     // not redraw when one arrived — and at compact width nothing else in this body does touch
     // it. The symptom is a dock that keeps acting on the node before the one on screen.
     val selected: InspectorModel? = remember(selection, history.document) { session.inspector() }
-    var destination: EditorDestination by rememberSaveable { mutableStateOf(EditorDestination.Editor) }
+
+    // The whole of "where the app is". `rememberNavBackStack` keeps it across a configuration
+    // change by serialising its keys through [EditorSavedState], which is why the routes are
+    // `@Serializable` and why the configuration registers each one.
+    val backStack = rememberNavBackStack(EditorSavedState, EditorRoute)
+    val current: NavKey = backStack.last()
+
     var paletteOpen: Boolean by remember { mutableStateOf(false) }
     var inspectorOpen: Boolean by remember { mutableStateOf(false) }
     // What the inspector sheet is showing. Held separately from `selected` on purpose: when the
@@ -144,118 +192,132 @@ public fun EditorShell(
         }
     }
 
-    BoxWithConstraints(modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier.fillMaxSize().safeDrawingPadding()) {
         val compact: Boolean = maxWidth < CompactWidth
-        Scaffold(
-            // The insets are the frame's business on both platforms: zero on a desk, the
-            // status and gesture bars on a phone. `WindowInsets(0)` on the content is what
-            // keeps them from being applied a second time by the body.
-            modifier = Modifier.fillMaxSize().safeDrawingPadding(),
-            contentWindowInsets = WindowInsets(0, 0, 0, 0),
-            topBar = {
-                Column {
-                    TopAppBar(
-                        windowInsets = WindowInsets(0, 0, 0, 0),
-                        title = {
-                            Column {
-                                Text(
-                                    text = session.document.meta.name,
-                                    style = MaterialTheme.typography.titleLarge,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    text = selectionCaption(selected),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        },
-                        actions = {
-                            if (destination == EditorDestination.Editor) {
-                                TextButton(
-                                    onClick = { session.undo() },
-                                    enabled = history.canUndo,
-                                ) { Text("Undo") }
-                                TextButton(
-                                    onClick = { session.redo() },
-                                    enabled = history.canRedo,
-                                ) { Text("Redo") }
-                            }
-                        },
-                    )
-                    TabRow(selectedTabIndex = EditorDestination.entries.indexOf(destination)) {
-                        EditorDestination.entries.forEach { tab ->
-                            Tab(
-                                selected = destination == tab,
-                                onClick = { destination = tab },
-                                text = { Text(tab.label) },
+        val onEditor: Boolean = current == EditorRoute
+        Row(Modifier.fillMaxSize()) {
+            if (!compact) {
+                PrimaryRail(current = current, onSelect = { backStack.switchTo(it) })
+                VerticalDivider()
+            }
+            Scaffold(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                // The insets are the frame's business on both platforms: zero on a desk, the
+                // status and gesture bars on a phone. `WindowInsets(0)` on the content is what
+                // keeps them from being applied a second time by the body.
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                topBar = {
+                    // The bar belongs to the destination, so the route picks it: the editor's
+                    // has the document, the history and the menu; the code screen's has the
+                    // document and the menu; the settings' has the back action and nothing else.
+                    when (current) {
+                        EditorRoute -> EditorTopBar(
+                            title = session.document.meta.name,
+                            subtitle = selectionCaption(selected),
+                            canUndo = history.canUndo,
+                            canRedo = history.canRedo,
+                            onUndo = { session.undo() },
+                            onRedo = { session.redo() },
+                            onSave = if (save != null && !preferences.autosave) {
+                                saveNowAction(session = session, saver = save.saver, scope = scope)
+                            } else {
+                                null
+                            },
+                            onSettings = { backStack.push(SettingsRoute) },
+                        )
+
+                        CodeRoute -> CodeTopBar(
+                            documentName = session.document.meta.name,
+                            onSettings = { backStack.push(SettingsRoute) },
+                        )
+
+                        else -> SettingsTopBar(onBack = { backStack.pop() })
+                    }
+                },
+                bottomBar = {
+                    Column {
+                        // The selection's actions, where a thumb already is. Wide windows put
+                        // the same actions in the inspector that is already open.
+                        if (compact && onEditor && selected != null) {
+                            SelectionActions(
+                                onProperties = {
+                                    sheetModel = selected
+                                    inspectorOpen = true
+                                },
+                                onDuplicate = { session.duplicate(selected.node) },
+                                onDelete = { session.remove(selected.node) },
                             )
                         }
+                        if (save != null) {
+                            SaveStatusBar(
+                                location = save.location,
+                                state = save.saver.state,
+                                notice = save.notice,
+                            )
+                        }
+                        // Last, and only on a phone: a navigation bar is the bottom edge of a
+                        // Material app, and everything the frame adds sits above it.
+                        if (compact) {
+                            PrimaryBar(current = current, onSelect = { backStack.switchTo(it) })
+                        }
                     }
-                }
-            },
-            floatingActionButton = {
-                // The palette is already on screen when the window is wide, so a button that
-                // opened the same list twice would be the only redundant thing in the frame.
-                if (compact && destination == EditorDestination.Editor) {
-                    FloatingActionButton(
-                        onClick = { paletteOpen = true },
-                        modifier = Modifier.testTag("palette-open"),
-                    ) {
-                        Icon(AddGlyph, contentDescription = "Add component")
+                },
+                floatingActionButton = {
+                    // The palette is already on screen when the window is wide, so a button that
+                    // opened the same list twice would be the only redundant thing in the frame.
+                    if (compact && onEditor) {
+                        FloatingActionButton(
+                            onClick = { paletteOpen = true },
+                            modifier = Modifier.testTag("palette-open"),
+                        ) {
+                            Icon(Icons.Filled.Add, contentDescription = "Add component")
+                        }
                     }
-                }
-            },
-            bottomBar = {
-                Column {
-                    // The selection's actions, where a thumb already is. Wide windows put the
-                    // same actions in the inspector that is already open.
-                    if (compact && destination == EditorDestination.Editor && selected != null) {
-                        SelectionActions(
-                            onProperties = {
-                                sheetModel = selected
-                                inspectorOpen = true
-                            },
-                            onDuplicate = { session.duplicate(selected.node) },
-                            onDelete = { session.remove(selected.node) },
-                        )
-                    }
-                    if (save != null) {
-                        SaveStatusBar(
-                            location = save.location,
-                            state = save.saver.state,
-                            notice = save.notice,
-                        )
-                    }
-                }
-            },
-        ) { padding ->
-            Box(Modifier.fillMaxSize().padding(padding)) {
-                when (destination) {
-                    EditorDestination.Editor -> if (compact) {
-                        CanvasArea(
-                            session = session,
-                            preview = preview,
-                            runtime = runtime,
-                            modifier = Modifier.fillMaxSize().testTag("canvas"),
-                        )
-                    } else {
-                        ExpandedEditor(
-                            session = session,
-                            preview = preview,
-                            runtime = runtime,
-                            selection = selection,
-                        )
-                    }
-                    EditorDestination.Code -> CodeScreen(
-                        session = session,
-                        preview = preview,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
+                },
+            ) { padding ->
+                NavDisplay(
+                    backStack = backStack,
+                    // Back at the root returns `false` and the platform closes the window; the
+                    // frame never pops its own last entry.
+                    onBack = { backStack.pop() },
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                    entryProvider = entryProvider {
+                        entry<EditorRoute> {
+                            if (compact) {
+                                CanvasArea(
+                                    session = session,
+                                    preview = preview,
+                                    runtime = runtime,
+                                    modifier = Modifier.fillMaxSize().testTag("canvas"),
+                                )
+                            } else {
+                                ExpandedEditor(
+                                    session = session,
+                                    preview = preview,
+                                    runtime = runtime,
+                                    selection = selection,
+                                )
+                            }
+                        }
+
+                        entry<CodeRoute> {
+                            CodeScreen(
+                                session = session,
+                                preview = preview,
+                                textScale = preferences.codeTextScale,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+
+                        entry<SettingsRoute> {
+                            SettingsScreen(
+                                settings = preferences,
+                                onChange = { next -> scope.launch { settings.update { next } } },
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                    },
+                )
             }
         }
 
@@ -322,6 +384,185 @@ public fun EditorShell(
  */
 private val CompactWidth = 600.dp
 
+/** The leading-edge navigation a window with a desk under it shows. */
+@Composable
+private fun PrimaryRail(current: NavKey, onSelect: (NavKey) -> Unit) {
+    NavigationRail(modifier = Modifier.fillMaxHeight()) {
+        Spacer(Modifier.height(LutterSpacing.sm))
+        PrimaryRoutes.forEach { route ->
+            NavigationRailItem(
+                selected = current == route,
+                onClick = { onSelect(route) },
+                icon = { Icon(iconOf(route), contentDescription = null) },
+                label = { Text(labelOf(route)) },
+                modifier = Modifier.testTag(navigationTag(route)),
+            )
+        }
+    }
+}
+
+/** The bottom-edge navigation a phone shows. */
+@Composable
+private fun PrimaryBar(current: NavKey, onSelect: (NavKey) -> Unit) {
+    NavigationBar {
+        PrimaryRoutes.forEach { route ->
+            NavigationBarItem(
+                selected = current == route,
+                onClick = { onSelect(route) },
+                icon = { Icon(iconOf(route), contentDescription = null) },
+                label = { Text(labelOf(route)) },
+                modifier = Modifier.testTag(navigationTag(route)),
+            )
+        }
+    }
+}
+
+/** What a host's test looks for when it taps a destination in either arrangement. */
+private fun navigationTag(route: NavKey): String = "nav:${labelOf(route).lowercase()}"
+
+/** The glyph a destination is listed with. */
+private fun iconOf(route: NavKey): ImageVector = when (route) {
+    CodeRoute -> Icons.Filled.Code
+    else -> Icons.Filled.Dashboard
+}
+
+/**
+ * The deferred write, as the action the bar offers when autosave is off.
+ *
+ * The same call `Autosave` makes, because it is the same write: one document, one location, no
+ * second path to keep correct.
+ */
+private fun saveNowAction(
+    session: EditorSession,
+    saver: WorkspaceSaver,
+    scope: CoroutineScope,
+): () -> Unit = {
+    val document = session.document
+    val where = session.selection.value
+    scope.launch { saver.save(document, where) }
+}
+
+/** The editor's bar: what is open, the history, the deferred write and the menu. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditorTopBar(
+    title: String,
+    subtitle: String,
+    canUndo: Boolean,
+    canRedo: Boolean,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
+    onSave: (() -> Unit)?,
+    onSettings: () -> Unit,
+) {
+    TopAppBar(
+        windowInsets = WindowInsets(0, 0, 0, 0),
+        title = {
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        },
+        actions = {
+            IconButton(onClick = onUndo, enabled = canUndo) {
+                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
+            }
+            IconButton(onClick = onRedo, enabled = canRedo) {
+                Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo")
+            }
+            if (onSave != null) {
+                IconButton(onClick = onSave, modifier = Modifier.testTag("save-now")) {
+                    Icon(Icons.Filled.Save, contentDescription = "Save now")
+                }
+            }
+            MoreOptions(onSettings = onSettings)
+        },
+    )
+}
+
+/** The code screen's bar: the same menu, without an editor's actions to act on. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CodeTopBar(documentName: String, onSettings: () -> Unit) {
+    TopAppBar(
+        windowInsets = WindowInsets(0, 0, 0, 0),
+        title = {
+            Column {
+                Text(
+                    text = "Code",
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = documentName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        },
+        actions = { MoreOptions(onSettings = onSettings) },
+    )
+}
+
+/** The settings bar: a way back, and the name of what is open. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsTopBar(onBack: () -> Unit) {
+    TopAppBar(
+        windowInsets = WindowInsets(0, 0, 0, 0),
+        navigationIcon = {
+            IconButton(onClick = onBack, modifier = Modifier.testTag("settings-back")) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
+        },
+        title = { Text("Settings", style = MaterialTheme.typography.titleLarge) },
+    )
+}
+
+/**
+ * The app bar's overflow: one item today, and the place the next one goes.
+ *
+ * Settings is not a tab because it is not somewhere the editor is — it is something the frame
+ * opens over it, and a bar that listed it beside the two screens would say otherwise.
+ */
+@Composable
+private fun MoreOptions(onSettings: () -> Unit) {
+    var open: Boolean by remember { mutableStateOf(false) }
+    Box {
+        IconButton(
+            onClick = { open = true },
+            modifier = Modifier.testTag("more-options"),
+        ) {
+            Icon(Icons.Filled.MoreVert, contentDescription = "More options")
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text("Settings") },
+                leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                onClick = {
+                    open = false
+                    onSettings()
+                },
+                modifier = Modifier.testTag("settings-menu-item"),
+            )
+        }
+    }
+}
+
 /** The three panes side by side: what a window with a desk under it shows. */
 @Composable
 private fun ExpandedEditor(
@@ -359,7 +600,7 @@ private fun ExpandedEditor(
  * `CanvasPane` with the resolved state read here rather than by the frame.
  *
  * A preview state changes on every keystroke in the inspector; collecting it in the shell
- * would recompose the app bar and the tabs for a change only the canvas can see.
+ * would recompose the app bar and the navigation for a change only the canvas can see.
  */
 @Composable
 private fun CanvasArea(
@@ -375,9 +616,9 @@ private fun CanvasArea(
 /**
  * The selection's three acts, docked above the save line on a narrow screen.
  *
- * Text rather than icons: the icon set the frame is allowed to use is the core one, which has
- * a pencil and a bin but nothing for "duplicate", and three labels in a row read faster than
- * two icons and a guess. The actions are one line high so the canvas keeps the rest.
+ * Text rather than icons: "Properties" has no glyph in the set that says it better than the word,
+ * and three labels in a row read faster than two icons and a guess. The actions are one line high
+ * so the canvas keeps the rest.
  */
 @Composable
 private fun SelectionActions(
@@ -426,34 +667,3 @@ private fun SheetTitle(title: String, hint: String) {
  */
 private fun selectionCaption(selected: InspectorModel?): String =
     if (selected == null) "Nothing selected" else "${selected.type.value} selected"
-
-/**
- * A plus, drawn here because the frame has no icon dependency.
- *
- * `material-icons-core` arrives transitively with Material 3 on Android but is not part of the
- * multiplatform `material3` artifact's public surface, and a theme module that pulled in the
- * extended set for one glyph would be a megabyte of vectors for a cross. Four lines of path.
- */
-private val AddGlyph: ImageVector = ImageVector.Builder(
-    name = "Add",
-    defaultWidth = 24.dp,
-    defaultHeight = 24.dp,
-    viewportWidth = 24f,
-    viewportHeight = 24f,
-).apply {
-    path(fill = SolidColor(Color.Black)) {
-        moveTo(19f, 13f)
-        horizontalLineTo(13f)
-        verticalLineTo(19f)
-        horizontalLineTo(11f)
-        verticalLineTo(13f)
-        horizontalLineTo(5f)
-        verticalLineTo(11f)
-        horizontalLineTo(11f)
-        verticalLineTo(5f)
-        horizontalLineTo(13f)
-        verticalLineTo(11f)
-        horizontalLineTo(19f)
-        close()
-    }
-}.build()

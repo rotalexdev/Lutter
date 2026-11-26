@@ -14,6 +14,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +29,8 @@ import dev.rotalex.lutter.editor.EditorWorkspace
 import dev.rotalex.lutter.editor.Opened
 import dev.rotalex.lutter.editor.WorkspaceSaver
 import dev.rotalex.lutter.editor.open
+import dev.rotalex.lutter.editor.settings.EditorSettings
+import dev.rotalex.lutter.editor.settings.SettingsStore
 import dev.rotalex.lutter.editor.ui.EditorShell
 import dev.rotalex.lutter.editor.ui.EditorShellSave
 import dev.rotalex.lutter.editor.ui.theme.LutterTheme
@@ -75,13 +78,20 @@ public class MainActivity : ComponentActivity() {
         val documentLocation = File(filesDir, DOCUMENT_FILE).path
         val recordLocation = File(filesDir, SESSION_FILE).path
 
+        // One store for the process, created before the first frame: the theme is read from it
+        // at the root, so a store built inside the composition would make the window start in
+        // the wrong scheme and correct itself a frame later.
+        val settings: SettingsStore = AndroidSettings.inDirectory(filesDir)
+
         setContent {
-            LutterTheme {
+            val preferences: EditorSettings by settings.settings.collectAsState()
+            LutterTheme(theme = preferences.theme) {
                 Surface(Modifier.fillMaxSize()) {
                     EditorHost(
                         runtime = runtime,
                         documentLocation = documentLocation,
                         recordLocation = recordLocation,
+                        settings = settings,
                         seed = { readDocument() },
                     )
                 }
@@ -126,6 +136,7 @@ private fun EditorHost(
     runtime: UiRuntime,
     documentLocation: String,
     recordLocation: String,
+    settings: SettingsStore,
     seed: () -> UiDocument,
 ) {
     // Built here rather than passed in: `analyze` takes the concrete `Schema`, and a parameter
@@ -199,5 +210,6 @@ private fun EditorHost(
         runtime = runtime,
         save = save,
         modifier = Modifier.fillMaxSize(),
+        settings = settings,
     )
 }

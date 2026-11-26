@@ -102,21 +102,6 @@ import kotlin.math.roundToInt
  * that owns pointers), `canvas-selection` and `canvas-drop-target` (the two outlines).
  */
 
-/**
- * The editor's two screens, in the order a host lists them.
- *
- * Two, and both read the same document: [Editor] changes it, [Code] shows what it becomes. Kept
- * here rather than in each host so the phone and the desktop cannot disagree about what the editor
- * has — a host chooses how to draw the choice (tabs, a bottom bar), never what the choices are.
- */
-public enum class EditorDestination(
-    /** What the host's tab says. */
-    public val label: String,
-) {
-    Editor("Editor"),
-    Code("Code"),
-}
-
 /** Keeps the preview following [preview]'s session for the life of the composition. */
 @Composable
 public fun FollowPreview(preview: EditorPreview) {
