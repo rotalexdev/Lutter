@@ -56,6 +56,34 @@ class InspectorTest {
     }
 
     @Test
+    fun `a value the text view cannot spell shows an empty field instead of throwing`() {
+        val icon = Node(
+            id = LEAF,
+            type = LABEL,
+            props = mapOf(TEXT to HELLO, WEIGHT to PropertyValue.Const(Value.Icon("Filled", "Home"))),
+        )
+
+        val row = Inspector.of(editorDocument(leaf = icon), editorSchema(), LEAF)!!
+            .properties.single { it.key == WEIGHT }
+
+        assertEquals("", row.text)
+    }
+
+    @Test
+    fun `a dp value spells in the field`() {
+        val spaced = Node(
+            id = LEAF,
+            type = LABEL,
+            props = mapOf(TEXT to HELLO, WEIGHT to PropertyValue.Const(Value.Dp(8f))),
+        )
+
+        val row = Inspector.of(editorDocument(leaf = spaced), editorSchema(), LEAF)!!
+            .properties.single { it.key == WEIGHT }
+
+        assertEquals("8.0.dp", row.text)
+    }
+
+    @Test
     fun `a node the document does not hold has no inspector`() {
         assertNull(Inspector.of(editorDocument(), editorSchema(), ABSENT))
     }

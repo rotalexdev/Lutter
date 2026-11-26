@@ -129,9 +129,12 @@ public object ExprPrinter {
             }
             is Value.Float64 -> out.append(spellFloat(value.v, value.v))
             is Value.Str -> writeString(value.v, out)
+            is Value.Dp -> writeUnit(value.v, ".dp", out)
+            is Value.Sp -> writeUnit(value.v, ".sp", out)
             else -> throw IllegalArgumentException(
                 "The printer cannot spell a ${value::class.simpleName} literal: " +
-                    "the text view covers the primitive literals, and the AST is the stored form",
+                    "the text view covers the primitive literals and the unit-suffixed numbers " +
+                    "(`16.0.dp`, `12.0.sp`), and the AST is the stored form",
             )
         }
     }
@@ -156,6 +159,24 @@ public object ExprPrinter {
                 "which is a different value"
         }
         return withPoint
+    }
+
+    /**
+     * A `Dp` or `Sp` number and its unit: `16.0.dp`, `12.5.sp`.
+     *
+     * The read-back is a `Float`, not a `Double`: the document stores these as a `Float`, so
+     * `0.1.dp` is the exact value `0.1f` even though `0.1` as a `Double` is a different number.
+     * The decimal point is not required by the grammar here — the unit already says what the
+     * number is — but it is kept so the text matches what generated Kotlin spells.
+     */
+    private fun writeUnit(value: Float, unit: String, out: StringBuilder) {
+        val text = canonicalText(value.toDouble())
+        val withPoint = if ('.' in text) text else "$text.0"
+        require(withPoint.toFloat() == value) {
+            "The printer cannot spell $value$unit: the canonical form is '$withPoint', " +
+                "which is a different value"
+        }
+        out.append(withPoint).append(unit)
     }
 
     private fun writeString(text: String, out: StringBuilder) {
