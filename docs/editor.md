@@ -73,6 +73,29 @@ and an app-image, `windows-latest` an `.msi` and an app-image. Every leg then ru
 package ("Failed to launch JVM") from a runner with no display — the difference a green build had
 not been able to make.
 
+## The frame
+
+`EditorShell` — in `:app:editor`, drawn by both hosts — owns everything between the window and
+the panes: the app bar with the document's name and what is selected, undo and redo, the two
+screens as tabs, and the save line. Each host now only opens a window, a theme and a session:
+the arrangement is not implemented twice, which is also why the Android activity and the desktop
+window stopped disagreeing about the theme.
+
+**Two arrangements, chosen by width.** Under 600dp — the Material 3 compact boundary — one pane
+gets the window: the canvas, or the generated code, with the palette behind a floating button and
+the inspector behind the selection's `Properties` action, both as `ModalBottomSheet`s. The
+platform's sheet brings its own dismissal, drag handle, back navigation and screen-reader focus
+order; a hand-rolled overlay would have to re-earn all four. At or above 600dp the palette, the
+canvas and the inspector sit side by side in one row, which is the desktop window's arrangement.
+
+**A selection has three actions.** On a narrow screen they dock above the save line, where the
+thumb already is: `Properties` opens the inspector sheet, `Duplicate` copies the subtree, and
+`Delete` removes it — with `Undo` in the app bar, one tap away, because a delete that can be
+taken back does not need a confirmation. Undo and redo go through `EditorSession.undo`/`redo`
+rather than the controller, so the selection is reconciled with them: stepping back over an
+insert leaves nothing selected, instead of leaving an inspector open on a node that no longer
+exists.
+
 ## The three panes
 
 ### Palette
@@ -98,9 +121,31 @@ just added.
 
 ### Canvas
 
-`CanvasPane` draws what the preview resolved and calls `session.select(...)` on a click. The
-preview is the runtime's own `UiApp` — the same renderer the shipped applications use — so
-what the canvas shows and what a built app shows cannot drift apart.
+`CanvasPane` draws what the preview resolved. The preview is the runtime's own `UiApp` — the
+same renderer the shipped applications use — so what the canvas shows and what a built app
+shows cannot drift apart.
+
+**The canvas is in edit mode, not in run mode.** A transparent overlay sits above the preview
+and owns every pointer, so tapping a `m3.Button` on the canvas *selects* it instead of pressing
+it. That is the split the Android Studio layout editor makes too, and the alternative — a preview
+that runs the app you are editing — is how an author loses the ability to reach the node they
+just dropped.
+
+**Selection is visible.** A click selects the deepest node under the pointer, and the selected
+node gets a ring drawn from its measured box. A click on the margin clears the selection, the way
+every layout editor does it.
+
+**A node can be moved.** A long press picks the node up and a drop on a container that admits its
+type calls `EditorSession.move`; the container under the finger is outlined while the drag is
+over it. The list of legal homes is `session.dropTargets(type)` — the engine's own answer, asked
+once at the start of the drag — so a drag can only end where the planner would have allowed the
+move. A node's own subtree is never offered, because a move into it would cut the branch out from
+under the node being moved.
+
+Positions on the canvas are *measured*, not stored: a document is a layout and its nodes have no
+`x`/`y`. `RenderHooks.onNodeMeasured` reports each node's box from `:engine:runtime`, and
+`NodeBounds` keeps those boxes for the overlay. Free positioning therefore is not a missing
+feature but a different document format, and nothing in the editor pretends otherwise.
 
 ### Inspector
 
@@ -108,6 +153,13 @@ what the canvas shows and what a built app shows cannot drift apart.
 declared type, whether it is required, the spec's help text, and the current value in
 canonical text. Committing a row goes through `EditorSession.setProperty`, which parses the
 text and dispatches one `SetProperty` command.
+
+A row commits when you leave it — focus moves elsewhere, or the keyboard's **Done** — and not on
+every keystroke: parsing a half-typed expression would report a refusal the author is about to
+finish typing past. Leaving a field you did not type in commits nothing, which is what keeps
+undo honest; the rule is `isNewEdit(sent, draft)` and it is tested without a screen. When the
+engine refuses a commit its own diagnostic appears under the field instead of the text quietly
+reverting.
 
 The expression field is the interesting half. Text is a view of the AST, never the truth
 (§10.8): `PropertyText.apply` parses what was typed, `PropertyText.of` prints the canonical
@@ -133,6 +185,11 @@ screen is the code for the tree the canvas draws, not a second resolution that c
 with it. It follows the preview while it is shown, for the same reason: the panes are out of the
 composition on that screen, and a preview that stopped following would show the code for a
 document the author has already edited.
+
+A document the generator cannot handle is a message, not a crash. Refusals arrive as
+diagnostics with a location; a *throw* is the generator's own bug, and `generatedCode` catches it
+and reports it as one — the screen is a view of a pure function, and a bug in that function must
+cost the author a sentence, not the composition they were in.
 
 Read-only is the design, not a missing feature. The document is the source and Kotlin is a
 projection of it (ADR-011), so an edit made here would be lost at the next regeneration. When the

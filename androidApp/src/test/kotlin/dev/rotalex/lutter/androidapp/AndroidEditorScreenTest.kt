@@ -1,20 +1,24 @@
 package dev.rotalex.lutter.androidapp
 
-import android.os.Looper
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.editor.EditorPreview
 import dev.rotalex.lutter.editor.EditorSelection
 import dev.rotalex.lutter.editor.EditorSession
 import dev.rotalex.lutter.editor.PreviewState
+import dev.rotalex.lutter.editor.ui.EditorShell
+import dev.rotalex.lutter.editor.ui.theme.LutterTheme
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PropertyKey
@@ -27,15 +31,16 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.LooperMode
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
  * The narrow arrangement, on a host JVM.
  *
  * Robolectric boots an Android runtime for the unit runner, so this runs on the same `check`
- * task as every other module's tests — no device, no emulator, no second CI job. The panes are
- * the same composables `:desktopApp` asserts; what is new here is the column and the activity's
- * share of the wiring, which is exactly the part a desktop test cannot reach.
+ * task as every other module's tests — no device, no emulator, no second CI job. The frame is
+ * the same `EditorShell` `:desktopApp` asserts; what is new here is which arrangement it picks
+ * at a phone's width, and the sheets a phone needs because it has no room for a second pane.
  *
  * The runtime is pinned in `src/test/resources/robolectric.properties` (35, as NowInAndroid does):
  * this module targets 37, Robolectric ships up to 36, and 36's `ApplicationSharedMemory` reaches
@@ -51,30 +56,39 @@ class AndroidEditorScreenTest {
     private val schema = BuiltinEngine.schema()
 
     @Test
-    fun the_three_panes_are_stacked_and_the_canvas_renders_the_document() {
+    fun the_canvas_fills_the_window_and_the_panes_arrive_as_sheets() {
         val session = session()
         compose.setContent {
-            MaterialTheme { AndroidEditorScreen(session, preview(session), BuiltinEngine.runtime(schema)) }
+            LutterTheme { EditorShell(session, preview(session), BuiltinEngine.runtime(schema), save = null) }
         }
 
-        compose.onNodeWithTag("palette").assertExists()
+        // One pane at a time: the canvas gets the window, and the palette and the inspector are
+        // behind the button and the selection's actions rather than stacked above and below it.
         compose.onNodeWithTag("canvas").assertExists()
-        compose.onNodeWithTag("inspector").assertExists()
-        // A line only the document has: a host that composes three empty boxes fails here.
+        compose.onNodeWithTag("palette-open").assertExists()
+        compose.onNodeWithTag("palette").assertDoesNotExist()
+        compose.onNodeWithTag("inspector").assertDoesNotExist()
+        // A line only the document has: a host that composes an empty box fails here.
         compose.onNode(hasText("Continue")).assertExists()
     }
 
     @Test
-    fun a_palette_click_inserts_through_the_session() {
+    fun the_palette_sheet_inserts_through_the_session() {
         val session = session()
         val before = session.document.nodes.size
         compose.setContent {
-            MaterialTheme { AndroidEditorScreen(session, preview(session), BuiltinEngine.runtime(schema)) }
+            LutterTheme { EditorShell(session, preview(session), BuiltinEngine.runtime(schema), save = null) }
         }
 
-        // The palette is a 160dp `LazyColumn`, so a row past the fold is not composed until it
-        // is scrolled to — the same gesture a user makes, and the reason the tag is asserted
-        // after the scroll rather than assumed.
+        compose.onNodeWithTag("palette-open").performClick()
+        compose.waitForIdle()
+
+        // The sheet first, then the list inside it: a frame whose button opened nothing fails
+        // here, with the sentence the person would have read on screen.
+        compose.onNodeWithText("Add component").assertExists()
+        // The list is a fixed 360dp, so a row past the fold is not composed
+        // until it is scrolled to — the same gesture a user makes, and the reason the tag is
+        // asserted after the scroll rather than assumed.
         compose.onNodeWithTag("palette").performScrollToNode(hasTestTag("palette:m3.Text"))
         compose.onNodeWithTag("palette:m3.Text").performClick()
         compose.waitForIdle()
@@ -83,7 +97,7 @@ class AndroidEditorScreenTest {
     }
 
     @Test
-    fun the_inspector_applies_an_edited_expression() {
+    fun the_inspector_sheet_applies_an_edited_expression() {
         val session = session()
         val editorPreview = preview(session)
         val node: NodeId = session.document.nodes.ids().first {
@@ -93,12 +107,20 @@ class AndroidEditorScreenTest {
         val original = session.document.nodes.require(node).props[text]
         session.select(EditorSelection.Node(node))
         compose.setContent {
-            MaterialTheme { AndroidEditorScreen(session, editorPreview, BuiltinEngine.runtime(schema)) }
+            LutterTheme { EditorShell(session, editorPreview, BuiltinEngine.runtime(schema), save = null) }
         }
+
+        // The selection dock is the only way to the inspector at this width, so the click on it
+        // is part of what this test asserts: a dock that drew nothing would fail the next line.
+        compose.onNodeWithTag("selection-actions").assertExists()
+        compose.onNodeWithText("Properties").performClick()
+        compose.waitForIdle()
 
         compose.onNodeWithTag("inspector:text").performTextClearance()
         compose.onNodeWithTag("inspector:text").performTextInput("\"Edited\"")
-        compose.onNodeWithTag("apply:text").performClick()
+        // The field commits on the keyboard's Done, which is one of the two ways out of it; the
+        // other is losing focus, and neither is a per-row button any more.
+        compose.onNodeWithTag("inspector:text").performImeAction()
         compose.waitForIdle()
 
         val edited = session.document.nodes.require(node).props[text]
@@ -109,6 +131,23 @@ class AndroidEditorScreenTest {
         assertTrue(editorPreview.state.value is PreviewState.Rendered)
     }
 
+    @Test
+    fun the_selection_dock_deletes_the_selected_node() {
+        val session = session()
+        val node = NodeId("n_title")
+        session.select(EditorSelection.Node(node))
+        compose.setContent {
+            LutterTheme { EditorShell(session, preview(session), BuiltinEngine.runtime(schema), save = null) }
+        }
+
+        compose.onNodeWithText("Delete").performClick()
+        compose.waitForIdle()
+
+        assertNull(session.document.nodes[node])
+        // Removal reconciles the selection, so the dock goes with the node it was acting on.
+        compose.onNodeWithTag("selection-actions").assertDoesNotExist()
+    }
+
     /**
      * The repository's own fixture, inline.
      *
@@ -116,6 +155,27 @@ class AndroidEditorScreenTest {
      * arrives through the asset pipeline would make a packaging change look like a layout bug.
      * The document is the same one `fixtures-navigating/button_navigate.json` holds.
      */
+    @Test
+    fun a_click_on_the_preview_selects_the_node_under_the_finger() {
+        val session = session()
+        // Start from nothing selected, so the assertion is about the click rather than about what
+        // `open` restored.
+        session.select(EditorSelection.None)
+        compose.setContent {
+            LutterTheme { EditorShell(session, preview(session), BuiltinEngine.runtime(schema), save = null) }
+        }
+
+        // The overlay sits above the preview and owns the pointer, so this click selects the text
+        // instead of doing nothing to it. Clicking the node's own centre is the honest gesture: a
+        // fixed offset would be a statement about the fixture's padding, not about the hit test.
+        compose.onNode(hasText("Welcome")).performTouchInput { click(center) }
+
+        compose.waitForIdle()
+        assertEquals(EditorSelection.Node(NodeId("n_title")), session.selection.value)
+        compose.onNodeWithTag("canvas-selection").assertExists()
+        compose.onNodeWithTag("selection-actions").assertExists()
+    }
+
     private fun session(): EditorSession {
         val document = JsonDocumentCodec.decode(DOCUMENT.encodeToByteArray()).document
         return EditorSession.open(document, schema)

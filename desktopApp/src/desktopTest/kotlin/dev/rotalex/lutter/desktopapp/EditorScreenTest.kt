@@ -1,10 +1,11 @@
 package dev.rotalex.lutter.desktopapp
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -13,6 +14,8 @@ import dev.rotalex.lutter.editor.EditorPreview
 import dev.rotalex.lutter.editor.EditorSelection
 import dev.rotalex.lutter.editor.EditorSession
 import dev.rotalex.lutter.editor.PreviewState
+import dev.rotalex.lutter.editor.ui.EditorShell
+import dev.rotalex.lutter.editor.ui.theme.LutterTheme
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.NodeId
@@ -26,8 +29,11 @@ import kotlin.test.assertTrue
 /**
  * What the window shows and what its panes do, asserted on a headless runner.
  *
- * The frame itself cannot be asserted, so this drives [EditorScreen] over the same document
+ * The window itself cannot be asserted, so this drives [EditorShell] over the same document
  * `main` opens: a host that compiles and renders nothing would pass a build and prove nothing.
+ * The runner's surface is wider than [dev.rotalex.lutter.editor.ui.EditorShell]'s compact
+ * breakpoint, so what is under test here is the three-pane arrangement — the phone's one-pane
+ * one is `AndroidEditorScreenTest`'s, in the module that can boot an Android window.
  */
 @OptIn(ExperimentalTestApi::class)
 class EditorScreenTest {
@@ -39,7 +45,7 @@ class EditorScreenTest {
         val session = session()
         val preview = preview(session)
         setContent {
-            MaterialTheme { EditorScreen(session, preview, BuiltinEngine.runtime(schema)) }
+            LutterTheme { EditorShell(session, preview, BuiltinEngine.runtime(schema), save = null) }
         }
 
         onNodeWithTag("palette").fetchSemanticsNode()
@@ -57,13 +63,34 @@ class EditorScreenTest {
         val preview = preview(session)
         val before = session.document.nodes.size
         setContent {
-            MaterialTheme { EditorScreen(session, preview, BuiltinEngine.runtime(schema)) }
+            LutterTheme { EditorShell(session, preview, BuiltinEngine.runtime(schema), save = null) }
         }
 
         onNodeWithTag("palette:m3.Text").performClick()
         waitForIdle()
 
         assertEquals(before + 1, session.document.nodes.size)
+    }
+
+    @Test
+    fun `the app bar's undo takes the insert back`() = runComposeUiTest {
+        val session = session()
+        val preview = preview(session)
+        val before = session.document.nodes.size
+        setContent {
+            LutterTheme { EditorShell(session, preview, BuiltinEngine.runtime(schema), save = null) }
+        }
+
+        onNodeWithTag("palette:m3.Text").performClick()
+        waitForIdle()
+        assertEquals(before + 1, session.document.nodes.size)
+
+        // The button, not the session: a frame that drew an undo that did nothing would pass a
+        // session-level test and fail the person.
+        onNodeWithText("Undo").performClick()
+        waitForIdle()
+
+        assertEquals(before, session.document.nodes.size)
     }
 
     @Test
@@ -78,12 +105,14 @@ class EditorScreenTest {
         val original = document.nodes.require(node).props[text]
         session.select(EditorSelection.Node(node))
         setContent {
-            MaterialTheme { EditorScreen(session, preview, BuiltinEngine.runtime(schema)) }
+            LutterTheme { EditorShell(session, preview, BuiltinEngine.runtime(schema), save = null) }
         }
 
         onNodeWithTag("inspector:text").performTextClearance()
         onNodeWithTag("inspector:text").performTextInput("\"Edited\"")
-        onNodeWithTag("apply:text").performClick()
+        // The field commits on the keyboard's Done, which is one of the two ways out of it; the
+        // other is losing focus, and neither is a per-row button any more.
+        onNodeWithTag("inspector:text").performImeAction()
         waitForIdle()
 
         val edited = session.document.nodes.require(node).props[text]
