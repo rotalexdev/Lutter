@@ -556,15 +556,6 @@ public final class dev/rotalex/lutter/editor/ui/ComposableSingletons$EditorShell
 	public final fun getLambda$934432028$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
 }
 
-public final class dev/rotalex/lutter/editor/ui/EditorDestination : java/lang/Enum {
-	public static final field Code Ldev/rotalex/lutter/editor/ui/EditorDestination;
-	public static final field Editor Ldev/rotalex/lutter/editor/ui/EditorDestination;
-	public static fun getEntries ()Lkotlin/enums/EnumEntries;
-	public final fun getLabel ()Ljava/lang/String;
-	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/editor/ui/EditorDestination;
-	public static fun values ()[Ldev/rotalex/lutter/editor/ui/EditorDestination;
-}
-
 public final class dev/rotalex/lutter/editor/ui/EditorPanesKt {
 	public static final fun CanvasPane (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/runtime/UiRuntime;Ldev/rotalex/lutter/editor/PreviewState;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 	public static final fun FollowPreview (Ldev/rotalex/lutter/editor/EditorPreview;Landroidx/compose/runtime/Composer;I)V

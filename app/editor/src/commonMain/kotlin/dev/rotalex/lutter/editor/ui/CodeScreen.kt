@@ -119,14 +119,20 @@ public fun CodeScreen(
                         text = view.diagnostics.joinToString("\n") { "${it.code.value}: ${it.message}" },
                         style = MaterialTheme.typography.bodySmall,
                         color = theme.error,
-                        modifier = Modifier.padding(bottom = 8.dp),
+                        modifier = Modifier.padding(bottom = 8.dp).testTag("code-diagnostics"),
                     )
                 }
                 if (view.isEmpty && view.failure == null) {
+                    // The refusal is the document's, not the generator's, and the diagnostic above
+                    // names the node it is about: the sentence says what to do with that name
+                    // instead of leaving an author to guess whether the app is broken.
                     Text(
-                        text = "The generator refused this document and said why above.",
+                        text = "The generator cannot emit this document: the diagnostic above names " +
+                            "the node that asks for something it has no strategy for. Change or " +
+                            "remove that node and the code appears here.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = theme.onSurfaceVariant,
+                        modifier = Modifier.testTag("code-refused"),
                     )
                 } else if (!view.isEmpty) {
                     LazyColumn(

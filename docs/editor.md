@@ -6,9 +6,9 @@ live preview in the middle, an inspector on the right — the desktop window sho
 the Android app shows the same three in a column. The **Code** screen is what that document
 becomes: the Kotlin `:engine:codegen` emits for it, one block per file, read-only.
 
-Both hosts reach the two screens the same way — a tab row under the window's title, on Android
-inside a `Scaffold` and on the desktop above the panes — and both keep the save line visible on
-either screen, because "did that save?" is a question the Code screen raises too.
+Both hosts reach the two screens the same way — a bottom navigation bar on a phone, a navigation
+rail on a desktop, both over one back stack — and both keep the save line visible on either
+screen, because "did that save?" is a question the Code screen raises too.
 
 This page describes the editor as it exists in the code — what each pane asks the engine,
 what the session persists, and what the preview guarantees. Behaviour here is pinned by the
@@ -76,17 +76,36 @@ not been able to make.
 ## The frame
 
 `EditorShell` — in `:app:editor`, drawn by both hosts — owns everything between the window and
-the panes: the app bar with the document's name and what is selected, undo and redo, the two
-screens as tabs, and the save line. Each host now only opens a window, a theme and a session:
-the arrangement is not implemented twice, which is also why the Android activity and the desktop
-window stopped disagreeing about the theme.
+the panes: the app bar, the primary navigation, the destination the back stack is showing, and
+the save line. Each host now only opens a window, a theme and a session: the arrangement is not
+implemented twice, which is also why the Android activity and the desktop window stopped
+disagreeing about the theme.
 
-**Two arrangements, chosen by width.** Under 600dp — the Material 3 compact boundary — one pane
-gets the window: the canvas, or the generated code, with the palette behind a floating button and
-the inspector behind the selection's `Properties` action, both as `ModalBottomSheet`s. The
+**Where the app is, is a stack.** `EditorShell` holds one `rememberNavBackStack(EditorRoute)` and
+renders it with `NavDisplay`; the three destinations are `@Serializable` `NavKey`s. Editor and
+Code are what the navigation offers, so switching between them replaces the stack's entry rather
+than piling up; Settings is pushed over whichever screen opened it, so leaving it is a pop and the
+platform's own back gesture performs it. A configuration change restores the stack, because the
+keys are serialisable — a boolean "the settings are showing" would have restored a flag and
+forgotten which screen it was showing over.
+
+The routes and the three list operations (`switchTo`, `push`, `pop`) live in
+`ui/EditorRoutes.kt` and are asserted in `EditorRoutesTest` without a window: what a phone draws
+is the composition's business, and what the stack holds afterwards is the file's.
+
+**Two arrangements, chosen by width.** Under 600dp — the Material 3 compact boundary — a
+`NavigationBar` sits at the bottom edge and one pane gets the window: the canvas, or the generated
+code, with the palette behind a floating button and the inspector behind the selection's
+`Properties` action, both as `ModalBottomSheet`s. At or above 600dp a `NavigationRail` takes the
+leading edge instead. The
 platform's sheet brings its own dismissal, drag handle, back navigation and screen-reader focus
 order; a hand-rolled overlay would have to re-earn all four. At or above 600dp the palette, the
 canvas and the inspector sit side by side in one row, which is the desktop window's arrangement.
+
+**Settings is an action, not a tab.** The app bar's "more options" (⋮) button opens a
+`DropdownMenu` with `Settings`; the settings destination has a back arrow and no navigation suite,
+because it is not somewhere the editor *is*. The icons are Material's, from
+`material-icons-extended` (`rootLibs`), not hand-drawn paths.
 
 **A selection has three actions.** On a narrow screen they dock above the save line, where the
 thumb already is: `Properties` opens the inspector sheet, `Duplicate` copies the subtree, and
@@ -234,7 +253,7 @@ in a DataStore Preferences file (`settings.preferences_pb`) inside the host's pr
 |---|---|---|
 | Theme | `System` | The colour scheme at the root of the window, on both hosts |
 | Code text size | `1.0×` | The size of the generated Kotlin on the Code screen |
-| Autosave | on | With it off, the frame offers `Save` and writes only when it is pressed |
+| Autosave | on | With it off, the frame offers a `Save` action and writes only when it is pressed |
 
 `SettingsStore` is the seam: `app/editor` owns the interface and an in-memory implementation, and
 each host owns the one instance per process, because DataStore refuses a second instance over the

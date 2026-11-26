@@ -49,6 +49,33 @@ class AndroidSettingsScreenTest {
 
     private val schema = BuiltinEngine.schema()
 
+    /**
+     * The primary navigation is the only way between the two screens, and it is a destination in
+     * the back stack rather than a flag: what this asserts is that the bar reaches the code and
+     * that the editor is not left drawn underneath it.
+     */
+    @Test
+    fun the_navigation_bar_reaches_the_code_destination() {
+        val session = session()
+        compose.setContent {
+            LutterTheme {
+                EditorShell(session, preview(session), BuiltinEngine.runtime(schema), save = null)
+            }
+        }
+
+        compose.onNodeWithTag("nav:code").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("code").assertExists()
+        compose.onNodeWithTag("canvas").assertDoesNotExist()
+
+        compose.onNodeWithTag("nav:editor").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("canvas").assertExists()
+        compose.onNodeWithTag("code").assertDoesNotExist()
+    }
+
     @Test
     fun the_settings_action_opens_the_screen_and_the_back_action_returns_to_the_canvas() {
         val store = InMemorySettingsStore()
@@ -59,8 +86,7 @@ class AndroidSettingsScreenTest {
             }
         }
 
-        compose.onNodeWithTag("settings-open").performClick()
-        compose.waitForIdle()
+        compose.openSettings()
 
         // The screen replaced the tabs, and the canvas is gone while it is shown: a settings page
         // drawn over a live editor would let a tap land on a document nobody is choosing.
@@ -85,8 +111,7 @@ class AndroidSettingsScreenTest {
             }
         }
 
-        compose.onNodeWithTag("settings-open").performClick()
-        compose.waitForIdle()
+        compose.openSettings()
         compose.onNodeWithTag("settings:theme:Dark").performClick()
         compose.waitForIdle()
 
@@ -106,8 +131,7 @@ class AndroidSettingsScreenTest {
             }
         }
 
-        compose.onNodeWithTag("settings-open").performClick()
-        compose.waitForIdle()
+        compose.openSettings()
 
         // The row prints the value it is showing, so a screen that ignored the store would read
         // "×1.0" over a file that says 1.2.
@@ -167,6 +191,18 @@ class AndroidSettingsScreenTest {
             written.contains("n_title_leaf"),
             "Save reported success and the record still points somewhere else: $written",
         )
+    }
+
+    /**
+     * Settings, the way a person reaches it: the app bar's "more options" menu.
+     *
+     * Not a tag on a hidden screen — the point of the test is the route, so it takes the route.
+     */
+    private fun androidx.compose.ui.test.junit4.ComposeContentTestRule.openSettings() {
+        onNodeWithTag("more-options").performClick()
+        waitForIdle()
+        onNodeWithTag("settings-menu-item").performClick()
+        waitForIdle()
     }
 
     private fun session(): EditorSession {

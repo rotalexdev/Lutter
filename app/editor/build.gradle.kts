@@ -38,6 +38,17 @@ dependencies {
     commonMainImplementation(rootLibs.jetbrains.compose.foundation)
     commonMainImplementation(rootLibs.jetbrains.compose.material3)
 
+    // The frame's icons: the plus, the back arrow, the overflow's three dots and the two
+    // destinations. `material3` does not ship them, and the alternative was a file of hand-drawn
+    // paths that guessed at Material's own geometry — an icon set is a dependency, not a drawing.
+    commonMainImplementation(rootLibs.jetbrains.compose.material.icons.extended)
+
+    // Navigation3 is what turns "which screen is this" into a back stack, so Settings can be
+    // pushed over the editor and the platform's back gesture can pop it. `navigation3-ui` brings
+    // `navigation3-runtime` with it (`rememberNavBackStack`, `NavKey`), which is why the local
+    // catalog carries only the UI artifact.
+    commonMainImplementation(libs.navigation3.ui)
+
     // The settings the editor remembers — theme, code size, autosave — live in a DataStore
     // Preferences file both hosts read. The `-core` artifact carries no Android dependency, so
     // the desktop window and the activity share one format and one implementation, and a bug in
