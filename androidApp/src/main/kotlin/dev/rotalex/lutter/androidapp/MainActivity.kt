@@ -31,6 +31,7 @@ import dev.rotalex.lutter.editor.WorkspaceSaver
 import dev.rotalex.lutter.editor.open
 import dev.rotalex.lutter.editor.settings.EditorSettings
 import dev.rotalex.lutter.editor.settings.SettingsStore
+import dev.rotalex.lutter.editor.ui.CrashReportScreen
 import dev.rotalex.lutter.editor.ui.EditorShell
 import dev.rotalex.lutter.editor.ui.EditorShellSave
 import dev.rotalex.lutter.editor.ui.theme.LutterTheme
@@ -83,17 +84,35 @@ public class MainActivity : ComponentActivity() {
         // the wrong scheme and correct itself a frame later.
         val settings: SettingsStore = AndroidSettings.inDirectory(filesDir)
 
+        // Installed before the first frame, so a crash during the first composition is recorded
+        // too. The file is read here as well: the launch after a crash shows the trace instead of
+        // the editor, and one tap on "Continue" clears it.
+        val crashLog = File(filesDir, CRASH_FILE)
+        installCrashLog(crashLog)
+
         setContent {
             val preferences: EditorSettings by settings.settings.collectAsState()
+            var crash: String? by remember { mutableStateOf(readCrashLog(crashLog)) }
             LutterTheme(theme = preferences.theme) {
                 Surface(Modifier.fillMaxSize()) {
-                    EditorHost(
-                        runtime = runtime,
-                        documentLocation = documentLocation,
-                        recordLocation = recordLocation,
-                        settings = settings,
-                        seed = { readDocument() },
-                    )
+                    val trace: String? = crash
+                    if (trace != null) {
+                        CrashReportScreen(
+                            trace = trace,
+                            onContinue = {
+                                clearCrashLog(crashLog)
+                                crash = null
+                            },
+                        )
+                    } else {
+                        EditorHost(
+                            runtime = runtime,
+                            documentLocation = documentLocation,
+                            recordLocation = recordLocation,
+                            settings = settings,
+                            seed = { readDocument() },
+                        )
+                    }
                 }
             }
         }
@@ -118,6 +137,9 @@ public class MainActivity : ComponentActivity() {
         /** The working copy inside [filesDir], and the record beside it. */
         const val DOCUMENT_FILE: String = "document.json"
         const val SESSION_FILE: String = "session.json"
+
+        /** The trace of the last uncaught exception, read on the launch after it. */
+        const val CRASH_FILE: String = "crash.txt"
     }
 }
 

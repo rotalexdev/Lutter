@@ -541,6 +541,12 @@ public final class dev/rotalex/lutter/editor/ui/CodeScreenKt {
 	public static final fun CodeScreen (Ldev/rotalex/lutter/editor/EditorSession;Ldev/rotalex/lutter/editor/EditorPreview;Landroidx/compose/ui/Modifier;FLandroidx/compose/runtime/Composer;II)V
 }
 
+public final class dev/rotalex/lutter/editor/ui/ComposableSingletons$CrashReportKt {
+	public static final field INSTANCE Ldev/rotalex/lutter/editor/ui/ComposableSingletons$CrashReportKt;
+	public fun <init> ()V
+	public final fun getLambda$-1271994340$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
+}
+
 public final class dev/rotalex/lutter/editor/ui/ComposableSingletons$EditorShellKt {
 	public static final field INSTANCE Ldev/rotalex/lutter/editor/ui/ComposableSingletons$EditorShellKt;
 	public fun <init> ()V
@@ -556,6 +562,10 @@ public final class dev/rotalex/lutter/editor/ui/ComposableSingletons$EditorShell
 	public final fun getLambda$1896768494$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$2028920782$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$682800373$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
+}
+
+public final class dev/rotalex/lutter/editor/ui/CrashReportKt {
+	public static final fun CrashReportScreen (Ljava/lang/String;Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class dev/rotalex/lutter/editor/ui/EditorPanesKt {

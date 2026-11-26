@@ -38,6 +38,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -323,7 +324,7 @@ public fun EditorShell(
 
         if (paletteOpen) {
             ModalBottomSheet(
-                onDismissRequest = { paletteOpen = false },
+                onDismissRequest = { dismiss(paletteSheet, scope) { paletteOpen = false } },
                 sheetState = paletteSheet,
                 dragHandle = null,
             ) {
@@ -357,7 +358,7 @@ public fun EditorShell(
         val inspector: InspectorModel? = sheetModel
         if (inspectorOpen && inspector != null) {
             ModalBottomSheet(
-                onDismissRequest = { inspectorOpen = false },
+                onDismissRequest = { dismiss(inspectorSheet, scope) { inspectorOpen = false } },
                 sheetState = inspectorSheet,
                 dragHandle = null,
             ) {
@@ -383,6 +384,38 @@ public fun EditorShell(
  * below it a phone is held in one hand and a sheet is the only place a second pane can go.
  */
 private val CompactWidth = 600.dp
+
+/**
+ * Dismisses [sheet] and then removes its host, in that order — or leaves both alone.
+ *
+ * `onDismissRequest` fires when the scrim is tapped, when the sheet is swiped away and when the
+ * back gesture arrives, and Material's contract for it is that the *caller* hides the sheet. The
+ * flag that composes the sheet belongs to the caller too, which is the trap: setting that flag
+ * directly removes a `ModalBottomSheet` mid-animation, with its scrim, its dialog state and a
+ * focused field still settling — the same teardown that closed the app when a tap on the page's
+ * margin cleared the selection. The scrim covers the canvas, so "tapping the empty space" while
+ * a sheet is open is exactly this path.
+ *
+ * The removal is conditional on the hide having finished: a dismissal that was cancelled — the
+ * sheet shown again, the window going away — is not a dismissal, and removing the host then would
+ * take a sheet that is still on screen out of the composition.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+private fun dismiss(sheet: SheetState, scope: CoroutineScope, onHidden: () -> Unit) {
+    scope.launch { sheet.hide() }.invokeOnCompletion { cause ->
+        if (removesHostAfter(cause, sheet.isVisible)) onHidden()
+    }
+}
+
+/**
+ * Whether a dismissal that finished with [cause] leaves the sheet off screen.
+ *
+ * Two facts, both required: the hide ran to the end ([cause] is null — a cancelled animation is
+ * not a dismissal) and the sheet is no longer visible. Either alone would remove a
+ * `ModalBottomSheet` that is still on screen, which is the teardown this rule exists to prevent.
+ */
+internal fun removesHostAfter(cause: Throwable?, visible: Boolean): Boolean =
+    cause == null && !visible
 
 /** The leading-edge navigation a window with a desk under it shows. */
 @Composable
