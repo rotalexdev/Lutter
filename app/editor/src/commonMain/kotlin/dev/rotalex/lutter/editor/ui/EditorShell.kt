@@ -29,6 +29,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -115,9 +117,32 @@ public fun EditorShell(
     var destination: EditorDestination by rememberSaveable { mutableStateOf(EditorDestination.Editor) }
     var paletteOpen: Boolean by remember { mutableStateOf(false) }
     var inspectorOpen: Boolean by remember { mutableStateOf(false) }
+    // What the inspector sheet is showing. Held separately from `selected` on purpose: when the
+    // selection clears, the sheet still has to draw its last node for the length of the hide
+    // animation, and reading `selected` there would empty it a frame before it slid away.
+    var sheetModel: InspectorModel? by remember { mutableStateOf(null) }
     val scope = rememberCoroutineScope()
+    val focus = LocalFocusManager.current
     val paletteSheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val inspectorSheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // A tap on the page's margin, or a delete, can take the selection away while the inspector
+    // sheet is open over the canvas. The sheet must leave the way Material says a sheet leaves —
+    // hidden first, removed after — because yanking it out from under a focused text field is
+    // what closed the app: the field and the keyboard were torn down mid-animation, in the same
+    // frame the dialog's own state was still settling.
+    LaunchedEffect(selected) {
+        if (selected != null) {
+            sheetModel = selected
+        } else if (inspectorOpen) {
+            // Leaving the sheet is one of the ways out of a field, so the draft is committed
+            // before anything moves: clearing focus runs the same `onFocusChanged` the keyboard's
+            // Done does. Without this the keystrokes were in a field that no longer existed.
+            focus.clearFocus()
+            inspectorSheet.hide()
+            inspectorOpen = false
+        }
+    }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val compact: Boolean = maxWidth < CompactWidth
@@ -190,7 +215,10 @@ public fun EditorShell(
                     // same actions in the inspector that is already open.
                     if (compact && destination == EditorDestination.Editor && selected != null) {
                         SelectionActions(
-                            onProperties = { inspectorOpen = true },
+                            onProperties = {
+                                sheetModel = selected
+                                inspectorOpen = true
+                            },
                             onDuplicate = { session.duplicate(selected.node) },
                             onDelete = { session.remove(selected.node) },
                         )
@@ -264,14 +292,15 @@ public fun EditorShell(
             }
         }
 
-        if (inspectorOpen && selected != null) {
+        val inspector: InspectorModel? = sheetModel
+        if (inspectorOpen && inspector != null) {
             ModalBottomSheet(
                 onDismissRequest = { inspectorOpen = false },
                 sheetState = inspectorSheet,
                 dragHandle = null,
             ) {
                 Column(Modifier.fillMaxWidth()) {
-                    SheetTitle(title = selected.displayName, hint = selected.type.value)
+                    SheetTitle(title = inspector.displayName, hint = inspector.type.value)
                     InspectorPane(
                         session = session,
                         selection = selection,
