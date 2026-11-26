@@ -3,7 +3,9 @@ package dev.rotalex.lutter.desktopapp
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -12,6 +14,7 @@ import androidx.compose.ui.window.rememberWindowState
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.editor.EditorPreview
 import dev.rotalex.lutter.editor.EditorSession
+import dev.rotalex.lutter.editor.ui.CrashReportScreen
 import dev.rotalex.lutter.editor.ui.EditorShell
 import dev.rotalex.lutter.editor.ui.EditorShellSave
 import dev.rotalex.lutter.editor.ui.theme.LutterTheme
@@ -142,6 +145,12 @@ public fun main(args: Array<String>): Unit = application {
         WorkspaceSaver(opened.workspace) { LocalTime.now().withNano(0).toString() }
     }
 
+    // Installed before the window exists, so a crash in the first composition is recorded too.
+    // A packaged launch has no terminal: the file is the only record, and the window shows it on
+    // the next launch instead of opening the editor.
+    val crashLog = File(directory, CRASH_FILE)
+    installCrashLog(crashLog)
+
     Window(
         onCloseRequest = {
             runBlocking { saver.save(session.document, session.selection.value) }
@@ -154,22 +163,34 @@ public fun main(args: Array<String>): Unit = application {
         // is inside it, so a theme that only reached the editor would leave the screen that
         // changes it in the old scheme.
         val preferences: EditorSettings by Settings.settings.collectAsState()
+        var crash: String? by remember { mutableStateOf(readCrashLog(crashLog)) }
         LutterTheme(theme = preferences.theme) {
-            Surface {
-                // The frame is the same composable the Android activity draws: the app bar, the
-                // two screens as tabs, and the three panes a 1280dp window has room for. The
-                // window adds the close handler and nothing else.
-                EditorShell(
-                    session = session,
-                    preview = preview,
-                    runtime = runtime,
-                    save = EditorShellSave(
-                        saver = saver,
-                        location = opened.workspace.documentLocation,
-                        notice = opened.notice,
-                    ),
-                    settings = Settings,
+            val trace: String? = crash
+            if (trace != null) {
+                CrashReportScreen(
+                    trace = trace,
+                    onContinue = {
+                        clearCrashLog(crashLog)
+                        crash = null
+                    },
                 )
+            } else {
+                Surface {
+                    // The frame is the same composable the Android activity draws: the app bar, the
+                    // two screens as tabs, and the three panes a 1280dp window has room for. The
+                    // window adds the close handler and nothing else.
+                    EditorShell(
+                        session = session,
+                        preview = preview,
+                        runtime = runtime,
+                        save = EditorShellSave(
+                            saver = saver,
+                            location = opened.workspace.documentLocation,
+                            notice = opened.notice,
+                        ),
+                        settings = Settings,
+                    )
+                }
             }
         }
     }
@@ -194,3 +215,6 @@ private const val SESSION_FILE: String = "session.json"
 
 /** Where the settings live, beside the working copy. */
 private const val SETTINGS_FILE: String = "settings.preferences_pb"
+
+/** The trace of the last uncaught exception, read on the launch after it. */
+private const val CRASH_FILE: String = "crash.txt"
