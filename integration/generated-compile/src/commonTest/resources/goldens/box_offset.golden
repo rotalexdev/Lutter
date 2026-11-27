@@ -9,7 +9,7 @@ import dev.rotalex.lutter.generated.box_offset.screens.HomeScreen
 @Composable
 public fun AppRoot(navigator: AppNavigator, modifier: Modifier = Modifier) {
     when (navigator.current) {
-        Route.Home -&gt; {
+        Route.Home -> {
             HomeScreen(
                 modifier = modifier,
             )
@@ -41,7 +41,7 @@ public sealed interface Route {
     public data object Home : Route
 }
 
-public class AppNavigator(private val backStack: MutableList&lt;Route&gt; = mutableStateListOf(Route.Home)) {
+public class AppNavigator(private val backStack: MutableList<Route> = mutableStateListOf(Route.Home)) {
     public val current: Route
         get() = backStack.last()
 
@@ -50,7 +50,7 @@ public class AppNavigator(private val backStack: MutableList&lt;Route&gt; = muta
     }
 
     public fun back(): Boolean {
-        if (backStack.size &gt; 1) {
+        if (backStack.size > 1) {
             backStack.removeAt(backStack.lastIndex)
             return(true)
         } else {
@@ -76,9 +76,9 @@ public fun HomeScreen(modifier: Modifier = Modifier) {
         modifier = modifier
             .size(height = 120.0.dp, width = 200.0.dp),
     ) {
-        Text(&quot;Anchored&quot;)
+        Text("Anchored")
         Text(
-            &quot;Moved&quot;,
+            "Moved",
             modifier = Modifier
                 .offset(x = 40.0.dp, y = 24.0.dp),
         )
