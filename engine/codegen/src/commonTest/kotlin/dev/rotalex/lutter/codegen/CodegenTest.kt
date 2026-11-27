@@ -16,6 +16,10 @@ import dev.rotalex.lutter.model.action.ActionStep
 import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
 import dev.rotalex.lutter.model.diagnostic.Severity
+import dev.rotalex.lutter.model.doc.DataModelDecl
+import dev.rotalex.lutter.model.doc.EnumEntryDecl
+import dev.rotalex.lutter.model.doc.EnumTypeDecl
+import dev.rotalex.lutter.model.doc.FieldDecl
 import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.ParamDecl
 import dev.rotalex.lutter.model.doc.StateDecl
@@ -29,6 +33,7 @@ import dev.rotalex.lutter.model.expr.RefTarget
 import dev.rotalex.lutter.model.expr.TypedExpr
 import dev.rotalex.lutter.model.ids.ActionId
 import dev.rotalex.lutter.model.ids.ComponentType
+import dev.rotalex.lutter.model.ids.DataModelId
 import dev.rotalex.lutter.model.ids.EventKey
 import dev.rotalex.lutter.model.ids.ModifierType
 import dev.rotalex.lutter.model.ids.NodeId
@@ -77,6 +82,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /** Codegen over hand-built resolved documents: no analyzer, no fixtures, no filesystem. */
@@ -2200,6 +2206,78 @@ class CodegenTest {
         ),
     )
 
+    @Test
+    fun `a document with no declarations plans no model file`() {
+        val result = generate(homeDocument(textNode("n_1", "Hi")))
+
+        assertFalse(result.files.files.any { it.path == "model/Models.kt" })
+    }
+
+    @Test
+    fun `a declared model is emitted as a data class in its own package`() {
+        val result = generate(homeDocument(textNode("n_1", "Hi"), dataModels = listOf(userModel())))
+
+        val models = assertNotNull(result.files.files.firstOrNull { it.path == "model/Models.kt" })
+        assertTrue(models.content.contains("package com.example.app.model"), models.content)
+        assertTrue(
+            models.content.contains("public data class User(public val name: String, public val age: Int)"),
+            models.content,
+        )
+    }
+
+    @Test
+    fun `a declared enum is emitted as an enum class`() {
+        val result = generate(
+            homeDocument(
+                textNode("n_1", "Hi"),
+                enums = listOf(EnumTypeDecl(TypeId("t_role"), "Role", listOf(EnumEntryDecl("Admin")))),
+            ),
+        )
+
+        val models = assertNotNull(result.files.files.firstOrNull { it.path == "model/Models.kt" })
+        assertTrue(models.content.contains("public enum class Role {"), models.content)
+        assertTrue(models.content.contains("    Admin,"), models.content)
+    }
+
+    @Test
+    fun `a field typed by another declaration is spelled by its name`() {
+        // §16.6's "no Kotlin class name is carried by it or its spec" is what carriage closed:
+        // the field names the model's `TypeId`, and the declaration supplies the class name.
+        val friend: DataModelDecl = DataModelDecl(
+            DataModelId("dm_friend"),
+            "Friend",
+            listOf(FieldDecl(PropertyKey("user"), TypeRef.Object(TypeId("dm_user")))),
+        )
+        val result = generate(
+            homeDocument(textNode("n_1", "Hi"), dataModels = listOf(userModel(), friend)),
+        )
+
+        val models = assertNotNull(result.files.files.firstOrNull { it.path == "model/Models.kt" })
+        assertTrue(models.content.contains("public val user: User"), models.content)
+    }
+
+    @Test
+    fun `a field type with no spelling is refused before a file is written`() {
+        val broken: DataModelDecl = DataModelDecl(
+            DataModelId("dm_broken"),
+            "Broken",
+            listOf(FieldDecl(PropertyKey("color"), TypeRef.Token(TokenKind.Color))),
+        )
+        val result = generate(homeDocument(textNode("n_1", "Hi"), dataModels = listOf(broken)))
+
+        assertEquals(listOf("codegen.no_type_spelling"), result.diagnostics.map { it.code.value })
+        assertTrue(result.files.files.isEmpty(), "got ${result.files.files.map { it.path }}")
+    }
+
+    private fun userModel(): DataModelDecl = DataModelDecl(
+        DataModelId("dm_user"),
+        "User",
+        listOf(
+            FieldDecl(PropertyKey("name"), TypeRef.Str),
+            FieldDecl(PropertyKey("age"), TypeRef.Int32),
+        ),
+    )
+
     private fun generate(
         document: ResolvedDocument,
         incoming: List<Diagnostic> = emptyList(),
@@ -2212,6 +2290,8 @@ class CodegenTest {
         appState: List<ResolvedState> = emptyList(),
         hostFunctions: List<HostFunctionDecl> = emptyList(),
         theme: ResolvedTheme = ResolvedTheme(null),
+        dataModels: List<DataModelDecl> = emptyList(),
+        enums: List<EnumTypeDecl> = emptyList(),
     ): ResolvedDocument {
         val pages = mapOf(
             PageId("p_home") to ResolvedPage(PageId("p_home"), "Home", "home", root, state),
@@ -2223,6 +2303,8 @@ class CodegenTest {
             theme,
             appState,
             hostFunctions = hostFunctions,
+            dataModels = dataModels.associateBy { it.id },
+            enums = enums.associateBy { it.id },
         )
     }
 

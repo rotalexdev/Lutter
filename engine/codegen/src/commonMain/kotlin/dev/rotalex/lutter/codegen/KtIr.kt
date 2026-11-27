@@ -390,6 +390,15 @@ public sealed interface KtDeclaration {
          * write a constructor annotation the printer cannot place.
          */
         public val constructorAnnotation: KotlinSymbol? = null,
+        /**
+         * `data class User(...)`: §16.6 emits a document model as a data class, and nothing else
+         * this module writes is one. A flag rather than a separate declaration because the rest
+         * of the shape — a primary constructor and its properties — is the same production.
+         *
+         * False for a model with no fields: Kotlin refuses a data class without a constructor
+         * parameter, and a class with no state has nothing for the generated `equals` to compare.
+         */
+        public val data: Boolean = false,
     ) : KtDeclaration
 
     /**
@@ -433,6 +442,18 @@ public sealed interface KtDeclaration {
          * a `const val` per page is the one shape that keeps the call sites reading like names.
          */
         public val members: List<KtDeclaration> = emptyList(),
+    ) : KtDeclaration
+
+    /**
+     * `enum class Role { Admin, User }`: a document-declared enum, emitted beside its models.
+     *
+     * [entries] are names and nothing else. §16.6 gives an enum entry `EnumEntrySpec.kotlin` as
+     * its symbol and `EnumEntryDecl` carries no payload, so there is no constructor to write.
+     */
+    public data class Enum(
+        public val name: String,
+        public val annotations: List<KtAnnotation>,
+        public val entries: List<String>,
     ) : KtDeclaration
 }
 

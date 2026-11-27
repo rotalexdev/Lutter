@@ -87,7 +87,7 @@ class KotlinTypesTest {
         val refusal = KotlinTypes.spellingFor(TypeRef.ListOf(TypeRef.Enum(TypeId("testAlignment"))))
 
         assertEquals(
-            TypeSpelling.Unspelled("no Kotlin type name is carried by it or its spec"),
+            TypeSpelling.Unspelled("no declaration in this document names enum 'testAlignment'"),
             refusal,
         )
     }
@@ -116,7 +116,7 @@ class KotlinTypesTest {
         val refusal = KotlinTypes.spellingFor(TypeRef.Enum(TypeId("testAlignment")))
 
         assertEquals(
-            TypeSpelling.Unspelled("no Kotlin type name is carried by it or its spec"),
+            TypeSpelling.Unspelled("no declaration in this document names enum 'testAlignment'"),
             refusal,
         )
     }

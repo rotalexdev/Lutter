@@ -434,7 +434,7 @@ class StateEmitterTest {
         assertEquals(listOf(DiagnosticCodes.CodegenNoTypeSpelling), result.diagnostics.map { it.code })
         assertEquals(
             "State 'count' is typed 'enum', which has no Kotlin spelling: " +
-                "no Kotlin type name is carried by it or its spec",
+                "no declaration in this document names enum 'testAlignment'",
             result.diagnostics.single().message,
         )
     }

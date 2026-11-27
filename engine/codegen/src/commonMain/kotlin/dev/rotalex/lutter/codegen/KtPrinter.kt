@@ -77,6 +77,7 @@ public class KtPrinter(
         is KtDeclaration.Class -> declaration.name
         is KtDeclaration.Interface -> declaration.name
         is KtDeclaration.Object -> declaration.name
+        is KtDeclaration.Enum -> declaration.name
     }
 
     // Alias from the owning package's last segment: `material.Text` becomes `MaterialText`.
@@ -104,6 +105,7 @@ public class KtPrinter(
         is KtDeclaration.Class -> renderClass(declaration, indent, aliases)
         is KtDeclaration.Interface -> renderInterface(declaration, indent, aliases)
         is KtDeclaration.Object -> renderObject(declaration, indent, aliases)
+        is KtDeclaration.Enum -> renderEnum(declaration, indent, aliases)
     }
 
     /** One `@` line per annotation, sorted by name so two runs over one tree agree. */
@@ -156,10 +158,16 @@ public class KtPrinter(
     }
 
     /**
-     * `val`/`var`, an optional type, then `=`, `by` or `get()`.
+     * `val`/`var`, an optional type, then `=`, `by` or `get()` — at file scope, as a class member,
+     * or in a primary constructor.
      *
      * The three sources of a value are separate fields because Kotlin spells them differently
      * and accepts only one: a node carrying an initializer and a delegate is refused.
+     *
+     * `public` is written even in a constructor, where §16.6's example omits it: the generated
+     * module builds with explicitApi, and a primary-constructor property without a visibility is
+     * a compile error there. An explicit [KtDeclaration.Property.visibility] replaces it —
+     * `private val backStack` is the one this module emits.
      */
     private fun renderProperty(
         property: KtDeclaration.Property,
@@ -196,7 +204,7 @@ public class KtPrinter(
         aliases: Map<String, String>,
     ): String = buildString {
         append(renderAnnotations(clazz.annotations, indent, aliases))
-        append(indentOf(indent) + "public class " + clazz.name)
+        append(indentOf(indent) + "public " + (if (clazz.data) "data " else "") + "class " + clazz.name)
         val annotation: KotlinSymbol? = clazz.constructorAnnotation
         if (annotation != null) {
             append(" @" + refOf(KtSymbolRef(annotation), aliases) + " constructor")
@@ -206,7 +214,34 @@ public class KtPrinter(
         // `class X(private val y: Int) : Base()`. Its own parentheses are empty because the
         // platform types a holder extends all have a no-argument constructor.
         clazz.supertype?.let { append(" : " + refOf(KtSymbolRef(it), aliases) + "()") }
-        appendMembers(clazz.members, indent, aliases, this)
+        // A data class with no members closes on its constructor: `data class User(val name: String)`
+        // is the whole declaration, and the braces §16.6's example omits would be noise.
+        if (!(clazz.data && clazz.members.isEmpty())) {
+            appendMembers(clazz.members, indent, aliases, this)
+        }
+    }
+
+    /**
+     * `public enum class Role { Admin, User }` — one entry per line with a trailing comma, the
+     * shape §16.3 writes for a declaration list.
+     *
+     * An entry is a name and nothing else: §16.6 gives a document enum's entry its own name as
+     * the symbol, so there is no constructor call to render.
+     */
+    private fun renderEnum(
+        declaration: KtDeclaration.Enum,
+        indent: Int,
+        aliases: Map<String, String>,
+    ): String = buildString {
+        append(renderAnnotations(declaration.annotations, indent, aliases))
+        append(indentOf(indent) + "public enum class " + declaration.name)
+        if (declaration.entries.isEmpty()) {
+            append(" {}")
+        } else {
+            append(" {\n")
+            for (entry in declaration.entries) append(indentOf(indent + 1) + entry + ",\n")
+            append(indentOf(indent) + "}")
+        }
     }
 
     /**
@@ -782,6 +817,9 @@ public class KtPrinter(
                 for (supertype in declaration.supertypes) collectExprSymbols(supertype, filePkg, seen)
                 for (member in declaration.members) collectDeclarationSymbols(member, filePkg, seen)
             }
+            // An enum's entries are names in this file's own package, so the only symbol an enum
+            // can carry is an annotation's.
+            is KtDeclaration.Enum -> recordAnnotations(declaration.annotations, filePkg, seen)
         }
     }
 
