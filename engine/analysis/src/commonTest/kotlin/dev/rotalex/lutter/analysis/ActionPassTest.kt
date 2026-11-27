@@ -76,8 +76,8 @@ class ActionPassTest {
 
     @Test
     fun `a record literal of another model does not fit the list`() {
-        // The id is the whole of what a `Value.Obj` says about its own type, so an append of the
-        // wrong model is a type mismatch and not an unknown-field finding: `ObjectValueKind`
+        // The id is what a `Value.Obj` says about its own type, so an append of the wrong model
+        // is a kind mismatch and is refused before any field is looked at: `ObjectValueKind`
         // compares the ids, and the fields are only meaningful once the id agrees.
         val finding = findingOf(
             DiagnosticCodes.PropTypeMismatch,
@@ -87,6 +87,48 @@ class ActionPassTest {
         assertEquals("value", finding.args["property"])
         assertEquals("Object", finding.args["expected"])
         assertEquals("Obj", finding.args["found"])
+    }
+
+    @Test
+    fun `a record literal missing a field the model declares is refused`() {
+        // The id agrees, so the kind is satisfied; the shape is not, and only a pass holding the
+        // declaration can say so. Left to the generator, the interpreted app would write a record
+        // with no `age` instead of refusing the document.
+        val finding = findingOf(
+            DiagnosticCodes.PropTypeMismatch,
+            recordList {
+                constOf(Value.Obj(TypeId("dm_user"), mapOf(PropertyKey("name") to Value.Str("Ada"))))
+            },
+        )
+
+        assertEquals("value", finding.args["property"])
+        assertEquals("User{name, age}", finding.args["expected"])
+        assertEquals("User{name}", finding.args["found"])
+    }
+
+    @Test
+    fun `a record literal naming a field the model does not declare is refused`() {
+        // The other direction, and the one a generator cannot save: an extra field has nowhere to
+        // be written, so a document that carries one must not reach a running app at all.
+        val finding = findingOf(
+            DiagnosticCodes.PropTypeMismatch,
+            recordList {
+                constOf(
+                    Value.Obj(
+                        TypeId("dm_user"),
+                        mapOf(
+                            PropertyKey("name") to Value.Str("Ada"),
+                            PropertyKey("age") to Value.Int32(36),
+                            PropertyKey("nickname") to Value.Str("A"),
+                        ),
+                    ),
+                )
+            },
+        )
+
+        assertEquals("value", finding.args["property"])
+        assertEquals("User{name, age}", finding.args["expected"])
+        assertEquals("User{name, age, nickname}", finding.args["found"])
     }
 
     @Test
