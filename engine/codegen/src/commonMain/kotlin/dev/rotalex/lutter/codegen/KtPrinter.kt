@@ -794,8 +794,14 @@ public class KtPrinter(
          * `fillPattern` reads `{key}` for a property instead, and the two are separate grammars:
          * digits only, so a template may also write a block or a trailing lambda and have those
          * braces left alone.
+         *
+         * **The closing brace is escaped on purpose.** A bare `}` is accepted by the JVM's
+         * `java.util.regex` but rejected by Android's ICU-backed one, which is a
+         * `PatternSyntaxException` inside a class initializer — the whole generator then fails
+         * to load and every screen that touches it dies. No JVM test can see the difference, so
+         * the escape is the only thing keeping the pattern portable.
          */
-        val Placeholder: Regex = Regex("""\{(\d+)}""")
+        val Placeholder: Regex = Regex("""\{(\d+)\}""")
     }
 
     // Import lines plus the alias each conflicting reference renders with.

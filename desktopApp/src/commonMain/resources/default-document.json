@@ -3,12 +3,76 @@
   "formatVersion": 1,
   "schemaVersion": 1,
   "payload": {
-    "app": {"packageName": "com.example.lutter.starter", "startPage": "p_home"},
+    "app": {"packageName": "com.example.lutter.starter", "startPage": "p_about"},
     "components": {},
     "meta": {"name": "Starter"},
     "nodes": {
-      "n_about_back": {
-        "id": "n_about_back",
+      "n_about_built": {
+        "id": "n_about_built",
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 8}}},
+        "slots": {"children": ["n_about_built_label", "n_about_built_value"]},
+        "type": "core.Row"
+      },
+      "n_about_built_label": {
+        "id": "n_about_built_label",
+        "props": {
+          "text": {"type": "const", "value": {"type": "str", "v": "Built with"}},
+          "style": {"type": "const", "value": {"type": "token", "kind": "typography", "name": "md.typography.labelLarge"}}
+        },
+        "type": "m3.Text"
+      },
+      "n_about_built_value": {
+        "id": "n_about_built_value",
+        "props": {
+          "text": {"type": "const", "value": {"type": "str", "v": "Compose Multiplatform"}},
+          "style": {"type": "const", "value": {"type": "token", "kind": "typography", "name": "md.typography.bodyMedium"}}
+        },
+        "type": "m3.Text"
+      },
+      "n_about_column": {
+        "id": "n_about_column",
+        "modifiers": [
+          {"type": "layout.fillMaxSize"},
+          {
+            "type": "layout.padding",
+            "args": {"all": {"type": "const", "value": {"type": "dp", "v": 24}}}
+          }
+        ],
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 16}}},
+        "slots": {
+          "children": [
+            "n_about_header",
+            "n_about_tagline",
+            "n_about_divider",
+            "n_about_facts",
+            "n_about_open"
+          ]
+        },
+        "type": "core.Column"
+      },
+      "n_about_divider": {"id": "n_about_divider", "type": "m3.Divider"},
+      "n_about_facts": {
+        "id": "n_about_facts",
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 10}}},
+        "slots": {"children": ["n_about_version", "n_about_built", "n_about_storage"]},
+        "type": "core.Column"
+      },
+      "n_about_header": {
+        "id": "n_about_header",
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 12}}},
+        "slots": {"children": ["n_about_icon", "n_about_title"]},
+        "type": "core.Row"
+      },
+      "n_about_icon": {
+        "id": "n_about_icon",
+        "props": {
+          "set": {"type": "const", "value": {"type": "str", "v": "material"}},
+          "name": {"type": "const", "value": {"type": "str", "v": "favorite"}}
+        },
+        "type": "m3.Icon"
+      },
+      "n_about_open": {
+        "id": "n_about_open",
         "events": {
           "onClick": {
             "steps": [
@@ -21,54 +85,86 @@
             ]
           }
         },
-        "slots": {"content": ["n_about_back_label"]},
+        "modifiers": [{"type": "layout.fillMaxWidth"}],
+        "slots": {"content": ["n_about_open_label"]},
         "type": "m3.Button"
       },
-      "n_about_back_label": {
-        "id": "n_about_back_label",
-        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Back"}}},
-        "type": "m3.Text"
-      },
-      "n_about_body": {
-        "id": "n_about_body",
-        "props": {
-          "text": {
-            "type": "const",
-            "value": {"type": "str", "v": "Every change here goes through the document controller."}
-          }
-        },
+      "n_about_open_label": {
+        "id": "n_about_open_label",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Open Home"}}},
         "type": "m3.Text"
       },
       "n_about_root": {
         "id": "n_about_root",
-        "modifiers": [
-          {"type": "layout.fillMaxSize"},
-          {
-            "type": "layout.padding",
-            "args": {"all": {"type": "const", "value": {"type": "dp", "v": 16}}}
-          }
-        ],
+        "modifiers": [{"type": "layout.fillMaxSize"}],
+        "slots": {"content": ["n_about_column"]},
+        "type": "m3.Surface"
+      },
+      "n_about_storage": {
+        "id": "n_about_storage",
         "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 8}}},
-        "slots": {"children": ["n_about_title", "n_about_body", "n_about_back"]},
-        "type": "core.Column"
+        "slots": {"children": ["n_about_storage_label", "n_about_storage_value"]},
+        "type": "core.Row"
       },
-      "n_about_title": {
-        "id": "n_about_title",
-        "props": {"text": {"type": "const", "value": {"type": "str", "v": "About"}}},
-        "type": "m3.Text"
-      },
-      "n_home_hint": {
-        "id": "n_home_hint",
+      "n_about_storage_label": {
+        "id": "n_about_storage_label",
         "props": {
-          "text": {
-            "type": "const",
-            "value": {"type": "str", "v": "Pick a component from the palette, or edit a property."}
-          }
+          "text": {"type": "const", "value": {"type": "str", "v": "Storage"}},
+          "style": {"type": "const", "value": {"type": "token", "kind": "typography", "name": "md.typography.labelLarge"}}
         },
         "type": "m3.Text"
       },
-      "n_home_open": {
-        "id": "n_home_open",
+      "n_about_storage_value": {
+        "id": "n_about_storage_value",
+        "props": {
+          "text": {"type": "const", "value": {"type": "str", "v": "UiDocument JSON"}},
+          "style": {"type": "const", "value": {"type": "token", "kind": "typography", "name": "md.typography.bodyMedium"}}
+        },
+        "type": "m3.Text"
+      },
+      "n_about_tagline": {
+        "id": "n_about_tagline",
+        "props": {
+          "text": {
+            "type": "const",
+            "value": {"type": "str", "v": "A Compose editor that stores a document, not code."}
+          },
+          "style": {"type": "const", "value": {"type": "token", "kind": "typography", "name": "md.typography.bodyMedium"}}
+        },
+        "type": "m3.Text"
+      },
+      "n_about_title": {
+        "id": "n_about_title",
+        "props": {
+          "text": {"type": "const", "value": {"type": "str", "v": "Lutter"}},
+          "style": {"type": "const", "value": {"type": "token", "kind": "typography", "name": "md.typography.headlineMedium"}}
+        },
+        "type": "m3.Text"
+      },
+      "n_about_version": {
+        "id": "n_about_version",
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 8}}},
+        "slots": {"children": ["n_about_version_label", "n_about_version_value"]},
+        "type": "core.Row"
+      },
+      "n_about_version_label": {
+        "id": "n_about_version_label",
+        "props": {
+          "text": {"type": "const", "value": {"type": "str", "v": "Version"}},
+          "style": {"type": "const", "value": {"type": "token", "kind": "typography", "name": "md.typography.labelLarge"}}
+        },
+        "type": "m3.Text"
+      },
+      "n_about_version_value": {
+        "id": "n_about_version_value",
+        "props": {
+          "text": {"type": "const", "value": {"type": "str", "v": "0.1.0"}},
+          "style": {"type": "const", "value": {"type": "token", "kind": "typography", "name": "md.typography.bodyMedium"}}
+        },
+        "type": "m3.Text"
+      },
+      "n_home_back": {
+        "id": "n_home_back",
         "events": {
           "onClick": {
             "steps": [
@@ -81,30 +177,51 @@
             ]
           }
         },
-        "slots": {"content": ["n_home_open_label"]},
+        "modifiers": [{"type": "layout.fillMaxWidth"}],
+        "slots": {"content": ["n_home_back_label"]},
         "type": "m3.Button"
       },
-      "n_home_open_label": {
-        "id": "n_home_open_label",
-        "props": {"text": {"type": "const", "value": {"type": "str", "v": "About"}}},
+      "n_home_back_label": {
+        "id": "n_home_back_label",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Back to About"}}},
         "type": "m3.Text"
       },
-      "n_home_root": {
-        "id": "n_home_root",
+      "n_home_column": {
+        "id": "n_home_column",
         "modifiers": [
           {"type": "layout.fillMaxSize"},
           {
             "type": "layout.padding",
-            "args": {"all": {"type": "const", "value": {"type": "dp", "v": 16}}}
+            "args": {"all": {"type": "const", "value": {"type": "dp", "v": 24}}}
           }
         ],
-        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 8}}},
-        "slots": {"children": ["n_home_title", "n_home_hint", "n_home_open"]},
+        "props": {"spacing": {"type": "const", "value": {"type": "dp", "v": 16}}},
+        "slots": {"children": ["n_home_title", "n_home_hint", "n_home_back"]},
         "type": "core.Column"
+      },
+      "n_home_hint": {
+        "id": "n_home_hint",
+        "props": {
+          "text": {
+            "type": "const",
+            "value": {"type": "str", "v": "A second page: the button on About navigates here, and this one navigates back."}
+          },
+          "style": {"type": "const", "value": {"type": "token", "kind": "typography", "name": "md.typography.bodyMedium"}}
+        },
+        "type": "m3.Text"
+      },
+      "n_home_root": {
+        "id": "n_home_root",
+        "modifiers": [{"type": "layout.fillMaxSize"}],
+        "slots": {"content": ["n_home_column"]},
+        "type": "m3.Surface"
       },
       "n_home_title": {
         "id": "n_home_title",
-        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Lutter"}}},
+        "props": {
+          "text": {"type": "const", "value": {"type": "str", "v": "Home"}},
+          "style": {"type": "const", "value": {"type": "token", "kind": "typography", "name": "md.typography.headlineMedium"}}
+        },
         "type": "m3.Text"
       }
     },

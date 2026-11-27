@@ -24,10 +24,12 @@ gradle :desktopApp:run
 ```
 
 The window opens on the starter document,
-`desktopApp/src/commonMain/resources/default-document.json`: two pages, a column of text and a
-button on each, and the buttons navigate between them. It is small on purpose — a preset is a
-place to start editing, not a demo — and it is the only document in the repository that no other
-harness owns, so both read paths are pinned by `BundledDocumentTest` instead.
+`desktopApp/src/commonMain/resources/default-document.json`: an About screen built from the
+palette — a surface, a header row with an icon and a headline, a tagline, a divider, three
+label/value rows and a button — plus a second page the button navigates to. It is a preset, so it
+shows what the components do without pretending to be an app, and it is the only document in the
+repository that no other harness owns: both read paths are pinned by `BundledDocumentTest`, which
+also resolves it with the engine so a schema change that invalidates it fails there.
 
 Pass another document as the first argument:
 
@@ -35,9 +37,9 @@ Pass another document as the first argument:
 gradle :desktopApp:run --args="path/to/document.json"
 ```
 
-The Android host is `:androidApp`, a single activity. It packages
-`integration/generated-compile/fixtures-navigating/button_navigate.json` as an asset, so it opens
-on a document with real navigation instead of an empty page.
+The Android host is `:androidApp`, a single activity. It packages that same starter file as an
+asset — the desktop module's resources directory is one of its asset roots, so the phone opens on
+the screen the desktop opens on, and there is no second copy to fall behind.
 
 ### The packaged application
 
@@ -185,6 +187,13 @@ The expression field is the interesting half. Text is a view of the AST, never t
 form of a value, and a commit that parses to a literal becomes a `PropertyValue.Const` rather
 than an expression that happens to evaluate to one. `parse(print(expr)) == expr` is
 `ExprParser`'s own guarantee, and the editor relies on it instead of re-implementing it.
+
+Literals spell the way the language spells them: `42`, `42L`, `1.5`, `1.5f`, `true`, `null`,
+`"text"`, and the unit-suffixed numbers `16.0.dp` and `12.0.sp`. The units are not decoration: a
+palette row fills every required `Dp` or `Sp` property with zero, so the first tap on a `Row`
+with spacing asks this field to spell one. A value whose kind the grammar has no literal for — a
+colour, an icon, a token — shows an empty field rather than taking the editor down with it;
+typing a new value replaces the stored one.
 
 A node the schema cannot describe — a document that outlived the plugin that authored it —
 gets no inspector rows rather than an empty panel. The canvas is where that diagnostic is

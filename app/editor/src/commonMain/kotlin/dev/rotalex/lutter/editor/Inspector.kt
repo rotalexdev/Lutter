@@ -107,11 +107,27 @@ public object Inspector {
         type = spec.type,
         required = spec.required,
         doc = spec.doc,
-        text = when (current) {
-            null -> spec.default?.let { PropertyText.of(PropertyValue.Const(it)) }.orEmpty()
-            else -> PropertyText.of(current)
-        },
+        text = spell(current ?: spec.default?.let { PropertyValue.Const(it) }),
         isExpression = current is PropertyValue.Computed,
         editor = spec.editor,
     )
+
+    /**
+     * The row's initial text, or empty when the text view cannot spell the value.
+     *
+     * `ExprPrinter` refuses the value kinds the expression grammar has no literal for — a
+     * colour, an icon, a token. That refusal is right for the *grammar*, but this panel is a
+     * view of whatever the document holds, including a value a future spec defaults to or a
+     * person wrote into the JSON, and a view that threw would take the editor down with it. An
+     * empty field is the honest fallback: nothing here can be edited as text, and typing a new
+     * value replaces the stored one.
+     */
+    private fun spell(value: PropertyValue?): String {
+        if (value == null) return ""
+        return try {
+            PropertyText.of(value)
+        } catch (_: IllegalArgumentException) {
+            ""
+        }
+    }
 }
