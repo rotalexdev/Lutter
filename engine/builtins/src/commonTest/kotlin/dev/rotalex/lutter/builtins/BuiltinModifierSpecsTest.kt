@@ -152,7 +152,7 @@ class BuiltinModifierSpecsTest {
         for (spec in specs) {
             assertSame(spec, schema.modifiers[spec.type], "${spec.type}")
         }
-        assertEquals(14, schema.modifiers.all().size)
+        assertEquals(15, schema.modifiers.all().size)
         assertIs<EnumTypeSpec>(schema.types[AlignmentSpec.Id])
         assertIs<EnumTypeSpec>(schema.types[ShapeSpec.Id])
     }
