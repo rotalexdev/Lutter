@@ -293,11 +293,8 @@ class CodegenGoldenTest {
     private fun fixture(id: String) {
         val name = GOLDEN_DIRECTORY + id + ".golden"
         val source = classpathGoldenSource()
-        val generated = generate(id)
-        if (id == "box_offset") {
-            fail("GOLDEN-BEGIN" + render(generated).replace("\n", "\\n") + "GOLDEN-END")
-        }
         val golden = Golden.read(name, source)
+        val generated = generate(id)
 
         assertNotTrivial(id, golden)
         reportFirstDifference(id, parse(id, golden), generated)
