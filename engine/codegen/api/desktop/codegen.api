@@ -329,7 +329,8 @@ public final class dev/rotalex/lutter/codegen/KotlinGenerator {
 
 public final class dev/rotalex/lutter/codegen/KotlinTypes {
 	public static final field INSTANCE Ldev/rotalex/lutter/codegen/KotlinTypes;
-	public final fun spellingFor (Ldev/rotalex/lutter/model/type/TypeRef;)Ldev/rotalex/lutter/codegen/TypeSpelling;
+	public final fun spellingFor (Ldev/rotalex/lutter/model/type/TypeRef;Ljava/util/Map;)Ldev/rotalex/lutter/codegen/TypeSpelling;
+	public static synthetic fun spellingFor$default (Ldev/rotalex/lutter/codegen/KotlinTypes;Ldev/rotalex/lutter/model/type/TypeRef;Ljava/util/Map;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/TypeSpelling;
 }
 
 public final class dev/rotalex/lutter/codegen/KtAnnotation {
@@ -379,23 +380,40 @@ public abstract interface class dev/rotalex/lutter/codegen/KtDeclaration {
 }
 
 public final class dev/rotalex/lutter/codegen/KtDeclaration$Class : dev/rotalex/lutter/codegen/KtDeclaration {
-	public fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ldev/rotalex/lutter/schema/component/KotlinSymbol;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Z)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ldev/rotalex/lutter/schema/component/KotlinSymbol;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/util/List;
 	public final fun component3 ()Ljava/util/List;
 	public final fun component4 ()Ljava/util/List;
 	public final fun component5 ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
 	public final fun component6 ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
-	public final fun copy (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ldev/rotalex/lutter/schema/component/KotlinSymbol;)Ldev/rotalex/lutter/codegen/KtDeclaration$Class;
-	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtDeclaration$Class;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ldev/rotalex/lutter/schema/component/KotlinSymbol;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtDeclaration$Class;
+	public final fun component7 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Z)Ldev/rotalex/lutter/codegen/KtDeclaration$Class;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtDeclaration$Class;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ldev/rotalex/lutter/schema/component/KotlinSymbol;Ldev/rotalex/lutter/schema/component/KotlinSymbol;ZILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtDeclaration$Class;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAnnotations ()Ljava/util/List;
 	public final fun getConstructorAnnotation ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
 	public final fun getConstructorProperties ()Ljava/util/List;
+	public final fun getData ()Z
 	public final fun getMembers ()Ljava/util/List;
 	public final fun getName ()Ljava/lang/String;
 	public final fun getSupertype ()Ldev/rotalex/lutter/schema/component/KotlinSymbol;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/rotalex/lutter/codegen/KtDeclaration$Enum : dev/rotalex/lutter/codegen/KtDeclaration {
+	public fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;Ljava/util/List;)Ldev/rotalex/lutter/codegen/KtDeclaration$Enum;
+	public static synthetic fun copy$default (Ldev/rotalex/lutter/codegen/KtDeclaration$Enum;Ljava/lang/String;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Ldev/rotalex/lutter/codegen/KtDeclaration$Enum;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnnotations ()Ljava/util/List;
+	public final fun getEntries ()Ljava/util/List;
+	public final fun getName ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -1041,6 +1059,7 @@ public final class dev/rotalex/lutter/codegen/PlannedFileKind : java/lang/Enum {
 	public static final field AppState Ldev/rotalex/lutter/codegen/PlannedFileKind;
 	public static final field Component Ldev/rotalex/lutter/codegen/PlannedFileKind;
 	public static final field Injection Ldev/rotalex/lutter/codegen/PlannedFileKind;
+	public static final field Model Ldev/rotalex/lutter/codegen/PlannedFileKind;
 	public static final field Navigation Ldev/rotalex/lutter/codegen/PlannedFileKind;
 	public static final field Screen Ldev/rotalex/lutter/codegen/PlannedFileKind;
 	public static final field Store Ldev/rotalex/lutter/codegen/PlannedFileKind;
