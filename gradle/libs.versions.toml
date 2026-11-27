@@ -65,12 +65,19 @@ robolectric = "4.17"
 # hosts can share: no Android dependency, so the desktop window reads the same file format.
 datastore = "1.3.0"
 
+# `androidx.window:window-core`, absent from rootLibs 1.2.7. The editor's shell decides between
+# three layouts, and this is the official derivation of the breakpoints Material publishes:
+# common, JVM and AndroidJvm variants, and no Compose coupling, so `EditorWindowClass` reads it in
+# `commonMain` on both hosts.
+windowCore = "1.5.1"
+
 [libraries]
 # The three artifacts a *generated* project may pin, and the reason `:integration:generated-compile`
 # can compile the code `--navigation`/`--state` select. Same gap as the versions above: rootLibs
 # 1.2.7 carries none of them.
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 datastore-preferences-core = { module = "androidx.datastore:datastore-preferences-core", version.ref = "datastore" }
+androidx-window-core = { module = "androidx.window:window-core", version.ref = "windowCore" }
 navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
 lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }

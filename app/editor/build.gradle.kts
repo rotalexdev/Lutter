@@ -55,6 +55,10 @@ dependencies {
     // the way a value is written is one bug rather than two.
     commonMainImplementation(libs.datastore.preferences.core)
 
+    // The shell's three layouts are selected by window size class, and this is the official
+    // derivation of the breakpoints rather than three numbers the editor guessed at.
+    commonMainImplementation(libs.androidx.window.core)
+
     // No `:engine:test-support` edge, and that stays true: this module's tests build the
     // documents they need, the way `:engine:editing`'s planner fixtures do, because a harness
     // that generated documents would make each assertion a statement about the harness.
