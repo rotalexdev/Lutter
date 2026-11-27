@@ -194,6 +194,11 @@ class CodegenGoldenTest {
     }
 
     @Test
+    fun `record_binding generates the committed golden`() {
+        fixture("record_binding")
+    }
+
+    @Test
     fun `text_alpha generates the committed golden`() {
         fixture("text_alpha")
     }
@@ -498,6 +503,7 @@ class CodegenGoldenTest {
             "navigation_bar_basic",
             "navigation_drawer_basic",
             "navigation_rail_basic",
+            "record_binding",
         )
     }
 }

@@ -63,6 +63,7 @@ class FixtureValidationTest {
                 "navigation_rail_basic",
                 "nested_depth3",
                 "progress_indicator",
+                "record_binding",
                 "row_align",
                 "row_padding",
                 "row_weight",

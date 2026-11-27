@@ -365,7 +365,7 @@ public class KotlinGenerator<A : Any, T : Any>(
      * without a constructor parameter, and a declaration with no state has nothing to compare.
      */
     private fun emitModels(planned: PlannedFile, document: ResolvedDocument): KtFile? {
-        val names: Map<TypeId, String> = declaredNames(document)
+        val names: Map<TypeId, KotlinSymbol> = declaredTypeSymbols(document, planned.packageName)
         val declarations: MutableList<KtDeclaration> = mutableListOf()
         for (id in document.enums.keys.sortedBy { it.value }) {
             val declaration: EnumTypeDecl = checkNotNull(document.enums[id]) {
@@ -421,21 +421,6 @@ public class KotlinGenerator<A : Any, T : Any>(
             )
         }
         return KtFile(planned.packageName, headerText(), declarations)
-    }
-
-    /**
-     * Every declared type's emitted name, keyed by the `TypeId` a `TypeRef` names it by.
-     *
-     * `DataModelId` and `TypeId` are two value classes over one value space (§5.5:366), so the
-     * key is the string they share; the enum already uses `TypeId` directly.
-     */
-    private fun declaredNames(document: ResolvedDocument): Map<TypeId, String> {
-        val names: MutableMap<TypeId, String> = LinkedHashMap()
-        for (declaration in document.dataModels.values) {
-            names[TypeId(declaration.id.value)] = declaration.name
-        }
-        for (declaration in document.enums.values) names[declaration.id] = declaration.name
-        return names
     }
 
     private fun emitAppHost(planned: PlannedFile, document: ResolvedDocument): KtFile? {

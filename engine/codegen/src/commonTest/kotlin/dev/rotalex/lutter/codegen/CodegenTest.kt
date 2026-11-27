@@ -2257,6 +2257,51 @@ class CodegenTest {
     }
 
     @Test
+    fun `an app state typed by a declared model starts as a constructor call`() {
+        // §16.6's opening value: the runtime holds a `Map`, the generated store holds a class,
+        // and one `User(name = "Ada", age = 36)` is the spelling both sides read the same way.
+        val initial: Value = Value.Obj(
+            TypeId("dm_user"),
+            mapOf(PropertyKey("name") to Value.Str("Ada"), PropertyKey("age") to Value.Int32(36)),
+        )
+        val user: ResolvedState = ResolvedState(
+            StateDecl(StateId("s_user"), "user", TypeRef.Object(TypeId("dm_user")), initial),
+            null,
+        )
+        val result = generate(
+            homeDocument(
+                textNode("n_1", "Hi"),
+                appState = listOf(user),
+                dataModels = listOf(userModel()),
+            ),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val holder = assertNotNull(result.files.files.firstOrNull { it.path == "state/AppState.kt" })
+        assertTrue(holder.content.contains("import com.example.app.model.User"), holder.content)
+        assertTrue(holder.content.contains("User(name = \"Ada\", age = 36)"), holder.content)
+        assertTrue(holder.content.contains("var user"), holder.content)
+    }
+
+    @Test
+    fun `a record literal naming a field the model does not declare is refused`() {
+        val initial: Value = Value.Obj(TypeId("dm_user"), mapOf(PropertyKey("nickname") to Value.Str("Ada")))
+        val user: ResolvedState = ResolvedState(
+            StateDecl(StateId("s_user"), "user", TypeRef.Object(TypeId("dm_user")), initial),
+            null,
+        )
+        val result = generate(
+            homeDocument(
+                textNode("n_1", "Hi"),
+                appState = listOf(user),
+                dataModels = listOf(userModel()),
+            ),
+        )
+
+        assertEquals(listOf("codegen.strategy_unsupported"), result.diagnostics.map { it.code.value })
+    }
+
+    @Test
     fun `a field type with no spelling is refused before a file is written`() {
         val broken: DataModelDecl = DataModelDecl(
             DataModelId("dm_broken"),
