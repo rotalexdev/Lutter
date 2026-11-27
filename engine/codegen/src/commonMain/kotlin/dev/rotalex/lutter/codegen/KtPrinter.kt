@@ -158,23 +158,34 @@ public class KtPrinter(
     }
 
     /**
-     * `val`/`var`, an optional type, then `=`, `by` or `get()`.
+     * `val`/`var`, an optional type, then `=`, `by` or `get()` — at file scope, as a class member,
+     * or in a primary constructor.
      *
      * The three sources of a value are separate fields because Kotlin spells them differently
      * and accepts only one: a node carrying an initializer and a delegate is refused.
+     *
+     * [inConstructor] drops the implicit `public`: §16.6 writes `data class User(val name: String)`
+     * and Kotlin's own style omits a default visibility there, while a member spells it because
+     * the generated module builds with explicitApi. An explicit [KtDeclaration.Property.visibility]
+     * is written in both positions — `private val backStack` is the one this module emits.
      */
     private fun renderProperty(
         property: KtDeclaration.Property,
         indent: Int,
         aliases: Map<String, String>,
+        inConstructor: Boolean = false,
     ): String {
         if (property.initializer != null && property.delegate != null) {
             throw CodegenBug(
                 "Property '" + property.name + "' has an initializer and a delegate; Kotlin allows one",
             )
         }
-        val keyword: String =
-            (property.visibility ?: "public") + " " + if (property.mutable) "var " else "val "
+        val mutable: String = if (property.mutable) "var " else "val "
+        val keyword: String = when {
+            property.visibility != null -> property.visibility + " " + mutable
+            inConstructor -> mutable
+            else -> "public " + mutable
+        }
         val declared: String = property.type?.let { ": " + renderExpr(it, indent, aliases) } ?: ""
         val assigned: String = property.initializer?.let { " = " + renderExpr(it, indent, aliases) }
             ?: property.delegate?.let { " by " + renderExpr(it, indent, aliases) }
@@ -208,7 +219,11 @@ public class KtPrinter(
         // `class X(private val y: Int) : Base()`. Its own parentheses are empty because the
         // platform types a holder extends all have a no-argument constructor.
         clazz.supertype?.let { append(" : " + refOf(KtSymbolRef(it), aliases) + "()") }
-        appendMembers(clazz.members, indent, aliases, this)
+        // A data class with no members closes on its constructor: `data class User(val name: String)`
+        // is the whole declaration, and the braces §16.6's example omits would be noise.
+        if (!(clazz.data && clazz.members.isEmpty())) {
+            appendMembers(clazz.members, indent, aliases, this)
+        }
     }
 
     /**
@@ -315,7 +330,9 @@ public class KtPrinter(
                 )
             }
         }
-        return "(" + clazz.constructorProperties.joinToString(", ") { renderProperty(it, indent, aliases) } + ")"
+        return "(" + clazz.constructorProperties.joinToString(", ") {
+            renderProperty(it, indent, aliases, inConstructor = true)
+        } + ")"
     }
 
     private fun renderParam(param: KtParam, aliases: Map<String, String>): String {
