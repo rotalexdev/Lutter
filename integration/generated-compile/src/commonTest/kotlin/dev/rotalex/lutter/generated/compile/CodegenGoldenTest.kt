@@ -194,12 +194,6 @@ class CodegenGoldenTest {
     }
 
     @Test
-    fun `zz dump the record golden for authoring`() {
-        val text = render(generate("record_binding"))
-        fail("GOLDEN-BEGIN" + text.replace("\n", "\\n") + "GOLDEN-END")
-    }
-
-    @Test
     fun `record_binding generates the committed golden`() {
         fixture("record_binding")
     }
