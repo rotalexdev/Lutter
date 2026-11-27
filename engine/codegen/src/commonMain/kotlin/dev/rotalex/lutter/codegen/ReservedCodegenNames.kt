@@ -112,23 +112,23 @@ public object ReservedCodegenNames {
          * Claiming is the part D27 lacked: a model called `User` and a component called `User`
          * are one declaration emitted twice, and neither of them is a literal.
          */
-        fun check(kind: String, name: String, at: DiagnosticLocation, claim: Boolean = true) {
+        fun check(kind: String, name: String, at: DiagnosticLocation, takesName: Boolean = true) {
             val owner: String? = owners[name]
-            val claim: String? = claimed[name]
+            val taken: String? = claimed[name]
             if (name in reserved) {
                 found += finding(kind, name, at, "it is emitted as a top-level declaration")
             } else if (owner != null) {
                 found += finding(kind, name, at, ownerDetail(owner, name))
-            } else if (claim != null) {
-                found += finding(kind, name, at, claim + " is emitted under the same name")
-            } else if (claim) {
+            } else if (taken != null) {
+                found += finding(kind, name, at, taken + " is emitted under the same name")
+            } else if (takesName) {
                 claimed[name] = kind.lowercase() + " '" + name + "'"
             }
         }
 
         // A page's name is not emitted whole — `Route.Home` and `HomeScreen` are — so it claims
         // nothing; a component's id and a model's name are the declarations themselves.
-        for (page in pages) check("Page", page.name, DiagnosticLocation(pageId = page.id), claim = false)
+        for (page in pages) check("Page", page.name, DiagnosticLocation(pageId = page.id), takesName = false)
         for (id in document.components.keys.sortedBy { it.value }) {
             check("Component", id.value, DiagnosticLocation(componentDeclId = id))
         }
