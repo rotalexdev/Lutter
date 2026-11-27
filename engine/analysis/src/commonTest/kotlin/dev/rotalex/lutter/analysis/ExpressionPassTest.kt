@@ -239,6 +239,24 @@ class ExpressionPassTest {
     }
 
     @Test
+    fun `a field the declared record does not carry is a type error`() {
+        // §32's "a field-access type error": the receiver is a declared record, so the only
+        // thing that can be wrong is the name, and the finding names the model rather than
+        // guessing that the field is a string.
+        val result = nullableAnalyzer.analyze(
+            withUser(
+                homeDocument {
+                    node(BadgeType) { computed("label", Expr.Member(userValue(), "nickname")) }
+                },
+            ),
+        )
+
+        val finding = result.diagnostics.single { it.message.contains("nickname") }
+        assertEquals(DiagnosticCodes.ExprUnresolvedRef, finding.code)
+        assertTrue(finding.message.contains("reads field 'nickname' of 'dm_user'"), finding.message)
+    }
+
+    @Test
     fun `a literal null fills a nullable destination and no other`() {
         val accepted = nullableAnalyzer.analyze(
             homeDocument {
