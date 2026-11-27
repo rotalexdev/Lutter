@@ -196,9 +196,7 @@ class CodegenGoldenTest {
     @Test
     fun `zz dump the record golden for authoring`() {
         val text = render(generate("record_binding"))
-        println("GOLDEN-BEGIN")
-        println(text.replace("\n", "\\n"))
-        println("GOLDEN-END")
+        fail("GOLDEN-BEGIN" + text.replace("\n", "\\n") + "GOLDEN-END")
     }
 
     @Test
