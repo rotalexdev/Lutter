@@ -217,7 +217,9 @@ internal class ResolutionPass(
             document.hostFunctions,
             componentSpecs,
             document.resources,
-            revision,
+            dataModels = document.dataModels,
+            enums = document.enums,
+            schemaRevision = revision,
         )
     }
 

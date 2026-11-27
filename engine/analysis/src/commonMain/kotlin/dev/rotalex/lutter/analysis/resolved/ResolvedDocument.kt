@@ -1,11 +1,15 @@
 package dev.rotalex.lutter.analysis.resolved
 
+import dev.rotalex.lutter.model.doc.DataModelDecl
+import dev.rotalex.lutter.model.doc.EnumTypeDecl
 import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.ResourceDecl
 import dev.rotalex.lutter.model.ids.ComponentDeclId
+import dev.rotalex.lutter.model.ids.DataModelId
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.ResourceId
+import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.schema.component.ComponentSpec
 
 /**
@@ -53,6 +57,25 @@ public data class ResolvedDocument(
     public val hostFunctions: List<HostFunctionDecl> = emptyList(),
     public val componentSpecs: Map<ComponentDeclId, ComponentSpec> = emptyMap(),
     public val resources: Map<ResourceId, ResourceDecl> = emptyMap(),
+
+    /**
+     * §5.4's document-declared object types, carried rather than re-read: §16.6 emits each one as
+     * a data class in `model/Models.kt`, and §4.5's single lowering pipeline leaves codegen no
+     * route to the [dev.rotalex.lutter.model.doc.UiDocument] that declares them. Carriage is what
+     * makes D27's reserved-name check possible at all — a name nobody can see is a name nobody
+     * can refuse.
+     *
+     * A default for the same reason as [hostFunctions]: every construction of this type that
+     * predates models keeps compiling, and a document that declares none says nothing.
+     */
+    public val dataModels: Map<DataModelId, DataModelDecl> = emptyMap(),
+
+    /**
+     * §5.4's document-declared enums, in the same `TypeId` value space as a model's id. They share
+     * `model/Models.kt` with [dataModels], so they are carried beside them and checked by the same
+     * pass.
+     */
+    public val enums: Map<TypeId, EnumTypeDecl> = emptyMap(),
 
     /**
      * The schema context this lowering ran against, §29.1:2048's third cache component.

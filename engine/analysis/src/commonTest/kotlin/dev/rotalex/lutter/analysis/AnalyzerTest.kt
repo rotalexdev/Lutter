@@ -4,12 +4,16 @@ import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCodes
 import dev.rotalex.lutter.analysis.resolved.PropOrigin
 import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
+import dev.rotalex.lutter.model.doc.DataModelDecl
+import dev.rotalex.lutter.model.doc.EnumTypeDecl
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.ActionId
+import dev.rotalex.lutter.model.ids.DataModelId
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.SlotName
+import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.action.ActionSpec
 import kotlin.test.Test
@@ -45,6 +49,24 @@ class AnalyzerTest {
         assertEquals(PropOrigin.Specified, text.origin)
         val maxLines = assertNotNull(title.props[PropertyKey("maxLines")])
         assertEquals(PropOrigin.Default, maxLines.origin)
+    }
+
+    @Test
+    fun `resolved document carries the models and enums the document declares`() {
+        // §16.6 emits both as top-level declarations in `model/Models.kt`, and codegen reaches
+        // the document only through this type. A declaration the resolver drops is a declaration
+        // nobody can emit and nobody can refuse by name, which is the gap D27 recorded.
+        val user: DataModelDecl = DataModelDecl(DataModelId("dm_user"), "User")
+        val role: EnumTypeDecl = EnumTypeDecl(TypeId("t_role"), "Role")
+        val document = validDocument().copy(
+            dataModels = mapOf(user.id to user),
+            enums = mapOf(role.id to role),
+        )
+
+        val resolved = assertNotNull(analyzer.analyze(document).resolved)
+
+        assertEquals(mapOf(user.id to user), resolved.dataModels)
+        assertEquals(mapOf(role.id to role), resolved.enums)
     }
 
     @Test
