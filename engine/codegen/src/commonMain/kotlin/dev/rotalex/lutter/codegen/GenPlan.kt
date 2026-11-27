@@ -3,7 +3,31 @@ package dev.rotalex.lutter.codegen
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.PageId
+import dev.rotalex.lutter.model.ids.TypeId
+import dev.rotalex.lutter.schema.component.KotlinSymbol
 import dev.rotalex.lutter.schema.component.PlatformTag
+
+/** The package §16.5 files `model/Models.kt` under: one level below the app's own. */
+internal fun modelPackage(basePackage: String): String = basePackage + ".model"
+
+/**
+ * Every declared type as the symbol it is emitted under, keyed by the `TypeId` a `TypeRef` names
+ * it by.
+ *
+ * `DataModelId` and `TypeId` are two value classes over one value space (§5.5:366), so the key is
+ * the string they share; the enum already uses `TypeId` directly. The symbol rather than the bare
+ * name is what lets a file outside the model package import it.
+ */
+internal fun declaredTypeSymbols(document: ResolvedDocument, packageName: String): Map<TypeId, KotlinSymbol> {
+    val symbols: MutableMap<TypeId, KotlinSymbol> = LinkedHashMap()
+    for (declaration in document.dataModels.values) {
+        symbols[TypeId(declaration.id.value)] = KotlinSymbol(packageName, declaration.name)
+    }
+    for (declaration in document.enums.values) {
+        symbols[declaration.id] = KotlinSymbol(packageName, declaration.name)
+    }
+    return symbols
+}
 
 /** Which layout the file plan follows; only the standard one exists. */
 public enum class GeneratedLayout {
@@ -137,7 +161,7 @@ public fun planDocument(
     if (document.dataModels.isNotEmpty() || document.enums.isNotEmpty()) {
         files += PlannedFile(
             "model/Models.kt",
-            basePackage + ".model",
+            modelPackage(basePackage),
             PlannedFileKind.Model,
             null,
             null,

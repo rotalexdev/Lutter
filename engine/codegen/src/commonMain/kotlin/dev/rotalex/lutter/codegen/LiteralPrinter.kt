@@ -1,11 +1,14 @@
 package dev.rotalex.lutter.codegen
 
+import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.analysis.resolved.ResolvedToken
 import dev.rotalex.lutter.analysis.resolved.TokenSource
+import dev.rotalex.lutter.model.doc.DataModelDecl
 import dev.rotalex.lutter.model.doc.TextStyleSpec
 import dev.rotalex.lutter.model.doc.ThemeDecl
 import dev.rotalex.lutter.model.doc.TokenName
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TokenKind
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.model.value.fixedDecimalText
@@ -19,6 +22,27 @@ import dev.rotalex.lutter.schema.component.KotlinSymbol
  * elements its own kinds answer, and one illegible element leaves the whole list null.
  */
 internal data class EmittedLiteral(val text: String, val symbols: List<KotlinSymbol>)
+
+/**
+ * What a record literal needs to be spelled: the declarations it may name, keyed the way
+ * [Value.Obj] keys them, and the package they were emitted under.
+ *
+ * Absent means no record has a spelling, which is what every call site that cannot see the
+ * document's declarations passes — and a `Value.Obj` reaching one of them is refused, never
+ * guessed at, because a constructor call naming a class the module does not carry is a compile
+ * error in the consumer's tree.
+ */
+internal data class RecordSpelling(
+    val models: Map<TypeId, DataModelDecl>,
+    val packageName: String,
+)
+
+/** [document]'s declarations as [RecordSpelling] for a module whose models live in [packageName]. */
+internal fun recordsOf(document: ResolvedDocument, packageName: String): RecordSpelling {
+    val models: MutableMap<TypeId, DataModelDecl> = LinkedHashMap()
+    for (declaration in document.dataModels.values) models[TypeId(declaration.id.value)] = declaration
+    return RecordSpelling(models, packageName)
+}
 
 /** §5.4's four fractional digits — the same width [textOf] writes and the same this prints. */
 private const val MAX_FRACTIONAL_DIGITS: Int = 4
@@ -93,7 +117,12 @@ internal object LiteralPrinter {
      * the consumer's tree, and a caller that cannot say where a token came from cannot say
      * whether it is there.
      */
-    fun emit(value: Value, token: ResolvedToken? = null, theme: ThemeDecl? = null): EmittedLiteral? {
+    fun emit(
+        value: Value,
+        token: ResolvedToken? = null,
+        theme: ThemeDecl? = null,
+        records: RecordSpelling? = null,
+    ): EmittedLiteral? {
         val emitted: EmittedLiteral? = when (value) {
             is Value.Null -> EmittedLiteral("null", emptyList())
             is Value.Bool -> EmittedLiteral(if (value.v) "true" else "false", emptyList())
@@ -122,7 +151,7 @@ internal object LiteralPrinter {
             // opening value, and a generated file that names `listOf("Alpha", "Beta")` is the
             // same fact the runtime store answers.
             is Value.ListOf ->
-                value.items.map { emit(it, token, theme) }
+                value.items.map { emit(it, token, theme, records) }
                     .takeIf { parts -> parts.none { it == null } }
                     ?.let { parts ->
                         val present: List<EmittedLiteral> = parts.filterNotNull()
@@ -131,10 +160,44 @@ internal object LiteralPrinter {
                             present.flatMap { it.symbols }.distinct(),
                         )
                     }
-            is Value.Obj -> null
+            // A record spells as its declaration's own constructor, in the declaration's field
+            // order and with named arguments: the runtime holds a `Map`, the generated store
+            // holds a class, and §16.6's `User(name = "Ada", age = 36)` is the one shape both
+            // read the same way. A value that does not cover exactly the declared fields is
+            // refused — a missing field has no default and an extra one has nowhere to go.
+            is Value.Obj -> records?.let { objectOf(value, it, token, theme) }
             is Value.MapOf -> null
         }
         return emitted
+    }
+
+    /**
+     * `User(name = "Ada", age = 36)`, or null when the declaration is unknown or the value does
+     * not cover its fields exactly.
+     *
+     * The constructor symbol is an import even when the caller already sits in that package: a
+     * duplicated import is legal Kotlin, and a missing one is not.
+     */
+    private fun objectOf(
+        value: Value.Obj,
+        records: RecordSpelling,
+        token: ResolvedToken?,
+        theme: ThemeDecl?,
+    ): EmittedLiteral? {
+        val model: DataModelDecl = records.models[value.typeId] ?: return null
+        val declared: Set<PropertyKey> = model.fields.mapTo(LinkedHashSet()) { it.name }
+        if (value.fields.keys != declared) return null
+        val parts: List<EmittedLiteral> = model.fields.map { field ->
+            val fieldValue: Value = value.fields[field.name] ?: return null
+            emit(fieldValue, token, theme, records) ?: return null
+        }
+        val arguments: String = model.fields.mapIndexed { index, field ->
+            field.name.value + " = " + parts[index].text
+        }.joinToString(", ")
+        val symbols: List<KotlinSymbol> = (
+            listOf(KotlinSymbol(records.packageName, model.name)) + parts.flatMap { it.symbols }
+            ).distinct()
+        return EmittedLiteral(model.name + "(" + arguments + ")", symbols)
     }
 
     // §9.2's codegen column, read against the provenance analysis already decided: Material's

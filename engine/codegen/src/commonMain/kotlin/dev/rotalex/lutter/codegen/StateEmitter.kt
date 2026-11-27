@@ -11,6 +11,7 @@ import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
 import dev.rotalex.lutter.model.diagnostic.Severity
 import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.ids.StateId
+import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.component.KotlinSymbol
@@ -38,6 +39,11 @@ public class StateEmitter(
 ) {
 
     private val strategy: StateStrategy = options.state
+    // §16.5's declarations, as the two questions a state row asks them: what a field's type is
+    // called, and how an opening `Value.Obj` is written as a constructor call.
+    private val declaredNames: Map<TypeId, KotlinSymbol> =
+        declaredTypeSymbols(document, modelPackage(options.basePackage))
+    private val records: RecordSpelling = recordsOf(document, modelPackage(options.basePackage))
     private val composable: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "Composable")
     private val stable: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "Stable")
     private val remember: KotlinSymbol = KotlinSymbol("androidx.compose.runtime", "remember")
@@ -313,7 +319,7 @@ public class StateEmitter(
             )
         }
         val initial: Value = declaration.decl.initial ?: return null
-        if (LiteralPrinter.emit(initial) != null) return null
+        if (LiteralPrinter.emit(initial, records = records) != null) return null
         return finding(
             DiagnosticCodes.CodegenStrategyUnsupported,
             at,
@@ -526,7 +532,7 @@ public class StateEmitter(
     /** The initial value as a literal, or null when the value kind has no Kotlin spelling. */
     private fun initialOf(state: ResolvedState): KtExpr? {
         val initial: Value = state.decl.initial ?: return null
-        val emitted: EmittedLiteral = LiteralPrinter.emit(initial) ?: return null
+        val emitted: EmittedLiteral = LiteralPrinter.emit(initial, records = records) ?: return null
         return KtExpr.Literal(emitted.text, emitted.symbols)
     }
 
@@ -539,7 +545,7 @@ public class StateEmitter(
      */
     private fun spelledType(state: ResolvedState): KtExpr? {
         val declared: TypeRef = state.decl.type
-        return when (val spelled = KotlinTypes.spellingFor(declared)) {
+        return when (val spelled = KotlinTypes.spellingFor(declared, declaredNames)) {
             is TypeSpelling.Spelled -> spelled.expr
             is TypeSpelling.Unspelled -> null
         }

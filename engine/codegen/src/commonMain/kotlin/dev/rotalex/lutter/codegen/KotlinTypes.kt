@@ -44,7 +44,7 @@ public object KotlinTypes {
      */
     public fun spellingFor(
         typeRef: TypeRef,
-        declared: Map<TypeId, String> = emptyMap(),
+        declared: Map<TypeId, KotlinSymbol> = emptyMap(),
     ): TypeSpelling = when (typeRef) {
         TypeRef.Bool -> spelled("Boolean")
         TypeRef.Int32 -> spelled("Int")
@@ -65,11 +65,12 @@ public object KotlinTypes {
             applied("Map", KtExpr.Name("String"), inner)
         }
         // §16.6 names the emitted declaration from the document's own record, which is what
-        // [declared] is: the model or enum carried on `ResolvedDocument`. A caller that does not
-        // hand the map over still gets the old refusal rather than a guessed name.
-        is TypeRef.Enum -> declared[typeRef.id]?.let { spelled(it) }
+        // [declared] is: the model or enum carried on `ResolvedDocument`, as the symbol it was
+        // emitted under. A caller that does not hand the map over still gets the old refusal
+        // rather than a guessed name.
+        is TypeRef.Enum -> declared[typeRef.id]?.let { referenced(it) }
             ?: unspelled("no declaration in this document names enum '" + typeRef.id.value + "'")
-        is TypeRef.Object -> declared[typeRef.id]?.let { spelled(it) }
+        is TypeRef.Object -> declared[typeRef.id]?.let { referenced(it) }
             ?: unspelled("no declaration in this document names object '" + typeRef.id.value + "'")
         is TypeRef.Ref -> unspelled("§9.2 resolves it to an identifier or a route")
         is TypeRef.Token -> unspelled("its Kotlin type comes from the theme, not the kind")
@@ -83,7 +84,15 @@ public object KotlinTypes {
     private fun unspelled(reason: String): TypeSpelling = TypeSpelling.Unspelled(reason)
 
     private fun composeRef(packageName: String, name: String): KtExpr =
-        KtExpr.Ref(KtSymbolRef(KotlinSymbol(packageName, name)))
+        referenced(KotlinSymbol(packageName, name))
+
+    /**
+     * A symbol as a type position. A declaration in the file's own package renders bare: the
+     * printer drops an import whose package is the file's, so `model/Models.kt` spelling its
+     * sibling names needs no exception.
+     */
+    private fun referenced(symbol: KotlinSymbol): TypeSpelling =
+        TypeSpelling.Spelled(KtExpr.Ref(KtSymbolRef(symbol)))
 
     /** `base<args…>` over default-imported collection names, so no import is written. */
     private fun applied(base: String, vararg args: KtExpr): KtExpr =
