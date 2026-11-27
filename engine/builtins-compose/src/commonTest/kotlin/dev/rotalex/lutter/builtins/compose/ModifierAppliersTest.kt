@@ -17,6 +17,7 @@ import dev.rotalex.lutter.builtins.FillMaxHeightModifier
 import dev.rotalex.lutter.builtins.FillMaxSizeModifier
 import dev.rotalex.lutter.builtins.FillMaxWidthModifier
 import dev.rotalex.lutter.builtins.HeightModifier
+import dev.rotalex.lutter.builtins.OffsetModifier
 import dev.rotalex.lutter.builtins.InteractionModifiers
 import dev.rotalex.lutter.builtins.LayoutModifiers
 import dev.rotalex.lutter.builtins.LayoutScopes
@@ -75,6 +76,11 @@ class ModifierAppliersTest {
             Modifier,
             SizeApplier.apply(Modifier, argsOf(SizeModifier.width.key to Value.Dp(10f)), bare),
             "size without a height",
+        )
+        assertSame(
+            Modifier,
+            OffsetApplier.apply(Modifier, argsOf(OffsetModifier.x.key to Value.Dp(10f)), bare),
+            "offset without a y",
         )
         assertSame(
             Modifier,
@@ -145,6 +151,10 @@ class ModifierAppliersTest {
             ),
             WidthApplier to argsOf(WidthModifier.value.key to Value.Dp(10f)),
             HeightApplier to argsOf(HeightModifier.value.key to Value.Dp(10f)),
+            OffsetApplier to argsOf(
+                OffsetModifier.x.key to Value.Dp(8f),
+                OffsetModifier.y.key to Value.Dp(4f),
+            ),
             BackgroundApplier to argsOf(BackgroundModifier.color.key to Value.Color(RED)),
             ClipApplier to argsOf(ClipModifier.shape.key to Value.Enum("Circle")),
             BorderApplier to argsOf(

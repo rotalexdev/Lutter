@@ -10,6 +10,7 @@ import dev.rotalex.lutter.builtins.FillMaxHeightModifier
 import dev.rotalex.lutter.builtins.FillMaxSizeModifier
 import dev.rotalex.lutter.builtins.FillMaxWidthModifier
 import dev.rotalex.lutter.builtins.HeightModifier
+import dev.rotalex.lutter.builtins.OffsetModifier
 import dev.rotalex.lutter.builtins.PaddingModifier
 import dev.rotalex.lutter.builtins.SizeModifier
 import dev.rotalex.lutter.builtins.WeightModifier
@@ -31,6 +32,7 @@ public fun ModifierApplierRegistryBuilder.registerBuiltinModifierAppliers(): Uni
     register(SizeModifier.spec.type, SizeApplier)
     register(WidthModifier.spec.type, WidthApplier)
     register(HeightModifier.spec.type, HeightApplier)
+    register(OffsetModifier.spec.type, OffsetApplier)
     register(WeightModifier.spec.type, WeightApplier)
     register(AlignModifier.spec.type, AlignApplier)
     register(BackgroundModifier.spec.type, BackgroundApplier)

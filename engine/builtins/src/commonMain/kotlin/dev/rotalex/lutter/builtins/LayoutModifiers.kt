@@ -145,6 +145,27 @@ public object WeightModifier {
 }
 
 /**
+ * `layout.offset`: absolute placement inside whatever box holds the node.
+ *
+ * Both axes are required, for the reason `layout.size` requires both: a position is a pair, and a
+ * document that writes one axis has not said where the node goes. Compose's own `offset` fills the
+ * missing axis with zero, which is the guess this refuses — an editor drag writes both, and a
+ * hand-written document says what it means.
+ */
+public object OffsetModifier {
+    public val x: PropertySpec<Float> = prop("x", TypeRef.Dp, required = true)
+
+    public val y: PropertySpec<Float> = prop("y", TypeRef.Dp, required = true)
+
+    public val spec: ModifierSpec = ModifierSpec(
+        type = ModifierType("layout.offset"),
+        metadata = ModifierMetadata("Offset", "Places the node at a distance from its box's origin"),
+        params = listOf(x, y),
+        emit = ModifierEmit(KotlinSymbol("androidx.compose.foundation.layout", "offset")),
+    )
+}
+
+/**
  * `layout.align`: where the node sits inside the axis its parent aligns.
  *
  * Ungated, because the axis belongs to the open scope rather than to the modifier: a row
@@ -231,6 +252,7 @@ public object LayoutModifiers {
         SizeModifier.spec,
         WidthModifier.spec,
         HeightModifier.spec,
+        OffsetModifier.spec,
         WeightModifier.spec,
         AlignModifier.spec,
     )

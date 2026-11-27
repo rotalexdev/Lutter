@@ -42,6 +42,7 @@ class FixtureValidationTest {
                 "bottom_sheet_basic",
                 "box_align",
                 "box_background",
+                "box_offset",
                 "box_width_height",
                 "box_with_constraints_basic",
                 "card_align",

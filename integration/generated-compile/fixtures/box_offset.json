@@ -1,0 +1,48 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "meta": {"name": "BoxOffset"},
+    "nodes": {
+      "n_a": {
+        "id": "n_a",
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Anchored"}}},
+        "type": "m3.Text"
+      },
+      "n_b": {
+        "id": "n_b",
+        "modifiers": [
+          {
+            "type": "layout.offset",
+            "args": {
+              "x": {"type": "const", "value": {"type": "dp", "v": 40}},
+              "y": {"type": "const", "value": {"type": "dp", "v": 24}}
+            }
+          }
+        ],
+        "props": {"text": {"type": "const", "value": {"type": "str", "v": "Moved"}}},
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "modifiers": [
+          {
+            "type": "layout.size",
+            "args": {
+              "height": {"type": "const", "value": {"type": "dp", "v": 120}},
+              "width": {"type": "const", "value": {"type": "dp", "v": 200}}
+            }
+          }
+        ],
+        "slots": {"children": ["n_a", "n_b"]},
+        "type": "core.Box"
+      }
+    },
+    "pages": {
+      "p_home": {"id": "p_home", "name": "Home", "root": "n_root", "route": "home"}
+    }
+  }
+}

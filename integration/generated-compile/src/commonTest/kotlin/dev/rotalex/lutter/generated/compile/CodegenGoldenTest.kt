@@ -84,6 +84,11 @@ class CodegenGoldenTest {
     }
 
     @Test
+    fun `box_offset generates the committed golden`() {
+        fixture("box_offset")
+    }
+
+    @Test
     fun `column_color generates the committed golden`() {
         fixture("column_color")
     }
@@ -462,6 +467,7 @@ class CodegenGoldenTest {
         /** Every fixture a row above compares, which is every fixture on disk. */
         val GOLDEN_FIXTURES: List<String> = listOf(
             "box_align",
+            "box_offset",
             "column_color",
             "column_text",
             "component_param_slot",
