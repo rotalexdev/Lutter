@@ -78,6 +78,9 @@ public enum class PlannedFileKind {
 
     /** `di/Injection.kt`: what a container needs declared before a screen's lookup finds it. */
     Injection,
+
+    /** `model/Models.kt`: the document's own object and enum types, §16.5 and §16.6. */
+    Model,
 }
 
 /** One file the generator will emit: its path, package and source page or component. */
@@ -125,6 +128,17 @@ public fun planDocument(
             "state/" + StateEmitter.AppStateName + ".kt",
             basePackage + ".state",
             PlannedFileKind.AppState,
+            null,
+            null,
+        )
+    }
+    // §16.5's `model/Models.kt` exists only when there is a declaration to put in it: a file
+    // with no data class would be a package nobody imports and a golden that proves nothing.
+    if (document.dataModels.isNotEmpty() || document.enums.isNotEmpty()) {
+        files += PlannedFile(
+            "model/Models.kt",
+            basePackage + ".model",
+            PlannedFileKind.Model,
             null,
             null,
         )

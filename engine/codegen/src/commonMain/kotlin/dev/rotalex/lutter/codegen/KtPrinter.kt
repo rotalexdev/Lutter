@@ -77,6 +77,7 @@ public class KtPrinter(
         is KtDeclaration.Class -> declaration.name
         is KtDeclaration.Interface -> declaration.name
         is KtDeclaration.Object -> declaration.name
+        is KtDeclaration.Enum -> declaration.name
     }
 
     // Alias from the owning package's last segment: `material.Text` becomes `MaterialText`.
@@ -104,6 +105,7 @@ public class KtPrinter(
         is KtDeclaration.Class -> renderClass(declaration, indent, aliases)
         is KtDeclaration.Interface -> renderInterface(declaration, indent, aliases)
         is KtDeclaration.Object -> renderObject(declaration, indent, aliases)
+        is KtDeclaration.Enum -> renderEnum(declaration, indent, aliases)
     }
 
     /** One `@` line per annotation, sorted by name so two runs over one tree agree. */
@@ -196,7 +198,7 @@ public class KtPrinter(
         aliases: Map<String, String>,
     ): String = buildString {
         append(renderAnnotations(clazz.annotations, indent, aliases))
-        append(indentOf(indent) + "public class " + clazz.name)
+        append(indentOf(indent) + "public " + (if (clazz.data) "data " else "") + "class " + clazz.name)
         val annotation: KotlinSymbol? = clazz.constructorAnnotation
         if (annotation != null) {
             append(" @" + refOf(KtSymbolRef(annotation), aliases) + " constructor")
@@ -207,6 +209,29 @@ public class KtPrinter(
         // platform types a holder extends all have a no-argument constructor.
         clazz.supertype?.let { append(" : " + refOf(KtSymbolRef(it), aliases) + "()") }
         appendMembers(clazz.members, indent, aliases, this)
+    }
+
+    /**
+     * `public enum class Role { Admin, User }` — one entry per line with a trailing comma, the
+     * shape §16.3 writes for a declaration list.
+     *
+     * An entry is a name and nothing else: §16.6 gives a document enum's entry its own name as
+     * the symbol, so there is no constructor call to render.
+     */
+    private fun renderEnum(
+        declaration: KtDeclaration.Enum,
+        indent: Int,
+        aliases: Map<String, String>,
+    ): String = buildString {
+        append(renderAnnotations(declaration.annotations, indent, aliases))
+        append(indentOf(indent) + "public enum class " + declaration.name)
+        if (declaration.entries.isEmpty()) {
+            append(" {}")
+        } else {
+            append(" {\n")
+            for (entry in declaration.entries) append(indentOf(indent + 1) + entry + ",\n")
+            append(indentOf(indent) + "}")
+        }
     }
 
     /**
@@ -782,6 +807,9 @@ public class KtPrinter(
                 for (supertype in declaration.supertypes) collectExprSymbols(supertype, filePkg, seen)
                 for (member in declaration.members) collectDeclarationSymbols(member, filePkg, seen)
             }
+            // An enum's entries are names in this file's own package, so the only symbol an enum
+            // can carry is an annotation's.
+            is KtDeclaration.Enum -> recordAnnotations(declaration.annotations, filePkg, seen)
         }
     }
 

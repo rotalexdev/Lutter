@@ -1,5 +1,6 @@
 package dev.rotalex.lutter.codegen
 
+import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.schema.component.KotlinSymbol
 
@@ -41,7 +42,10 @@ public object KotlinTypes {
      * Named `typeRef` rather than `type` because `NoComponentWhenTest` rejects any `when`
      * whose subject names a type, and `type` is that word.
      */
-    public fun spellingFor(typeRef: TypeRef): TypeSpelling = when (typeRef) {
+    public fun spellingFor(
+        typeRef: TypeRef,
+        declared: Map<TypeId, String> = emptyMap(),
+    ): TypeSpelling = when (typeRef) {
         TypeRef.Bool -> spelled("Boolean")
         TypeRef.Int32 -> spelled("Int")
         TypeRef.Int64 -> spelled("Long")
@@ -54,16 +58,19 @@ public object KotlinTypes {
         // §9.2 gives a URL the same runtime answer as a string, so both declare one.
         TypeRef.Url -> spelled("String")
         // The inner decides, so `Nullable` of an unmappable type stays unmappable and says so.
-        is TypeRef.Nullable -> wrapped(typeRef.inner) { inner -> KtExpr.Nullable(inner) }
-        is TypeRef.ListOf -> wrapped(typeRef.element) { inner -> applied("List", inner) }
+        is TypeRef.Nullable -> wrapped(typeRef.inner, declared) { inner -> KtExpr.Nullable(inner) }
+        is TypeRef.ListOf -> wrapped(typeRef.element, declared) { inner -> applied("List", inner) }
         // The key is hardcoded: §9.1 declares this type with `String` keys and carries no other.
-        is TypeRef.MapOf -> wrapped(typeRef.value) { inner ->
+        is TypeRef.MapOf -> wrapped(typeRef.value, declared) { inner ->
             applied("Map", KtExpr.Name("String"), inner)
         }
-        // §16.6 names the emitted class from the document's declaration, and neither this
-        // variant nor its `TypeSpec` carries that name, so the mapper cannot know it.
-        is TypeRef.Enum -> unspelled("no Kotlin type name is carried by it or its spec")
-        is TypeRef.Object -> unspelled("no Kotlin class name is carried by it or its spec")
+        // §16.6 names the emitted declaration from the document's own record, which is what
+        // [declared] is: the model or enum carried on `ResolvedDocument`. A caller that does not
+        // hand the map over still gets the old refusal rather than a guessed name.
+        is TypeRef.Enum -> declared[typeRef.id]?.let { spelled(it) }
+            ?: unspelled("no declaration in this document names enum '" + typeRef.id.value + "'")
+        is TypeRef.Object -> declared[typeRef.id]?.let { spelled(it) }
+            ?: unspelled("no declaration in this document names object '" + typeRef.id.value + "'")
         is TypeRef.Ref -> unspelled("§9.2 resolves it to an identifier or a route")
         is TypeRef.Token -> unspelled("its Kotlin type comes from the theme, not the kind")
         is TypeRef.Icon -> unspelled("§9.2 settles the icon symbol, not its type")
@@ -89,8 +96,12 @@ public object KotlinTypes {
      * by it or its spec" says what to fix, where a `List` repeating that it is a type application
      * names an IR gap that closed with D16.
      */
-    private fun wrapped(inner: TypeRef, build: (KtExpr) -> KtExpr): TypeSpelling =
-        when (val spelling = spellingFor(inner)) {
+    private fun wrapped(
+        inner: TypeRef,
+        declared: Map<TypeId, String>,
+        build: (KtExpr) -> KtExpr,
+    ): TypeSpelling =
+        when (val spelling = spellingFor(inner, declared)) {
             is TypeSpelling.Spelled -> TypeSpelling.Spelled(build(spelling.expr))
             is TypeSpelling.Unspelled -> spelling
         }

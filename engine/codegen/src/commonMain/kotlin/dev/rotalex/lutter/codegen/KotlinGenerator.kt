@@ -14,6 +14,8 @@ import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.DiagnosticCode
 import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
 import dev.rotalex.lutter.model.diagnostic.Severity
+import dev.rotalex.lutter.model.doc.DataModelDecl
+import dev.rotalex.lutter.model.doc.EnumTypeDecl
 import dev.rotalex.lutter.model.doc.ExternalStateDecl
 import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.ResourceDecl
@@ -234,6 +236,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             PlannedFileKind.AppState -> emitAppState(planned, document)
             PlannedFileKind.Store -> emitStore(planned)
             PlannedFileKind.Injection -> emitInjection(planned, document)
+            PlannedFileKind.Model -> emitModels(planned, document)
             PlannedFileKind.Screen -> {
                 val pageId = checkNotNull(planned.pageId) { "Plan marked '${planned.path}' with no page" }
                 val page: ResolvedPage = checkNotNull(document.pages[pageId]) {
@@ -350,6 +353,87 @@ public class KotlinGenerator<A : Any, T : Any>(
      * different navigation strategy would have to re-declare a presentation host it has no stake
      * in. §16.5 lists no file for it, which is a gap in the plan rather than a decision.
      */
+    /**
+     * §16.5's `model/Models.kt`: every declared enum and data model, enums first, each in id order.
+     *
+     * §16.6 spells a model as `data class User(val name: String, val age: Int)`, with `Nullable`
+     * and `ListOf` already carried by [KotlinTypes]. A field typed by another declaration is
+     * spelled by the name that declaration is emitted under, which is the fact carriage added:
+     * before it, the mapper could only refuse and say the name was nowhere.
+     *
+     * A model with no fields is a plain class, not a data class: Kotlin refuses a data class
+     * without a constructor parameter, and a declaration with no state has nothing to compare.
+     */
+    private fun emitModels(planned: PlannedFile, document: ResolvedDocument): KtFile? {
+        val names: Map<TypeId, String> = declaredNames(document)
+        val declarations: MutableList<KtDeclaration> = mutableListOf()
+        for (id in document.enums.keys.sortedBy { it.value }) {
+            val declaration: EnumTypeDecl = checkNotNull(document.enums[id]) {
+                "Plan reached enum '$id' outside the document"
+            }
+            declarations += KtDeclaration.Enum(
+                declaration.name,
+                emptyList(),
+                declaration.entries.map { it.name },
+            )
+        }
+        for (id in document.dataModels.keys.sortedBy { it.value }) {
+            val declaration: DataModelDecl = checkNotNull(document.dataModels[id]) {
+                "Plan reached model '$id' outside the document"
+            }
+            val properties: MutableList<KtDeclaration.Property> = mutableListOf()
+            for (field in declaration.fields) {
+                val type: KtExpr = when (val spelling = KotlinTypes.spellingFor(field.type, names)) {
+                    is TypeSpelling.Spelled -> spelling.expr
+                    is TypeSpelling.Unspelled -> {
+                        refuse(
+                            DiagnosticCodes.CodegenNoTypeSpelling,
+                            DiagnosticLocation(
+                                path = listOf("dataModels", declaration.name, field.name.value),
+                            ),
+                            "Field '" + declaration.name + "." + field.name.value + "' is typed '" +
+                                field.type.serialTag + "', which has no Kotlin spelling: " +
+                                spelling.reason,
+                        )
+                        return null
+                    }
+                }
+                properties += KtDeclaration.Property(
+                    name = field.name.value,
+                    annotations = emptyList(),
+                    type = type,
+                    mutable = false,
+                    initializer = null,
+                    delegate = null,
+                    getter = null,
+                )
+            }
+            declarations += KtDeclaration.Class(
+                name = declaration.name,
+                annotations = emptyList(),
+                members = emptyList(),
+                constructorProperties = properties,
+                data = properties.isNotEmpty(),
+            )
+        }
+        return KtFile(planned.packageName, headerText(), declarations)
+    }
+
+    /**
+     * Every declared type's emitted name, keyed by the `TypeId` a `TypeRef` names it by.
+     *
+     * `DataModelId` and `TypeId` are two value classes over one value space (§5.5:366), so the
+     * key is the string they share; the enum already uses `TypeId` directly.
+     */
+    private fun declaredNames(document: ResolvedDocument): Map<TypeId, String> {
+        val names: MutableMap<TypeId, String> = LinkedHashMap()
+        for (declaration in document.dataModels.values) {
+            names[TypeId(declaration.id.value)] = declaration.name
+        }
+        for (declaration in document.enums.values) names[declaration.id] = declaration.name
+        return names
+    }
+
     private fun emitAppHost(planned: PlannedFile, document: ResolvedDocument): KtFile? {
         val declarations: List<HostFunctionDecl> = document.hostFunctions
         val repeated: String? = declarations.groupBy { it.name }
