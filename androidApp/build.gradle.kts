@@ -56,10 +56,11 @@ android {
     }
 
     sourceSets.getByName("main") {
-        // The document the activity opens is the repository's own fixture, not a copy: the
-        // directory is packaged as assets and read by name. A copy is the version that goes
-        // stale the first time the fixture changes.
-        assets.srcDir("../integration/generated-compile/fixtures-navigating")
+        // The document the activity opens is the repository's own starter, not a copy: the
+        // desktop module owns the file and both hosts read those exact bytes. A copy is the
+        // version that goes stale the first time the starter changes, and this app has no
+        // reason to open on a different screen than the desktop one does.
+        assets.srcDir("../desktopApp/src/commonMain/resources")
     }
 }
 

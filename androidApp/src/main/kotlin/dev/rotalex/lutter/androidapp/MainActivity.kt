@@ -119,12 +119,12 @@ public class MainActivity : ComponentActivity() {
     }
 
     /**
-     * The bundled fixture, decoded — the **seed** only.
+     * The bundled starter, decoded — the **seed** only.
      *
-     * It is read from the repository's own `fixtures-navigating` directory, packaged by name, so a
-     * failure here means the packaging changed rather than the document. What it seeds is the
-     * first run and nothing else: after that the workspace holds the document, and this asset is
-     * never consulted again.
+     * It is the same file the desktop app opens on, packaged straight out of that module's
+     * resources, so a failure here means the packaging changed rather than the document. What it
+     * seeds is the first run and nothing else: after that the workspace holds the document, and
+     * this asset is never consulted again.
      */
     private fun readDocument(): UiDocument {
         val bytes = assets.open(DOCUMENT_ASSET).use { it.readBytes() }
@@ -132,7 +132,7 @@ public class MainActivity : ComponentActivity() {
     }
 
     private companion object {
-        const val DOCUMENT_ASSET: String = "button_navigate.json"
+        const val DOCUMENT_ASSET: String = "default-document.json"
 
         /** The working copy inside [filesDir], and the record beside it. */
         const val DOCUMENT_FILE: String = "document.json"
