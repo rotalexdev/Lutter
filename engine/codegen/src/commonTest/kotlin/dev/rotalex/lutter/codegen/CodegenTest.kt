@@ -2284,6 +2284,38 @@ class CodegenTest {
     }
 
     @Test
+    fun `an app state holding a list of records spells the model element and its initial`() {
+        // The list half of the same joint: `TypeRef.ListOf(Object(id))` is `List<User>` in the
+        // store and `listOf(User(...))` as the opening value, which is what a `list.append` of a
+        // record writes into.
+        val initial: Value = Value.ListOf(
+            listOf(
+                Value.Obj(
+                    TypeId("dm_user"),
+                    mapOf(PropertyKey("name") to Value.Str("Ada"), PropertyKey("age") to Value.Int32(36)),
+                ),
+            ),
+        )
+        val users: ResolvedState = ResolvedState(
+            StateDecl(StateId("s_users"), "users", TypeRef.ListOf(TypeRef.Object(TypeId("dm_user"))), initial),
+            null,
+        )
+        val result = generate(
+            homeDocument(
+                textNode("n_1", "Hi"),
+                appState = listOf(users),
+                dataModels = listOf(userModel()),
+            ),
+        )
+
+        assertTrue(result.diagnostics.isEmpty(), "got ${result.diagnostics}")
+        val holder = assertNotNull(result.files.files.firstOrNull { it.path == "state/AppState.kt" })
+        assertTrue(holder.content.contains("import com.example.app.model.User"), holder.content)
+        assertTrue(holder.content.contains("List<User>"), holder.content)
+        assertTrue(holder.content.contains("listOf(User(name = \"Ada\", age = 36))"), holder.content)
+    }
+
+    @Test
     fun `a record literal naming a field the model does not declare is refused`() {
         val initial: Value = Value.Obj(TypeId("dm_user"), mapOf(PropertyKey("nickname") to Value.Str("Ada")))
         val user: ResolvedState = ResolvedState(

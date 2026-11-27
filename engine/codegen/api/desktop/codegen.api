@@ -1,5 +1,6 @@
 public final class dev/rotalex/lutter/codegen/ActionEmitter {
-	public fun <init> (Ldev/rotalex/lutter/schema/registry/Registry;Ldev/rotalex/lutter/codegen/ExprEmitter;Ljava/util/Map;Ldev/rotalex/lutter/codegen/HostDecl;Ldev/rotalex/lutter/codegen/CodegenOptions;Ljava/util/List;)V
+	public fun <init> (Ldev/rotalex/lutter/schema/registry/Registry;Ldev/rotalex/lutter/codegen/ExprEmitter;Ljava/util/Map;Ldev/rotalex/lutter/codegen/HostDecl;Ldev/rotalex/lutter/codegen/CodegenOptions;Ljava/util/List;Ljava/util/Map;)V
+	public synthetic fun <init> (Ldev/rotalex/lutter/schema/registry/Registry;Ldev/rotalex/lutter/codegen/ExprEmitter;Ljava/util/Map;Ldev/rotalex/lutter/codegen/HostDecl;Ldev/rotalex/lutter/codegen/CodegenOptions;Ljava/util/List;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun emit (Ldev/rotalex/lutter/model/action/ActionSequence;Ldev/rotalex/lutter/model/diagnostic/DiagnosticLocation;)Ljava/util/List;
 	public final fun getImports ()Ljava/util/List;
 }

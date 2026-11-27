@@ -173,6 +173,7 @@ public class KotlinGenerator<A : Any, T : Any>(
             HostDecl { name -> document.hostFunctions.firstOrNull { it.name == name } },
             options,
             diagnostics,
+            declaredModels(document),
         )
         val plan: GenPlan = planDocument(document, options.basePackage, options.injection)
         refuseCollisions(plan)

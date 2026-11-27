@@ -37,12 +37,23 @@ internal data class RecordSpelling(
     val packageName: String,
 )
 
-/** [document]'s declarations as [RecordSpelling] for a module whose models live in [packageName]. */
-internal fun recordsOf(document: ResolvedDocument, packageName: String): RecordSpelling {
+/**
+ * [document]'s models keyed the way [Value.Obj] keys them.
+ *
+ * Two callers need the map and only one of them can hold a [RecordSpelling]: the state emitter
+ * spells a record initial, and [ActionEmitter] spells a record argument. The second is a public
+ * class, so it takes the public map and derives its own spelling from the package it emits into;
+ * converting in both places would be two answers to the same question.
+ */
+internal fun declaredModels(document: ResolvedDocument): Map<TypeId, DataModelDecl> {
     val models: MutableMap<TypeId, DataModelDecl> = LinkedHashMap()
     for (declaration in document.dataModels.values) models[TypeId(declaration.id.value)] = declaration
-    return RecordSpelling(models, packageName)
+    return models
 }
+
+/** [document]'s declarations as [RecordSpelling] for a module whose models live in [packageName]. */
+internal fun recordsOf(document: ResolvedDocument, packageName: String): RecordSpelling =
+    RecordSpelling(declaredModels(document), packageName)
 
 /** §5.4's four fractional digits — the same width [textOf] writes and the same this prints. */
 private const val MAX_FRACTIONAL_DIGITS: Int = 4
