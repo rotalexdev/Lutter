@@ -3,6 +3,7 @@ package dev.rotalex.lutter.editor.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -39,7 +40,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.pointer.awaitPointerEventScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -54,10 +58,12 @@ import dev.rotalex.lutter.editing.policy.DropTarget
 import dev.rotalex.lutter.editor.EditorPreview
 import dev.rotalex.lutter.editor.EditorSelection
 import dev.rotalex.lutter.editor.EditorSession
+import dev.rotalex.lutter.editor.EditorViewport
 import dev.rotalex.lutter.editor.InspectorModel
 import dev.rotalex.lutter.editor.PaletteEntry
 import dev.rotalex.lutter.editor.PaletteSection
 import dev.rotalex.lutter.editor.PreviewState
+import dev.rotalex.lutter.editor.ViewPoint
 import dev.rotalex.lutter.editor.PropertyEdit
 import dev.rotalex.lutter.editor.PropertyRow
 import dev.rotalex.lutter.editor.PropertyText
@@ -256,7 +262,8 @@ public fun CanvasPane(
  * ### Why long-press to drag
  *
  * A plain drag on a canvas is also how a person scrolls it. `detectDragGesturesAfterLongPress`
- * makes "pick this up" an explicit act, and leaves the plain drag free for panning later.
+ * makes "pick this up" an explicit act, and leaves the plain drag for panning, which starts only
+ * on the page's margin so a drag that begins on a node still belongs to the reorder.
  */
 @Composable
 private fun EditorCanvas(
@@ -271,19 +278,74 @@ private fun EditorCanvas(
     val theme = MaterialTheme.colorScheme
     var originInRoot: Offset by remember { mutableStateOf(Offset.Zero) }
     var drag: Drag by remember(document) { mutableStateOf<Drag>(Drag.None) }
+    var viewport: EditorViewport by remember(document) { mutableStateOf(EditorViewport()) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .onGloballyPositioned { originInRoot = it.boundsInRoot().topLeft },
     ) {
-        key(document) {
-            UiApp(runtime, resolved, environment)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = viewport.scale
+                    scaleY = viewport.scale
+                    translationX = viewport.translationX
+                    translationY = viewport.translationY
+                    transformOrigin = TransformOrigin(0f, 0f)
+                },
+        ) {
+            key(document) {
+                UiApp(runtime, resolved, environment)
+            }
         }
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .testTag("canvas-surface")
+                .pointerInput(Unit) {
+                    // The wheel zooms about the pointer, so the node under it stays under it.
+                    // `scrollDelta` is common API, which is what keeps this in commonMain while
+                    // the desktop window is the only host with a wheel today.
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull() ?: continue
+                            val scroll = change.scrollDelta
+                            if (scroll.y == 0f) continue
+                            change.consume()
+                            viewport = viewport.zoomedAt(
+                                anchor = ViewPoint(change.position.x, change.position.y),
+                                factor = if (scroll.y < 0f) {
+                                    EditorViewport.Step
+                                } else {
+                                    1f / EditorViewport.Step
+                                },
+                            )
+                        }
+                    }
+                }
+                .pointerInput(document) {
+                    // A plain drag pans, but only when it starts on the page's margin: a drag
+                    // that starts on a node belongs to the long-press reorder, and taking it
+                    // here would pan instead of moving the node.
+                    var panning = false
+                    detectDragGestures(
+                        onDragStart = { start ->
+                            panning =
+                                deepestNodeAt(document, bounds, start + originInRoot) == null
+                        },
+                        onDrag = { change, delta ->
+                            if (panning) {
+                                change.consume()
+                                viewport = viewport.panned(delta.x, delta.y)
+                            }
+                        },
+                        onDragEnd = { panning = false },
+                        onDragCancel = { panning = false },
+                    )
+                }
                 .pointerInput(document) {
                     detectTapGestures { position ->
                         val hit = deepestNodeAt(document, bounds, position + originInRoot)
