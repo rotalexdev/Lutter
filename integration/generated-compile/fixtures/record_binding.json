@@ -1,0 +1,64 @@
+{
+  "format": "forge.ui-document",
+  "formatVersion": 1,
+  "schemaVersion": 1,
+  "payload": {
+    "app": {"packageName": "com.example.conformance", "startPage": "p_home"},
+    "components": {},
+    "dataModels": {
+      "dm_user": {
+        "id": "dm_user",
+        "name": "User",
+        "fields": [
+          {"name": "name", "type": {"type": "str"}},
+          {"name": "age", "type": {"type": "i32"}}
+        ]
+      }
+    },
+    "meta": {"name": "RecordBinding"},
+    "nodes": {
+      "n_name": {
+        "id": "n_name",
+        "props": {
+          "text": {
+            "type": "expr",
+            "expr": {
+              "type": "member",
+              "name": "name",
+              "receiver": {"type": "ref", "target": {"type": "state", "id": "s_user"}}
+            }
+          }
+        },
+        "type": "m3.Text"
+      },
+      "n_root": {
+        "id": "n_root",
+        "slots": {"children": ["n_name"]},
+        "type": "core.Column"
+      }
+    },
+    "pages": {
+      "p_home": {
+        "id": "p_home",
+        "name": "Home",
+        "root": "n_root",
+        "route": "home",
+        "state": [
+          {
+            "id": "s_user",
+            "name": "user",
+            "type": {"type": "object", "id": "dm_user"},
+            "initial": {
+              "type": "obj",
+              "typeId": "dm_user",
+              "fields": {
+                "name": {"type": "str", "v": "Ada"},
+                "age": {"type": "i32", "v": 36}
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

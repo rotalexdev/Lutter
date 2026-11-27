@@ -194,6 +194,11 @@ class CodegenGoldenTest {
     }
 
     @Test
+    fun `record_binding generates the committed golden`() {
+        fixture("record_binding")
+    }
+
+    @Test
     fun `text_alpha generates the committed golden`() {
         fixture("text_alpha")
     }
