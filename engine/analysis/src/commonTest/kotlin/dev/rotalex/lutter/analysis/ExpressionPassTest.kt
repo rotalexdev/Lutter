@@ -253,7 +253,7 @@ class ExpressionPassTest {
 
         val finding = result.diagnostics.single { it.message.contains("nickname") }
         assertEquals(DiagnosticCodes.ExprUnresolvedRef, finding.code)
-        assertTrue(finding.message.contains("reads field 'nickname' of 'dm_user'"), finding.message)
+        assertTrue(finding.message.contains("reads field 'nickname' of 'User'"), finding.message)
     }
 
     @Test
