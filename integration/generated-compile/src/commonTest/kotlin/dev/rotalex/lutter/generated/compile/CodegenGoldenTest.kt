@@ -194,6 +194,14 @@ class CodegenGoldenTest {
     }
 
     @Test
+    fun `zz dump the record golden for authoring`() {
+        val text = render(generate("record_binding"))
+        println("GOLDEN-BEGIN")
+        println(text.replace("\n", "\\n"))
+        println("GOLDEN-END")
+    }
+
+    @Test
     fun `record_binding generates the committed golden`() {
         fixture("record_binding")
     }
@@ -503,6 +511,7 @@ class CodegenGoldenTest {
             "navigation_bar_basic",
             "navigation_drawer_basic",
             "navigation_rail_basic",
+            "record_binding",
         )
     }
 }
