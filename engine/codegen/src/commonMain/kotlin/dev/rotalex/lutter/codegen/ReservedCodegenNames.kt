@@ -3,6 +3,8 @@ package dev.rotalex.lutter.codegen
 import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCodes
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.analysis.resolved.ResolvedPage
+import dev.rotalex.lutter.model.doc.DataModelDecl
+import dev.rotalex.lutter.model.doc.EnumTypeDecl
 import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
 import dev.rotalex.lutter.model.diagnostic.Severity
@@ -81,10 +83,15 @@ public object ReservedCodegenNames {
 
     /**
      * One `name.reserved` per declared name this generator also emits: pages in id order, then
-     * components, so two runs over one document report in the same order.
+     * components, then models, then enums, so two runs over one document report in the same order.
      *
      * At most one finding per declared name. A name that is both a literal and some page's
      * screen is reported against the literal, which is the one every plugin reserves too.
+     *
+     * Models and enums are checked here rather than anywhere else because `model/Models.kt` is a
+     * top-level declaration like a screen is, and D27 could not check them: the names were not on
+     * `ResolvedDocument`, so there was nothing to read. Two declarations that spell one name are
+     * refused against whichever came first in this order, which is what makes the finding stable.
      */
     public fun findings(document: ResolvedDocument, options: CodegenOptions): List<Diagnostic> {
         val pages: List<ResolvedPage> = document.pages.entries.sortedBy { it.key.value }.map { it.value }
@@ -95,26 +102,43 @@ public object ReservedCodegenNames {
         }
 
         val found: MutableList<Diagnostic> = mutableListOf()
-        for (page in pages) {
-            val at: DiagnosticLocation = DiagnosticLocation(pageId = page.id)
-            val owner: String? = owners[page.name]
-            if (page.name in reserved) {
-                found += finding("Page", page.name, at, "it is emitted as a top-level declaration")
+
+        /** Names emitted whole, so a second declaration spelling one is a duplicate. */
+        val claimed: MutableMap<String, String> = LinkedHashMap<String, String>()
+
+        /**
+         * Refuses [name] if something already owns it, and otherwise claims it.
+         *
+         * Claiming is the part D27 lacked: a model called `User` and a component called `User`
+         * are one declaration emitted twice, and neither of them is a literal.
+         */
+        fun check(kind: String, name: String, at: DiagnosticLocation, takesName: Boolean = true) {
+            val owner: String? = owners[name]
+            val taken: String? = claimed[name]
+            if (name in reserved) {
+                found += finding(kind, name, at, "it is emitted as a top-level declaration")
             } else if (owner != null) {
-                found += finding("Page", page.name, at, ownerDetail(owner, page.name))
+                found += finding(kind, name, at, ownerDetail(owner, name))
+            } else if (taken != null) {
+                found += finding(kind, name, at, taken + " is emitted under the same name")
+            } else if (takesName) {
+                claimed[name] = kind.lowercase() + " '" + name + "'"
             }
         }
+
+        // A page's name is not emitted whole — `Route.Home` and `HomeScreen` are — so it claims
+        // nothing; a component's id and a model's name are the declarations themselves.
+        for (page in pages) check("Page", page.name, DiagnosticLocation(pageId = page.id), takesName = false)
         for (id in document.components.keys.sortedBy { it.value }) {
-            if (id.value in reserved) {
-                val at: DiagnosticLocation = DiagnosticLocation(componentDeclId = id)
-                found += finding("Component", id.value, at, "it is emitted as a top-level declaration")
-            } else {
-                val owner: String? = owners[id.value]
-                if (owner != null) {
-                    val at: DiagnosticLocation = DiagnosticLocation(componentDeclId = id)
-                    found += finding("Component", id.value, at, ownerDetail(owner, id.value))
-                }
-            }
+            check("Component", id.value, DiagnosticLocation(componentDeclId = id))
+        }
+        for (id in document.dataModels.keys.sortedBy { it.value }) {
+            val model: DataModelDecl = checkNotNull(document.dataModels[id])
+            check("Data model", model.name, DiagnosticLocation(path = listOf("dataModels", model.name)))
+        }
+        for (id in document.enums.keys.sortedBy { it.value }) {
+            val declaration: EnumTypeDecl = checkNotNull(document.enums[id])
+            check("Enum", declaration.name, DiagnosticLocation(path = listOf("enums", declaration.name)))
         }
         return found
     }

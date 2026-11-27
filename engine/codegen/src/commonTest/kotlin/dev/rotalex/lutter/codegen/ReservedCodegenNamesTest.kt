@@ -5,12 +5,19 @@ import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.analysis.resolved.ResolvedPage
 import dev.rotalex.lutter.analysis.resolved.ResolvedState
 import dev.rotalex.lutter.analysis.resolved.ResolvedTheme
+import dev.rotalex.lutter.model.doc.DataModelDecl
+import dev.rotalex.lutter.model.doc.EnumEntryDecl
+import dev.rotalex.lutter.model.doc.EnumTypeDecl
+import dev.rotalex.lutter.model.doc.FieldDecl
 import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.ComponentType
+import dev.rotalex.lutter.model.ids.DataModelId
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
+import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.StateId
+import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.Schema
@@ -176,6 +183,68 @@ class ReservedCodegenNamesTest {
         assertTrue(result.files.files.isEmpty(), "got ${result.files.files.map { it.path }}")
     }
 
+    @Test
+    fun `a model named after a generated route is refused`() {
+        // D27 could not check this one: the name was not on `ResolvedDocument`, so nothing could
+        // read it. `model/Models.kt` emits it as a top-level declaration, which is the same fact
+        // that makes a page named `Route` a refusal.
+        val document: ResolvedDocument = document(dataModels = listOf(model("Route")))
+
+        assertEquals(listOf("name.reserved"), codesOf(document))
+    }
+
+    @Test
+    fun `a model named after a page's screen is refused`() {
+        val document: ResolvedDocument =
+            document(pages = listOf(home to "Home"), dataModels = listOf(model("HomeScreen")))
+
+        assertEquals(listOf("name.reserved"), codesOf(document))
+    }
+
+    @Test
+    fun `a model and a component sharing a name are refused`() {
+        // One declaration emitted twice: the component becomes a function called `User` and the
+        // model becomes a data class called `User`. Neither of them is a reserved literal, which
+        // is why the check has to remember what it has already claimed.
+        val document: ResolvedDocument = document(
+            components = listOf(ComponentDeclId("User")),
+            dataModels = listOf(model("User")),
+        )
+
+        assertEquals(listOf("name.reserved"), codesOf(document))
+        assertEquals(
+            "'Data model User' is a reserved codegen name: component 'User' is emitted under the same name",
+            ReservedCodegenNames.findings(document, options).single().message,
+        )
+    }
+
+    @Test
+    fun `two models sharing a name are refused`() {
+        val document: ResolvedDocument = document(
+            dataModels = listOf(model("User", id = "dm_user"), model("User", id = "dm_other")),
+        )
+
+        assertEquals(listOf("name.reserved"), codesOf(document))
+    }
+
+    @Test
+    fun `an enum named after a generated type is refused`() {
+        val document: ResolvedDocument = document(enums = listOf(enumeration("AppState")))
+
+        assertEquals(listOf("name.reserved"), codesOf(document))
+    }
+
+    @Test
+    fun `a model whose name nothing else emits is not refused`() {
+        val document: ResolvedDocument = document(
+            pages = listOf(home to "Home"),
+            dataModels = listOf(model("User")),
+            enums = listOf(enumeration("Role")),
+        )
+
+        assertEquals(emptyList<String>(), codesOf(document))
+    }
+
     private fun codesOf(document: ResolvedDocument): List<String> =
         ReservedCodegenNames.findings(document, options).map { it.code.value }
 
@@ -187,6 +256,8 @@ class ReservedCodegenNamesTest {
         pages: List<Pair<PageId, String>> = emptyList(),
         components: List<ComponentDeclId> = emptyList(),
         pageState: List<ResolvedState> = emptyList(),
+        dataModels: List<DataModelDecl> = emptyList(),
+        enums: List<EnumTypeDecl> = emptyList(),
     ): ResolvedDocument {
         val nodes: MutableMap<NodeId, ResolvedNode> = LinkedHashMap()
         val resolved: MutableMap<PageId, ResolvedPage> = LinkedHashMap()
@@ -208,8 +279,20 @@ class ReservedCodegenNamesTest {
             ResolvedTheme(null),
             emptyList(),
             if (components.isEmpty()) emptyMap() else components.associateWith { pageState },
+            dataModels = dataModels.associateBy { it.id },
+            enums = enums.associateBy { it.id },
         )
     }
+
+    private fun model(name: String, id: String = "dm_" + name.lowercase()): DataModelDecl =
+        DataModelDecl(
+            DataModelId(id),
+            name,
+            listOf(FieldDecl(PropertyKey("name"), TypeRef.Str)),
+        )
+
+    private fun enumeration(name: String): EnumTypeDecl =
+        EnumTypeDecl(TypeId("t_" + name.lowercase()), name, listOf(EnumEntryDecl("Admin")))
 
     private fun column(id: NodeId): ResolvedNode =
         ResolvedNode(id, columnType, emptyMap(), emptyList(), emptyMap(), emptySet())
