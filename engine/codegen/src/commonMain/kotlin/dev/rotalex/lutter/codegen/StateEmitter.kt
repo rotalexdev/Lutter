@@ -227,7 +227,7 @@ public class StateEmitter(
      * `Persistence` both arrive from the user's document.
      */
     public fun refusal(declaration: ResolvedState, at: DiagnosticLocation): Diagnostic? {
-        val spelling: TypeSpelling = KotlinTypes.spellingFor(declaration.decl.type)
+        val spelling: TypeSpelling = KotlinTypes.spellingFor(declaration.decl.type, declaredNames)
         if (spelling is TypeSpelling.Unspelled) {
             return finding(
                 DiagnosticCodes.CodegenNoTypeSpelling,
