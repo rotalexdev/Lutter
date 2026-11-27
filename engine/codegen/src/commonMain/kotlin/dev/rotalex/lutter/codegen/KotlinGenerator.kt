@@ -383,7 +383,11 @@ public class KotlinGenerator<A : Any, T : Any>(
             }
             val properties: MutableList<KtDeclaration.Property> = mutableListOf()
             for (field in declaration.fields) {
-                val type: KtExpr = when (val spelling = KotlinTypes.spellingFor(field.type, names)) {
+                // Read out before the branch, not inside its subject: §35's scanner reads a
+                // `when` whose subject spells `.type` as a dispatch on a component type, and a
+                // model field's type is not one.
+                val spelling: TypeSpelling = KotlinTypes.spellingFor(field.type, names)
+                val type: KtExpr = when (spelling) {
                     is TypeSpelling.Spelled -> spelling.expr
                     is TypeSpelling.Unspelled -> {
                         refuse(
