@@ -17,9 +17,9 @@ class AdaptiveCapabilityTest {
 
     @Test
     fun `the window size class resolves on this target and splits the three layouts`() {
-        val compact = WindowSizeClass.compute(widthDp = 320f, heightDp = 500f)
-        val medium = WindowSizeClass.compute(widthDp = 700f, heightDp = 500f)
-        val expanded = WindowSizeClass.compute(widthDp = 1024f, heightDp = 768f)
+        val compact = WindowSizeClass.compute(dpWidth = 320f, dpHeight = 500f)
+        val medium = WindowSizeClass.compute(dpWidth = 700f, dpHeight = 500f)
+        val expanded = WindowSizeClass.compute(dpWidth = 1024f, dpHeight = 768f)
 
         assertFalse(compact.isWidthAtLeastBreakpoint(600), "320dp is compact")
         assertTrue(medium.isWidthAtLeastBreakpoint(600), "700dp is at least medium")
