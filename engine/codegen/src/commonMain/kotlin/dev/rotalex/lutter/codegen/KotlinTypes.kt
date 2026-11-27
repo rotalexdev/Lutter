@@ -84,7 +84,7 @@ public object KotlinTypes {
     private fun unspelled(reason: String): TypeSpelling = TypeSpelling.Unspelled(reason)
 
     private fun composeRef(packageName: String, name: String): KtExpr =
-        referenced(KotlinSymbol(packageName, name))
+        KtExpr.Ref(KtSymbolRef(KotlinSymbol(packageName, name)))
 
     /**
      * A symbol as a type position. A declaration in the file's own package renders bare: the
@@ -107,7 +107,7 @@ public object KotlinTypes {
      */
     private fun wrapped(
         inner: TypeRef,
-        declared: Map<TypeId, String>,
+        declared: Map<TypeId, KotlinSymbol>,
         build: (KtExpr) -> KtExpr,
     ): TypeSpelling =
         when (val spelling = spellingFor(inner, declared)) {
