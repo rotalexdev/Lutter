@@ -106,8 +106,8 @@ class BuiltinModifierSpecsTest {
     }
 
     @Test
-    fun `the set is the plan's fourteen, and no type is claimed twice`() {
-        assertEquals(14, specs.size)
+    fun `the set is the plan's fifteen, and no type is claimed twice`() {
+        assertEquals(15, specs.size)
         assertEquals(specs.size, specs.map { it.type }.toSet().size)
         assertEquals(
             listOf(
@@ -121,6 +121,7 @@ class BuiltinModifierSpecsTest {
                 "layout.fillMaxSize",
                 "layout.fillMaxWidth",
                 "layout.height",
+                "layout.offset",
                 "layout.padding",
                 "layout.size",
                 "layout.weight",

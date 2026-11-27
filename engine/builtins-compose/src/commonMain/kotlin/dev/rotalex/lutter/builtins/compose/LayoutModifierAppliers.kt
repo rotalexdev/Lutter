@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -14,6 +15,7 @@ import dev.rotalex.lutter.builtins.FillMaxHeightModifier
 import dev.rotalex.lutter.builtins.FillMaxSizeModifier
 import dev.rotalex.lutter.builtins.FillMaxWidthModifier
 import dev.rotalex.lutter.builtins.HeightModifier
+import dev.rotalex.lutter.builtins.OffsetModifier
 import dev.rotalex.lutter.builtins.PaddingModifier
 import dev.rotalex.lutter.builtins.SizeModifier
 import dev.rotalex.lutter.builtins.WeightModifier
@@ -77,6 +79,15 @@ internal object HeightApplier : ModifierApplier {
     override fun apply(modifier: Modifier, args: ResolvedArgs, scopes: ScopeBag): Modifier {
         val height = args.reader()[HeightModifier.value] ?: return modifier
         return modifier.height(height.dp)
+    }
+}
+
+internal object OffsetApplier : ModifierApplier {
+    override fun apply(modifier: Modifier, args: ResolvedArgs, scopes: ScopeBag): Modifier {
+        val props = args.reader()
+        val x = props[OffsetModifier.x] ?: return modifier
+        val y = props[OffsetModifier.y] ?: return modifier
+        return modifier.offset(x.dp, y.dp)
     }
 }
 

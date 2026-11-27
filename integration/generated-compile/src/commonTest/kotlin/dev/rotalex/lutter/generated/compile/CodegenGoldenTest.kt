@@ -84,6 +84,11 @@ class CodegenGoldenTest {
     }
 
     @Test
+    fun `box_offset generates the committed golden`() {
+        fixture("box_offset")
+    }
+
+    @Test
     fun `column_color generates the committed golden`() {
         fixture("column_color")
     }
@@ -288,8 +293,11 @@ class CodegenGoldenTest {
     private fun fixture(id: String) {
         val name = GOLDEN_DIRECTORY + id + ".golden"
         val source = classpathGoldenSource()
-        val golden = Golden.read(name, source)
         val generated = generate(id)
+        if (id == "box_offset") {
+            fail("GOLDEN-BEGIN" + render(generated).replace("\n", "\\n") + "GOLDEN-END")
+        }
+        val golden = Golden.read(name, source)
 
         assertNotTrivial(id, golden)
         reportFirstDifference(id, parse(id, golden), generated)
@@ -462,6 +470,7 @@ class CodegenGoldenTest {
         /** Every fixture a row above compares, which is every fixture on disk. */
         val GOLDEN_FIXTURES: List<String> = listOf(
             "box_align",
+            "box_offset",
             "column_color",
             "column_text",
             "component_param_slot",
