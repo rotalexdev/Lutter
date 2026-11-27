@@ -31,6 +31,7 @@ import dev.rotalex.lutter.schema.action.ArgRule
 import dev.rotalex.lutter.schema.action.ArgShape
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.modifier.ModifierSpec
+import dev.rotalex.lutter.schema.types.ObjectTypeSpec
 
 /**
  * Pass 6: every step of every handler against the `ActionSpec` that describes it (§17.1).
@@ -563,7 +564,48 @@ private class Walk(
                 "Argument '${key.value}' expects ${labelOf(typeRef)} but found ${labelOf(value)}",
                 mapOf("property" to key.value, "expected" to labelOf(typeRef), "found" to labelOf(value)),
             )
+            return
         }
+        // The kind answered the id; the shape is a question only the declaration can answer, and
+        // the pass holding the document is the one that asks it. §17.3 has one type row, so the
+        // code is the mismatch's and the message carries the field sets — the same split the
+        // enum-entry rule makes for a name that is not in its enum.
+        val shape: Pair<String, String> = recordShape(typeRef, value) ?: return
+        found += refusal(
+            at, event, DiagnosticCodes.PropTypeMismatch,
+            "Argument '${key.value}' expects ${shape.first} but found ${shape.second}",
+            mapOf("property" to key.value, "expected" to shape.first, "found" to shape.second),
+        )
+    }
+
+    /**
+     * A record literal's fields against the declaration it names: both labels, or null when the
+     * literal is the declared shape.
+     *
+     * `ObjectValueKind` compares the `TypeId` and stops, because a kind has no declaration to
+     * read — so before this rule a `Value.Obj` with a field the model does not declare passed
+     * analysis and was refused later by the generator, and the interpreted app dropped the field
+     * instead of refusing it. Both directions are refused here: an extra field has nowhere to go
+     * and a missing one has no value to write.
+     *
+     * Two sources, the same pair [SchemaPass]'s `enumEntries` reads and for the same reason: a
+     * plugin's `ObjectTypeSpec` and the document's own `dataModels` are both declarations, and a
+     * literal must not be judged by which one answered. Null is "nothing to compare against" —
+     * a dangling id is the resolver's finding, not a shape one.
+     */
+    private fun recordShape(declared: TypeRef, value: Value): Pair<String, String>? {
+        val id = (declared as? TypeRef.Object)?.id ?: return null
+        val literal: Value.Obj = value as? Value.Obj ?: return null
+        val model = document.dataModels.values.firstOrNull { it.id.value == id.value }
+        val fields: List<PropertyKey> = (schema.types[id] as? ObjectTypeSpec)?.fields?.map { it.name }
+            ?: model?.fields?.map { it.name }
+            ?: return null
+        val expected: Set<PropertyKey> = fields.toSet()
+        if (literal.fields.keys == expected) return null
+        val name: String = model?.name ?: id.value
+        val wanted: String = name + "{" + fields.joinToString(", ") { it.value } + "}"
+        val written: String = name + "{" + literal.fields.keys.joinToString(", ") { it.value } + "}"
+        return wanted to written
     }
 
     /**
