@@ -2220,7 +2220,7 @@ class CodegenTest {
         val models = assertNotNull(result.files.files.firstOrNull { it.path == "model/Models.kt" })
         assertTrue(models.content.contains("package com.example.app.model"), models.content)
         assertTrue(
-            models.content.contains("public data class User(val name: String, val age: Int)"),
+            models.content.contains("public data class User(public val name: String, public val age: Int)"),
             models.content,
         )
     }
@@ -2253,7 +2253,7 @@ class CodegenTest {
         )
 
         val models = assertNotNull(result.files.files.firstOrNull { it.path == "model/Models.kt" })
-        assertTrue(models.content.contains("val user: User"), models.content)
+        assertTrue(models.content.contains("public val user: User"), models.content)
     }
 
     @Test

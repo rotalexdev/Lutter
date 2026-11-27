@@ -164,28 +164,23 @@ public class KtPrinter(
      * The three sources of a value are separate fields because Kotlin spells them differently
      * and accepts only one: a node carrying an initializer and a delegate is refused.
      *
-     * [inConstructor] drops the implicit `public`: §16.6 writes `data class User(val name: String)`
-     * and Kotlin's own style omits a default visibility there, while a member spells it because
-     * the generated module builds with explicitApi. An explicit [KtDeclaration.Property.visibility]
-     * is written in both positions — `private val backStack` is the one this module emits.
+     * `public` is written even in a constructor, where §16.6's example omits it: the generated
+     * module builds with explicitApi, and a primary-constructor property without a visibility is
+     * a compile error there. An explicit [KtDeclaration.Property.visibility] replaces it —
+     * `private val backStack` is the one this module emits.
      */
     private fun renderProperty(
         property: KtDeclaration.Property,
         indent: Int,
         aliases: Map<String, String>,
-        inConstructor: Boolean = false,
     ): String {
         if (property.initializer != null && property.delegate != null) {
             throw CodegenBug(
                 "Property '" + property.name + "' has an initializer and a delegate; Kotlin allows one",
             )
         }
-        val mutable: String = if (property.mutable) "var " else "val "
-        val keyword: String = when {
-            property.visibility != null -> property.visibility + " " + mutable
-            inConstructor -> mutable
-            else -> "public " + mutable
-        }
+        val keyword: String =
+            (property.visibility ?: "public") + " " + if (property.mutable) "var " else "val "
         val declared: String = property.type?.let { ": " + renderExpr(it, indent, aliases) } ?: ""
         val assigned: String = property.initializer?.let { " = " + renderExpr(it, indent, aliases) }
             ?: property.delegate?.let { " by " + renderExpr(it, indent, aliases) }
@@ -330,9 +325,7 @@ public class KtPrinter(
                 )
             }
         }
-        return "(" + clazz.constructorProperties.joinToString(", ") {
-            renderProperty(it, indent, aliases, inConstructor = true)
-        } + ")"
+        return "(" + clazz.constructorProperties.joinToString(", ") { renderProperty(it, indent, aliases) } + ")"
     }
 
     private fun renderParam(param: KtParam, aliases: Map<String, String>): String {
