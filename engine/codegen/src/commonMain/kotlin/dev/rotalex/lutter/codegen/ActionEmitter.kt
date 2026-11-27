@@ -8,12 +8,14 @@ import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.DiagnosticCode
 import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
 import dev.rotalex.lutter.model.diagnostic.Severity
+import dev.rotalex.lutter.model.doc.DataModelDecl
 import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.expr.Expr
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.ActionId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
+import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.RefKind
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
@@ -54,7 +56,19 @@ public class ActionEmitter(
     private val host: HostDecl,
     private val options: CodegenOptions,
     private val found: MutableList<Diagnostic>,
+    models: Map<TypeId, DataModelDecl> = emptyMap(),
 ) {
+
+    /**
+     * What a record argument spells through: the declarations [models] carries, under the package
+     * `model/Models.kt` is written into.
+     *
+     * Empty by default, because a caller that cannot see the document must refuse a record
+     * argument rather than name a class the module does not carry — the same rule the state
+     * emitter's record initial follows.
+     */
+    private val records: RecordSpelling =
+        RecordSpelling(models, modelPackage(options.basePackage))
 
     /**
      * What a `Template` action's pattern needs imported, for a caller that wants it.
@@ -566,7 +580,7 @@ public class ActionEmitter(
         }
 
     private fun literal(value: Value, key: PropertyKey, at: DiagnosticLocation): KtExpr? {
-        val emitted: EmittedLiteral? = LiteralPrinter.emit(value)
+        val emitted: EmittedLiteral? = LiteralPrinter.emit(value, records = records)
         if (emitted == null) {
             refuse(
                 DiagnosticCodes.CodegenStrategyUnsupported,

@@ -108,6 +108,30 @@ to declare.
 An unknown name is refused with the accepted ones listed, and nothing is generated: a typo
 must not quietly produce the default strategy's project.
 
+#### What the generated tree holds
+
+The document decides which files exist; the strategies decide what they contain.
+
+| Path | Emitted when |
+|---|---|
+| `App.kt` | always: the composable that owns the start page |
+| `Navigation.kt` | always: the route hierarchy the navigation strategy fills in |
+| `AppHost.kt` | always: one member per declared host function, so a `host.call` names something that exists |
+| `state/AppState.kt` | the document declares app state |
+| `state/PersistentStore.kt` | at least one state is `saveable` |
+| `model/Models.kt` | the document declares `dataModels` or `enums` — one data class per model, one enum per enum type, in the package `<package>.model` |
+| `di/Injection.kt` | the injection strategy emits a container module |
+| `screens/<Page>Screen.kt` | one per page |
+| `components/<id>.kt` | one per declared component |
+
+`model/Models.kt` is the file a record type becomes: a `dataModels` entry `dm_user` named `User`
+with fields `name` and `age` emits `public data class User(public val name: String, public val age:
+Int)` and nothing else — no defaults, no builders. A state or a property typed `TypeRef.Object`
+spells that class, a `Value.Obj` in the document spells its constructor call (`User(name = "Ada",
+age = 36)`), and a `Value.Obj` naming a field the model does not declare is refused instead of
+being dropped. The runtime reads the same record as a map keyed by those field names, so a
+document renders identically interpreted and compiled.
+
 ### `forge check`
 
 ```

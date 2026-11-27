@@ -27,6 +27,7 @@ import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.ParamName
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.StateId
+import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.RefKind
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
@@ -62,6 +63,30 @@ class ActionPassTest {
 
         assertEquals(listOf(DiagnosticCodes.ActionUnknown.value), findings.map { it.code.value })
         assertEquals(ChangeEvent, findings.single().location.event)
+    }
+
+    // ---------------------------------------------------------------------------------
+    // §12.3's element rule, against a declared model
+    // ---------------------------------------------------------------------------------
+
+    @Test
+    fun `a record literal fits a list whose element is the declared model`() {
+        assertClean(recordList { constOf(user("Ada", 36)) })
+    }
+
+    @Test
+    fun `a record literal of another model does not fit the list`() {
+        // The id is the whole of what a `Value.Obj` says about its own type, so an append of the
+        // wrong model is a type mismatch and not an unknown-field finding: `ObjectValueKind`
+        // compares the ids, and the fields are only meaningful once the id agrees.
+        val finding = findingOf(
+            DiagnosticCodes.PropTypeMismatch,
+            recordList { constOf(Value.Obj(TypeId("dm_tag"), mapOf(PropertyKey("label") to Value.Str("kotlin")))) },
+        )
+
+        assertEquals("value", finding.args["property"])
+        assertEquals("Object", finding.args["expected"])
+        assertEquals("Obj", finding.args["found"])
     }
 
     @Test
@@ -615,6 +640,42 @@ class ActionPassTest {
         homeDocument(state) { node(FieldType) { prop("value", Value.Str("x")); block() } }
 
     /**
+     * A page declaring two models and a list state whose element is the first one, with [value]
+     * appended to it. Two models rather than one, because the mismatch test needs a second id
+     * that resolves to a declared shape — an unknown id would be a dangling reference instead of
+     * the type disagreement under test.
+     */
+    private fun recordList(value: () -> PropertyValue): UiDocument {
+        val users = StateDecl(
+            USERS,
+            "users",
+            TypeRef.ListOf(TypeRef.Object(TypeId("dm_user"))),
+            Value.ListOf(emptyList()),
+        )
+        return buildDocument("demo") {
+            dataModel("dm_user", "User") {
+                field("name", TypeRef.Str)
+                field("age", TypeRef.Int32)
+            }
+            dataModel("dm_tag", "Tag") {
+                field("label", TypeRef.Str)
+            }
+            page(name = "Home", route = "home", id = home, state = listOf(users)) {
+                node(FieldType) {
+                    prop("value", Value.Str("x"))
+                    handler(append(users.id, value()))
+                }
+            }
+        }
+    }
+
+    /** A well formed `User`, as the document writes one. */
+    private fun user(name: String, age: Int): Value = Value.Obj(
+        TypeId("dm_user"),
+        mapOf(PropertyKey("name") to Value.Str(name), PropertyKey("age") to Value.Int32(age)),
+    )
+
+    /**
      * Two pages: home holds the handler and profile is the destination a `nav.navigate` names,
      * carrying the one route parameter the navigation rules need to be exercised against.
      */
@@ -766,6 +827,9 @@ class ActionPassTest {
 
         /** A held list, so the two element rules have a legal target and an illegal one beside it. */
         val ITEMS: StateId = StateId("s_items")
+
+        /** The list of records the model element rule appends to. */
+        val USERS: StateId = StateId("s_users")
 
         val items: StateDecl = StateDecl(
             ITEMS, "items", TypeRef.ListOf(TypeRef.Str),

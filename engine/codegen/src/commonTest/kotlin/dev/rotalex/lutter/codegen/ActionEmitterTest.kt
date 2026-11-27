@@ -1,5 +1,6 @@
 package dev.rotalex.lutter.codegen
 
+import dev.rotalex.lutter.analysis.diagnostic.DiagnosticCodes
 import dev.rotalex.lutter.analysis.resolved.ResolvedDocument
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.analysis.resolved.ResolvedPage
@@ -9,6 +10,8 @@ import dev.rotalex.lutter.model.action.ActionSequence
 import dev.rotalex.lutter.model.action.ActionStep
 import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.diagnostic.DiagnosticLocation
+import dev.rotalex.lutter.model.doc.DataModelDecl
+import dev.rotalex.lutter.model.doc.FieldDecl
 import dev.rotalex.lutter.model.doc.HostFunctionDecl
 import dev.rotalex.lutter.model.doc.StateDecl
 import dev.rotalex.lutter.model.expr.BinaryOp
@@ -18,11 +21,13 @@ import dev.rotalex.lutter.model.expr.RefTarget
 import dev.rotalex.lutter.model.ids.ActionId
 import dev.rotalex.lutter.model.ids.BranchName
 import dev.rotalex.lutter.model.ids.ComponentType
+import dev.rotalex.lutter.model.ids.DataModelId
 import dev.rotalex.lutter.model.ids.FunctionId
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.StateId
+import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.RefKind
 import dev.rotalex.lutter.model.type.TypeRef
 import dev.rotalex.lutter.model.value.Value
@@ -173,6 +178,42 @@ class ActionEmitterTest {
         )
 
         assertEquals("state.count = state.count - \"row\"", body(sequenceOf(step)))
+    }
+
+    @Test
+    fun `an append step spells a record argument as its constructor call`() {
+        val step = ActionStep(
+            action = ActionId("list.append"),
+            args = mapOf(
+                targetKey to PropertyValue.Computed(Expr.Ref(RefTarget.State(count))),
+                valueKey to PropertyValue.Const(
+                    Value.Obj(
+                        TypeId("dm_user"),
+                        mapOf(PropertyKey("name") to Value.Str("Ada"), PropertyKey("age") to Value.Int32(36)),
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals(
+            "state.count = state.count + User(name = \"Ada\", age = 36)",
+            body(sequenceOf(step), models = declaredModels()),
+        )
+    }
+
+    @Test
+    fun `an append step refuses a record argument when no declaration is in reach`() {
+        val step = ActionStep(
+            action = ActionId("list.append"),
+            args = mapOf(
+                targetKey to PropertyValue.Computed(Expr.Ref(RefTarget.State(count))),
+                valueKey to PropertyValue.Const(Value.Obj(TypeId("dm_user"), mapOf(PropertyKey("name") to Value.Str("Ada")))),
+            ),
+        )
+
+        val found = mutableListOf<Diagnostic>()
+        emitter(intrinsic, HostDecl { null }, found).emit(sequenceOf(step), DiagnosticLocation())
+        assertEquals(listOf(DiagnosticCodes.CodegenStrategyUnsupported), found.map { it.code })
     }
 
     @Test
@@ -447,9 +488,10 @@ class ActionEmitterTest {
         sequence: ActionSequence,
         host: HostDecl = HostDecl { null },
         specs: List<ActionSpec> = intrinsic,
+        models: Map<TypeId, DataModelDecl> = emptyMap(),
     ): String {
         val found = mutableListOf<Diagnostic>()
-        val statements = emitter(specs, host, found).emit(sequence, DiagnosticLocation())
+        val statements = emitter(specs, host, found, models).emit(sequence, DiagnosticLocation())
         assertTrue(found.isEmpty(), "got $found")
         return KtPrinter().print(
             KtFile(
@@ -464,7 +506,8 @@ class ActionEmitterTest {
         sequence: ActionSequence,
         host: HostDecl = HostDecl { null },
         specs: List<ActionSpec> = intrinsic,
-    ): String = source(sequence, host, specs)
+        models: Map<TypeId, DataModelDecl> = emptyMap(),
+    ): String = source(sequence, host, specs, models)
         .substringAfter("public fun onClick() {\n")
         .removeSuffix("}\n")
         .trimIndent()
@@ -483,6 +526,7 @@ class ActionEmitterTest {
         specs: List<ActionSpec>,
         host: HostDecl,
         found: MutableList<Diagnostic>,
+        models: Map<TypeId, DataModelDecl> = emptyMap(),
     ): ActionEmitter {
         val builder = RegistryBuilder<ActionId, ActionSpec>()
         for (spec in specs) builder.register(spec.id, spec)
@@ -493,8 +537,21 @@ class ActionEmitterTest {
             host,
             CodegenOptions(basePackage),
             found,
+            models,
         )
     }
+
+    /** The `User(name, age)` declaration a record argument names, as the document carries it. */
+    private fun declaredModels(): Map<TypeId, DataModelDecl> = mapOf(
+        TypeId("dm_user") to DataModelDecl(
+            DataModelId("dm_user"),
+            "User",
+            listOf(
+                FieldDecl(PropertyKey("name"), TypeRef.Str),
+                FieldDecl(PropertyKey("age"), TypeRef.Int32),
+            ),
+        ),
+    )
 
     /** The reader a screen site gets: the real state emitter answering the reads. */
     private fun reader(): ExprEmitter {

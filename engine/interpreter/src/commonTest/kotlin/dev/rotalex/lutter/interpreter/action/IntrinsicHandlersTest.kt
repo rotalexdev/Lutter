@@ -18,6 +18,7 @@ import dev.rotalex.lutter.model.ids.PageId
 import dev.rotalex.lutter.model.ids.ParamName
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.StateId
+import dev.rotalex.lutter.model.ids.TypeId
 import dev.rotalex.lutter.model.type.RefKind
 import dev.rotalex.lutter.model.value.Value
 import kotlin.test.Test
@@ -334,6 +335,27 @@ class IntrinsicHandlersTest {
     }
 
     @Test
+    fun `an append of a record adds the map the runtime holds`() {
+        // The runtime's record is a `Map`, so nothing about the append is model-aware: the test
+        // pins that the value survives untouched, which is what makes the generated constructor
+        // call and the interpreted map the same document read two ways.
+        val store = MapStateStore(mapOf(items to Value.ListOf(emptyList())))
+
+        outcomeOf(appending(literal(ada())), envOver(store))
+
+        assertEquals(Value.ListOf(listOf(ada())), store.get(items))
+    }
+
+    @Test
+    fun `a remove of a record takes the equal map out`() {
+        val store = MapStateStore(mapOf(items to Value.ListOf(listOf(ada(), Value.Str("x")))))
+
+        outcomeOf(removing(literal(ada())), envOver(store))
+
+        assertEquals(Value.ListOf(listOf(Value.Str("x"))), store.get(items))
+    }
+
+    @Test
     fun `an append against a target that is not a list fails the run`() {
         val store = MapStateStore(mapOf(items to Value.Int32(3)))
 
@@ -449,6 +471,12 @@ class IntrinsicHandlersTest {
     /** `state.toggle(target = <computed state ref>)`, as a document writes it. */
     private fun toggling(target: PropertyValue = reads(flag)): ActionStep =
         step("state.toggle").copy(args = mapOf(PropertyKey("target") to target))
+
+    /** One `User` as the runtime holds it: a map keyed by the model's field names. */
+    private fun ada(): Value = Value.Obj(
+        TypeId("dm_user"),
+        mapOf(PropertyKey("name") to Value.Str("Ada"), PropertyKey("age") to Value.Int32(36)),
+    )
 
     /** `list.append(target = <computed state ref>, value = …)`, as a document writes it. */
     private fun appending(value: PropertyValue?, target: PropertyValue = reads(items)): ActionStep =
