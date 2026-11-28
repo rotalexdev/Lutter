@@ -1,7 +1,9 @@
 package dev.rotalex.lutter.desktopapp
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -55,6 +57,56 @@ class EditorScreenTest {
         // The canvas is the document: the starter's own heading, which no pane label shares, so
         // finding it proves the JSON was lowered and drawn rather than that a tag exists.
         onNode(hasText("Lutter")).fetchSemanticsNode()
+    }
+
+    @Test
+    fun `the window class switch previews the compact arrangement without resizing`() = runComposeUiTest {
+        val session = session()
+        val preview = preview(session)
+        setContent {
+            LutterTheme { EditorShell(session, preview, BuiltinEngine.runtime(schema), save = null) }
+        }
+
+        // The desk starts expanded: three panes, and no floating button because the palette is
+        // already a column.
+        onNodeWithTag("palette").fetchSemanticsNode()
+        onAllNodesWithTag("palette-open").assertCountEquals(0)
+
+        onNodeWithTag("more-options").performClick()
+        onNodeWithTag("window-class-compact").performClick()
+        waitForIdle()
+
+        // Compact is the phone's arrangement reached at a desk's width: the palette column is
+        // gone and the button that opens it as a sheet is there instead.
+        onAllNodesWithTag("palette").assertCountEquals(0)
+        onNodeWithTag("palette-open").fetchSemanticsNode()
+
+        onNodeWithTag("more-options").performClick()
+        onNodeWithTag("window-class-expanded").performClick()
+        waitForIdle()
+
+        onNodeWithTag("palette").fetchSemanticsNode()
+        onAllNodesWithTag("palette-open").assertCountEquals(0)
+    }
+
+    @Test
+    fun `the medium arrangement keeps the inspector beside the canvas`() = runComposeUiTest {
+        val session = session()
+        val preview = preview(session)
+        setContent {
+            LutterTheme { EditorShell(session, preview, BuiltinEngine.runtime(schema), save = null) }
+        }
+
+        onNodeWithTag("more-options").performClick()
+        onNodeWithTag("window-class-medium").performClick()
+        waitForIdle()
+
+        // A second pane and not a third: the properties stay beside the node they describe, and
+        // the palette is what the button opens.
+        onNodeWithTag("canvas").fetchSemanticsNode()
+        onNodeWithTag("inspector").fetchSemanticsNode()
+        onAllNodesWithTag("palette").assertCountEquals(0)
+        onNodeWithTag("palette-open").fetchSemanticsNode()
     }
 
     @Test

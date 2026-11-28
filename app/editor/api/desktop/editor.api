@@ -249,6 +249,22 @@ public final class dev/rotalex/lutter/editor/EditorSessionStoreKt {
 	public static final fun toSelection (Ldev/rotalex/lutter/editor/EditorSessionRecord$SelectionRecord;)Ldev/rotalex/lutter/editor/EditorSelection;
 }
 
+public final class dev/rotalex/lutter/editor/EditorWindowClass : java/lang/Enum {
+	public static final field Compact Ldev/rotalex/lutter/editor/EditorWindowClass;
+	public static final field Companion Ldev/rotalex/lutter/editor/EditorWindowClass$Companion;
+	public static final field Expanded Ldev/rotalex/lutter/editor/EditorWindowClass;
+	public static final field ExpandedWidthDp I
+	public static final field Medium Ldev/rotalex/lutter/editor/EditorWindowClass;
+	public static final field MediumWidthDp I
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/rotalex/lutter/editor/EditorWindowClass;
+	public static fun values ()[Ldev/rotalex/lutter/editor/EditorWindowClass;
+}
+
+public final class dev/rotalex/lutter/editor/EditorWindowClass$Companion {
+	public final fun of (I)Ldev/rotalex/lutter/editor/EditorWindowClass;
+}
+
 public final class dev/rotalex/lutter/editor/EditorWorkspace {
 	public static final field $stable I
 	public static final field Companion Ldev/rotalex/lutter/editor/EditorWorkspace$Companion;
@@ -569,17 +585,17 @@ public final class dev/rotalex/lutter/editor/ui/ComposableSingletons$CrashReport
 public final class dev/rotalex/lutter/editor/ui/ComposableSingletons$EditorShellKt {
 	public static final field INSTANCE Ldev/rotalex/lutter/editor/ui/ComposableSingletons$EditorShellKt;
 	public fun <init> ()V
+	public final fun getLambda$-109733553$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$-1218441939$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-1702345026$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$-1744355989$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-1858442825$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$-76950005$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-805600985$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$1353800323$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$1493020427$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-916257786$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$114762106$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$1791462828$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$1896768494$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$181126307$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$1834226787$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$2028920782$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$233868223$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$682800373$dev_rotalex_lutter_editor ()Lkotlin/jvm/functions/Function3;
 }
 
