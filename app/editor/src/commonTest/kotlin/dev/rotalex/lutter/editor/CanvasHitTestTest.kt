@@ -4,7 +4,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import dev.rotalex.lutter.editor.ui.deepestNodeAt
 import dev.rotalex.lutter.editor.ui.dropTargetAt
-import dev.rotalex.lutter.editor.ui.subtreeOf
 import dev.rotalex.lutter.editing.policy.DropTarget
 import dev.rotalex.lutter.model.doc.AppSpec
 import dev.rotalex.lutter.model.doc.DocumentMeta
