@@ -11,11 +11,13 @@ import dev.rotalex.lutter.editing.template.IdRemapper
 import dev.rotalex.lutter.editing.template.NodeTemplate
 import dev.rotalex.lutter.model.diagnostic.Diagnostic
 import dev.rotalex.lutter.model.doc.UiDocument
+import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.IdGenerator
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.SequentialIdGenerator
+import dev.rotalex.lutter.model.value.Value
 import dev.rotalex.lutter.schema.SchemaView
 import dev.rotalex.lutter.schema.action.ActionSpec
 import dev.rotalex.lutter.schema.component.ComponentSpec
@@ -219,6 +221,30 @@ public class EditorSession(
     }
 
     /**
+     * [node] moved by a drag delta, in dp, as one command and therefore one undo step.
+     *
+     * The node's own offset is the source of truth: a drag that starts on an already-placed node
+     * adds to it, so two gestures compose instead of the second erasing the first. Both axes are
+     * written every time because `layout.offset` requires a pair — a document that names one axis
+     * has not said where the node goes.
+     */
+    public fun moveBy(node: NodeId, dx: Float, dy: Float): CommandResult {
+        val placed = document.nodes[node]?.modifiers?.firstOrNull { it.type == Placement.offset }
+        val x: Float = placed?.args?.get(Placement.x).asDp() + dx
+        val y: Float = placed?.args?.get(Placement.y).asDp() + dy
+        return dispatch(
+            Command.SetModifierArgs(
+                node = node,
+                type = Placement.offset,
+                args = mapOf(
+                    Placement.x to PropertyValue.Const(Value.Dp(x)),
+                    Placement.y to PropertyValue.Const(Value.Dp(y)),
+                ),
+            ),
+        )
+    }
+
+    /**
      * The expression-field commit for one property: parse, then dispatch.
      *
      * A refusal is surfaced with the engine's own reasons rather than as a generic failure,
@@ -263,3 +289,6 @@ public class EditorSession(
         if (gone) selectionFlow.value = EditorSelection.None
     }
 }
+
+/** A property's dp value, or zero when the entry is absent or not a constant. */
+private fun PropertyValue?.asDp(): Float = ((this as? PropertyValue.Const)?.value as? Value.Dp)?.v ?: 0f

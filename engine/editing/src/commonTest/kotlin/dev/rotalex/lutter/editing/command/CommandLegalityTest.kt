@@ -158,7 +158,7 @@ class CommandLegalityTest {
         val named: Set<KClass<out Command>> = REFUSED_COMMANDS + CommandPlannerRoundTripTest.PLANNED_COMMANDS
 
         assertEquals(COMMAND_VARIANTS.toSet(), named, "the two tables name ${named.size} commands")
-        assertEquals(13, COMMAND_VARIANTS.size, "§25.3 declares thirteen; this list is the thirteenth check")
+        assertEquals(14, COMMAND_VARIANTS.size, "the closed set has fourteen variants; this list is the count check")
     }
 
     companion object {
@@ -219,6 +219,7 @@ private val COMMAND_VARIANTS: Set<KClass<out Command>> = setOf(
     Command.UnwrapNode::class,
     Command.SetProperty::class,
     Command.SetModifiers::class,
+    Command.SetModifierArgs::class,
     Command.SetEventHandler::class,
     Command.RenameNode::class,
     Command.AddPage::class,

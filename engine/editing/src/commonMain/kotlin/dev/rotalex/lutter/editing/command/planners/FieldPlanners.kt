@@ -4,6 +4,7 @@ import dev.rotalex.lutter.editing.command.Command
 import dev.rotalex.lutter.editing.command.CommandResult
 import dev.rotalex.lutter.editing.command.EditCodes
 import dev.rotalex.lutter.editing.patch.PatchOp
+import dev.rotalex.lutter.model.doc.ModifierEntry
 import dev.rotalex.lutter.model.doc.Node
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.ComponentType
@@ -12,8 +13,9 @@ import dev.rotalex.lutter.schema.component.ComponentSpec
 import dev.rotalex.lutter.schema.registry.Registry
 
 /**
- * The four commands that write one node's own fields: [Command.SetProperty],
- * [Command.SetModifiers], [Command.SetEventHandler] and [Command.RenameNode].
+ * The five commands that write one node's own fields: [Command.SetProperty],
+ * [Command.SetModifiers], [Command.SetModifierArgs], [Command.SetEventHandler] and
+ * [Command.RenameNode].
  *
  * They are one file because they are one shape — read the node, capture the old value, emit
  * one `Set` op — and because they share the one decision this file exists to record.
@@ -76,6 +78,45 @@ internal fun planSetModifiers(
     }
 
     return reasons.result(listOf(PatchOp.SetModifiers(command.node, node.modifiers, command.modifiers)))
+}
+
+/**
+ * One modifier's arguments, keeping the chain's order.
+ *
+ * The entry is found by type and rewritten where it stands, so an editor that sets `layout.size`
+ * on a node whose chain is `padding, size, background` gets `padding, size, background` back with
+ * new numbers — order is the meaning and moving an entry to the end would change what it means.
+ * An absent type is appended, and `null` args remove the entry rather than writing an empty one.
+ */
+internal fun planSetModifierArgs(
+    command: Command.SetModifierArgs,
+    document: UiDocument,
+    components: Registry<ComponentType, ComponentSpec>,
+    ids: IdGenerator,
+): CommandResult {
+    val reasons = Rejections()
+    val node: Node? = document.nodes[command.node]
+    if (node == null) {
+        reasons.add(
+            EditCodes.UnknownNode,
+            command.node,
+            "no node '${command.node}' to set '${command.type.value}' on",
+        )
+        return reasons.result(emptyList())
+    }
+
+    val at: Int = node.modifiers.indexOfFirst { it.type == command.type }
+    val args = command.args
+    val updated: List<ModifierEntry> = when {
+        args == null && at < 0 -> node.modifiers
+        args == null -> node.modifiers.filterIndexed { index, _ -> index != at }
+        at < 0 -> node.modifiers + ModifierEntry(command.type, args)
+        else -> node.modifiers.mapIndexed { index, entry ->
+            if (index == at) ModifierEntry(command.type, args) else entry
+        }
+    }
+
+    return reasons.result(listOf(PatchOp.SetModifiers(command.node, node.modifiers, updated)))
 }
 
 /** Sets or clears one handler. `actions` is nullable and `null` removes the entry. */

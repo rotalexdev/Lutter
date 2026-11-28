@@ -357,6 +357,45 @@ private fun EditorCanvas(
                     }
                 }
                 .pointerInput(document) {
+                    // A plain drag moves the node it starts on; a drag on the page's margin pans,
+                    // and one that begins with a hold belongs to the reorder below. The delta
+                    // accumulates in screen pixels and is committed once, on release, which is
+                    // what makes one gesture one undo step rather than one per frame.
+                    val density: Density = this
+                    var moving: Drag.Move? = null
+                    detectDragGestures(
+                        onDragStart = { start ->
+                            val id = deepestNodeAt(document, bounds, start + originInRoot)
+                            moving = id?.let { Drag.Move(it, Offset.Zero) }
+                            drag = moving ?: Drag.None
+                        },
+                        onDrag = { change, amount ->
+                            val current = moving
+                            if (current != null) {
+                                change.consume()
+                                moving = current.copy(delta = current.delta + amount)
+                                drag = moving ?: Drag.None
+                            }
+                        },
+                        onDragEnd = {
+                            val current = moving
+                            if (current != null && (current.delta.x != 0f || current.delta.y != 0f)) {
+                                session.moveBy(
+                                    node = current.node,
+                                    dx = with(density) { current.delta.x.toDp().value },
+                                    dy = with(density) { current.delta.y.toDp().value },
+                                )
+                            }
+                            moving = null
+                            drag = Drag.None
+                        },
+                        onDragCancel = {
+                            moving = null
+                            drag = Drag.None
+                        },
+                    )
+                }
+                .pointerInput(document) {
                     // The list of legal homes is read once per drag, at its start: the document
                     // cannot change while a finger is down (every edit goes through the overlay
                     // this gesture owns), and asking the planner every frame would answer the
@@ -371,7 +410,7 @@ private fun EditorCanvas(
                             if (id != null && type != null) {
                                 val own = subtreeOf(document, id)
                                 targets = session.dropTargets(type).filterNot { it.parent in own }
-                                drag = Drag.Of(
+                                drag = Drag.Reorder(
                                     node = id,
                                     target = dropTargetAt(document, bounds, targets, point),
                                 )
@@ -380,7 +419,7 @@ private fun EditorCanvas(
                         onDrag = { change, _ ->
                             change.consume()
                             val current = drag
-                            if (current is Drag.Of) {
+                            if (current is Drag.Reorder) {
                                 drag = current.copy(
                                     target = dropTargetAt(
                                         document = document,
@@ -393,7 +432,7 @@ private fun EditorCanvas(
                         },
                         onDragEnd = {
                             val current = drag
-                            if (current is Drag.Of) {
+                            if (current is Drag.Reorder) {
                                 val target = current.target
                                 if (target != null) session.move(current.node, target)
                             }
@@ -406,13 +445,22 @@ private fun EditorCanvas(
 
         // The drop target first, so the selection ring is drawn on top of it: the node being
         // moved is usually inside the container it is about to land in.
-        (drag as? Drag.Of)?.target?.let { target ->
+        (drag as? Drag.Reorder)?.target?.let { target ->
             Outline(
                 box = bounds[target.parent],
                 originInRoot = originInRoot,
                 color = theme.tertiary,
                 fill = theme.tertiary.copy(alpha = 0.10f),
                 tag = "canvas-drop-target",
+            )
+        }
+        (drag as? Drag.Move)?.let { move ->
+            Outline(
+                box = bounds[move.node]?.translate(move.delta.x, move.delta.y),
+                originInRoot = originInRoot,
+                color = theme.secondary,
+                fill = theme.secondary.copy(alpha = 0.12f),
+                tag = "canvas-move-preview",
             )
         }
         val selected: NodeId? = (selection as? EditorSelection.Node)?.id
@@ -430,7 +478,11 @@ private fun EditorCanvas(
 private sealed interface Drag {
     data object None : Drag
 
-    data class Of(val node: NodeId, val target: DropTarget?) : Drag
+    /** A long-press drag, choosing the container the node will land in. */
+    data class Reorder(val node: NodeId, val target: DropTarget?) : Drag
+
+    /** A plain drag, moving the node by a screen-pixel delta it commits on release. */
+    data class Move(val node: NodeId, val delta: Offset) : Drag
 }
 
 /**

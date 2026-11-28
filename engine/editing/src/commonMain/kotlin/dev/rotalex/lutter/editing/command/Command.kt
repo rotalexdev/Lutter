@@ -8,6 +8,7 @@ import dev.rotalex.lutter.model.doc.Page
 import dev.rotalex.lutter.model.expr.PropertyValue
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.EventKey
+import dev.rotalex.lutter.model.ids.ModifierType
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.model.ids.PropertyKey
 import dev.rotalex.lutter.model.ids.SlotName
@@ -20,7 +21,7 @@ import dev.rotalex.lutter.model.ids.SlotName
  * where §25.3's own line deferred it, and the story of the four decisions that had to wait
  * for that wave is on the variant's KDoc.
  *
- * Every one of the thirteen now plans. [AddPage] did not until D30 added the op that made it
+ * Every one of the fourteen now plans. [AddPage] did not until D30 added the op that made it
  * expressible, and the refusal that stood in its place carried a code — `edit.unrepresentable`
  * — that no longer exists, because there is nothing left for it to be true of.
  *
@@ -42,12 +43,12 @@ import dev.rotalex.lutter.model.ids.SlotName
  * to a collaborating editor or replayed in a test. This interface is not, and does not need
  * to be. §26.3's own rule is that history is *"editor session state; it is not persisted in
  * the document"* — so a command is the same kind of thing. A wire format for commands is a
- * decision for whoever wants one, and adding `@Serializable` to a closed set of twelve is
+ * decision for whoever wants one, and adding `@Serializable` to a closed set of fourteen is
  * cheaper to do later than to take back.
  *
  * ### What the closed set buys
  *
- * [CommandPlanner]'s dispatch is a `when` over this interface with no `else`, so a thirteenth
+ * [CommandPlanner]'s dispatch is a `when` over this interface with no `else`, so a fourteenth
  * command does not compile until it has been given a planner — which is a far stronger prompt
  * than a reviewer noticing. It is the same argument [PatchApplier.applyOne] makes for the op
  * set, and the reason both sets are closed is the same one: every addition is paid for twice,
@@ -216,6 +217,29 @@ public sealed interface Command {
 
         /** The chain to write, in application order. */
         public val modifiers: List<ModifierEntry>,
+    ) : Command
+
+    /**
+     * One modifier's arguments, with the rest of the chain left where it is.
+     *
+     * The chain is a list and its order is the meaning, so "set one entry" is a read-modify-write
+     * of that list rather than a new op: an entry of the same type keeps its position, an absent
+     * one is appended, and `null` args remove it. The planner emits the same `SetModifiers` op the
+     * whole-chain command does, which is what keeps the patch vocabulary closed while a drag and
+     * a resize can each write their own arguments.
+     *
+     * The alternative — every caller computing the whole list itself — would put the ordering
+     * rule in each call site, and the editor has four by the end of §32 Phase 18.5.
+     */
+    public data class SetModifierArgs(
+        /** The node whose chain changes. */
+        public val node: NodeId,
+
+        /** Which modifier, matched by type. */
+        public val type: ModifierType,
+
+        /** The arguments to write, or `null` to remove the entry. */
+        public val args: Map<PropertyKey, PropertyValue>?,
     ) : Command
 
     /**
