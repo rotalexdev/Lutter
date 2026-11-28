@@ -3,12 +3,12 @@ package dev.rotalex.lutter.editor
 import dev.rotalex.lutter.builtins.compose.BuiltinEngine
 import dev.rotalex.lutter.model.doc.AppSpec
 import dev.rotalex.lutter.model.doc.DocumentMeta
+import dev.rotalex.lutter.model.doc.Node
+import dev.rotalex.lutter.model.doc.NodeTable
 import dev.rotalex.lutter.model.doc.Page
 import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.NodeId
-import dev.rotalex.lutter.model.node.Node
-import dev.rotalex.lutter.model.node.NodeTable
 import dev.rotalex.lutter.schema.component.ComponentSpec
 import kotlin.test.Test
 import kotlin.test.assertEquals
