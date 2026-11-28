@@ -54,9 +54,18 @@ internal data class EditorViewport(
      * Clamped rather than refused: a wheel at either limit keeps the view where it is, because
      * zooming past a limit and back would otherwise move the document for no reason.
      */
-    fun zoomedAt(anchor: ViewPoint, factor: Float): EditorViewport {
-        val target = (scale * factor).coerceIn(MinScale, MaxScale)
-        if (target == scale) return this
+    fun zoomedAt(anchor: ViewPoint, factor: Float): EditorViewport = scaledTo(anchor, scale * factor)
+
+    /**
+     * The viewport at [scale], keeping the canvas point under [anchor] under it.
+     *
+     * This is the step a spring animates: each frame asks for the zoom the spring has reached and
+     * keeps the pointer's canvas point fixed, so a chained sequence of these lands exactly where
+     * one jump to the final scale would, and the anchor never drifts during the settle.
+     */
+    fun scaledTo(anchor: ViewPoint, scale: Float): EditorViewport {
+        val target = scale.coerceIn(MinScale, MaxScale)
+        if (target == this.scale) return this
         val fixed = screenToCanvas(anchor)
         return EditorViewport(
             scale = target,
