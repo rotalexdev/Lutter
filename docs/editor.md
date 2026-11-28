@@ -95,14 +95,25 @@ The routes and the three list operations (`switchTo`, `push`, `pop`) live in
 `ui/EditorRoutes.kt` and are asserted in `EditorRoutesTest` without a window: what a phone draws
 is the composition's business, and what the stack holds afterwards is the file's.
 
-**Two arrangements, chosen by width.** Under 600dp — the Material 3 compact boundary — a
-`NavigationBar` sits at the bottom edge and one pane gets the window: the canvas, or the generated
-code, with the palette behind a floating button and the inspector behind the selection's
-`Properties` action, both as `ModalBottomSheet`s. At or above 600dp a `NavigationRail` takes the
-leading edge instead. The
-platform's sheet brings its own dismissal, drag handle, back navigation and screen-reader focus
-order; a hand-rolled overlay would have to re-earn all four. At or above 600dp the palette, the
-canvas and the inspector sit side by side in one row, which is the desktop window's arrangement.
+**Three arrangements, chosen by `EditorWindowClass`.** The class is a value with Material's own
+boundaries — under 600dp compact, 600 to 839dp medium, 840dp and above expanded — and the frame
+asks it once instead of comparing `maxWidth` wherever a decision is needed.
+
+- **Compact** is a phone held in one hand: a `NavigationBar` at the bottom edge, one pane in the
+  window, the palette behind a floating button and the inspector behind the selection's
+  `Properties` action, both as `ModalBottomSheet`s. The platform's sheet brings its own dismissal,
+  drag handle, back navigation and screen-reader focus order; a hand-rolled overlay would have to
+  re-earn all four.
+- **Medium** is a small tablet window: the canvas and the inspector side by side, so the node being
+  edited stays visible beside its properties — which is the only reason to inspect anything — and
+  the palette still arrives as a sheet, because it is used once and dismissed.
+- **Expanded** is a desk: the palette, the canvas and the inspector in one row.
+
+**The switch is for review, not for resizing.** The app bar's overflow offers *automatic*,
+*compact*, *medium* and *expanded*; pinning one shows that arrangement at the current window size.
+It exists because the compact sheets are otherwise unreachable on the only host with a desk, so the
+arrangement a phone meets would be the one nobody looks at. Pane widths are fractions of the window
+with a ceiling, so pinning *expanded* on a phone still leaves the canvas something to draw in.
 
 **Settings is an action, not a tab.** The app bar's "more options" (⋮) button opens a
 `DropdownMenu` with `Settings`; the settings destination has a back arrow and no navigation suite,
@@ -165,8 +176,47 @@ under the node being moved.
 
 Positions on the canvas are *measured*, not stored: a document is a layout and its nodes have no
 `x`/`y`. `RenderHooks.onNodeMeasured` reports each node's box from `:engine:runtime`, and
-`NodeBounds` keeps those boxes for the overlay. Free positioning therefore is not a missing
-feature but a different document format, and nothing in the editor pretends otherwise.
+`NodeBounds` keeps those boxes for the overlay. Placement is therefore a **modifier**, not a
+coordinate field: a drag writes `layout.offset(x, y)` and a handle writes `layout.size(width,
+height)`, both of which the runtime's applier draws and the generator emits (D36). A document that
+places a node is still a v1 document, and a page that uses none of this renders exactly as it did
+before the canvas could place anything.
+
+**Placing a node.** A plain drag on a node commits one `layout.offset` for the whole gesture,
+added to whatever the node already carried; releasing with a multi-selection moves every selected
+root by the same delta inside one transaction, so one undo takes back the whole gesture. The
+arithmetic lives in `EditorSession.moveBy`, not in a composable, and `Placement` names the
+modifier types the canvas looks for.
+
+**Snapping.** While a drag is in flight `Snapping.snap` collects the measured boxes of the node's
+siblings, tries their edges, their centres and the equal gaps between them on each axis, and
+returns the correction with the lowest weighted distance under a hysteresis band — plus the guide
+lines and the gaps in dp to draw. A grid fallback catches the case where no sibling is near. The
+correction is what the release commits, computed from the same values the preview shows, so the
+canvas cannot promise a place the commit does not take.
+
+**Resizing.** Eight grips, each asking `Resizing.apply` for the new size from the box the runtime
+measured; the grip decides which axes it may touch, an aspect lock keeps a square square, and a
+minimum size stops a node from being dragged to nothing. Pulling a left or top grip also moves the
+origin, so the opposite edge stays where the author put it, and a size and an offset committed in
+the same transaction stay one undo step.
+
+**Marquee and groups.** A plain drag that starts on the page's margin draws a marquee and selects
+every node whose box it crosses — the deepest ones only, so a selected container does not also
+select its children, and page roots excluded, because selecting the page is what "select nothing"
+means. The selection is `EditorSelection.Nodes(ids, primary)`: the primary is what the inspector
+and the dock act on, and the set is normalised so none, one and several have one representation
+each.
+
+**The viewport.** Wheel and pinch zoom about the pointer, and a second finger pans; `EditorViewport`
+owns the one transform and its inverse, so a hit test under zoom is arithmetic rather than a second
+implementation. The preview is transformed with `graphicsLayer`, which is why a pan redraws the
+layer and not the composition.
+
+**Motion.** `Physics` holds the two closed forms a release owes: an exponential decay for a fling
+and a critically damped spring for a zoom step, both functions of elapsed time rather than
+per-frame accumulations, so 60 and 120 Hz land in the same place. A new press cancels whichever is
+running.
 
 ### Inspector
 
@@ -351,6 +401,15 @@ what was being looked at and starts a fresh history.
 
 ## What the editor does not do yet
 
+- **No pane for modifiers, actions or functions.** They are authored through `Command` variants —
+  `layout.offset` and `layout.size` are the two the canvas writes — and there is no list that adds
+  one by hand yet; that is the command surface's phase.
+- **No mouse drag-to-pan.** A second finger pans and the wheel zooms; `PointerButtons` has no
+  common `isTertiaryPressed` in Compose 1.12, so a middle-button drag cannot live in shared code
+  yet. The gap is recorded rather than hidden.
+- **The marquee gesture is reviewed, not tested.** Its model, the group move and the rings are
+  covered headlessly; the drag-to-rectangle binding depends on where a fixture's boxes land, and a
+  swipe from a guessed margin would assert on the guess.
 - **No page or state authoring.** The session edits nodes and their properties; creating a
   page, declaring state or editing actions is not in this phase. A document that needs a second
   page is authored as JSON for now.
@@ -374,3 +433,10 @@ The generation half runs on the builtin schema, because codegen bindings are per
 spec and the module's synthetic fixture schema deliberately carries none. A separate test
 round-trips the expression field through `ExprParser`/`ExprPrinter` for each family of
 expression the field can hold.
+
+Phase 18.5's acceptance, `FreeformAcceptanceTest`, asks the session what the gestures ask and reads
+the document back: a group move and a resize write `layout.offset` and `layout.size` on the nodes,
+the bytes survive the codec, and stepping back once takes back the resize while the group move —
+its own transaction — is still there. `CapabilityCoverageTest` holds the panes to the installed
+schema instead of to a list: every registered component has a palette entry or a recorded reason,
+and every palette entry's inspector shows exactly the properties its spec declares.
