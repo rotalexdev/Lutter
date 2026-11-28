@@ -24,6 +24,20 @@ public final class dev/rotalex/lutter/editor/EditorSelection$Node : dev/rotalex/
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/editor/EditorSelection$Nodes : dev/rotalex/lutter/editor/EditorSelection {
+	public static final field $stable I
+	public synthetic fun <init> (Ljava/util/Set;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/Set;
+	public final fun component2-qw1I0Vk ()Ljava/lang/String;
+	public final fun copy-XscHqj4 (Ljava/util/Set;Ljava/lang/String;)Ldev/rotalex/lutter/editor/EditorSelection$Nodes;
+	public static synthetic fun copy-XscHqj4$default (Ldev/rotalex/lutter/editor/EditorSelection$Nodes;Ljava/util/Set;Ljava/lang/String;ILjava/lang/Object;)Ldev/rotalex/lutter/editor/EditorSelection$Nodes;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getIds ()Ljava/util/Set;
+	public final fun getPrimary-qw1I0Vk ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/rotalex/lutter/editor/EditorSelection$None : dev/rotalex/lutter/editor/EditorSelection {
 	public static final field $stable I
 	public static final field INSTANCE Ldev/rotalex/lutter/editor/EditorSelection$None;
@@ -60,12 +74,15 @@ public final class dev/rotalex/lutter/editor/EditorSession {
 	public final fun insert-blZ4y4I (Ljava/lang/String;Ldev/rotalex/lutter/editing/policy/DropTarget;)Ldev/rotalex/lutter/editing/command/CommandResult;
 	public final fun inspector ()Ldev/rotalex/lutter/editor/InspectorModel;
 	public final fun move-owchrTU (Ljava/lang/String;Ldev/rotalex/lutter/editing/policy/DropTarget;)Ldev/rotalex/lutter/editing/command/CommandResult;
+	public final fun moveBy (Ljava/util/Set;FF)Ldev/rotalex/lutter/editing/command/CommandResult;
 	public final fun moveBy-JRZvf1E (Ljava/lang/String;FF)Ldev/rotalex/lutter/editing/command/CommandResult;
 	public final fun palette ()Ljava/util/List;
 	public final fun redo ()Z
+	public final fun remove (Ljava/util/Set;)Ldev/rotalex/lutter/editing/command/CommandResult;
 	public final fun remove-D9n_bC4 (Ljava/lang/String;)Ldev/rotalex/lutter/editing/command/CommandResult;
 	public final fun resizeBy-x1YQ7NE (Ljava/lang/String;FFFF)Ldev/rotalex/lutter/editing/command/CommandResult;
 	public final fun select (Ldev/rotalex/lutter/editor/EditorSelection;)V
+	public final fun selectNodes (Ljava/util/Set;)V
 	public final fun setProperty-P1mFJUc (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/editor/PropertyWrite;
 	public final fun undo ()Z
 }

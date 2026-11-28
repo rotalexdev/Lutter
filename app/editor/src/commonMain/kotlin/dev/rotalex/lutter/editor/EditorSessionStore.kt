@@ -56,12 +56,20 @@ public data class EditorSessionRecord(
     )
 }
 
-/** [selection] as the record spells it. */
+/**
+ * [selection] as the record spells it.
+ *
+ * A multi-selection is recorded as its primary: the record is where a session reopens, and the
+ * set of nodes a marquee happened to catch is transient UI state, not a decision worth a format
+ * version. Reopening with one node selected is the smaller surprise than a record that cannot be
+ * read by the previous build.
+ */
 public fun EditorSelection.toRecord(): EditorSessionRecord.SelectionRecord =
     when (this) {
         EditorSelection.None -> EditorSessionRecord.SelectionRecord.None
         is EditorSelection.Node -> EditorSessionRecord.SelectionRecord.Node(id.value)
         is EditorSelection.Page -> EditorSessionRecord.SelectionRecord.Page(id.value)
+        is EditorSelection.Nodes -> EditorSessionRecord.SelectionRecord.Node(primary.value)
     }
 
 /** The selection [record] names. */
@@ -167,4 +175,6 @@ public fun EditorSession.backedSelection(selection: EditorSelection): EditorSele
             if (selection.id in document.nodes) selection else EditorSelection.None
         is EditorSelection.Page ->
             if (document.pages.containsKey(selection.id)) selection else EditorSelection.None
+        is EditorSelection.Nodes ->
+            if (selection.ids.all { it in document.nodes }) selection else EditorSelection.None
     }

@@ -120,6 +120,13 @@ class EditorSessionStoreTest {
     }
 
     @Test
+    fun `a multi-selection is recorded as its primary`() {
+        val nodes = EditorSelection.Nodes(ids = setOf(LEAF, ROOT), primary = LEAF)
+
+        assertEquals(EditorSessionRecord.SelectionRecord.Node(LEAF.value), nodes.toRecord())
+    }
+
+    @Test
     fun `the saved record is the document the host can read`() = runBlocking {
         val storage = MapStorage()
         EditorSessionStore(storage).save("session.json", record)

@@ -104,6 +104,20 @@ public class EditorSession(
         selectionFlow.value = value
     }
 
+    /**
+     * Selects [ids] as one set, normalised to the smallest representation that says the same
+     * thing: none, one, or several. Ids this document does not contain are dropped here rather
+     * than trusted, so a marquee over a stale frame cannot select a ghost.
+     */
+    public fun selectNodes(ids: Set<NodeId>): Unit {
+        val present: List<NodeId> = ids.filter { it in document.nodes }
+        selectionFlow.value = when (present.size) {
+            0 -> EditorSelection.None
+            1 -> EditorSelection.Node(present.first())
+            else -> EditorSelection.Nodes(present.toSet(), present.first())
+        }
+    }
+
     /** The component palette, from [schema]'s own metadata (see [Palette.of]). */
     public fun palette(): List<PaletteSection> = Palette.of(schema)
 
@@ -112,8 +126,12 @@ public class EditorSession(
      * selection names a node this document does not contain.
      */
     public fun inspector(): InspectorModel? {
-        val selected = selectionFlow.value as? EditorSelection.Node ?: return null
-        return Inspector.of(document, schema, selected.id)
+        val id: NodeId = when (val current = selectionFlow.value) {
+            is EditorSelection.Node -> current.id
+            is EditorSelection.Nodes -> current.primary
+            else -> return null
+        }
+        return Inspector.of(document, schema, id)
     }
 
     /**
@@ -185,7 +203,31 @@ public class EditorSession(
      * [node]'s subtree lifted out. The selection is [dispatch]'s business: if it named this
      * node, reconciliation clears it.
      */
-    public fun remove(node: NodeId): CommandResult = dispatch(Command.RemoveNode(node))
+    public fun remove(node: NodeId): CommandResult = remove(setOf(node))
+
+    /**
+     * Every node in [nodes] lifted out as one undo step.
+     *
+     * Only the roots are removed: taking a container already takes its children, and dispatching
+     * a second removal for a node the first one deleted would be refused against a document where
+     * it no longer exists. The selection is reconciled once, after the transaction, so a
+     * two-node selection that loses one keeps the other instead of clearing.
+     */
+    public fun remove(nodes: Set<NodeId>): CommandResult {
+        val present: Set<NodeId> = nodes.filter { it in document.nodes }.toSet()
+        val roots: List<NodeId> = rootsOf(document, present)
+        if (roots.isEmpty()) return CommandResult.Ok(Patch(emptyList()))
+
+        var outcome: CommandResult = CommandResult.Ok(Patch(emptyList()))
+        controller.transaction("Delete") {
+            for (id in roots) {
+                outcome = dispatch(Command.RemoveNode(id))
+                if (outcome is CommandResult.Rejected) return@transaction
+            }
+        }
+        reconcile()
+        return outcome
+    }
 
     /**
      * One step back through the history, with the selection reconciled.
@@ -228,20 +270,41 @@ public class EditorSession(
      * written every time because `layout.offset` requires a pair — a document that names one axis
      * has not said where the node goes.
      */
-    public fun moveBy(node: NodeId, dx: Float, dy: Float): CommandResult {
-        val placed = document.nodes[node]?.modifiers?.firstOrNull { it.type == Placement.offset }
-        val x: Float = placed?.args?.get(Placement.x).asDp() + dx
-        val y: Float = placed?.args?.get(Placement.y).asDp() + dy
-        return dispatch(
-            Command.SetModifierArgs(
-                node = node,
-                type = Placement.offset,
-                args = mapOf(
-                    Placement.x to PropertyValue.Const(Value.Dp(x)),
-                    Placement.y to PropertyValue.Const(Value.Dp(y)),
-                ),
-            ),
-        )
+    public fun moveBy(node: NodeId, dx: Float, dy: Float): CommandResult = moveBy(setOf(node), dx, dy)
+
+    /**
+     * Every node in [nodes] moved by the same delta, as one undo step.
+     *
+     * A group drag is one gesture, so it is one entry in the undo menu and one command per node:
+     * the offset is per-node state, and a single command cannot write several of them. The
+     * commands share a transaction, which is what makes the gesture atomic — a refusal stops the
+     * loop rather than leaving half the group moved.
+     */
+    public fun moveBy(nodes: Set<NodeId>, dx: Float, dy: Float): CommandResult {
+        val present: List<NodeId> = nodes.filter { it in document.nodes }
+        if (present.isEmpty()) return CommandResult.Ok(Patch(emptyList()))
+
+        var outcome: CommandResult = CommandResult.Ok(Patch(emptyList()))
+        controller.transaction("Move") {
+            for (id in present) {
+                val placed = document.nodes[id]?.modifiers?.firstOrNull { it.type == Placement.offset }
+                val x: Float = placed?.args?.get(Placement.x).asDp() + dx
+                val y: Float = placed?.args?.get(Placement.y).asDp() + dy
+                outcome = dispatch(
+                    Command.SetModifierArgs(
+                        node = id,
+                        type = Placement.offset,
+                        args = mapOf(
+                            Placement.x to PropertyValue.Const(Value.Dp(x)),
+                            Placement.y to PropertyValue.Const(Value.Dp(y)),
+                        ),
+                    ),
+                )
+                if (outcome is CommandResult.Rejected) return@transaction
+            }
+        }
+        reconcile()
+        return outcome
     }
 
     /**
@@ -329,13 +392,24 @@ public class EditorSession(
     }
 
     private fun reconcile(): Unit {
-        val current = selectionFlow.value
-        val gone: Boolean = when (current) {
-            EditorSelection.None -> false
-            is EditorSelection.Node -> current.id !in document.nodes
-            is EditorSelection.Page -> current.id !in document.pages
+        selectionFlow.value = when (val current = selectionFlow.value) {
+            EditorSelection.None -> EditorSelection.None
+            is EditorSelection.Node ->
+                if (current.id in document.nodes) current else EditorSelection.None
+            is EditorSelection.Page ->
+                if (current.id in document.pages) current else EditorSelection.None
+            is EditorSelection.Nodes -> {
+                val kept: List<NodeId> = current.ids.filter { it in document.nodes }
+                when (kept.size) {
+                    0 -> EditorSelection.None
+                    1 -> EditorSelection.Node(kept.first())
+                    else -> current.copy(
+                        ids = kept.toSet(),
+                        primary = if (current.primary in kept) current.primary else kept.first(),
+                    )
+                }
+            }
         }
-        if (gone) selectionFlow.value = EditorSelection.None
     }
 }
 
