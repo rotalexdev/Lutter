@@ -14,6 +14,7 @@ import dev.rotalex.lutter.model.doc.UiDocument
 import dev.rotalex.lutter.model.ids.ComponentDeclId
 import dev.rotalex.lutter.model.ids.ComponentType
 import dev.rotalex.lutter.model.ids.IdGenerator
+import dev.rotalex.lutter.model.ids.ModifierType
 import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -75,7 +76,7 @@ class CommandPlannerRoundTripTest {
     }
 
     /**
-     * The table names every command it claims to, and now it is all thirteen of them.
+     * The table names every command it claims to, and now it is all fourteen of them.
      *
      * `CommandLegalityTest` reads this set to assert that the two tables together cover §25.3's
      * closed set, so a command planned by neither would have no test at all while the `when`
@@ -84,7 +85,7 @@ class CommandPlannerRoundTripTest {
     @Test
     fun `the table names every command it claims to`() {
         assertEquals(CASES.map { it.command::class }.toSet(), PLANNED_COMMANDS)
-        assertEquals(13, PLANNED_COMMANDS.size, "the table plans ${PLANNED_COMMANDS.size} commands")
+        assertEquals(14, PLANNED_COMMANDS.size, "the table plans ${PLANNED_COMMANDS.size} commands")
     }
 
     /**
@@ -453,6 +454,38 @@ private val CASES: List<PlanCase> = listOf(
         after = plannerDocument(
             rows = BASE_ROWS - alphaNode() + alphaNode(modifiers = listOf(PADDING, BACKGROUND)),
         ),
+    ),
+    PlanCase(
+        name = "set one modifier's arguments where its entry stands",
+        before = BASE,
+        command = Command.SetModifierArgs(
+            ALPHA,
+            ModifierType("layout.padding"),
+            mapOf(PADDING_ALL to EIGHT_DP),
+        ),
+        ids = ::freshIds,
+        ops = listOf(PatchOp.SetModifiers(ALPHA, listOf(PADDING), listOf(PADDED))),
+        after = plannerDocument(
+            rows = BASE_ROWS - alphaNode() + alphaNode(modifiers = listOf(PADDED)),
+        ),
+    ),
+    PlanCase(
+        name = "append a modifier the chain did not have",
+        before = BASE,
+        command = Command.SetModifierArgs(ALPHA, ModifierType("layout.background"), emptyMap()),
+        ids = ::freshIds,
+        ops = listOf(PatchOp.SetModifiers(ALPHA, listOf(PADDING), listOf(PADDING, BACKGROUND))),
+        after = plannerDocument(
+            rows = BASE_ROWS - alphaNode() + alphaNode(modifiers = listOf(PADDING, BACKGROUND)),
+        ),
+    ),
+    PlanCase(
+        name = "clear one modifier's arguments removes its entry",
+        before = BASE,
+        command = Command.SetModifierArgs(ALPHA, ModifierType("layout.padding"), null),
+        ids = ::freshIds,
+        ops = listOf(PatchOp.SetModifiers(ALPHA, listOf(PADDING), emptyList())),
+        after = plannerDocument(rows = BASE_ROWS - alphaNode() + alphaNode(modifiers = emptyList())),
     ),
     PlanCase(
         name = "clear a handler",

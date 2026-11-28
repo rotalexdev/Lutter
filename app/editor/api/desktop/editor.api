@@ -60,6 +60,7 @@ public final class dev/rotalex/lutter/editor/EditorSession {
 	public final fun insert-blZ4y4I (Ljava/lang/String;Ldev/rotalex/lutter/editing/policy/DropTarget;)Ldev/rotalex/lutter/editing/command/CommandResult;
 	public final fun inspector ()Ldev/rotalex/lutter/editor/InspectorModel;
 	public final fun move-owchrTU (Ljava/lang/String;Ldev/rotalex/lutter/editing/policy/DropTarget;)Ldev/rotalex/lutter/editing/command/CommandResult;
+	public final fun moveBy-JRZvf1E (Ljava/lang/String;FF)Ldev/rotalex/lutter/editing/command/CommandResult;
 	public final fun palette ()Ljava/util/List;
 	public final fun redo ()Z
 	public final fun remove-D9n_bC4 (Ljava/lang/String;)Ldev/rotalex/lutter/editing/command/CommandResult;

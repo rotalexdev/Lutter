@@ -148,7 +148,7 @@ class PatchInversePropertyTest {
      * The coverage assertions come **before** the round trip is reported, and the reason is
      * this file's whole subject. If every `UnwrapNode` in a thousand documents were refused, the
      * loop below would record zero failures and this test would pass having proved nothing
-     * about unwrapping. So the corpus is asked to account for all thirteen families first, and
+     * about unwrapping. So the corpus is asked to account for all fourteen families first, and
      * only then is a failure rendered.
      */
     @Test
@@ -602,6 +602,7 @@ private fun plannedCommands(
     unwrapCommand(document, random)?.let { commands += Candidate("unwrap", it) }
     setPropertyCommand(document, registry, random)?.let { commands += Candidate("setProperty", it) }
     setModifiersCommand(document, random)?.let { commands += Candidate("setModifiers", it) }
+    setModifierArgsCommand(document, random)?.let { commands += Candidate("setModifierArgs", it) }
     setEventCommand(document, registry, random)?.let { commands += Candidate("setHandler", it) }
     renameCommand(document, random)?.let { commands += Candidate("rename", it) }
     extractComponentCommand(document, random)?.let { commands += Candidate("extract", it) }
@@ -824,6 +825,30 @@ private fun setPropertyCommand(
  * empty registry would throw, so the empty case is the fallback and the node's own chain is
  * never silently discarded.
  */
+/**
+ * `SetModifierArgs` over a type the schema declares, with args, without them, or removing the
+ * entry.
+ *
+ * The three arms are the command's whole semantics, and the corpus reaches all three by drawing
+ * one of them at random: a plan that only ever replaced an existing entry would never exercise
+ * the append, and one that never removed would never exercise the deletion the inverse restores.
+ */
+private fun setModifierArgsCommand(document: UiDocument, random: Random): Command? {
+    val ids = document.nodes.ids().toList()
+    if (ids.isEmpty() || MODIFIER_TYPES.isEmpty()) return null
+
+    val id = ids[random.nextInt(ids.size)]
+    val type = MODIFIER_TYPES[random.nextInt(MODIFIER_TYPES.size)]
+    val args: Map<PropertyKey, PropertyValue>? = when (random.nextInt(3)) {
+        0 -> null
+        1 -> emptyMap()
+        else -> mapOf(
+            PropertyKey("all") to PropertyValue.Const(Value.Dp(random.nextInt(32).toFloat())),
+        )
+    }
+    return Command.SetModifierArgs(id, type, args)
+}
+
 private fun setModifiersCommand(document: UiDocument, random: Random): Command? {
     val ids = document.nodes.ids().toList()
     if (ids.isEmpty()) return null

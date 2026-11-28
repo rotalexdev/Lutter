@@ -9,6 +9,7 @@ import dev.rotalex.lutter.editing.command.planners.planMoveNode
 import dev.rotalex.lutter.editing.command.planners.planRemoveNode
 import dev.rotalex.lutter.editing.command.planners.planRenameNode
 import dev.rotalex.lutter.editing.command.planners.planSetEventHandler
+import dev.rotalex.lutter.editing.command.planners.planSetModifierArgs
 import dev.rotalex.lutter.editing.command.planners.planSetModifiers
 import dev.rotalex.lutter.editing.command.planners.planSetProperty
 import dev.rotalex.lutter.editing.command.planners.planUnwrapNode
@@ -103,7 +104,7 @@ public object CommandPlanner {
     ): CommandResult {
         val components: Registry<ComponentType, ComponentSpec> = componentRegistry(document, schema)
 
-        // Exhaustive with no `else`, which is the point: a thirteenth `Command` does not
+        // Exhaustive with no `else`, which is the point: a fourteenth `Command` does not
         // compile until it has been given a planner, and the prompt arrives at the one place
         // the variant has to mean something.
         return when (command) {
@@ -115,6 +116,7 @@ public object CommandPlanner {
             is Command.UnwrapNode -> planUnwrapNode(command, document, components, ids, indexOf)
             is Command.SetProperty -> planSetProperty(command, document, components, ids)
             is Command.SetModifiers -> planSetModifiers(command, document, components, ids)
+            is Command.SetModifierArgs -> planSetModifierArgs(command, document, components, ids)
             is Command.SetEventHandler -> planSetEventHandler(command, document, components, ids)
             is Command.RenameNode -> planRenameNode(command, document, components, ids)
             is Command.AddPage -> planAddPage(command, document, components, ids)
