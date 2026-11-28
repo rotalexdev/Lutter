@@ -35,7 +35,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,6 +48,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -67,6 +70,7 @@ import dev.rotalex.lutter.editor.Handle
 import dev.rotalex.lutter.editor.InspectorModel
 import dev.rotalex.lutter.editor.PaletteEntry
 import dev.rotalex.lutter.editor.PaletteSection
+import dev.rotalex.lutter.editor.Physics
 import dev.rotalex.lutter.editor.PreviewState
 import dev.rotalex.lutter.editor.Resize
 import dev.rotalex.lutter.editor.Resizing
@@ -86,6 +90,9 @@ import dev.rotalex.lutter.runtime.RuntimeEnvironment
 import dev.rotalex.lutter.runtime.UiApp
 import dev.rotalex.lutter.runtime.UiRuntime
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 /**
  * The three panes (PLAN §32 Phase 17 P5, P6): what may be added, what it looks like, what it
@@ -290,6 +297,59 @@ private fun EditorCanvas(
     var drag: Drag by remember(document) { mutableStateOf<Drag>(Drag.None) }
     var viewport: EditorViewport by remember(document) { mutableStateOf(EditorViewport()) }
     val density: Density = LocalDensity.current
+    val scope: CoroutineScope = rememberCoroutineScope()
+    var motion: Job? by remember { mutableStateOf<Job?>(null) }
+
+    // The two motions a release owes, and the one thing that stops them: a new press. Nothing
+    // here holds state of its own — the job is the cancellation handle, and the frame loop is the
+    // only writer of the viewport while it runs, so a drag that starts mid-flight takes over.
+    fun cancelMotion() {
+        motion?.cancel()
+        motion = null
+    }
+
+    // A fling coasts by `Physics.decay`: each frame asks how far the whole motion has travelled
+    // by now and pans by the difference from the last frame, so the position is the closed form
+    // rather than an accumulation that would drift with the frame rate.
+    fun fling(velocity: Offset) {
+        cancelMotion()
+        if (velocity.getDistance() < FlingThreshold) return
+        motion = scope.launch {
+            val duration: Float = Physics.decayDuration()
+            val start: Long = withFrameNanos { it }
+            var travelledX: Float = 0f
+            var travelledY: Float = 0f
+            while (true) {
+                val seconds: Float = (withFrameNanos { it } - start) / NanosPerSecond
+                val x: Float = Physics.decay(velocity.x, seconds)
+                val y: Float = Physics.decay(velocity.y, seconds)
+                viewport = viewport.panned(x - travelledX, y - travelledY)
+                travelledX = x
+                travelledY = y
+                if (seconds >= duration) break
+            }
+        }
+    }
+
+    // A wheel notch is a jump to a target, so it is the motion a spring owns: the scale settles
+    // into the step instead of arriving in one frame, and the canvas point under the pointer is
+    // held fixed by every step of the way.
+    fun zoom(anchor: ViewPoint, factor: Float) {
+        cancelMotion()
+        val from: Float = viewport.scale
+        val target: Float = (from * factor).coerceIn(EditorViewport.MinScale, EditorViewport.MaxScale)
+        if (target == from) return
+        motion = scope.launch {
+            val duration: Float = Physics.springDuration(from, target, velocity = 0f, tolerance = 0.001f)
+            val start: Long = withFrameNanos { it }
+            while (true) {
+                val seconds: Float = (withFrameNanos { it } - start) / NanosPerSecond
+                viewport = viewport.scaledTo(anchor, Physics.spring(from, target, 0f, seconds))
+                if (seconds >= duration) break
+            }
+            viewport = viewport.scaledTo(anchor, target)
+        }
+    }
 
     // What the drag would commit if released now: the raw delta corrected to the nearest
     // alignment, plus the lines and distances to draw. Computed once per frame from the same
@@ -355,28 +415,49 @@ private fun EditorCanvas(
                     // same drag. `PointerButtons.isTertiaryPressed` is not common API in Compose
                     // 1.12, so a mouse has no drag-to-pan here yet — the wheel still zooms.
                     awaitPointerEventScope {
+                        // The pan's speed is measured, not guessed from the last frame: a
+                        // tracker averages the samples of the drag, which is what makes a fling
+                        // feel like it came from the hand instead of from the last event.
+                        var tracker: VelocityTracker? = null
                         while (true) {
                             val event = awaitPointerEvent()
                             val pressed = event.changes.filter { it.pressed }
                             if (pressed.size >= 2) {
+                                cancelMotion()
                                 // `position - previousPosition` rather than `positionChange()`:
                                 // in Compose 1.12 `positionChange` is a Boolean property, and
                                 // the subtraction is the definition it wraps.
                                 val total: Offset = pressed.fold(Offset.Zero) { sum, change ->
                                     sum + (change.position - change.previousPosition)
                                 }
+                                val count: Float = pressed.size.toFloat()
+                                val centre: Offset = pressed.fold(Offset.Zero) { sum, change ->
+                                    sum + change.position
+                                } / count
+                                val track: VelocityTracker = tracker ?: VelocityTracker().also {
+                                    tracker = it
+                                }
+                                track.addPosition(event.changes.first().uptimeMillis, centre)
                                 if (total != Offset.Zero) {
                                     pressed.forEach { it.consume() }
-                                    val count: Float = pressed.size.toFloat()
                                     viewport = viewport.panned(total.x / count, total.y / count)
                                 }
                                 continue
+                            }
+                            if (pressed.isEmpty()) {
+                                // Every finger up: the pan becomes a fling if it was moving.
+                                val track: VelocityTracker? = tracker
+                                if (track != null) {
+                                    tracker = null
+                                    val velocity = track.calculateVelocity()
+                                    fling(Offset(velocity.x, velocity.y))
+                                }
                             }
                             val change = event.changes.firstOrNull() ?: continue
                             val scroll = change.scrollDelta
                             if (scroll.y == 0f) continue
                             change.consume()
-                            viewport = viewport.zoomedAt(
+                            zoom(
                                 anchor = ViewPoint(change.position.x, change.position.y),
                                 factor = if (scroll.y < 0f) {
                                     EditorViewport.Step
@@ -395,6 +476,7 @@ private fun EditorCanvas(
                     var marquee: Drag.Marquee? = null
                     detectDragGestures(
                         onDragStart = { start ->
+                            cancelMotion()
                             if (deepestNodeAt(document, bounds, start + originInRoot) == null) {
                                 marquee = Drag.Marquee(start = start, current = start)
                                 drag = marquee ?: Drag.None
@@ -426,6 +508,7 @@ private fun EditorCanvas(
                 }
                 .pointerInput(document) {
                     detectTapGestures { position ->
+                        cancelMotion()
                         val hit = deepestNodeAt(document, bounds, position + originInRoot)
                         // A tap on the page's margin clears the selection, the way every layout
                         // editor does it: the alternative is a dock that keeps acting on a node
@@ -444,6 +527,7 @@ private fun EditorCanvas(
                     var moving: Drag.Move? = null
                     detectDragGestures(
                         onDragStart = { start ->
+                            cancelMotion()
                             val id = deepestNodeAt(document, bounds, start + originInRoot)
                             // Read at the gesture, not from composition: this detector restarts
                             // on a document change, and a selection change is neither.
@@ -497,6 +581,7 @@ private fun EditorCanvas(
 
                     detectDragGesturesAfterLongPress(
                         onDragStart = { position ->
+                            cancelMotion()
                             val point = position + originInRoot
                             val id = deepestNodeAt(document, bounds, point)
                             val type: ComponentType? = id?.let { document.nodes[it]?.type }
@@ -625,7 +710,10 @@ private fun EditorCanvas(
                     handle = handle,
                     box = selectedBox,
                     originInRoot = originInRoot,
-                    onStart = { drag = Drag.Resize(primary, handle, Offset.Zero) },
+                    onStart = {
+                        cancelMotion()
+                        drag = Drag.Resize(primary, handle, Offset.Zero)
+                    },
                     onDrag = { amount ->
                         val current: Drag = drag
                         if (current is Drag.Resize) {
@@ -974,3 +1062,9 @@ private fun PropertyField(session: EditorSession, node: NodeId, row: PropertyRow
         }
     }
 }
+
+/** Below this speed, in pixels per second, a release is a stop rather than a fling. */
+private const val FlingThreshold: Float = 240f
+
+/** `withFrameNanos` counts nanoseconds; the physics counts seconds. */
+private const val NanosPerSecond: Float = 1_000_000_000f

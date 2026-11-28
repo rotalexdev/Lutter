@@ -88,6 +88,44 @@ class EditorViewportTest {
     }
 
     @Test
+    fun `scaling to a value keeps the canvas point under the anchor`() {
+        val viewport = EditorViewport(scale = 1f, translationX = 30f, translationY = -10f)
+        val anchor = ViewPoint(220f, 140f)
+        val before: ViewPoint = viewport.screenToCanvas(anchor)
+
+        val scaled: EditorViewport = viewport.scaledTo(anchor, 1.75f)
+        val after: ViewPoint = scaled.screenToCanvas(anchor)
+
+        assertEquals(1.75f, scaled.scale)
+        assertTrue(abs(before.x - after.x) < 0.001f, "x drifted from ${before.x} to ${after.x}")
+        assertTrue(abs(before.y - after.y) < 0.001f, "y drifted from ${before.y} to ${after.y}")
+    }
+
+    @Test
+    fun `zooming by a factor is scaling to the product`() {
+        val viewport = EditorViewport(scale = 1.25f, translationX = 12f, translationY = 8f)
+        val anchor = ViewPoint(90f, 60f)
+
+        assertEquals(viewport.scaledTo(anchor, 1.25f * 2f), viewport.zoomedAt(anchor, 2f))
+    }
+
+    @Test
+    fun `a spring's steps land where one jump would`() {
+        val viewport = EditorViewport(scale = 1f, translationX = 40f, translationY = 25f)
+        val anchor = ViewPoint(300f, 180f)
+
+        var stepped: EditorViewport = viewport
+        for (index in 1..30) {
+            stepped = stepped.scaledTo(anchor, 1f + 1.5f * index / 30f)
+        }
+        val jumped: EditorViewport = viewport.scaledTo(anchor, 2.5f)
+
+        assertEquals(jumped.scale, stepped.scale)
+        assertTrue(abs(jumped.translationX - stepped.translationX) < 0.01f, "x: ${jumped.translationX} vs ${stepped.translationX}")
+        assertTrue(abs(jumped.translationY - stepped.translationY) < 0.01f, "y: ${jumped.translationY} vs ${stepped.translationY}")
+    }
+
+    @Test
     fun `a scale outside the range cannot be constructed`() {
         assertFailsWith<IllegalArgumentException> { EditorViewport(scale = 0f) }
         assertFailsWith<IllegalArgumentException> { EditorViewport(scale = 8f) }
