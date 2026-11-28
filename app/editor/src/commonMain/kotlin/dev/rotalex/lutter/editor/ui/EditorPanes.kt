@@ -359,8 +359,11 @@ private fun EditorCanvas(
                             val event = awaitPointerEvent()
                             val pressed = event.changes.filter { it.pressed }
                             if (pressed.size >= 2) {
+                                // `position - previousPosition` rather than `positionChange()`:
+                                // in Compose 1.12 `positionChange` is a Boolean property, and
+                                // the subtraction is the definition it wraps.
                                 val total: Offset = pressed.fold(Offset.Zero) { sum, change ->
-                                    sum + change.positionChange()
+                                    sum + (change.position - change.previousPosition)
                                 }
                                 if (total != Offset.Zero) {
                                     pressed.forEach { it.consume() }
