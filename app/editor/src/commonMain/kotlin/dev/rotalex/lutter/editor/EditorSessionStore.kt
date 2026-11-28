@@ -175,4 +175,6 @@ public fun EditorSession.backedSelection(selection: EditorSelection): EditorSele
             if (selection.id in document.nodes) selection else EditorSelection.None
         is EditorSelection.Page ->
             if (document.pages.containsKey(selection.id)) selection else EditorSelection.None
+        is EditorSelection.Nodes ->
+            if (selection.ids.all { it in document.nodes }) selection else EditorSelection.None
     }
