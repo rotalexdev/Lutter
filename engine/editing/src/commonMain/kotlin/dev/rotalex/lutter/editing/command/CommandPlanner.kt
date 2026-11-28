@@ -9,6 +9,7 @@ import dev.rotalex.lutter.editing.command.planners.planMoveNode
 import dev.rotalex.lutter.editing.command.planners.planRemoveNode
 import dev.rotalex.lutter.editing.command.planners.planRenameNode
 import dev.rotalex.lutter.editing.command.planners.planSetEventHandler
+import dev.rotalex.lutter.editing.command.planners.planSetModifierArgs
 import dev.rotalex.lutter.editing.command.planners.planSetModifiers
 import dev.rotalex.lutter.editing.command.planners.planSetProperty
 import dev.rotalex.lutter.editing.command.planners.planUnwrapNode
