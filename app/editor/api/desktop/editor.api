@@ -64,6 +64,7 @@ public final class dev/rotalex/lutter/editor/EditorSession {
 	public final fun palette ()Ljava/util/List;
 	public final fun redo ()Z
 	public final fun remove-D9n_bC4 (Ljava/lang/String;)Ldev/rotalex/lutter/editing/command/CommandResult;
+	public final fun resizeBy-x1YQ7NE (Ljava/lang/String;FFFF)Ldev/rotalex/lutter/editing/command/CommandResult;
 	public final fun select (Ldev/rotalex/lutter/editor/EditorSelection;)V
 	public final fun setProperty-P1mFJUc (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ldev/rotalex/lutter/editor/PropertyWrite;
 	public final fun undo ()Z

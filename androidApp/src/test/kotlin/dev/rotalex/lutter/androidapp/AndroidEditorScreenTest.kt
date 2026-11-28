@@ -183,6 +183,8 @@ class AndroidEditorScreenTest {
         assertNull(session.document.nodes[node])
         // Removal reconciles the selection, so the dock goes with the node it was acting on.
         compose.onNodeWithTag("selection-actions").assertDoesNotExist()
+        // And the grips go with the ring they were drawn on.
+        compose.onNodeWithTag("canvas-handle-top-left").assertDoesNotExist()
     }
 
     /**
@@ -211,6 +213,9 @@ class AndroidEditorScreenTest {
         assertEquals(EditorSelection.Node(NodeId("n_title")), session.selection.value)
         compose.onNodeWithTag("canvas-selection").assertExists()
         compose.onNodeWithTag("selection-actions").assertExists()
+        // A selected node offers the grips a resize starts from, and the ring alone would not.
+        compose.onNodeWithTag("canvas-handle-top-left").assertExists()
+        compose.onNodeWithTag("canvas-handle-bottom-right").assertExists()
     }
 
     private fun session(): EditorSession {

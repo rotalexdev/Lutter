@@ -63,10 +63,13 @@ import dev.rotalex.lutter.editor.CanvasBox
 import dev.rotalex.lutter.editor.EditorViewport
 import dev.rotalex.lutter.editor.Gap
 import dev.rotalex.lutter.editor.Guide
+import dev.rotalex.lutter.editor.Handle
 import dev.rotalex.lutter.editor.InspectorModel
 import dev.rotalex.lutter.editor.PaletteEntry
 import dev.rotalex.lutter.editor.PaletteSection
 import dev.rotalex.lutter.editor.PreviewState
+import dev.rotalex.lutter.editor.Resize
+import dev.rotalex.lutter.editor.Resizing
 import dev.rotalex.lutter.editor.Snap
 import dev.rotalex.lutter.editor.Snapping
 import dev.rotalex.lutter.editor.ViewPoint
@@ -302,6 +305,21 @@ private fun EditorCanvas(
         )
     }
 
+    // The size a handle drag would commit, in dp. The measured box is in screen pixels and
+    // already carries the viewport's zoom, so dividing by the px-per-dp factor is all it takes to
+    // put the arithmetic in the unit the document stores.
+    fun resizeOf(resize: Drag.Resize): Resize? {
+        val box: Rect = bounds[resize.node] ?: return null
+        val perDp: Float = density.density * viewport.scale
+        if (perDp <= 0f) return null
+        return Resizing.apply(
+            width = box.width / perDp,
+            height = box.height / perDp,
+            handle = resize.handle,
+            delta = ViewPoint(resize.delta.x / perDp, resize.delta.y / perDp),
+        )
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -494,6 +512,22 @@ private fun EditorCanvas(
                 GapLabel(gap, originInRoot, density)
             }
         }
+        (drag as? Drag.Resize)?.let { resizing ->
+            val box: Rect? = bounds[resizing.node]
+            val resized: Resize? = resizeOf(resizing)
+            if (box != null && resized != null) {
+                val perDp: Float = density.density * viewport.scale
+                val left: Float = box.left + resized.shiftX * perDp
+                val top: Float = box.top + resized.shiftY * perDp
+                Outline(
+                    box = Rect(left, top, left + resized.width * perDp, top + resized.height * perDp),
+                    originInRoot = originInRoot,
+                    color = theme.secondary,
+                    fill = theme.secondary.copy(alpha = 0.12f),
+                    tag = "canvas-resize-preview",
+                )
+            }
+        }
         val selected: NodeId? = (selection as? EditorSelection.Node)?.id
         Outline(
             box = selected?.let { bounds[it] },
@@ -502,6 +536,42 @@ private fun EditorCanvas(
             fill = theme.primary.copy(alpha = 0.06f),
             tag = "canvas-selection",
         )
+
+        // The grips come last so they sit above the surface's own gestures: a drag that starts on
+        // one belongs to the resize, and the canvas below never sees it.
+        val selectedBox: Rect? = selected?.let { bounds[it] }
+        if (selected != null && selectedBox != null && drag == Drag.None) {
+            Handle.entries.forEach { handle ->
+                ResizeHandleGrip(
+                    handle = handle,
+                    box = selectedBox,
+                    originInRoot = originInRoot,
+                    onStart = { drag = Drag.Resize(selected, handle, Offset.Zero) },
+                    onDrag = { amount ->
+                        val current: Drag = drag
+                        if (current is Drag.Resize) {
+                            drag = current.copy(delta = current.delta + amount)
+                        }
+                    },
+                    onEnd = {
+                        val current: Drag = drag
+                        if (current is Drag.Resize) {
+                            val resized: Resize? = resizeOf(current)
+                            if (resized != null) {
+                                session.resizeBy(
+                                    node = current.node,
+                                    width = resized.width,
+                                    height = resized.height,
+                                    shiftX = resized.shiftX,
+                                    shiftY = resized.shiftY,
+                                )
+                            }
+                        }
+                        drag = Drag.None
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -514,6 +584,61 @@ private sealed interface Drag {
 
     /** A plain drag, moving the node by a screen-pixel delta it commits on release. */
     data class Move(val node: NodeId, val delta: Offset) : Drag
+
+    /** A drag on one of the eight grips, in screen pixels until the release turns it into dp. */
+    data class Resize(val node: NodeId, val handle: Handle, val delta: Offset) : Drag
+}
+
+/** How large a grip is drawn, in dp. Small enough not to cover the edge it grabs. */
+private val HandleSize = 12.dp
+
+/**
+ * One grip on the selected node's box.
+ *
+ * The grip only reports; it owns no state. The drag delta lives on the canvas so the preview and
+ * the commit read the same value — a grip with its own accumulator would let the two disagree by
+ * however many frames the release took.
+ */
+@Composable
+private fun ResizeHandleGrip(
+    handle: Handle,
+    box: Rect,
+    originInRoot: Offset,
+    onStart: () -> Unit,
+    onDrag: (Offset) -> Unit,
+    onEnd: () -> Unit,
+) {
+    val density: Density = LocalDensity.current
+    val half: Float = with(density) { HandleSize.toPx() } / 2f
+    val x: Float = (when {
+        handle.left -> box.left
+        handle.right -> box.right
+        else -> box.center.x
+    } - originInRoot.x) - half
+    val y: Float = (when {
+        handle.top -> box.top
+        handle.bottom -> box.bottom
+        else -> box.center.y
+    } - originInRoot.y) - half
+    Box(
+        modifier = Modifier
+            .offset { IntOffset(x.roundToInt(), y.roundToInt()) }
+            .size(HandleSize)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.primary)
+            .pointerInput(handle, box) {
+                detectDragGestures(
+                    onDragStart = { onStart() },
+                    onDrag = { change, amount ->
+                        change.consume()
+                        onDrag(amount)
+                    },
+                    onDragEnd = { onEnd() },
+                    onDragCancel = { onEnd() },
+                )
+            }
+            .testTag("canvas-handle-${handle.tag}"),
+    )
 }
 
 /**
