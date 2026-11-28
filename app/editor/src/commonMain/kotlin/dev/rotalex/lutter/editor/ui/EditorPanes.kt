@@ -350,14 +350,15 @@ private fun EditorCanvas(
                     // `scrollDelta` is common API, which is what keeps this in commonMain while
                     // the desktop window is the only host with a wheel today.
                     //
-                    // A second finger — or the middle button — pans, and this is the only handler
-                    // that claims it: a single pointer is the marquee's or a node's, so the two
-                    // never race for the same drag.
+                    // A second finger pans, and this is the only handler that claims it: a
+                    // single pointer is the marquee's or a node's, so the two never race for the
+                    // same drag. `PointerButtons.isTertiaryPressed` is not common API in Compose
+                    // 1.12, so a mouse has no drag-to-pan here yet — the wheel still zooms.
                     awaitPointerEventScope {
                         while (true) {
                             val event = awaitPointerEvent()
                             val pressed = event.changes.filter { it.pressed }
-                            if (pressed.size >= 2 || event.buttons.isTertiaryPressed) {
+                            if (pressed.size >= 2) {
                                 val total: Offset = pressed.fold(Offset.Zero) { sum, change ->
                                     sum + change.positionChange()
                                 }
