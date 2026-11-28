@@ -32,4 +32,13 @@ internal object Placement {
 
     /** Its second argument, the vertical distance. */
     val y: PropertyKey = PropertyKey("y")
+
+    /** The modifier a resize writes: an exact width and height. */
+    val size: ModifierType = ModifierType("layout.size")
+
+    /** Its first argument. */
+    val width: PropertyKey = PropertyKey("width")
+
+    /** Its second argument. */
+    val height: PropertyKey = PropertyKey("height")
 }

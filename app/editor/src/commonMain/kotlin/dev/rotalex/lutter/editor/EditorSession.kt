@@ -245,6 +245,55 @@ public class EditorSession(
     }
 
     /**
+     * [node] resized to [width] × [height] dp, moved by the handle's shift, as one undo step.
+     *
+     * A resize from a left or top grip changes the size *and* the origin — the opposite edge is
+     * what stays still — so the two commands run inside one transaction: one gesture is one
+     * entry in the undo menu, not two. The shift is a delta, so a second resize composes with the
+     * offset the first one wrote.
+     */
+    public fun resizeBy(
+        node: NodeId,
+        width: Float,
+        height: Float,
+        shiftX: Float,
+        shiftY: Float,
+    ): CommandResult {
+        val placed = document.nodes[node]?.modifiers?.firstOrNull { it.type == Placement.offset }
+        val x: Float = placed?.args?.get(Placement.x).asDp() + shiftX
+        val y: Float = placed?.args?.get(Placement.y).asDp() + shiftY
+
+        val outcome: CommandResult = controller.transaction("Resize") {
+            val sized: CommandResult = dispatch(
+                Command.SetModifierArgs(
+                    node = node,
+                    type = Placement.size,
+                    args = mapOf(
+                        Placement.width to PropertyValue.Const(Value.Dp(width)),
+                        Placement.height to PropertyValue.Const(Value.Dp(height)),
+                    ),
+                ),
+            )
+            if (sized is CommandResult.Rejected) return@transaction sized
+            // A right or bottom grip moves no origin, and writing an offset of zero would add a
+            // modifier the node never needed — the size alone is the whole gesture.
+            if (shiftX == 0f && shiftY == 0f) return@transaction sized
+            dispatch(
+                Command.SetModifierArgs(
+                    node = node,
+                    type = Placement.offset,
+                    args = mapOf(
+                        Placement.x to PropertyValue.Const(Value.Dp(x)),
+                        Placement.y to PropertyValue.Const(Value.Dp(y)),
+                    ),
+                ),
+            )
+        }
+        reconcile()
+        return outcome
+    }
+
+    /**
      * The expression-field commit for one property: parse, then dispatch.
      *
      * A refusal is surfaced with the engine's own reasons rather than as a generic failure,
