@@ -169,6 +169,21 @@ public final class dev/rotalex/lutter/editing/command/Command$SetEventHandler : 
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class dev/rotalex/lutter/editing/command/Command$SetModifierArgs : dev/rotalex/lutter/editing/command/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-qw1I0Vk ()Ljava/lang/String;
+	public final fun component2-7JALVuA ()Ljava/lang/String;
+	public final fun component3 ()Ljava/util/Map;
+	public final fun copy-qTPGMBo (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)Ldev/rotalex/lutter/editing/command/Command$SetModifierArgs;
+	public static synthetic fun copy-qTPGMBo$default (Ldev/rotalex/lutter/editing/command/Command$SetModifierArgs;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Ldev/rotalex/lutter/editing/command/Command$SetModifierArgs;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArgs ()Ljava/util/Map;
+	public final fun getNode-qw1I0Vk ()Ljava/lang/String;
+	public final fun getType-7JALVuA ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/rotalex/lutter/editing/command/Command$SetModifiers : dev/rotalex/lutter/editing/command/Command {
 	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1-qw1I0Vk ()Ljava/lang/String;
