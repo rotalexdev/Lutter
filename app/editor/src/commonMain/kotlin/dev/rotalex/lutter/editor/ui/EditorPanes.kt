@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -57,11 +59,16 @@ import dev.rotalex.lutter.editing.policy.DropTarget
 import dev.rotalex.lutter.editor.EditorPreview
 import dev.rotalex.lutter.editor.EditorSelection
 import dev.rotalex.lutter.editor.EditorSession
+import dev.rotalex.lutter.editor.CanvasBox
 import dev.rotalex.lutter.editor.EditorViewport
+import dev.rotalex.lutter.editor.Gap
+import dev.rotalex.lutter.editor.Guide
 import dev.rotalex.lutter.editor.InspectorModel
 import dev.rotalex.lutter.editor.PaletteEntry
 import dev.rotalex.lutter.editor.PaletteSection
 import dev.rotalex.lutter.editor.PreviewState
+import dev.rotalex.lutter.editor.Snap
+import dev.rotalex.lutter.editor.Snapping
 import dev.rotalex.lutter.editor.ViewPoint
 import dev.rotalex.lutter.editor.PropertyEdit
 import dev.rotalex.lutter.editor.PropertyRow
@@ -278,6 +285,22 @@ private fun EditorCanvas(
     var originInRoot: Offset by remember { mutableStateOf(Offset.Zero) }
     var drag: Drag by remember(document) { mutableStateOf<Drag>(Drag.None) }
     var viewport: EditorViewport by remember(document) { mutableStateOf(EditorViewport()) }
+    val density: Density = LocalDensity.current
+
+    // What the drag would commit if released now: the raw delta corrected to the nearest
+    // alignment, plus the lines and distances to draw. Computed once per frame from the same
+    // values the release uses, so the preview cannot promise a place the commit does not take.
+    fun snapOf(move: Drag.Move): Snap {
+        val moving: CanvasBox = bounds[move.node]?.toBox() ?: return Snap(move.delta.x, move.delta.y)
+        val own: Set<NodeId> = subtreeOf(document, move.node)
+        val others: List<CanvasBox> = bounds.filterKeys { it !in own }.values.map { it.toBox() }
+        return Snapping.snap(
+            moving = moving,
+            others = others,
+            delta = ViewPoint(move.delta.x, move.delta.y),
+            threshold = with(density) { 6.dp.toPx() },
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -380,10 +403,11 @@ private fun EditorCanvas(
                         onDragEnd = {
                             val current = moving
                             if (current != null && (current.delta.x != 0f || current.delta.y != 0f)) {
+                                val snap = snapOf(current)
                                 session.moveBy(
                                     node = current.node,
-                                    dx = with(density) { current.delta.x.toDp().value },
-                                    dy = with(density) { current.delta.y.toDp().value },
+                                    dx = with(density) { snap.dx.toDp().value },
+                                    dy = with(density) { snap.dy.toDp().value },
                                 )
                             }
                             moving = null
@@ -455,13 +479,20 @@ private fun EditorCanvas(
             )
         }
         (drag as? Drag.Move)?.let { move ->
+            val snap = snapOf(move)
             Outline(
-                box = bounds[move.node]?.translate(move.delta.x, move.delta.y),
+                box = bounds[move.node]?.translate(snap.dx, snap.dy),
                 originInRoot = originInRoot,
                 color = theme.secondary,
                 fill = theme.secondary.copy(alpha = 0.12f),
                 tag = "canvas-move-preview",
             )
+            snap.guides.forEach { guide ->
+                GuideLine(guide, originInRoot, theme.secondary)
+            }
+            snap.gaps.forEach { gap ->
+                GapLabel(gap, originInRoot, density)
+            }
         }
         val selected: NodeId? = (selection as? EditorSelection.Node)?.id
         Outline(
@@ -514,6 +545,67 @@ private fun Outline(
             .testTag(tag),
     )
 }
+
+/**
+ * One alignment line, drawn across the boxes that share it.
+ *
+ * A one-pixel line in a translucent colour: the guide is a measurement, not a decoration, so it
+ * never competes with the node being dragged.
+ */
+@Composable
+private fun GuideLine(guide: Guide, originInRoot: Offset, color: Color) {
+    val length: Float = guide.to - guide.from
+    if (length <= 0f) return
+    val start: Float = guide.at - if (guide.vertical) originInRoot.x else originInRoot.y
+    val from: Float = guide.from - if (guide.vertical) originInRoot.y else originInRoot.x
+    Box(
+        modifier = Modifier
+            .offset { IntOffset(start.roundToInt(), from.roundToInt()) }
+            .then(if (guide.vertical) Modifier.width(1.dp) else Modifier.height(1.dp))
+            .then(
+                if (guide.vertical) {
+                    Modifier.height(with(LocalDensity.current) { length.toDp() })
+                } else {
+                    Modifier.width(with(LocalDensity.current) { length.toDp() })
+                },
+            )
+            .background(color.copy(alpha = 0.7f)),
+    )
+}
+
+/**
+ * The distance between the dragged box and a neighbour, as the number a person would type.
+ *
+ * Placed at the middle of the gap so it reads as belonging to it; the value is converted back to
+ * dp, which is the unit the document stores and the inspector shows.
+ */
+@Composable
+private fun GapLabel(gap: Gap, originInRoot: Offset, density: Density) {
+    val at: Float = gap.at - if (gap.vertical) originInRoot.x else originInRoot.y
+    val along: Float = gap.along - if (gap.vertical) originInRoot.y else originInRoot.x
+    val text: String = with(density) { gap.size.toDp().value.roundToInt() }.toString()
+    Box(
+        modifier = Modifier
+            .offset {
+                if (gap.vertical) {
+                    IntOffset(at.roundToInt() - 12, along.roundToInt() - 8)
+                } else {
+                    IntOffset(along.roundToInt() - 12, at.roundToInt() - 8)
+                }
+            }
+            .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.extraSmall)
+            .padding(horizontal = 4.dp, vertical = 1.dp),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** The same four numbers, in the type the snap arithmetic takes. */
+private fun Rect.toBox(): CanvasBox = CanvasBox(left, top, right, bottom)
 
 /** A line in the canvas when there is nothing to draw: what is missing, and in what colour. */
 @Composable
