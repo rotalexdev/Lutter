@@ -23,6 +23,19 @@ public sealed interface EditorSelection {
     /** One node, whose properties the inspector shows. */
     public data class Node(public val id: NodeId) : EditorSelection
 
+    /**
+     * Several nodes, acted on together — a marquee's catch, moved or removed as one gesture.
+     *
+     * [primary] is the one the inspector shows and the one a single-node action falls back to,
+     * because a dock with three buttons has no room to explain that "Properties" is ambiguous.
+     * A selection of one is a [Node], not a `Nodes` of size one: two representations of the same
+     * state would let a session hold one and a test assert the other.
+     */
+    public data class Nodes(
+        public val ids: Set<NodeId>,
+        public val primary: NodeId,
+    ) : EditorSelection
+
     /** One page, selected in the page list rather than through a node. */
     public data class Page(public val id: PageId) : EditorSelection
 }

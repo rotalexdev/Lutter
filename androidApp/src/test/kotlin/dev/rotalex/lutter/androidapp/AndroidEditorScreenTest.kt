@@ -4,6 +4,7 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -216,6 +217,22 @@ class AndroidEditorScreenTest {
         // A selected node offers the grips a resize starts from, and the ring alone would not.
         compose.onNodeWithTag("canvas-handle-top-left").assertExists()
         compose.onNodeWithTag("canvas-handle-bottom-right").assertExists()
+    }
+
+    @Test
+    fun a_multi_selection_draws_a_ring_per_node_and_no_grips() {
+        val session = session()
+        session.selectNodes(linkedSetOf(NodeId("n_title"), NodeId("n_btn")))
+        compose.setContent {
+            LutterTheme { EditorShell(session, preview(session), BuiltinEngine.runtime(schema), save = null) }
+        }
+
+        compose.waitForIdle()
+        // Two nodes, two rings: a selection of two that drew one ring would be lying about what
+        // a group move is about to touch.
+        assertEquals(2, compose.onAllNodesWithTag("canvas-selection").fetchSemanticsNodes().size)
+        // And no grips: eight handles around two boxes have no single size to resize.
+        compose.onNodeWithTag("canvas-handle-top-left").assertDoesNotExist()
     }
 
     private fun session(): EditorSession {

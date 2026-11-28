@@ -71,6 +71,7 @@ import dev.rotalex.lutter.editor.PreviewState
 import dev.rotalex.lutter.editor.Resize
 import dev.rotalex.lutter.editor.Resizing
 import dev.rotalex.lutter.editor.Snap
+import dev.rotalex.lutter.editor.subtreeOf
 import dev.rotalex.lutter.editor.Snapping
 import dev.rotalex.lutter.editor.ViewPoint
 import dev.rotalex.lutter.editor.PropertyEdit
@@ -294,8 +295,8 @@ private fun EditorCanvas(
     // alignment, plus the lines and distances to draw. Computed once per frame from the same
     // values the release uses, so the preview cannot promise a place the commit does not take.
     fun snapOf(move: Drag.Move): Snap {
-        val moving: CanvasBox = bounds[move.node]?.toBox() ?: return Snap(move.delta.x, move.delta.y)
-        val own: Set<NodeId> = subtreeOf(document, move.node)
+        val moving: CanvasBox = bounds[move.primary]?.toBox() ?: return Snap(move.delta.x, move.delta.y)
+        val own: Set<NodeId> = move.ids.flatMap { subtreeOf(document, it) }.toSet()
         val others: List<CanvasBox> = bounds.filterKeys { it !in own }.values.map { it.toBox() }
         return Snapping.snap(
             moving = moving,
@@ -348,9 +349,25 @@ private fun EditorCanvas(
                     // The wheel zooms about the pointer, so the node under it stays under it.
                     // `scrollDelta` is common API, which is what keeps this in commonMain while
                     // the desktop window is the only host with a wheel today.
+                    //
+                    // A second finger — or the middle button — pans, and this is the only handler
+                    // that claims it: a single pointer is the marquee's or a node's, so the two
+                    // never race for the same drag.
                     awaitPointerEventScope {
                         while (true) {
                             val event = awaitPointerEvent()
+                            val pressed = event.changes.filter { it.pressed }
+                            if (pressed.size >= 2 || event.buttons.isTertiaryPressed) {
+                                val total: Offset = pressed.fold(Offset.Zero) { sum, change ->
+                                    sum + change.positionChange()
+                                }
+                                if (total != Offset.Zero) {
+                                    pressed.forEach { it.consume() }
+                                    val count: Float = pressed.size.toFloat()
+                                    viewport = viewport.panned(total.x / count, total.y / count)
+                                }
+                                continue
+                            }
                             val change = event.changes.firstOrNull() ?: continue
                             val scroll = change.scrollDelta
                             if (scroll.y == 0f) continue
@@ -367,23 +384,40 @@ private fun EditorCanvas(
                     }
                 }
                 .pointerInput(document) {
-                    // A plain drag pans, but only when it starts on the page's margin: a drag
-                    // that starts on a node belongs to the long-press reorder, and taking it
-                    // here would pan instead of moving the node.
-                    var panning = false
+                    // A plain drag that starts on the page's margin is a marquee: it selects
+                    // every node whose box it crosses. Panning moved to the second finger (and
+                    // the middle button) above, because one gesture cannot both select and
+                    // scroll and selecting is what a layout editor is for.
+                    var marquee: Drag.Marquee? = null
                     detectDragGestures(
                         onDragStart = { start ->
-                            panning =
-                                deepestNodeAt(document, bounds, start + originInRoot) == null
-                        },
-                        onDrag = { change, delta ->
-                            if (panning) {
-                                change.consume()
-                                viewport = viewport.panned(delta.x, delta.y)
+                            if (deepestNodeAt(document, bounds, start + originInRoot) == null) {
+                                marquee = Drag.Marquee(start = start, current = start)
+                                drag = marquee ?: Drag.None
                             }
                         },
-                        onDragEnd = { panning = false },
-                        onDragCancel = { panning = false },
+                        onDrag = { change, _ ->
+                            val current: Drag.Marquee? = marquee
+                            if (current != null) {
+                                change.consume()
+                                marquee = current.copy(current = change.position)
+                                drag = marquee ?: Drag.None
+                            }
+                        },
+                        onDragEnd = {
+                            val current: Drag.Marquee? = marquee
+                            if (current != null) {
+                                session.selectNodes(
+                                    marqueeSelection(current, originInRoot, document, bounds),
+                                )
+                            }
+                            marquee = null
+                            drag = Drag.None
+                        },
+                        onDragCancel = {
+                            marquee = null
+                            drag = Drag.None
+                        },
                     )
                 }
                 .pointerInput(document) {
@@ -407,7 +441,20 @@ private fun EditorCanvas(
                     detectDragGestures(
                         onDragStart = { start ->
                             val id = deepestNodeAt(document, bounds, start + originInRoot)
-                            moving = id?.let { Drag.Move(it, Offset.Zero) }
+                            // Read at the gesture, not from composition: this detector restarts
+                            // on a document change, and a selection change is neither.
+                            val chosen: Set<NodeId> = when (val current = session.selection.value) {
+                                is EditorSelection.Node -> setOf(current.id)
+                                is EditorSelection.Nodes -> current.ids
+                                else -> emptySet()
+                            }
+                            moving = id?.let {
+                                Drag.Move(
+                                    ids = if (it in chosen) chosen else setOf(it),
+                                    primary = it,
+                                    delta = Offset.Zero,
+                                )
+                            }
                             drag = moving ?: Drag.None
                         },
                         onDrag = { change, amount ->
@@ -423,7 +470,7 @@ private fun EditorCanvas(
                             if (current != null && (current.delta.x != 0f || current.delta.y != 0f)) {
                                 val snap = snapOf(current)
                                 session.moveBy(
-                                    node = current.node,
+                                    nodes = current.ids,
                                     dx = with(density) { snap.dx.toDp().value },
                                     dy = with(density) { snap.dy.toDp().value },
                                 )
@@ -498,19 +545,35 @@ private fun EditorCanvas(
         }
         (drag as? Drag.Move)?.let { move ->
             val snap = snapOf(move)
-            Outline(
-                box = bounds[move.node]?.translate(snap.dx, snap.dy),
-                originInRoot = originInRoot,
-                color = theme.secondary,
-                fill = theme.secondary.copy(alpha = 0.12f),
-                tag = "canvas-move-preview",
-            )
+            move.ids.forEach { id ->
+                Outline(
+                    box = bounds[id]?.translate(snap.dx, snap.dy),
+                    originInRoot = originInRoot,
+                    color = theme.secondary,
+                    fill = theme.secondary.copy(alpha = 0.12f),
+                    tag = "canvas-move-preview",
+                )
+            }
             snap.guides.forEach { guide ->
                 GuideLine(guide, originInRoot, theme.secondary)
             }
             snap.gaps.forEach { gap ->
                 GapLabel(gap, originInRoot, density)
             }
+        }
+        (drag as? Drag.Marquee)?.let { marquee ->
+            Outline(
+                box = Rect(
+                    left = minOf(marquee.start.x, marquee.current.x),
+                    top = minOf(marquee.start.y, marquee.current.y),
+                    right = maxOf(marquee.start.x, marquee.current.x),
+                    bottom = maxOf(marquee.start.y, marquee.current.y),
+                ),
+                originInRoot = originInRoot,
+                color = theme.primary,
+                fill = theme.primary.copy(alpha = 0.08f),
+                tag = "canvas-marquee",
+            )
         }
         (drag as? Drag.Resize)?.let { resizing ->
             val box: Rect? = bounds[resizing.node]
@@ -528,25 +591,37 @@ private fun EditorCanvas(
                 )
             }
         }
-        val selected: NodeId? = (selection as? EditorSelection.Node)?.id
-        Outline(
-            box = selected?.let { bounds[it] },
-            originInRoot = originInRoot,
-            color = theme.primary,
-            fill = theme.primary.copy(alpha = 0.06f),
-            tag = "canvas-selection",
-        )
+        val selectedIds: Set<NodeId> = when (val current = selection) {
+            is EditorSelection.Node -> setOf(current.id)
+            is EditorSelection.Nodes -> current.ids
+            else -> emptySet()
+        }
+        val primary: NodeId? = when (val current = selection) {
+            is EditorSelection.Node -> current.id
+            is EditorSelection.Nodes -> current.primary
+            else -> null
+        }
+        selectedIds.forEach { id ->
+            Outline(
+                box = bounds[id],
+                originInRoot = originInRoot,
+                color = theme.primary,
+                fill = theme.primary.copy(alpha = if (id == primary) 0.06f else 0.04f),
+                tag = "canvas-selection",
+            )
+        }
 
         // The grips come last so they sit above the surface's own gestures: a drag that starts on
-        // one belongs to the resize, and the canvas below never sees it.
-        val selectedBox: Rect? = selected?.let { bounds[it] }
-        if (selected != null && selectedBox != null && drag == Drag.None) {
+        // one belongs to the resize, and the canvas below never sees it. Only a single selection
+        // has an unambiguous box to resize.
+        val selectedBox: Rect? = if (selectedIds.size == 1) primary?.let { bounds[it] } else null
+        if (primary != null && selectedBox != null && drag == Drag.None) {
             Handle.entries.forEach { handle ->
                 ResizeHandleGrip(
                     handle = handle,
                     box = selectedBox,
                     originInRoot = originInRoot,
-                    onStart = { drag = Drag.Resize(selected, handle, Offset.Zero) },
+                    onStart = { drag = Drag.Resize(primary, handle, Offset.Zero) },
                     onDrag = { amount ->
                         val current: Drag = drag
                         if (current is Drag.Resize) {
@@ -582,11 +657,50 @@ private sealed interface Drag {
     /** A long-press drag, choosing the container the node will land in. */
     data class Reorder(val node: NodeId, val target: DropTarget?) : Drag
 
-    /** A plain drag, moving the node by a screen-pixel delta it commits on release. */
-    data class Move(val node: NodeId, val delta: Offset) : Drag
+    /**
+     * A plain drag, moving every node in [ids] by a screen-pixel delta it commits on release.
+     *
+     * [primary] is the node the finger started on: the snap is measured against its box, and the
+     * rest of the group follows the correction it earns so the arrangement does not deform.
+     */
+    data class Move(val ids: Set<NodeId>, val primary: NodeId, val delta: Offset) : Drag
 
     /** A drag on one of the eight grips, in screen pixels until the release turns it into dp. */
     data class Resize(val node: NodeId, val handle: Handle, val delta: Offset) : Drag
+
+    /** A drag that started on the page's margin: a selection rectangle, in screen pixels. */
+    data class Marquee(val start: Offset, val current: Offset) : Drag
+}
+
+/**
+ * The nodes a marquee catches.
+ *
+ * A box is caught when it overlaps the rectangle, and only the deepest hit survives: a marquee
+ * over a panel's children selects the children, which is what a person drawing a box around two
+ * labels means, while a marquee over the panel's own padding selects the panel. Page roots are
+ * never caught — they cover the whole canvas, so they would swallow every other answer.
+ */
+private fun marqueeSelection(
+    marquee: Drag.Marquee,
+    originInRoot: Offset,
+    document: UiDocument,
+    bounds: Map<NodeId, Rect>,
+): Set<NodeId> {
+    val area: Rect = Rect(
+        left = minOf(marquee.start.x, marquee.current.x) + originInRoot.x,
+        top = minOf(marquee.start.y, marquee.current.y) + originInRoot.y,
+        right = maxOf(marquee.start.x, marquee.current.x) + originInRoot.x,
+        bottom = maxOf(marquee.start.y, marquee.current.y) + originInRoot.y,
+    )
+    val roots: Set<NodeId> = document.pages.values.map { it.root }.toSet()
+    val hits: List<NodeId> = bounds
+        .filterKeys { it !in roots }
+        .filterValues { it.overlaps(area) }
+        .keys
+        .toList()
+    return hits.filter { id ->
+        hits.none { other -> other != id && other in subtreeOf(document, id) }
+    }.toSet()
 }
 
 /** How large a grip is drawn, in dp. Small enough not to cover the edge it grabs. */

@@ -7,6 +7,7 @@ import androidx.compose.ui.geometry.Rect
 import dev.rotalex.lutter.analysis.resolved.ResolvedNode
 import dev.rotalex.lutter.editing.policy.DropTarget
 import dev.rotalex.lutter.model.doc.UiDocument
+import dev.rotalex.lutter.editor.subtreeOf
 import dev.rotalex.lutter.model.ids.NodeId
 import dev.rotalex.lutter.runtime.RenderHooks
 
@@ -128,23 +129,4 @@ internal fun dropTargetAt(
     }
 
     return descend(root)
-}
-
-/**
- * [id] and every node below it.
- *
- * A drag may not drop a node into its own subtree: the move would cut the branch out from under
- * the node that is being moved into it, and the planner refuses it. Refusing it *here* — by not
- * offering those containers as targets while the finger is down — is the difference between a
- * highlight that lies and a highlight that is only ever drawn where the drop would work.
- */
-internal fun subtreeOf(document: UiDocument, id: NodeId): Set<NodeId> {
-    val seen: MutableSet<NodeId> = mutableSetOf()
-    fun walk(current: NodeId) {
-        if (!seen.add(current)) return
-        val node = document.nodes[current] ?: return
-        for (children in node.slots.values) for (child in children) walk(child)
-    }
-    walk(id)
-    return seen
 }
