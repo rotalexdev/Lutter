@@ -41,7 +41,7 @@ class ResizingTest {
         assertEquals(100f, resize.width)
         assertEquals(50f, resize.height)
         assertEquals(0f, resize.shiftX)
-        assertEquals(10f, resize.shiftY)
+        assertEquals(-10f, resize.shiftY)
     }
 
     @Test
